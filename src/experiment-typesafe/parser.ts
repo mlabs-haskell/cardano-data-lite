@@ -1,16 +1,14 @@
 import { Equals, assert } from "tsafe/assert";
-import { ByteString, CBORArray, Item, JSValue, NegInt, TextString, UInt } from "./schema"
-
-parse({ type: "UInt", size: null, a: 1 }, undefined as any);
+import { ByteString, CBORArray, CBORStructArray, Item, JSValue, NegInt, TextString, UInt } from "./schema"
 
 // WIP: This doesn't compile
 function parse<T extends Item>(schema: T, stream: Uint8Array): [JSValue<T>, Uint8Array] {
 	switch (schema.type) {
-		case "UInt": return _parseUInt(schema, stream);
+		case "UInt": return _parseUInt(schema, stream) as [JSValue<T>, Uint8Array];
 
-		case "NegInt": return _parseNegInt(schema, stream);
-		case "ByteString": return _parseByteString(schema, stream);
-		case "TextString": return _parseTextString(schema, stream);
+		case "NegInt": return _parseNegInt(schema, stream) as [JSValue<T>, Uint8Array];
+		case "ByteString": return _parseByteString(schema, stream) as [JSValue<T>, Uint8Array];
+		case "TextString": return _parseTextString(schema, stream) as [JSValue<T>, Uint8Array];
 		case "Array": return "todo" as any;
 		case "Map": return "todo" as any;
 	}
@@ -66,7 +64,7 @@ function _parseTextString(schema: TextString, stream: Uint8Array): [string, Uint
 	return [str, stream];
 }
 
-function _parseArray<T extends [string, Item][]>(schema: CBORArray<T>, stream: Uint8Array) {
+function _parseStructArray<T extends [string, Item][]>(schema: CBORStructArray<T>, stream: Uint8Array) {
 	let type = stream[0];
 
 	let base = getBase(schema);
