@@ -10,7 +10,9 @@ type Item =
 	| ByteString
 	| TextString
 	| CBORArray<any>
-	| CBORMap<any>;
+	| CBORMap<any, any>
+	| CBORStructArray<any>
+	| CBORStructMap<any>;
 
 type UInt = { type: "UInt", size: NBytes | null }
 type NegInt = { type: "NegInt", size: NBytes | null };
@@ -20,10 +22,14 @@ type TextString = { type: "TextString" };
 
 // Compounds
 
-type CBORArray<T extends ([string, Item])[]> = { type: "Array", items: T };
+type CBORArray<T extends Item> = { type: "Array", itemType: T, minSize?: number, maxSize?: number };
 
-type CBORMap<T extends [string, [string | number, Item]][]> = {
-	type: "Map", items: T
+type CBORMap<K extends Item, V extends Item> = { type: "Map", keyType: K, valueType: V, minSize?: number, maxSize?: number };
+
+type CBORStructArray<T extends ([string, Item])[]> = { type: "StructArray", items: T };
+
+type CBORStructMap<T extends [string, [string | number, Item]][]> = {
+	type: "StructMap", items: T
 };
 
 // JSValue ------------------------------------------------------------------------
@@ -33,44 +39,47 @@ type JSValue<T>
 	: T extends NegInt ? bigint
 	: T extends ByteString ? Uint8Array
 	: T extends TextString ? string
-	: T extends CBORArray<infer U> ? JSArrayValue<U>
-	: T extends CBORMap<infer U> ? JSMapValue<U>
+	: T extends CBORArray<infer U> ? U[]
+	: T extends CBORMap<infer K, infer V> ? Map<K, V>
+	: T extends CBORStructArray<infer U> ? JSArrayStruct<U>
+	: T extends CBORStructMap<infer U> ? JSMapStruct<U>
 	: never;
 
-type JSArrayValue<T> =
+type JSArrayStruct<T> =
 	T extends [infer First, ...infer Rest] ?
 	First extends [infer Key, infer Value] ?
 	Key extends string ? {
 		[key in Key]: JSValue<Value>
-	} & JSArrayValue<Rest>
+	} & JSArrayStruct<Rest>
 	: never
 	: never
 	: {};
 
-type JSMapValue<T> =
+type JSMapStruct<T> =
 	T extends [infer First, ...infer Rest] ?
 	First extends [infer Key, infer Group] ?
 	Key extends string ?
 	Group extends [any, infer Value] ?
 	{
 		[key in Key]: JSValue<Value>
-	} & JSMapValue<Rest>
+	} & JSMapStruct<Rest>
 	: never
 	: never
 	: never
 	: {};
 
+// Tests
 
 assert<
 	Equals<
-		JSValue<CBORArray<[["foo", UInt], ["bar", UInt]]>>,
+		JSValue<CBORStructArray<[["foo", UInt], ["bar", UInt]]>>,
 		{ foo: bigint, bar: bigint }
 	>
 >();
 
 assert<
 	Equals<
-		JSValue<CBORMap<[
+		JSValue<CBORStructMap<[
 			["foo", ["foo1", UInt]],
 			["bar", ["bar1", UInt]]
 		]>>,
@@ -84,7 +93,7 @@ export type {
 	NegInt,
 	ByteString,
 	TextString,
-	CBORArray,
-	CBORMap,
+	CBORStructArray,
+	CBORStructMap,
 	JSValue,
 }
