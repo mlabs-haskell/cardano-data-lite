@@ -1,0 +1,26 @@
+# Goals
+
+- Typesafety for the user . 
+	Provide as much bug-proofing as possible at compile time.
+
+- Typesafety for developer.
+	Make the library as bug-free as possible.
+
+# Approaches
+
+- Typescript type-level DSL:
+
+	Build a base DSL to represent all CBOR types.
+
+	Write functions which can use this DSL to parse CBOR in a typesafe way.
+
+	Use this to model conway.cddl
+
+- Parser, Schema with Value level DSL
+	
+	Developer needs to write typesafe interfaces/classes for each type in conway.cddl
+	Then manually map it to a schema.
+	The DSL should make it somewhat easier, but the developer needs to ensure
+	that the schema matches the CDDL file accurately.
+
+
