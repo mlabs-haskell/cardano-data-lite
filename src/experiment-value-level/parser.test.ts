@@ -1,5 +1,6 @@
 import { test, expect } from "@jest/globals";
 import { CBORItem, CBORItem_, getBase, parse } from "./parser";
+import { CBORMap } from "./model";
 
 function v<T extends CBORItem["type"], V extends CBORItem_<T>["value"]>(
   type: T,
@@ -9,9 +10,9 @@ function v<T extends CBORItem["type"], V extends CBORItem_<T>["value"]>(
   return { type, size, value } as CBORItem_<T>;
 }
 
-const EXAMPLES = [
+const EXAMPLES_ONE_WAY = [
   [
-    v("map", new Map([[v("tstr", "hello", 0), v("tstr", "world", 0)]]), 0),
+    v("map", new CBORMap([[v("tstr", "hello", 0), v("tstr", "world", 0)]]), 0),
     "a16568656c6c6f65776f726c64",
   ],
   [
@@ -24,13 +25,15 @@ const EXAMPLES = [
   [v("float", 1.6, 8), "fb3ff999999999999a"],
 ] as const;
 
-test("examples", function() {
-  for (let [js, cborHex] of EXAMPLES) {
+test("One way", function() {
+  for (let [js, cborHex] of EXAMPLES_ONE_WAY) {
     let bytes = Uint8Array.from(Buffer.from(cborHex, "hex"));
     let [out, _] = parse(bytes);
     expect(out).toEqual(js);
   }
 });
+
+
 
 test("getBase", () => {
   expect(getBase(0x00)).toEqual(0x00);

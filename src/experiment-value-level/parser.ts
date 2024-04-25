@@ -1,18 +1,4 @@
-type SizeBytes = 0 | 1 | 2 | 4 | 8;
-type CBORItem =
-  | { type: "uint"; size: SizeBytes; value: bigint }
-  | { type: "nint"; size: SizeBytes; value: bigint }
-  | { type: "tstr"; size: SizeBytes | null; value: string }
-  | { type: "bstr"; size: SizeBytes | null; value: Uint8Array }
-  | { type: "array"; size: SizeBytes | null; value: CBORItem[] }
-  | { type: "map"; size: SizeBytes | null; value: Map<CBORItem, CBORItem> }
-  | { type: "boolean"; value: boolean }
-  | { type: "null"; value: null }
-  | { type: "undefined"; value: undefined }
-  | { type: "float"; size: SizeBytes; value: number }
-  | { type: "tagged"; tag: number; value: CBORItem };
-
-type CBORItem_<T> = CBORItem & { type: T }
+import { CBORItem, CBORItem_, CBORMap, SizeBytes } from "./model";
 
 function parse(stream: Uint8Array): [CBORItem, Uint8Array] {
   switch (stream[0] & 0xf0) {
@@ -159,7 +145,7 @@ function _parseMap(stream: Uint8Array): [CBORItem_<"map">, Uint8Array] {
     error("map", type);
   }
 
-  let map: Map<CBORItem, CBORItem> = new Map();
+  let map: CBORMap = new CBORMap();
   let size: SizeBytes | null = null;
   let key: CBORItem;
   let val: CBORItem;
@@ -170,7 +156,7 @@ function _parseMap(stream: Uint8Array): [CBORItem_<"map">, Uint8Array] {
     while (stream[0] != 0xff) {
       [key, stream] = parse(stream);
       [val, stream] = parse(stream);
-      map.set(key, val);
+      map.insert(key, val);
     }
   } else {
     let n;
@@ -182,7 +168,7 @@ function _parseMap(stream: Uint8Array): [CBORItem_<"map">, Uint8Array] {
     for (let i = 0; i < n_; i++) {
       [key, stream] = parse(stream);
       [val, stream] = parse(stream);
-      map.set(key, val);
+      map.insert(key, val);
     }
   }
 
