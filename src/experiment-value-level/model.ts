@@ -1,3 +1,5 @@
+import { iterEq } from "./eq";
+
 type SizeBytes = 0 | 1 | 2 | 4 | 8;
 type CBORItem =
   | { type: "uint"; size: SizeBytes; value: bigint }
@@ -12,7 +14,11 @@ type CBORItem =
   | { type: "float"; size: SizeBytes; value: number }
   | { type: "tagged"; tag: number; value: CBORItem };
 
+type CBORType = CBORItem["type"];
+
 type CBORItem_<T> = CBORItem & { type: T }
+
+type ValueOf<T> = CBORItem_<T>["value"];
 
 class MultiMap<K, V> {
   private items: [K, V][];
@@ -83,26 +89,14 @@ function cborEq(x: CBORItem, y: CBORItem): boolean {
   }
 }
 
-function iterEq<T, U extends Iterable<T>>(a: U, b: U) {
-  let aiter = a[Symbol.iterator]();
-  let biter = b[Symbol.iterator]();
-
-  while (true) {
-    let aNext = aiter.next();
-    let bNext = biter.next();
-    if (aNext.value != bNext.value) return false;
-    if (aNext.done != bNext.done) return false;
-    if (aNext.done) break;
-  }
-  return true;
-
-}
 
 export {
   SizeBytes,
   CBORItem,
+  CBORType,
   CBORItem_,
+  MultiMap,
   CBORMap,
+  ValueOf,
   cborEq,
-  iterEq,
 }
