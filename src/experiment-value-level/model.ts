@@ -89,6 +89,12 @@ function cborEq(x: CBORItem, y: CBORItem): boolean {
   }
 }
 
+function narrow<T extends CBORItem>(value: T, type: CBORType): T["value"] | null {
+  if (value.type == type) {
+    return value.value
+  }
+  return null
+}
 
 export {
   SizeBytes,
@@ -99,4 +105,5 @@ export {
   CBORMap,
   ValueOf,
   cborEq,
+  narrow,
 }
