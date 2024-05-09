@@ -1,4 +1,4 @@
-import { MultiMap } from "./experiment-value-level/model";
+import { MultiMap } from "./cbor/model";
 
 type TransactionIndex = number;
 
