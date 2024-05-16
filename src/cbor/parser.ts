@@ -1,4 +1,4 @@
-import { CBORItem, CBORItem_, CBORMap, SizeBytes } from "./model";
+import { CBORItem, CBORItem_, SizeBytes } from "./model";
 
 function parse(stream: Uint8Array): [CBORItem, Uint8Array] {
   switch (stream[0] & 0xf0) {
@@ -145,7 +145,7 @@ function _parseMap(stream: Uint8Array): [CBORItem_<"map">, Uint8Array] {
     error("map", type);
   }
 
-  let map: CBORMap = new CBORMap();
+  let map: [CBORItem, CBORItem][] = [];
   let size: SizeBytes | null = null;
   let key: CBORItem;
   let val: CBORItem;
@@ -156,7 +156,7 @@ function _parseMap(stream: Uint8Array): [CBORItem_<"map">, Uint8Array] {
     while (stream[0] != 0xff) {
       [key, stream] = parse(stream);
       [val, stream] = parse(stream);
-      map.insert(key, val);
+      map.push([key, val]);
     }
   } else {
     let n;
@@ -168,7 +168,7 @@ function _parseMap(stream: Uint8Array): [CBORItem_<"map">, Uint8Array] {
     for (let i = 0; i < n_; i++) {
       [key, stream] = parse(stream);
       [val, stream] = parse(stream);
-      map.insert(key, val);
+      map.push([key, val]);
     }
   }
 
@@ -179,7 +179,7 @@ function _parseFloat(stream: Uint8Array): [CBORItem_<"float">, Uint8Array] {
   let view = new DataView(stream.buffer);
   switch (stream[0]) {
     case 0xf9:
-      throw "Half-precision floats are unsupported";
+      throw "Half-precision floats are unsupported"; // TODO: Get the bytes and reconstruct manually
     case 0xfa:
       return [{ type: "float", size: 4, value: view.getFloat32(1, false) }, stream.slice(5)];
     case 0xfb:
