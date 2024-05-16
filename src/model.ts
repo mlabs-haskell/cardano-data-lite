@@ -1,24 +1,31 @@
-import { MultiMap } from "./cbor/model";
+import { CBORItem } from "./cbor/model";
 
-type TransactionIndex = number;
+import * as CDDL from "./cddl/parser";
 
-type Coin = bigint;
+export type MultiMap<K, V> = [K, V][];
 
-type Hash28 = Uint8Array;
-type Hash32 = Uint8Array;
+export const TransactionIndex = new CDDL.UInt();
 
-type VKey = Uint8Array; // 32 bytes
-type Signature = Uint8Array; // 64 bytes
-type ChainCode = Uint8Array; // 32 bytes
+export const Coin = new CDDL.UInt();
 
-type AddrKeyHash = Hash28;
-type ScriptHash = Hash28; // (prepend tag before hashing, see conway.cddl)
-type ScriptDataHash = Hash32;
-type VrfKeyHash = Hash32;
-type AuxiliaryDataHash = Hash32;
+const FixedSizeBytes = (size: number) =>
+  new CDDL.BStr({ min: size, max: size });
 
-type Address = Uint8Array;
-type RewardAccount = Uint8Array;
+export const Hash28 = FixedSizeBytes(28);
+export const Hash32 = FixedSizeBytes(32);
+
+export const VKey = FixedSizeBytes(32);
+export const Signature = FixedSizeBytes(64);
+export const ChainCode = FixedSizeBytes(32);
+
+export const AddrKeyHash = Hash28;
+export const ScriptHash = Hash28; // (prepend tag before hashing, see conway.cddl)
+export const ScriptDataHash = Hash32;
+export const VrfKeyHash = Hash32;
+export const AuxiliaryDataHash = Hash32;
+
+export const Address = new CDDL.BStr();
+export const RewardAccount = Address;
 
 export interface Transaction {
   body: TransactionBody;
@@ -29,23 +36,25 @@ export interface Transaction {
   auxiliary_data: AuxiliaryData | null;
 }
 
-interface TransactionBody {
+class TransactionBody {
   inputs: TransactionInput[];
   outputs: TransactionOutput[];
-  fee: Coin;
-  ttl?: number;
-  certificates?: Certificate[];
-  withdrawals?: MultiMap<RewardAccount, Coin>;
-  auxiliary_data_hash?: AuxiliaryDataHash;
-  validity_interval_start?: number;
-  mint?: Mint;
-  script_data_hash?: ScriptDataHash;
-  collateral_inputs?: TransactionInput[];
-  required_signers?: AddrKeyHash[];
-  network_id?: number;
-  collateral_return?: TransactionOutput;
-  total_collateral?: Coin;
-  reference_inputs?: TransactionInput;
+  fee: bigint;
+  ttl?: number | undefined;
+  certificates?: Certificate[] | undefined;
+  withdrawals?: MultiMap<Uint8Array, bigint> | undefined;
+  auxiliary_data_hash?: Uint8Array | undefined;
+  validity_interval_start?: number | undefined;
+  mint?: Mint | undefined;
+  script_data_hash?: Uint8Array | undefined;
+  collateral_inputs?: TransactionInput[] | undefined;
+  required_signers?: Uint8Array[] | undefined;
+  network_id?: number | undefined;
+  collateral_return?: TransactionOutput | undefined;
+  total_collateral?: bigint | undefined;
+  reference_inputs?: TransactionInput | undefined;
+
+  constructor() { }
 }
 
 interface TransactionInput {
@@ -296,50 +305,85 @@ interface InvalidHereafter {
   value: bigint;
 }
 
-type Multiasset<A> = MultiMap<PolicyId, Map<AssetName, A>>;
+export const PolicyId = ScriptHash;
 
-type PolicyId = ScriptHash;
+export const AssetName = FixedSizeBytes(32);
 
-type AssetName = Uint8Array; // 32 bytes
+export type MultiAsset<A> = MultiMap<
+  CDDL.ParserOutput<typeof PolicyId>,
+  MultiMap<CDDL.ParserOutput<typeof AssetName>, A>
+>;
+
+export const MultiAsset = <A>(innerParser: CDDL.Parser<A>) =>
+  new CDDL.Map(PolicyId, new CDDL.Map(AssetName, innerParser));
 
 // The value type is fundamentally (coin, multiasset<coin>)
 // Although it is encoded in CBOR as coin / [coin, multiasset<positive_coin>] to prevent multiple encodings for (coin, []) or (coin, [(foo, 0)]).
 // But this is an implementation detail. It need not be exposed to the user.
 //
 interface Value {
-  coin: Coin,
-  assets: Multiasset<Coin>,
+  coin: CDDL.ParserOutput<typeof Coin>;
+  assets: MultiAsset<CDDL.ParserOutput<typeof Coin>>;
 }
 
-type Mint = Multiasset<bigint>; // Nonzero
+// Not excluding zero at the parser level because it's 
+export const Mint = MultiAsset(new CDDL.UInt());
 
-type DatumOption = DatumOptionHash | DatumOptionData;
-
-enum DatumOptionKind {
+export enum DatumOptionKind {
   Hash = 0,
   Data = 1,
 }
 
-interface DatumOptionHash {
+export interface DatumOptionHash {
   kind: DatumOptionKind.Hash;
-  value: Hash32;
+  hash: CDDL.ParserOutput<typeof Hash32>;
 }
 
-interface DatumOptionData {
+export interface DatumOptionData {
   kind: DatumOptionKind.Data;
-  value: Data;
+  data: CDDL.ParserOutput<typeof Data>;
 }
 
-type Data = Uint8Array; // #6.24 CBOR encoded PlutusData
-type ScriptRef = Uint8Array; // #6.24 CBOR encoded Script
+export type DatumOption = DatumOptionHash | DatumOptionData;
 
-type Script =
+export const DatumOption = new CDDL.Transform<CBORItem[], DatumOption>(
+  new CDDL.Array(new CDDL.Identity()),
+  (cbor) => {
+    let tag = CDDL.parseTag(new CDDL.UInt(), cbor[0]);
+    let tagNum = Number(tag);
+    switch (tagNum) {
+      case DatumOptionKind.Hash:
+        return {
+          kind: DatumOptionKind.Hash,
+          hash: CDDL.withPath("1", () => Hash32.parse(cbor[1])),
+        };
+      case DatumOptionKind.Data:
+        return {
+          kind: DatumOptionKind.Data,
+          data: CDDL.withPath("1", () => Data.parse(cbor[1])),
+        };
+      default:
+        throw new CDDL.ParseFailed(
+          ["0"],
+          "value",
+          "tag: [0,1]",
+          tagNum.toString()
+        );
+    }
+  }
+);
+
+export const ScriptRef = new CDDL.Tagged(24, new CDDL.BStr());
+
+export const Data = new CDDL.Tagged(24, new CDDL.BStr());
+
+export type Script =
   | { kind: ScriptKind.Native; value: NativeScript }
   | { kind: ScriptKind.PlutusV1; value: PlutusV1Script }
   | { kind: ScriptKind.PlutusV2; value: PlutusV2Script }
   | { kind: ScriptKind.PlutusV3; value: PlutusV3Script };
 
-enum ScriptKind {
+export enum ScriptKind {
   Native = 0,
   PlutusV1 = 1,
   PlutusV2 = 2,
