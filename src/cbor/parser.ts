@@ -23,13 +23,13 @@ function parse(stream: Uint8Array): [CBORItem, Uint8Array] {
     case 0xf0:
       switch (stream[0] & 0x0f) {
         case 0x04:
-          return [{ "type": "boolean", "value": false }, stream.slice(1)];
+          return [{ type: "boolean", value: false }, stream.slice(1)];
         case 0x05:
-          return [{ "type": "boolean", "value": true }, stream.slice(1)];
+          return [{ type: "boolean", value: true }, stream.slice(1)];
         case 0x06:
-          return [{ "type": "null", "value": null }, stream.slice(1)];
+          return [{ type: "null", value: null }, stream.slice(1)];
         case 0x07:
-          return [{ "type": "undefined", "value": undefined }, stream.slice(1)];
+          return [{ type: "undefined", value: undefined }, stream.slice(1)];
         case 0x09:
         case 0x0a:
         case 0x0b:
@@ -256,7 +256,7 @@ function error(expected: CBORItem["type"], received: number) {
 }
 
 function bigintToNum(x: bigint): number {
-  return Number(x)
+  return Number(x);
 }
 
 export { parse, getBase, CBORItem, CBORItem_ };
