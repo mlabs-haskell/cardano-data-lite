@@ -55,16 +55,15 @@ function __parseByteString(
   schema: CBORItem["type"],
   stream: Uint8Array
 ): [CBORItem_<"bstr">, Uint8Array] {
-  let type = stream[0];
+  let tag = stream[0];
 
-  let base = getBase(type);
-  let type_ = type - base;
+  let len = tag & 0b11111;
 
-  if (!((type_ >= 0x00 && type_ <= 0x1b) || type_ == 0x1f)) {
-    error(schema, type);
+  if (!((len >= 0x00 && len <= 0x1b) || len == 0x1f)) {
+    error(schema, tag);
   }
 
-  if (type_ == 0x1f) {
+  if (len == 0x1f) {
     stream = stream.slice(1);
 
     let chunks: Uint8Array[] = [];
@@ -99,20 +98,19 @@ function _parseTextString(stream: Uint8Array): [CBORItem_<"tstr">, Uint8Array] {
 }
 
 function _parseArray(stream: Uint8Array): [CBORItem_<"array">, Uint8Array] {
-  let type = stream[0];
+  let tag = stream[0];
 
-  let base = getBase(type);
-  let type_ = type - base;
+  let len = tag & 0b11111;
 
-  if (!((type_ >= 0x00 && type_ <= 0x1b) || type_ == 0x1f)) {
-    error("array", type);
+  if (!((len >= 0x00 && len <= 0x1b) || len == 0x1f)) {
+    error("array", tag);
   }
 
   let array: CBORItem[] = [];
   let item: CBORItem;
   let size: SizeBytes | null = null;
 
-  if (type_ == 0x1f) {
+  if (len == 0x1f) {
     stream = stream.slice(1);
 
     while (stream[0] != 0xff) {
@@ -136,13 +134,12 @@ function _parseArray(stream: Uint8Array): [CBORItem_<"array">, Uint8Array] {
 }
 
 function _parseMap(stream: Uint8Array): [CBORItem_<"map">, Uint8Array] {
-  let type = stream[0];
+  let tag = stream[0];
 
-  let base = getBase(type);
-  let type_ = type - base;
+  let len = tag & 0b11111;
 
-  if (!((type_ >= 0x00 && type_ <= 0x1b) || type_ == 0x1f)) {
-    error("map", type);
+  if (!((len >= 0x00 && len <= 0x1b) || len == 0x1f)) {
+    error("map", tag);
   }
 
   let map: [CBORItem, CBORItem][] = [];
@@ -150,7 +147,7 @@ function _parseMap(stream: Uint8Array): [CBORItem_<"map">, Uint8Array] {
   let key: CBORItem;
   let val: CBORItem;
 
-  if (type_ == 0x1f) {
+  if (len == 0x1f) {
     stream = stream.slice(1);
 
     while (stream[0] != 0xff) {
@@ -181,9 +178,15 @@ function _parseFloat(stream: Uint8Array): [CBORItem_<"float">, Uint8Array] {
     case 0xf9:
       throw "Half-precision floats are unsupported"; // TODO: Get the bytes and reconstruct manually
     case 0xfa:
-      return [{ type: "float", size: 4, value: view.getFloat32(1, false) }, stream.slice(5)];
+      return [
+        { type: "float", size: 4, value: view.getFloat32(1, false) },
+        stream.slice(5),
+      ];
     case 0xfb:
-      return [{ type: "float", size: 8, value: view.getFloat64(1, false) }, stream.slice(9)];
+      return [
+        { type: "float", size: 8, value: view.getFloat64(1, false) },
+        stream.slice(9),
+      ];
     default:
       throw "Unreachable";
   }
@@ -210,21 +213,24 @@ function _parseBigInt(
   schema: CBORItem["type"],
   stream: Uint8Array
 ): [{ size: SizeBytes; value: bigint }, Uint8Array] {
-  let type = stream[0];
+  let tag = stream[0];
   stream = stream.slice(1);
 
-  let base = getBase(type);
-  let type_ = type - base;
+  let len = tag & 0b11111;
 
-  if (!(type_ >= 0x00 && type_ <= 0x1b)) {
-    error(schema, type);
+  // the value of the length field must be between 0x00 and 0x1b
+  if (!(len >= 0x00 && len <= 0x1b)) {
+    error(schema, tag);
   }
 
-  let nBytes = type_ >= 0x18 ? Math.pow(2, type_ - 0x18) : 0;
-
-  if (type_ <= 0x17) {
-    return [{ size: 0, value: BigInt(type_) }, stream];
+  // if the length field is less than 0x17, then that itself is the value
+  // (optimization for small values)
+  if (len <= 0x17) {
+    return [{ size: 0, value: BigInt(len) }, stream];
   }
+
+  // Else the lengt
+  let nBytes = Math.pow(2, len - 0x18);
 
   return [
     {
@@ -244,13 +250,6 @@ function readBigInt(nBytes: number, stream: Uint8Array): bigint {
   return x;
 }
 
-function getBase(type: number): number {
-  let tag = type >> 4;
-  let tagRoundDown = (tag >> 1) << 1;
-  let base = tagRoundDown << 4;
-  return base;
-}
-
 function error(expected: CBORItem["type"], received: number) {
   throw `Expected ${expected}. Received: ${received.toString(16)}`;
 }
@@ -259,4 +258,4 @@ function bigintToNum(x: bigint): number {
   return Number(x);
 }
 
-export { parse, getBase, CBORItem, CBORItem_ };
+export { parse, CBORItem, CBORItem_ };
