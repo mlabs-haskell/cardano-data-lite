@@ -4,14 +4,14 @@ type SizeBytes = 0 | 1 | 2 | 4 | 8;
 type CBORItem =
   | { type: "uint"; size: SizeBytes; value: bigint }
   | { type: "nint"; size: SizeBytes; value: bigint }
-  | { type: "tstr"; size: SizeBytes | null; value: string }
-  | { type: "bstr"; size: SizeBytes | null; value: Uint8Array }
+  | { type: "bstr"; size: SizeBytes | [number, SizeBytes][]; value: Uint8Array }
+  | { type: "tstr"; size: SizeBytes | [number, SizeBytes][]; value: string }
   | { type: "array"; size: SizeBytes | null; value: CBORItem[] }
   | { type: "map"; size: SizeBytes | null; value: [CBORItem, CBORItem][] }
   | { type: "boolean"; value: boolean }
   | { type: "null"; value: null }
   | { type: "undefined"; value: undefined }
-  | { type: "float"; size: SizeBytes; value: number }
+  | { type: "float"; size: 4 | 8; value: number }
   | { type: "tagged"; tag: number; value: CBORItem };
 
 type CBORType = CBORItem["type"];
