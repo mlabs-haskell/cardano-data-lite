@@ -68,13 +68,23 @@ function __parseByteString(
 
     let chunks: Uint8Array[] = [];
     let chunk: CBORItem & { type: "bstr" };
+    let sizes: [number, SizeBytes][] = [];
     while (stream[0] != 0xff) {
       [chunk, stream] = __parseByteString(schema, stream);
       chunks.push(chunk.value);
+      if (chunk.size instanceof Array) {
+        // In case of a malformed bstr where there are indefinite bstrs 
+        // nested inside an indefinite bstr, we convert it to an indifinite
+        // list of definite length bstrs, where the chunk's size byte is 
+        // the maximum (8).
+        sizes.push([chunk.value.length, 8]);
+      } else {
+        sizes.push([chunk.value.length, chunk.size]);
+      }
     }
-    return [{ type: "bstr", size: null, value: _mergeChunks(chunks) }, stream];
+    return [{ type: "bstr", size: sizes, value: _mergeChunks(chunks) }, stream];
   } else {
-    let n;
+    let n: { size: SizeBytes; value: bigint };
     [n, stream] = _parseBigInt(schema, stream);
 
     let n_ = bigintToNum(n.value);
@@ -90,7 +100,7 @@ function _parseByteString(stream: Uint8Array): [CBORItem_<"bstr">, Uint8Array] {
 }
 
 function _parseTextString(stream: Uint8Array): [CBORItem_<"tstr">, Uint8Array] {
-  let bytes;
+  let bytes: CBORItem_<"bstr">;
   [bytes, stream] = __parseByteString("tstr", stream);
 
   let str = new TextDecoder().decode(bytes.value);
@@ -223,13 +233,13 @@ function _parseBigInt(
     error(schema, tag);
   }
 
-  // if the length field is less than 0x17, then that itself is the value
+  // if the length field is less than 0x18, then that itself is the value
   // (optimization for small values)
-  if (len <= 0x17) {
+  if (len < 0x18) {
     return [{ size: 0, value: BigInt(len) }, stream];
   }
 
-  // Else the lengt
+  // Else the length is 2^(length - 0x18)
   let nBytes = Math.pow(2, len - 0x18);
 
   return [
