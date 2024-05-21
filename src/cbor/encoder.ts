@@ -151,3 +151,11 @@ function encodeFloat(cbor: CBORItem_<"float">, buffer: GrowableBuffer) {
     buffer.pushFloat64(cbor.value);
   }
 }
+
+function encodeTagged(cbor: CBORItem_<"tagged">, buffer: GrowableBuffer) {
+  let tagBase = 0xc0;
+  let additional = cbor.tag;
+  let tag = tagBase | additional;
+  buffer.pushByte(tag);
+  encode(cbor.value, buffer);
+}
