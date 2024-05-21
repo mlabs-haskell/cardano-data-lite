@@ -20,6 +20,9 @@ function parse(stream: Uint8Array): [CBORItem, Uint8Array] {
     case 0xa0:
     case 0xb0:
       return _parseMap(stream);
+    case 0xc0:
+    case 0xd0:
+      return _parseTagged(stream);
     case 0xf0:
       switch (stream[0] & 0x0f) {
         case 0x04:
@@ -73,9 +76,9 @@ function __parseByteString(
       [chunk, stream] = __parseByteString(schema, stream);
       chunks.push(chunk.value);
       if (chunk.size instanceof Array) {
-        // In case of a malformed bstr where there are indefinite bstrs 
+        // In case of a malformed bstr where there are indefinite bstrs
         // nested inside an indefinite bstr, we convert it to an indifinite
-        // list of definite length bstrs, where the chunk's size byte is 
+        // list of definite length bstrs, where the chunk's size byte is
         // the maximum (8).
         sizes.push([chunk.value.length, 8]);
       } else {
@@ -200,6 +203,23 @@ function _parseFloat(stream: Uint8Array): [CBORItem_<"float">, Uint8Array] {
     default:
       throw "Unreachable";
   }
+}
+
+function _parseTagged(stream: Uint8Array): [CBORItem_<"tagged">, Uint8Array] {
+  let tag = stream[0];
+  stream = stream.slice(1);
+
+  let tagValue = tag & 0b11111;
+  let inner: CBORItem;
+  [inner, stream] = parse(stream);
+  return [
+    {
+      type: "tagged",
+      tag: tagValue,
+      value: inner,
+    },
+    stream,
+  ];
 }
 
 function _mergeChunks(chunks: Uint8Array[]): Uint8Array {
