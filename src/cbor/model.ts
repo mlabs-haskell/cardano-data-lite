@@ -1,5 +1,3 @@
-import { iterEq } from "./eq";
-
 type SizeBytes = 0 | 1 | 2 | 4 | 8;
 type CBORItem =
   | { type: "uint"; size: SizeBytes; value: bigint }
@@ -22,21 +20,20 @@ type ValueOf<T> = CBORItem_<T>["value"];
 
 function cborEq(x: CBORItem, y: CBORItem): boolean {
   if (x.type != y.type) return false;
-  let y_; // TODO: Fix type
   switch (x.type) {
     case "uint":
     case "nint":
     case "tstr":
       return x.value == y.value
     case "bstr":
-      y_ = y as CBORItem_<"bstr">;
-      return iterEq(x.value, y_.value) // TODO: Broken
+      let yBstr = y as CBORItem_<"bstr">;
+      return cborIterEq(x.value, yBstr.value)
     case "array":
-      y_ = y as CBORItem_<"array">;
-      return iterEq(x.value, y_.value) // TODO: Broken
+      let yArray = y as CBORItem_<"array">;
+      return cborIterEq(x.value, yArray.value);
     case "map":
-      y_ = y as CBORItem_<"map">;
-      return iterEq(x.value, y_.value) // TODO: Broken
+      let yMap = y as CBORItem_<"map">;
+      return cborIterEq(x.value, yMap.value);
     case "boolean":
       return x.value == y.value;
     case "null":
@@ -46,9 +43,23 @@ function cborEq(x: CBORItem, y: CBORItem): boolean {
     case "float":
       return x.value == y.value
     case "tagged":
-      y_ = y as CBORItem_<"tagged">;
-      return x.tag == y_.tag && cborEq(x.value, y_.value)
+      let yTagged = y as CBORItem_<"tagged">;
+      return x.tag == yTagged.tag && cborEq(x.value, yTagged.value)
   }
+}
+
+function cborIterEq<T, U extends Iterable<T>>(a: U, b: U) {
+  let aiter = a[Symbol.iterator]();
+  let biter = b[Symbol.iterator]();
+
+  while (true) {
+    let aNext = aiter.next();
+    let bNext = biter.next();
+    if (!cborEq(aNext.value, bNext.value)) return false;
+    if (aNext.done != bNext.done) return false;
+    if (aNext.done) break;
+  }
+  return true;
 }
 
 function narrow<V extends CBORItem, T extends CBORType>(value: V, type: T): CBORItem_<T> | null {
