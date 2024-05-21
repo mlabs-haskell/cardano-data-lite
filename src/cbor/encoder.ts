@@ -57,7 +57,7 @@ function encodeBigInt(
       break;
   }
 
-  let tag = tagBase & additional;
+  let tag = tagBase | additional;
 
   buffer.pushByte(tag);
   if (size > 0) buffer.pushBigInt(value, size);
@@ -78,7 +78,7 @@ function _encodeByteString(
 ) {
   if (cbor.size instanceof Array) {
     let additional = 0x1f;
-    let tag = tagBase & additional;
+    let tag = tagBase | additional;
     buffer.pushByte(tag);
 
     let bstr = cbor.value;
@@ -108,7 +108,7 @@ function encodeArray(cbor: CBORItem_<"array">, buffer: GrowableBuffer) {
   let tagBase = 0x80;
   if (cbor.size == null) {
     let additional = 0x1f;
-    let tag = tagBase & additional;
+    let tag = tagBase | additional;
     buffer.pushByte(tag);
     for (let item of cbor.value) {
       encode(item, buffer);
@@ -126,7 +126,7 @@ function encodeMap(cbor: CBORItem_<"map">, buffer: GrowableBuffer) {
   let tagBase = 0xa0;
   if (cbor.size == null) {
     let additional = 0x1f;
-    let tag = tagBase & additional;
+    let tag = tagBase | additional;
     buffer.pushByte(tag);
     for (let [key, value] of cbor.value) {
       encode(key, buffer);
