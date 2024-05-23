@@ -30,6 +30,7 @@ function minBytes(value: number): SizeBytes {
 }
 
 function minBytesBig(value: bigint): SizeBytes {
+  if (value < 0n) value = -value;
   if (value < 0x18) return 0;
   let nBits = value.toString(2).length;
   let nBytes = nBits / 8;
@@ -39,7 +40,7 @@ function minBytesBig(value: bigint): SizeBytes {
   return 8;
 }
 
-export class XUInt implements XValue {
+export class XInt implements XValue {
   public value: bigint;
 
   constructor(value: bigint) {
@@ -47,12 +48,12 @@ export class XUInt implements XValue {
   }
 
   typeId(): string {
-    return "uint";
+    return "int";
   }
 
   toCBOR(): CBORItem {
     return {
-      type: "uint",
+      type: this.value < 0 ? "nint" : "uint",
       size: minBytesBig(this.value),
       value: this.value,
     };
@@ -61,7 +62,7 @@ export class XUInt implements XValue {
   compare(other: XValue): CompareResult {
     if (this.typeId < other.typeId) return -1;
     if (this.typeId > other.typeId) return 1;
-    if (other instanceof XUInt) {
+    if (other instanceof XInt) {
       if (this.value < other.value) return -1;
       if (this.value > other.value) return 1;
       return 0;
@@ -71,43 +72,7 @@ export class XUInt implements XValue {
   }
 
   toId(): string {
-    return "uint:" + this.value.toString(16);
-  }
-}
-
-export class XNInt implements XValue {
-  public value: bigint;
-
-  constructor(value: bigint) {
-    this.value = value;
-  }
-
-  typeId(): string {
-    return "nint";
-  }
-
-  toCBOR(): CBORItem {
-    return {
-      type: "nint",
-      size: minBytesBig(this.value),
-      value: this.value,
-    };
-  }
-
-  compare(other: XValue): 0 | 1 | -1 {
-    if (this.typeId < other.typeId) return -1;
-    if (this.typeId > other.typeId) return 1;
-    if (other instanceof XUInt) {
-      if (this.value < other.value) return -1;
-      if (this.value > other.value) return 1;
-      return 0;
-    } else {
-      throw "Unreachable";
-    }
-  }
-
-  toId(): string {
-    return "nint:" + this.value.toString(16);
+    return "int:" + this.value.toString(16);
   }
 }
 
@@ -325,11 +290,11 @@ export class XFloat implements XValue {
   }
 }
 
-export class XTagged implements XValue {
+export class XTagged<T extends XValue> implements XValue {
   public tag: number;
-  public value: XValue;
+  public value: T;
 
-  constructor(tag: number, value: XValue) {
+  constructor(tag: number, value: T) {
     this.tag = tag;
     this.value = value;
   }
@@ -362,10 +327,10 @@ export class XTagged implements XValue {
   }
 }
 
-export class XArray implements XValue {
-  public value: XValue[];
+export class XArray<T extends XValue> implements XValue {
+  public value: T[];
 
-  constructor(value: XValue[]) {
+  constructor(value: T[]) {
     this.value = value;
   }
 
@@ -508,7 +473,7 @@ export class XMultiMap<K extends XValue, V extends XValue> implements XValue {
     return this.value.values.get(key.toId());
   }
 
-  set(key: K, value: V) {
+  insert(key: K, value: V) {
     if (!this.value.keys.has(key.toId())) {
       this.value.keys.set(key.toId(), key);
       this.value.values.set(key.toId(), new Map());
