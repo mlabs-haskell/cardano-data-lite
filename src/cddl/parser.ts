@@ -1,4 +1,18 @@
 import { CBORItem, CBORItem_, CBORType } from "../cbor/model";
+import {
+  XArray,
+  XBStr,
+  XBoolean,
+  XFloat,
+  XInt,
+  XMap,
+  XMultiMap,
+  XNull,
+  XTStr,
+  XTagged,
+  XUndefined,
+  XValue,
+} from "./model";
 
 export interface Parser<T> {
   parse(cbor: CBORItem | null | undefined): T;
@@ -11,7 +25,18 @@ export interface Range<T> {
   max?: T;
 }
 
-function parseType<T extends CBORType>(cbor: CBORItem | null | undefined, type: T): CBORItem_<T> {
+export const RangePositive = {
+  min: 0,
+};
+
+export const RangePositiveBig = {
+  min: 0n,
+};
+
+function parseType<T extends CBORType>(
+  cbor: CBORItem | null | undefined,
+  type: T
+): CBORItem_<T> {
   if (cbor == null) {
     throw new ParseFailed([], "type", type, "null");
   }
@@ -46,7 +71,7 @@ export function withPath<T>(path: string, fn: () => T): T {
   }
 }
 
-export class Identity implements Parser<CBORItem> {
+export class IdentityP implements Parser<CBORItem> {
   parse(cbor: CBORItem | undefined | null): CBORItem {
     if (cbor == null) {
       throw new ParseFailed([], "type", "any", "null");
@@ -55,52 +80,48 @@ export class Identity implements Parser<CBORItem> {
   }
 }
 
-export class UInt implements Parser<bigint> {
-  constructor(private range?: Range<bigint>) { }
+export class IntP implements Parser<XInt> {
+  constructor(private range?: Range<bigint>) {}
 
-  parse(cbor: CBORItem | undefined | null): bigint {
-    let cbor_ = parseType(cbor, "uint");
-    validateRange(cbor_.value, this.range);
-    return cbor_.value;
+  parse(cbor: CBORItem | undefined | null): XInt {
+    let value: bigint;
+    if (cbor?.type == "nint") {
+      let cbor_ = parseType(cbor, "nint");
+      value = -cbor_.value;
+    } else {
+      let cbor_ = parseType(cbor, "uint");
+      value = cbor_.value;
+    }
+    validateRange(value, this.range);
+    return new XInt(value);
   }
 }
 
-// TODO: Invert sign of nint in parser.ts
-export class NInt implements Parser<bigint> {
-  constructor(private range?: Range<bigint>) { }
-
-  parse(cbor: CBORItem | undefined | null): bigint {
-    let cbor_ = parseType(cbor, "nint");
-    validateRange(cbor_.value, this.range);
-    return cbor_.value;
-  }
-}
-
-export class TStr implements Parser<string> {
-  constructor(private lengthRange?: Range<number>) { }
-  parse(cbor: CBORItem | undefined | null): string {
+export class TStrP implements Parser<XTStr> {
+  constructor(private lengthRange?: Range<number>) {}
+  parse(cbor: CBORItem | undefined | null): XTStr {
     let cbor_ = parseType(cbor, "tstr");
     validateRange(cbor_.value.length, this.lengthRange);
-    return cbor_.value;
+    return new XTStr(cbor_.value);
   }
 }
 
-export class BStr implements Parser<Uint8Array> {
-  constructor(private lengthRange?: Range<number>) { }
-  parse(cbor: CBORItem | undefined | null): Uint8Array {
+export class BStrP implements Parser<XBStr> {
+  constructor(private lengthRange?: Range<number>) {}
+  parse(cbor: CBORItem | undefined | null): XBStr {
     let cbor_ = parseType(cbor, "bstr");
     validateRange(cbor_.value.length, this.lengthRange);
-    return cbor_.value;
+    return new XBStr(cbor_.value);
   }
 }
 
-export class Array<T> implements Parser<T[]> {
+export class ArrayP<T extends XValue> implements Parser<XArray<T>> {
   constructor(
     private itemParser: Parser<T>,
     private lengthRange?: Range<number>
-  ) { }
+  ) {}
 
-  parse(cbor: CBORItem | undefined | null): T[] {
+  parse(cbor: CBORItem | undefined | null): XArray<T> {
     let ret: T[] = [];
     let cbor_ = parseType(cbor, "array");
     validateRange(cbor_.value.length, this.lengthRange);
@@ -112,19 +133,53 @@ export class Array<T> implements Parser<T[]> {
       itemParsed = withPath(i.toString(), () => this.itemParser.parse(item));
       ret.push(itemParsed);
     }
-    return ret;
+    return new XArray(ret);
   }
 }
 
-export class Map<K, V> implements Parser<[K, V][]> {
+export class MapP<K extends XValue, V extends XValue>
+  implements Parser<XMap<K, V>>
+{
   constructor(
     private keyParser: Parser<K>,
     private valueParser: Parser<V>,
     private lengthRange?: Range<number>
-  ) { }
+  ) {}
 
-  parse(cbor: CBORItem | undefined | null): [K, V][] {
-    let ret: [K, V][] = [];
+  parse(cbor: CBORItem | undefined | null): XMap<K, V> {
+    let ret: XMap<K, V> = new XMap();
+    let cbor_ = parseType(cbor, "map");
+    validateRange(cbor_.value.length, this.lengthRange);
+
+    let i = -1;
+    for (let [k, v] of cbor_.value) {
+      i += 1;
+      let keyParsed = withPath(i.toString(), () => this.keyParser.parse(k));
+      if (ret.get(keyParsed) != null)
+        throw new ParseFailed(
+          [i.toString()],
+          "value",
+          "unique keys",
+          "duplicate key"
+        );
+      let valueParsed = withPath(i.toString(), () => this.valueParser.parse(v));
+      ret.set(keyParsed, valueParsed);
+    }
+    return ret;
+  }
+}
+
+export class MultiMapP<K extends XValue, V extends XValue>
+  implements Parser<XMultiMap<K, V>>
+{
+  constructor(
+    private keyParser: Parser<K>,
+    private valueParser: Parser<V>,
+    private lengthRange?: Range<number>
+  ) {}
+
+  parse(cbor: CBORItem | undefined | null): XMultiMap<K, V> {
+    let ret: XMultiMap<K, V> = new XMultiMap();
     let cbor_ = parseType(cbor, "map");
     validateRange(cbor_.value.length, this.lengthRange);
 
@@ -133,65 +188,62 @@ export class Map<K, V> implements Parser<[K, V][]> {
       i += 1;
       let keyParsed = withPath(i.toString(), () => this.keyParser.parse(k));
       let valueParsed = withPath(i.toString(), () => this.valueParser.parse(v));
-      ret.push([keyParsed, valueParsed]);
+      ret.insert(keyParsed, valueParsed);
     }
     return ret;
   }
 }
 
-export class Boolean implements Parser<boolean> {
-  constructor() { }
+export class BooleanP implements Parser<XBoolean> {
+  constructor() {}
 
-  parse(cbor: CBORItem | undefined | null): boolean {
+  parse(cbor: CBORItem | undefined | null): XBoolean {
     let cbor_ = parseType(cbor, "boolean");
-    return cbor_.value;
+    return new XBoolean(cbor_.value);
   }
 }
 
-export class Null implements Parser<null> {
-  constructor() { }
+export class NullP implements Parser<XNull> {
+  constructor() {}
 
-  parse(cbor: CBORItem | undefined | null): null {
+  parse(cbor: CBORItem | undefined | null): XNull {
     let cbor_ = parseType(cbor, "null");
-    return cbor_.value;
+    return new XNull();
   }
 }
 
-export class Undefined implements Parser<undefined> {
-  constructor() { }
+export class UndefinedP implements Parser<XUndefined> {
+  constructor() {}
 
-  parse(cbor: CBORItem | undefined | null): undefined {
+  parse(cbor: CBORItem | undefined | null): XUndefined {
     let cbor_ = parseType(cbor, "undefined");
-    return cbor_.value;
+    return new XUndefined();
   }
 }
 
-export class Float implements Parser<number> {
-  constructor() { }
+export class FloatP implements Parser<XFloat> {
+  constructor() {}
 
-  parse(cbor: CBORItem | undefined | null): number {
+  parse(cbor: CBORItem | undefined | null): XFloat {
     let cbor_ = parseType(cbor, "float");
-    return cbor_.value;
+    return new XFloat(cbor_.value);
   }
 }
 
-export class Tagged<T> implements Parser<T> {
-  constructor(
-    private tag: number,
-    private innerParser: Parser<T>
-  ) { }
+export class TaggedP<T extends XValue> implements Parser<XTagged<T>> {
+  constructor(private tag: number, private innerParser: Parser<T>) {}
 
-  parse(cbor: CBORItem | undefined | null): T {
+  parse(cbor: CBORItem | undefined | null): XTagged<T> {
     let cbor_ = parseType(cbor, "tagged");
     if (cbor_.tag != this.tag) {
       throw new ParseFailed([], "value", "tag: " + this.tag, String(cbor_.tag));
     }
-    return this.innerParser.parse(cbor_.value);
+    return new XTagged(this.tag, this.innerParser.parse(cbor_.value));
   }
 }
 
-export class Transform<T, U> implements Parser<U> {
-  constructor(private innerParser: Parser<T>, private fn: (x: T) => U) { }
+export class TransformP<T, U> implements Parser<U> {
+  constructor(private innerParser: Parser<T>, private fn: (x: T) => U) {}
 
   parse(cbor: CBORItem | undefined | null): U {
     let inner = this.innerParser.parse(cbor);
@@ -203,7 +255,7 @@ export class RecordHelper {
   private index = 0;
   private optional = false;
 
-  constructor(private items: CBORItem[]) { }
+  constructor(private items: CBORItem[]) {}
 
   next<T>(parser: Parser<T>) {
     let item = this.items[this.index];
@@ -220,7 +272,10 @@ export class RecordHelper {
   }
 }
 
-export function parseTag<T>(tagParser: Parser<T>, tag: CBORItem | undefined | null): T {
+export function parseTag<T>(
+  tagParser: Parser<T>,
+  tag: CBORItem | undefined | null
+): T {
   if (tag == null) {
     throw new ParseFailed(["0"], "value", "tag not found");
   }
