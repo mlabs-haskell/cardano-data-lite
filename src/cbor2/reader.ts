@@ -95,8 +95,7 @@ export class CBORReader {
         let map = this.readMap();
         return new CBORReaderValue(this.path, { type: "map", value: map });
       case 0b110:
-        let tagValue = this.buffer[0] & 0b11111;
-        this.buffer = this.buffer.slice(1);
+        let tagValue = this.readBigInt()
         let inner = this.read();
         return new CBORReaderValue(this.path, {
           type: "tagged",
@@ -442,12 +441,12 @@ export class CBORMultiMapReader<
 export class CBORTaggedReader<T extends CBORValue> extends CBORTagged<T> {
   public readonly path: string[];
 
-  constructor(path: string[], tag: number, value: T) {
+  constructor(path: string[], tag: bigint, value: T) {
     super(tag, value);
     this.path = path;
   }
 
-  getTagged(tag: number): T {
+  getTagged(tag: bigint): T {
     if (tag == this.tag) {
       return this.value;
     }

@@ -367,11 +367,11 @@ export class Data implements CBORCustom {
   }
 
   static fromCBOR(value: CBORReaderValue) {
-    return new Data(value.get("tagged").getTagged(24).get("bstr"));
+    return new Data(value.get("tagged").getTagged(24n).get("bstr"));
   }
 
   toCBOR(writer: CBORWriter) {
-    writer.writeTagged(24, this.bytes);
+    writer.writeTagged(24n, this.bytes);
   }
 }
 
