@@ -127,9 +127,9 @@ export class CBORReader {
               type: "undefined",
               value: undefined,
             });
-          // case 24:
+          // case 25:
           // TODO: Support half precision floats
-          case 25:
+          case 26:
             this.buffer = this.buffer.slice(1);
             let f32 = new DataView(this.buffer.buffer).getFloat32(0);
             this.buffer = this.buffer.slice(4);
@@ -137,7 +137,7 @@ export class CBORReader {
               type: "float",
               value: f32,
             });
-          case 26:
+          case 27:
             this.buffer = this.buffer.slice(1);
             let f64 = new DataView(this.buffer.buffer).getFloat64(0);
             this.buffer = this.buffer.slice(8);
