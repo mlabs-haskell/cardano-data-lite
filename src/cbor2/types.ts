@@ -33,65 +33,86 @@ export class CBORTagged<T extends CBORValue> implements CBORCustom {
 export class CBORMap<K extends CBORValue, V extends CBORValue>
   implements CBORCustom
 {
-  public value: {
-    keys: Map<string, K>;
-    values: Map<string, V>;
-  };
+  public entries: [K, V][];
+  public predicate?: (key: K, value: V) => boolean;
 
-  constructor() {
-    this.value = { keys: new Map(), values: new Map() };
+  protected constructor(
+    entries: [K, V][] = [],
+    predicate?: (key: K, value: V) => boolean
+  ) {
+    if (predicate != null) {
+      this.entries = entries.filter(([key, value]) => predicate(key, value));
+    } else {
+      this.entries = [...entries];
+    }
+    this.predicate = predicate;
+  }
+
+  static newEmpty<K extends CBORValue, V extends CBORValue>(): CBORMap<K, V> {
+    return new CBORMap([]);
   }
 
   get(key: K): V | undefined {
-    return this.value.values.get(CBORWriter.toHex(key));
+    let entry = this.entries.find(
+      (entry) => CBORWriter.compare(entry[0], key) === 0
+    );
+    return entry != null ? entry[1] : undefined;
   }
 
   set(key: K, value: V) {
-    let keyHex = CBORWriter.toHex(key);
-    this.value.keys.set(keyHex, key);
-    this.value.values.set(keyHex, value);
+    if (this.predicate && !this.predicate(key, value)) {
+      this.delete(key);
+      return;
+    }
+
+    for (let entry of this.entries) {
+      if (CBORWriter.compare(key, entry[0]) === 0) {
+        entry[1] = value;
+        return;
+      }
+    }
+    this.entries.push([key, value]);
   }
 
   delete(key: K) {
-    let id = CBORWriter.toHex(key);
-    if (this.value.keys.has(id)) {
-      this.value.keys.delete(id);
-      this.value.values.delete(id);
-    }
+    this.entries = this.entries.filter(
+      (item) => !(CBORWriter.compare(item[0], key) === 0)
+    );
   }
 
   size(): number {
-    return this.value.keys.size;
+    return this.entries.length;
   }
 
-  sortedKeys(): [string, K][] {
-    let keys = Array.from(this.value.keys.entries());
-    keys.sort((a, b) => CBORWriter.compare(a[1], b[1]));
-    return keys;
+  sortedEntries(): [K, V][] {
+    let entries = [...this.entries];
+    entries.sort((a, b) => CBORWriter.compare(a, b));
+    return entries;
   }
 
   toCBOR(writer: CBORWriter) {
-    let keys = this.sortedKeys();
-
-    let entries: [CBORValue, CBORValue][] = [];
-    for (let [id, key] of keys) {
-      let value = this.value.values.get(id)!;
-      entries.push([key, value]);
-    }
-
+    let entries = this.sortedEntries();
     writer.writeMap(entries);
   }
 
   map<K1 extends CBORValue, V1 extends CBORValue>(options: {
     key: (key: K) => K1;
     value: (value: V) => V1;
+    predicate?: (key: K1, value: V1) => boolean;
   }): CBORMap<K1, V1> {
-    let map = new CBORMap<K1, V1>();
-    for (let [id, key] of this.value.keys.entries()) {
-      let value = this.value.values.get(id)!;
-      map.set(options.key(key), options.value(value));
-    }
-    return map;
+    return new CBORMap(
+      this.entries.map(([key, value]) => [
+        options.key(key),
+        options.value(value),
+      ]),
+      options.predicate
+    );
+  }
+
+  filter(predicate: (key: K, value: V) => boolean): CBORMap<K, V> {
+    return new CBORMap(
+      this.entries.filter(([key, value]) => predicate(key, value))
+    );
   }
 }
 
