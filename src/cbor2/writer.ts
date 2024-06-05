@@ -118,8 +118,8 @@ export class CBORWriter {
     }
   }
 
-  writeTagged(tag: number, value: CBORValue) {
-    this.buffer.pushByte(0xc0 | (tag & 0b11111));
+  writeTagged(tag: bigint, value: CBORValue) {
+    encodeBigInt(0xc0, tag, this.buffer);
     this.write(value);
   }
 

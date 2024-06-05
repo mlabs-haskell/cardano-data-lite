@@ -17,10 +17,10 @@ export interface CBORCustom {
 export type CBORValue = CBORNative | CBORCustom | CBORValue[];
 
 export class CBORTagged<T extends CBORValue> implements CBORCustom {
-  public tag: number;
+  public tag: bigint;
   public value: T;
 
-  constructor(tag: number, value: T) {
+  constructor(tag: bigint, value: T) {
     this.tag = tag;
     this.value = value;
   }
