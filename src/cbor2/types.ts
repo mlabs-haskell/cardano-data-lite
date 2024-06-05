@@ -31,8 +31,7 @@ export class CBORTagged<T extends CBORValue> implements CBORCustom {
 }
 
 export class CBORMap<K extends CBORValue, V extends CBORValue>
-  implements CBORCustom
-{
+  implements CBORCustom {
   public entries: [K, V][];
   public predicate?: (key: K, value: V) => boolean;
 
@@ -117,12 +116,11 @@ export class CBORMap<K extends CBORValue, V extends CBORValue>
 }
 
 export class CBORMultiMap<K extends CBORValue, V extends CBORValue>
-  implements CBORCustom
-{
+  implements CBORCustom {
   public entries: [K, V][];
 
-  constructor() {
-    this.entries = [];
+  protected constructor(entries: [K, V][] = []) {
+    this.entries = [...entries];
   }
 
   get(key: K): V[] {
@@ -163,7 +161,6 @@ export class CBORMultiMap<K extends CBORValue, V extends CBORValue>
 
   toCBOR(writer: CBORWriter) {
     let entries = this.sortedEntries();
-
     writer.writeMap(entries);
   }
 
@@ -171,10 +168,17 @@ export class CBORMultiMap<K extends CBORValue, V extends CBORValue>
     key: (key: K) => K1;
     value: (value: V) => V1;
   }): CBORMultiMap<K1, V1> {
-    let map = new CBORMultiMap<K1, V1>();
-    for (let [key, value] of this.entries) {
-      map.add(options.key(key), options.value(value));
-    }
-    return map;
+    return new CBORMultiMap(
+      this.entries.map(([key, value]) => [
+        options.key(key),
+        options.value(value),
+      ])
+    );
+  }
+
+  filter(predicate: (key: K, value: V) => boolean): CBORMultiMap<K, V> {
+    return new CBORMultiMap(
+      this.entries.filter(([key, value]) => predicate(key, value))
+    );
   }
 }
