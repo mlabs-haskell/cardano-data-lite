@@ -16,7 +16,7 @@ export interface CBORCustom {
 
 export type CBORValue = CBORNative | CBORCustom | CBORValue[];
 
-export class CBORTagged<T extends CBORCustom> implements CBORCustom {
+export class CBORTagged<T extends CBORValue> implements CBORCustom {
   public tag: number;
   public value: T;
 
