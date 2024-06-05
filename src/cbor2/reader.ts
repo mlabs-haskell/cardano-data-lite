@@ -52,7 +52,7 @@ export type CBORTypeName =
   | "tagged";
 
 export class CBORReader {
-  private path: string[];
+  public readonly path: string[];
   private buffer: Uint8Array;
 
   constructor(buffer: Uint8Array, path?: string[]) {
@@ -101,7 +101,7 @@ export class CBORReader {
         let inner = this.read();
         return new CBORReaderValue(this.path, {
           type: "tagged",
-          value: new CBORTagged(tagValue, inner),
+          value: new CBORTaggedReader(this.path, tagValue, inner),
         });
       case 0b111:
         switch (this.buffer[0] & 0b11111) {
@@ -227,7 +227,7 @@ export class CBORReader {
     }
   }
 
-  private readArray(): CBORReaderValue[] {
+  private readArray(): CBORArrayReader<CBORReaderValue> {
     let tag = this.buffer[0];
 
     let len = tag & 0b11111;
@@ -241,8 +241,9 @@ export class CBORReader {
       );
     }
 
-    let array: CBORReaderValue[] = [];
-    let item: CBORReaderValue;
+    let array: CBORArrayReader<CBORReaderValue> = new CBORArrayReader(
+      this.path
+    );
 
     if (len == 0x1f) {
       this.buffer = this.buffer.slice(1);
@@ -310,20 +311,20 @@ type CBORReaderValueInner =
   | { type: "nint"; value: bigint }
   | { type: "bstr"; value: Uint8Array }
   | { type: "tstr"; value: string }
-  | { type: "array"; value: CBORReaderValue[] }
+  | { type: "array"; value: CBORArrayReader<CBORReaderValue> }
   | { type: "map"; value: CBORMultiMapReader<CBORReaderValue, CBORReaderValue> }
   | { type: "boolean"; value: boolean }
   | { type: "null"; value: null }
   | { type: "undefined"; value: undefined }
   | { type: "float"; value: number }
-  | { type: "tagged"; value: CBORTagged<CBORReaderValue> };
+  | { type: "tagged"; value: CBORTaggedReader<CBORReaderValue> };
 
 type CBORReaderValueInnerNarrowed<T> = (CBORReaderValueInner & {
   type: T;
 })["value"];
 
 export class CBORReaderValue implements CBORCustom {
-  private path: string[];
+  public readonly path: string[];
   private inner: CBORReaderValueInner;
 
   constructor(path: string[], inner: CBORReaderValueInner) {
@@ -356,8 +357,38 @@ export class CBORReaderValue implements CBORCustom {
     throw new ParseFailed(this.path, "type", type, this.inner.type);
   }
 
+  getInt(): bigint {
+    return this.getChoice({ uint: (x) => x, nint: (x) => x });
+  }
+
   toCBOR(writer: CBORWriter) {
     writer.write(this.inner.value);
+  }
+}
+
+export class CBORArrayReader<T extends CBORValue> extends Array<T> {
+  public readonly path: string[];
+
+  constructor(path: string[]) {
+    super();
+    this.path = path;
+  }
+
+  getRequired(index: number): T {
+    let value = this[index];
+    if (value == null) {
+      throw new ParseFailed(
+        this.path,
+        "value",
+        "index not found",
+        index.toString()
+      );
+    }
+    return value;
+  }
+
+  get(index: number): T | undefined {
+    return this[index];
   }
 }
 
@@ -365,7 +396,7 @@ export class CBORMapReader<
   K extends CBORValue,
   V extends CBORValue
 > extends CBORMap<K, V> {
-  private path: string[];
+  public readonly path: string[];
 
   constructor(path: string[]) {
     super();
@@ -385,7 +416,7 @@ export class CBORMultiMapReader<
   K extends CBORValue,
   V extends CBORValue
 > extends CBORMultiMap<K, V> {
-  private path: string[];
+  public readonly path: string[];
 
   constructor(path: string[]) {
     super();
@@ -406,6 +437,27 @@ export class CBORMultiMapReader<
       map.set(key, value);
     }
     return map;
+  }
+}
+
+export class CBORTaggedReader<T extends CBORValue> extends CBORTagged<T> {
+  public readonly path: string[];
+
+  constructor(path: string[], tag: number, value: T) {
+    super(tag, value);
+    this.path = path;
+  }
+
+  getTagged(tag: number): T {
+    if (tag == this.tag) {
+      return this.value;
+    }
+    throw new ParseFailed(
+      this.path,
+      "value",
+      "tag: " + tag,
+      this.tag.toString()
+    );
   }
 }
 
