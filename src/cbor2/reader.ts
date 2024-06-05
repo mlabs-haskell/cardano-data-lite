@@ -73,7 +73,6 @@ export class CBORReader {
   }
 
   read(): CBORReaderValue {
-    let buffer: Uint8Array;
     let tag = this.buffer[0] >> 5;
     switch (tag) {
       case 0b000:
