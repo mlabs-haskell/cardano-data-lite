@@ -1,5 +1,5 @@
-import { CBORReaderValue } from "../cbor2/reader";
-import { CBORMap, CBORValue } from "../cbor2/types";
+import { CBORReaderValue } from "../cbor/reader";
+import { CBORMap, CBORValue } from "../cbor/types";
 
 export class NonZeroBigIntMap<T extends CBORValue> extends CBORMap<T, bigint> {
   protected constructor(entries: [T, bigint][]) {
