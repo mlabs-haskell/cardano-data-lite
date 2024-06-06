@@ -1,6 +1,6 @@
-import { CBORReaderValue, ParseFailed } from "../cbor2/reader";
-import { CBORCustom } from "../cbor2/types";
-import { CBORWriter } from "../cbor2/writer";
+import { CBORReaderValue, ParseFailed } from "../cbor/reader";
+import { CBORCustom } from "../cbor/types";
+import { CBORWriter } from "../cbor/writer";
 
 function assertBytesSize(bytes: Uint8Array, size: number, path?: string[]) {
   if (bytes.length != size) {

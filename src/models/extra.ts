@@ -1,8 +1,8 @@
 // set<a> = #6.258([* a]) / [* a]
 
-import { CBORReaderValue } from "../cbor2/reader";
-import { CBORCustom, CBORValue } from "../cbor2/types";
-import { CBORWriter } from "../cbor2/writer";
+import { CBORReaderValue } from "../cbor/reader";
+import { CBORCustom, CBORValue } from "../cbor/types";
+import { CBORWriter } from "../cbor/writer";
 
 export class ConwaySet<T extends CBORValue> implements CBORCustom {
   private values: T[];

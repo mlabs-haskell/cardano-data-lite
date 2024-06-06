@@ -1,13 +1,13 @@
-import { GrowableBuffer } from "../cbor2/growable-buffer";
-import { bigintFromBytes, CBORReaderValue, ParseFailed } from "../cbor2/reader";
+import { GrowableBuffer } from "../cbor/growable-buffer";
+import { bigintFromBytes, CBORReaderValue, ParseFailed } from "../cbor/reader";
 import {
   CBORCustom,
   CBORMap,
   CBORMultiMap,
   CBORTagged,
   CBORValue,
-} from "../cbor2/types";
-import { CBORWriter } from "../cbor2/writer";
+} from "../cbor/types";
+import { CBORWriter } from "../cbor/writer";
 import { NonZeroBigIntMap, PositiveBigIntMap } from "./common";
 import { Bytes, Bytes28, Bytes32, Hash28, Hash32, Signature } from "./crypto";
 import {
