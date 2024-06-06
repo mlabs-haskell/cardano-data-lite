@@ -1,5 +1,5 @@
 import { GrowableBuffer } from "../cbor2/growable-buffer";
-import { bigintFromBytes, CBORReaderValue } from "../cbor2/reader";
+import { bigintFromBytes, CBORReaderValue, ParseFailed } from "../cbor2/reader";
 import {
   CBORCustom,
   CBORMap,
@@ -8,11 +8,8 @@ import {
   CBORValue,
 } from "../cbor2/types";
 import { CBORWriter } from "../cbor2/writer";
-import { ParseFailed } from "../cddl/parser";
-import { PolicyId } from "../model";
-import { Hash32 } from "../model2";
 import { NonZeroBigIntMap, PositiveBigIntMap } from "./common";
-import { Bytes, Bytes28, Bytes32, Hash28, Signature } from "./crypto";
+import { Bytes, Bytes28, Bytes32, Hash28, Hash32, Signature } from "./crypto";
 import {
   BoundedBytes,
   ConwaySet,
@@ -184,26 +181,26 @@ export type DNSName = string;
 
 export type RelayVariant =
   | {
-      kind: "single_host_addr";
-      value: {
-        port: Port | null;
-        ipv4: IPv4 | null;
-        ipv6: IPv6 | null;
-      };
-    }
-  | {
-      kind: "single_host_name";
-      value: {
-        port: Port | null;
-        dns_name: DNSName;
-      };
-    }
-  | {
-      kind: "multi_host_name";
-      value: {
-        dns_name: DNSName;
-      };
+    kind: "single_host_addr";
+    value: {
+      port: Port | null;
+      ipv4: IPv4 | null;
+      ipv6: IPv6 | null;
     };
+  }
+  | {
+    kind: "single_host_name";
+    value: {
+      port: Port | null;
+      dns_name: DNSName;
+    };
+  }
+  | {
+    kind: "multi_host_name";
+    value: {
+      dns_name: DNSName;
+    };
+  };
 
 export class Relay implements CBORCustom {
   public readonly variant: RelayVariant;
@@ -239,7 +236,9 @@ export class Relay implements CBORCustom {
       variant = {
         kind: "single_host_name",
         value: {
-          port: array.getRequired(1).getTypeOrNull("uint"),
+          port: array
+            .getRequired(1)
+            .getChoice({ uint: (x) => new Port(x), null: () => null }),
           dns_name: array.getRequired(2).get("tstr"),
         },
       };
@@ -548,6 +547,7 @@ export class ProtocolParamUpdate {
     if (this.minFeeRefScriptCostPerByte != null) {
       map.set(33n, this.minFeeRefScriptCostPerByte);
     }
+    writer.writeCustom(map);
   }
 }
 
@@ -1247,30 +1247,30 @@ export class BootstrapWitness implements CBORCustom {
 
 export type NativeScriptVariant =
   | {
-      type: "pubkey";
-      value: AddrKeyHash;
-    }
+    type: "pubkey";
+    value: AddrKeyHash;
+  }
   | {
-      type: "all";
-      value: NativeScript[];
-    }
+    type: "all";
+    value: NativeScript[];
+  }
   | {
-      type: "any";
-      value: NativeScript[];
-    }
+    type: "any";
+    value: NativeScript[];
+  }
   | {
-      type: "n_of_k";
-      n: number;
-      value: NativeScript[];
-    }
+    type: "n_of_k";
+    n: number;
+    value: NativeScript[];
+  }
   | {
-      type: "invalid_before";
-      value: number;
-    }
+    type: "invalid_before";
+    value: number;
+  }
   | {
-      type: "invalid_hereafter";
-      value: number;
-    };
+    type: "invalid_hereafter";
+    value: number;
+  };
 
 export class NativeScript implements CBORCustom {
   public readonly variant: NativeScriptVariant;
@@ -1445,13 +1445,13 @@ export class Data implements CBORCustom {
 
 type DatumOptionVariant =
   | {
-      kind: "hash";
-      value: Hash32;
-    }
+    kind: "hash";
+    value: Hash32;
+  }
   | {
-      kind: "data";
-      value: Data;
-    };
+    kind: "data";
+    value: Data;
+  };
 
 export class DatumOption implements CBORCustom {
   public readonly variant: DatumOptionVariant;
@@ -1464,7 +1464,7 @@ export class DatumOption implements CBORCustom {
     let array = value.get("array");
     let tag = array.getRequired(0).get("uint");
     if (tag == 0n) {
-      let hash = Hash32.fromCBOR(array.getRequired(1));
+      let hash = Bytes32.fromCBOR(array.getRequired(1));
       return new DatumOption({ kind: "hash", value: hash });
     } else if (tag == 1n) {
       let data = Data.fromCBOR(array.getRequired(1));
