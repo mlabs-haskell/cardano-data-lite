@@ -6,6 +6,9 @@ for (let i = 0; i < 0x100; i++) {
   HEX_LUT[i] = i.toString(16).padStart(2, "0");
 }
 
+// TODO: A subclass of CBORWriter that compares to a source array as it writes
+// and throws an error if they don't match
+
 export class CBORWriter {
   private buffer: GrowableBuffer;
 
@@ -60,16 +63,16 @@ export class CBORWriter {
           this.writeNull();
           return;
         }
+        if ("toCBOR" in value && value.toCBOR != null) {
+          this.writeCustom(value);
+          return;
+        }
         if (value instanceof Uint8Array) {
           this.writeBinary(value);
           return;
         }
         if (Array.isArray(value)) {
           this.writeArray(value);
-          return;
-        }
-        if (value.toCBOR != null) {
-          this.writeCustom(value);
           return;
         }
         throw new Error("Unsupported object type");
@@ -88,13 +91,21 @@ export class CBORWriter {
     if (value >= 0) {
       encodeBigInt(0x00, value, this.buffer);
     } else {
-      encodeBigInt(0x20, value, this.buffer);
+      encodeBigInt(0x20, -1n - value, this.buffer);
     }
   }
 
   writeBinary(value: Uint8Array) {
     encodeBigInt(0x40, BigInt(value.length), this.buffer);
     this.buffer.pushByteArray(value);
+  }
+
+  writeBinaryChunked(value: Uint8Array[]) {
+    this.buffer.pushByte(0x5f);
+    for (let chunk of value) {
+      this.writeBinary(chunk);
+    }
+    this.buffer.pushByte(0xff);
   }
 
   writeString(value: string) {
