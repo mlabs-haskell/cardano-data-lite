@@ -95,7 +95,7 @@ export class CBORReader {
         let map = this.readMap();
         return new CBORReaderValue(this.path, { type: "map", value: map });
       case 0b110:
-        let tagValue = this.readBigInt()
+        let tagValue = this.readBigInt();
         let inner = this.read();
         return new CBORReaderValue(this.path, {
           type: "tagged",
@@ -459,7 +459,7 @@ export class CBORTaggedReader<T extends CBORValue> extends CBORTagged<T> {
   }
 }
 
-function bigintFromBytes(nBytes: number, stream: Uint8Array): bigint {
+export function bigintFromBytes(nBytes: number, stream: Uint8Array): bigint {
   let x = BigInt(0);
   for (let i = 0; i < nBytes; i++) {
     x = x << 8n;

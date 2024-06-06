@@ -27,7 +27,11 @@ export class GrowableBuffer {
     }
   }
 
-  pushBigInt(value: bigint, nBytes: number) {
+  pushBigInt(value: bigint, nBytes?: number) {
+    if (nBytes == null) {
+      nBytes = Math.ceil(Number(value).toString(2).length / 8);
+    }
+
     let bytes: bigint[] = [];
     for (let i = 0; i < nBytes; i++) {
       bytes.push(value & 0xffn); // LSB first
