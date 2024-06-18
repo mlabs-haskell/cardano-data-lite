@@ -1,0 +1,1889 @@
+# block =
+#   [ header
+#   , transaction_bodies         : [* transaction_body]
+#   , transaction_witness_sets   : [* transaction_witness_set]
+#   , auxiliary_data_set         : {* transaction_index => auxiliary_data }
+#   , invalid_transactions       : [* transaction_index ]
+#   ]; Valid blocks must also satisfy the following two constraints:
+#    ; 1) the length of transaction_bodies and transaction_witness_sets
+#    ;    must be the same
+#    ; 2) every transaction_index must be strictly smaller than the
+#    ;    length of transaction_bodies
+block:
+  type: record
+  fields:
+    - key: header
+      type: header
+    - key: transaction_bodies
+      type:
+        type: array
+        item_type: transaction_body
+    - key: transaction_witness_sets
+      type:
+        type: array
+        item_type: transaction_witness_set
+    - key: auxiliary_data_set
+      type:
+        type: map
+        key_type: transaction_index
+        value_type: auxiliary_data
+    - key: invalid_transactions
+      type:
+        type: array
+        item_type: transaction_index
+
+# transaction =
+#   [ transaction_body
+#   , transaction_witness_set
+#   , bool
+#   , auxiliary_data / null
+#   ]
+transaction:
+  type: record
+  fields:
+    - key: transaction_body
+      type: transaction_body
+    - key: transaction_witness_set
+      type: transaction_witness_set
+    - key: is_valid
+      type: bool
+    - key: auxiliary_data
+      type:
+        type: nullable
+        item_type: auxiliary_data
+
+# transaction_index = uint .size 2
+transaction_index:
+  type: uint
+  size: 2
+
+# header =
+#   [ header_body
+#   , body_signature : $kes_signature
+#   ]
+header:
+  type: record
+  fields:
+    - key: header_body
+      type: header_body
+    - key: body_signature
+      type: kes_signature
+
+# header_body =
+#   [ block_number     : uint
+#   , slot             : uint
+#   , prev_hash        : $hash32 / null
+#   , issuer_vkey      : $vkey
+#   , vrf_vkey         : $vrf_vkey
+#   , vrf_result       : $vrf_cert ; replaces nonce_vrf and leader_vrf
+#   , block_body_size  : uint
+#   , block_body_hash  : $hash32 ; merkle triple root
+#   , operational_cert
+#   , protocol_version
+#   ]
+header_body:
+  type: record
+  fields:
+    - key: block_number
+      type: uint
+    - key: slot
+      type: uint
+    - key: prev_hash
+      type:
+        type: nullable
+        item_type: hash32
+    - key: issuer_vkey
+      type: vkey
+    - key: vrf_vkey
+      type: vrf_vkey
+    - key: vrf_result
+      type: vrf_cert
+    - key: block_body_size
+      type: uint
+    - key: block_body_hash
+      type: hash32
+    - key: operational_cert
+      type: operational_cert
+    - key: protocol_version
+      type: protocol_version
+
+# operational_cert =
+#   [ hot_vkey        : $kes_vkey
+#   , sequence_number : uint
+#   , kes_period      : uint
+#   , sigma           : $signature
+#   ]
+operational_cert:
+  type: record
+  fields:
+    - key: hot_vkey
+      type: kes_vkey
+    - key: sequence_number
+      type: uint
+    - key: kes_period
+      type: uint
+    - key: sigma
+      type: signature
+
+# next_major_protocol_version = 10
+# major_protocol_version = 1..next_major_protocol_version
+major_protocol_version:
+  type: uint
+  min: 1
+  max: 10
+
+# protocol_version = [(major_protocol_version, uint)]
+protocol_version:
+  type: record
+  fields:
+    - key: major_protocol_version
+      type: major_protocol_version
+    - key: minor_protocol_version
+      type: uint
+
+# transaction_body =
+#   { 0 : set<transaction_input>             ; inputs
+#   , 1 : [* transaction_output]
+#   , 2 : coin                               ; fee
+#   , ? 3 : uint                             ; time to live
+#   , ? 4 : certificates
+#   , ? 5 : withdrawals
+#   , ? 7 : auxiliary_data_hash
+#   , ? 8 : uint                             ; validity interval start
+#   , ? 9 : mint
+#   , ? 11 : script_data_hash
+#   , ? 13 : nonempty_set<transaction_input> ; collateral inputs
+#   , ? 14 : required_signers
+#   , ? 15 : network_id
+#   , ? 16 : transaction_output              ; collateral return
+#   , ? 17 : coin                            ; total collateral
+#   , ? 18 : nonempty_set<transaction_input> ; reference inputs
+#   , ? 19 : voting_procedures               ; New; Voting procedures
+#   , ? 20 : proposal_procedures             ; New; Proposal procedures
+#   , ? 21 : coin                            ; New; current treasury value
+#   , ? 22 : positive_coin                   ; New; donation
+#   }
+transaction_body:
+  type: struct
+  fields:
+    - id: 0
+      key: inputs
+      type:
+        type: generic
+        name: set
+        args: [transaction_input]
+    - id: 1
+      key: transaction_outputs
+      type:
+        type: array
+        item_type: transaction_output
+    - id: 2
+      key: fee
+      type: coin
+    - id: 3
+      key: time_to_live
+      type: uint
+      optional: true
+    - id: 4
+      key: certificates
+      type: certificates
+      optional: true
+    - id: 5
+      key: withdrawals
+      type: withdrawals
+      optional: true
+    - id: 7
+      key: auxiliary_data_hash
+      type: auxiliary_data_hash
+      optional: true
+    - id: 8
+      key: validity_interval_start
+      type: uint
+      optional: true
+    - id: 9
+      key: mint
+      type: mint
+      optional: true
+    - id: 11
+      key: script_data_hash
+      type: script_data_hash
+      optional: true
+    - id: 13
+      key: collateral_inputs
+      type:
+        type: generic
+        name: set
+        args: [transaction_input]
+      optional: true
+    - id: 14
+      key: required_signers
+      type: required_signers
+      optional: true
+    - id: 15
+      key: network_id
+      type: network_id
+      optional: true
+    - id: 16
+      key: collateral_return
+      type: transaction_output
+      optional: true
+    - id: 17
+      key: total_collateral
+      type: coin
+      optional: true
+    - id: 18
+      key: reference_inputs
+      type:
+        type: generic
+        name: set
+        args: [transaction_input]
+      optional: true
+    - id: 19
+      key: voting_procedures
+      type: voting_procedures
+      optional: true
+    - id: 20
+      key: proposal_procedures
+      type: proposal_procedures
+      optional: true
+    - id: 21
+      key: current_treasury_value
+      type: coin
+      optional: true
+    - id: 22
+      key: donation
+      type: positive_coin
+      optional: true
+
+
+# voting_procedures = { + voter => { + gov_action_id => voting_procedure } }
+voting_procedures:
+  type: map
+  key_type: voter
+  value_type:
+    type: map
+    key_type: gov_action_id
+    value_type: voting_procedure
+    min_len: 1
+  min_len: 1
+
+# voting_procedure =
+#   [ vote
+#   , anchor / null
+#   ]
+voting_procedure:
+  type: record
+  fields:
+    - key: vote
+      type: vote
+    - key: anchor
+      type:
+        type: nullable
+        item_type: anchor
+
+# proposal_procedure =
+#   [ deposit : coin
+#   , reward_account
+#   , gov_action
+#   , anchor
+#   ]
+proposal_procedure:
+  type: record
+  fields:
+    - key: deposit
+      type: coin
+    - key: reward_account
+      type: reward_account
+    - key: gov_action
+      type: gov_action
+    - key: anchor
+      type: anchor
+
+# proposal_procedures = nonempty_oset<proposal_procedure>
+proposal_procedures:
+  type: generic
+  name: nonempty_oset
+  args: [proposal_procedure]
+
+# certificates = nonempty_oset<certificate>
+certificates:
+  type: generic
+  name: nonempty_oset
+  args: [certificate]
+
+# policy_hash = scripthash
+policy_hash: scripthash
+
+# gov_action =
+#   [ parameter_change_action
+#   // hard_fork_initiation_action
+#   // treasury_withdrawals_action
+#   // no_confidence
+#   // update_committee
+#   // new_constitution
+#   // info_action
+#   ]
+# parameter_change_action = (0, gov_action_id / null, protocol_param_update, policy_hash / null)
+# hard_fork_initiation_action = (1, gov_action_id / null, protocol_version)
+# treasury_withdrawals_action = (2, { reward_account => coin }, policy_hash / null)
+# no_confidence = (3, gov_action_id / null)
+# update_committee = (4, gov_action_id / null, set<committee_cold_credential>, { committee_cold_credential => epoch }, unit_interval)
+# new_constitution = (5, gov_action_id / null, constitution)
+# info_action = 6
+gov_action:
+  type: tagged_record
+  variants:
+    - name: parameter_change_action
+      tag: 0
+      fields:
+        - key: gov_action_id
+          type:
+            type: nullable
+            item_type: gov_action_id
+        - key: protocol_param_update
+          type: protocol_param_update
+        - key: policy_hash
+          type:
+            type: nullable
+            item_type: policy_hash
+    - name: hard_fork_initiation_action
+      tag: 1
+      fields:
+        - key: gov_action_id
+          type:
+            type: nullable
+            item_type: gov_action_id
+        - key: protocol_version
+          type: protocol_version
+    - name: treasury_withdrawals_action
+      tag: 2
+      fields:
+        - key: withdrawals
+          type:
+            type: map
+            key_type: reward_account
+            value_type: coin
+        - key: policy_hash
+          type:
+            type: nullable
+            item_type: policy_hash
+    - name: no_confidence
+      tag: 3
+      fields:
+        - key: gov_action_id
+          type:
+            type: nullable
+            item_type: gov_action_id
+    - name: update_committee
+      tag: 4
+      fields:
+        - key: gov_action_id
+          type:
+            type: nullable
+            item_type: gov_action_id
+        - key: committee_cold_credentials
+          type:
+            type: generic
+            name: set
+            args: [committee_cold_credential]
+        - key: epochs
+          type:
+            type: map
+            key_type: committee_cold_credential
+            value_type: epoch
+        - key: unit_interval
+          type: unit_interval
+    - name: new_constitution
+      tag: 5
+      fields:
+        - key: gov_action_id
+          type:
+            type: nullable
+            item_type: gov_action_id
+        - key: constitution
+          type: constitution
+    - name: info_action
+      tag: 6
+      fields: []
+
+# constitution =
+#   [ anchor
+#   , scripthash / null
+#   ]
+constitution:
+  type: record
+  fields:
+    - key: anchor
+      type: anchor
+    - key: scripthash
+      type:
+        type: nullable
+        item_type: scripthash
+
+# ; Constitutional Committee Hot KeyHash: 0
+# ; Constitutional Committee Hot ScriptHash: 1
+# ; DRep KeyHash: 2
+# ; DRep ScriptHash: 3
+# ; StakingPool KeyHash: 4
+# voter =
+#   [ 0, addr_keyhash
+#   // 1, scripthash
+#   // 2, addr_keyhash
+#   // 3, scripthash
+#   // 4, addr_keyhash
+#   ]
+voter:
+  type: tagged_record
+  variants:
+    - name: constitutional_committee_hot_keyhash
+      tag: 0
+      fields:
+        - key: addr_keyhash
+          type: addr_keyhash
+    - name: constitutional_committee_hot_scripthash
+      tag: 1
+      fields:
+        - key: scripthash
+          type: scripthash
+    - name: drep_keyhash
+      tag: 2
+      fields:
+        - key: addr_keyhash
+          type: addr_keyhash
+    - name: drep_scripthash
+      tag: 3
+      fields:
+        - key: scripthash
+          type: scripthash
+    - name: staking_pool_keyhash
+      tag: 4
+      fields:
+        - key: addr_keyhash
+          type: addr_keyhash
+
+# anchor =
+#   [ anchor_url       : url
+#   , anchor_data_hash : $hash32
+#   ]
+anchor:
+  type: record
+  fields:
+    - key: anchor_url
+      type: url
+    - key: anchor_data_hash
+      type: hash32
+
+# ; no - 0
+# ; yes - 1
+# ; abstain - 2
+# vote = 0 .. 2
+vote:
+  type: enum
+  values:
+    - name: no
+      value: 0
+    - name: yes
+      value: 1
+    - name: abstain
+      value: 2
+
+# gov_action_id =
+#   [ transaction_id   : $hash32
+#   , gov_action_index : uint
+#   ]
+gov_action_id:
+  type: record
+  fields:
+    - key: transaction_id
+      type: hash32
+    - key: gov_action_index
+      type: uint
+
+# required_signers = nonempty_set<addr_keyhash>
+required_signers:
+  type:
+    type: generic
+    name: nonempty_set
+    args: [addr_keyhash]
+
+# transaction_input = [ transaction_id : $hash32
+#                     , index : uint
+#                     ]
+transaction_input:
+  type: record
+  fields:
+    - key: transaction_id
+      type: hash32
+    - key: index
+      type: uint
+
+# ; Both of the Alonzo and Babbage style TxOut formats are equally valid
+# ; and can be used interchangeably
+# transaction_output = pre_babbage_transaction_output / post_alonzo_transaction_output
+#
+# pre_babbage_transaction_output =
+#   [ address
+#   , amount : value
+#   , ? datum_hash : $hash32
+#   ]
+#
+# post_alonzo_transaction_output =
+#   { 0 : address
+#   , 1 : value
+#   , ? 2 : datum_option ; datum option
+#   , ? 3 : script_ref   ; script reference
+#   }
+transaction_output:
+  type: union
+  variants:
+    - name: pre_babbage_transaction_output
+      type_discriminator: array
+      type_details:
+        type: record
+        fields:
+          - type: address
+          - type: value
+          - type:
+              type: nullable
+              item_type: hash32
+    - name: post_alonzo_transaction_output
+      type_discriminator: map
+      type_details:
+        type: struct
+        fields:
+          - id: 0
+            key: address
+            type: address
+          - id: 1
+            key: value
+            type: value
+          - id: 2
+            key: datum_option
+            type: datum_option
+            optional: true
+          - id: 3
+            key: script_ref
+            type: script_ref
+            optional: true
+
+
+# script_data_hash = $hash32
+# ; This is a hash of data which may affect evaluation of a script.
+# ; This data consists of:
+# ;   - The redeemers from the transaction_witness_set (the value of field 5).
+# ;   - The datums from the transaction_witness_set (the value of field 4).
+# ;   - The value in the costmdls map corresponding to the script's language
+# ;     (in field 18 of protocol_param_update.)
+# ; (In the future it may contain additional protocol parameters.)
+# ;
+# ; Since this data does not exist in contiguous form inside a transaction, it needs
+# ; to be independently constructed by each recipient.
+# ;
+# ; The bytestring which is hashed is the concatenation of three things:
+# ;   redeemers || datums || language views
+# ; The redeemers are exactly the data present in the transaction witness set.
+# ; Similarly for the datums, if present. If no datums are provided, the middle
+# ; field is omitted (i.e. it is the empty/null bytestring).
+# ;
+# ; language views CDDL:
+# ; { * language => script_integrity_data }
+# ;
+# ; This must be encoded canonically, using the same scheme as in
+# ; RFC7049 section 3.9:
+# ;  - Maps, strings, and bytestrings must use a definite-length encoding
+# ;  - Integers must be as small as possible.
+# ;  - The expressions for map length, string length, and bytestring length
+# ;    must be as short as possible.
+# ;  - The keys in the map must be sorted as follows:
+# ;     -  If two keys have different lengths, the shorter one sorts earlier.
+# ;     -  If two keys have the same length, the one with the lower value
+# ;        in (byte-wise) lexical order sorts earlier.
+# ;
+# ; For PlutusV1 (language id 0), the language view is the following:
+# ;   - the value of costmdls map at key 0 (in other words, the script_integrity_data)
+# ;     is encoded as an indefinite length list and the result is encoded as a bytestring.
+# ;     (our apologies)
+# ;     For example, the script_integrity_data corresponding to the all zero costmodel for V1
+# ;     would be encoded as (in hex):
+# ;     58a89f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ff
+# ;   - the language ID tag is also encoded twice. first as a uint then as
+# ;     a bytestring. (our apologies)
+# ;     Concretely, this means that the language version for V1 is encoded as
+# ;     4100 in hex.
+# ; For PlutusV2 (language id 1), the language view is the following:
+# ;   - the value of costmdls map at key 1 is encoded as an definite length list.
+# ;     For example, the script_integrity_data corresponding to the all zero costmodel for V2
+# ;     would be encoded as (in hex):
+# ;     98af0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+# ;   - the language ID tag is encoded as expected.
+# ;     Concretely, this means that the language version for V2 is encoded as
+# ;     01 in hex.
+# ; For PlutusV3 (language id 2), the language view is the following:
+# ;   - the value of costmdls map at key 2 is encoded as a definite length list.
+# ;
+# ; Note that each Plutus language represented inside a transaction must have
+# ; a cost model in the costmdls protocol parameter in order to execute,
+# ; regardless of what the script integrity data is.
+# ;
+# ; Finally, note that in the case that a transaction includes datums but does not
+# ; include the redeemers field, the script data format becomes (in hex):
+# ; [ 80 | datums | A0 ]
+# ; corresponding to a CBOR empty list and an empty map.
+# ; Note that a transaction might include the redeemers field and  it to the
+# ; empty map, in which case the user supplied encoding of the empty map is used.
+# ;
+# ; address = bytes
+# ; reward_account = bytes
+#
+# ; address format:
+# ; [ 8 bit header | payload ];
+# ;
+# ; shelley payment addresses:
+# ; bit 7: 0
+# ; bit 6: base/other
+# ; bit 5: pointer/enterprise [for base: stake cred is keyhash/scripthash]
+# ; bit 4: payment cred is keyhash/scripthash
+# ; bits 3-0: network id
+# ;
+# ; reward addresses:
+# ; bits 7-5: 111
+# ; bit 4: credential is keyhash/scripthash
+# ; bits 3-0: network id
+# ;
+# ; byron addresses:
+# ; bits 7-4: 1000
+#
+# ; 0000: base address: keyhash28,keyhash28
+# ; 0001: base address: scripthash28,keyhash28
+# ; 0010: base address: keyhash28,scripthash28
+# ; 0011: base address: scripthash28,scripthash28
+# ; 0100: pointer address: keyhash28, 3 variable length uint
+# ; 0101: pointer address: scripthash28, 3 variable length uint
+# ; 0110: enterprise address: keyhash28
+# ; 0111: enterprise address: scripthash28
+# ; 1000: byron address
+# ; 1110: reward account: keyhash28
+# ; 1111: reward account: scripthash28
+# ; 1001 - 1101: future formats
+script_data_hash:
+  type: hash32
+
+# certificate =
+#   [ stake_registration
+#   // stake_deregistration
+#   // stake_delegation
+#   // pool_registration
+#   // pool_retirement
+#   // reg_cert
+#   // unreg_cert
+#   // vote_deleg_cert
+#   // stake_vote_deleg_cert
+#   // stake_reg_deleg_cert
+#   // vote_reg_deleg_cert
+#   // stake_vote_reg_deleg_cert
+#   // auth_committee_hot_cert
+#   // resign_committee_cold_cert
+#   // reg_drep_cert
+#   // unreg_drep_cert
+#   // update_drep_cert
+#   ]
+#
+# stake_registration = (0, stake_credential) ; to be deprecated in era after Conway
+# stake_deregistration = (1, stake_credential) ; to be deprecated in era after Conway
+# stake_delegation = (2, stake_credential, pool_keyhash)
+#
+# ; POOL
+# pool_registration = (3, pool_params)
+# pool_retirement = (4, pool_keyhash, epoch)
+#
+# ; numbers 5 and 6 used to be the Genesis and MIR certificates respectively,
+# ; which were deprecated in Conway
+#
+# ; DELEG
+# reg_cert = (7, stake_credential, coin)
+# unreg_cert = (8, stake_credential, coin)
+# vote_deleg_cert = (9, stake_credential, drep)
+# stake_vote_deleg_cert = (10, stake_credential, pool_keyhash, drep)
+# stake_reg_deleg_cert = (11, stake_credential, pool_keyhash, coin)
+# vote_reg_deleg_cert = (12, stake_credential, drep, coin)
+# stake_vote_reg_deleg_cert = (13, stake_credential, pool_keyhash, drep, coin)
+#
+# ; GOVCERT
+# auth_committee_hot_cert = (14, committee_cold_credential, committee_hot_credential)
+# resign_committee_cold_cert = (15, committee_cold_credential, anchor / null)
+# reg_drep_cert = (16, drep_credential, coin, anchor / null)
+# unreg_drep_cert = (17, drep_credential, coin)
+# update_drep_cert = (18, drep_credential, anchor / null)
+certificate:
+  type: tagged_record
+  variants:
+    - name: stake_registration
+      tag: 0
+      fields:
+        - key: stake_credential
+          type: stake_credential
+    - name: stake_deregistration
+      tag: 1
+      fields:
+        - key: stake_credential
+          type: stake_credential
+    - name: stake_delegation
+      tag: 2
+      fields:
+        - key: stake_credential
+          type: stake_credential
+        - key: pool_keyhash
+          type: pool_keyhash
+    - name: pool_registration
+      tag: 3
+      fields:
+        - key: pool_params
+          type: pool_params
+    - name: pool_retirement
+      tag: 4
+      fields:
+        - key: pool_keyhash
+          type: pool_keyhash
+        - key: epoch
+          type: epoch
+    - name: reg_cert
+      tag: 7
+      fields:
+        - key: stake_credential
+          type: stake_credential
+        - key: coin
+          type: coin
+    - name: unreg_cert
+      tag: 8
+      fields:
+        - key: stake_credential
+          type: stake_credential
+        - key: coin
+          type: coin
+    - name: vote_deleg_cert
+      tag: 9
+      fields:
+        - key: stake_credential
+          type: stake_credential
+        - key: drep
+          type: drep
+    - name: stake_vote_deleg_cert
+      tag: 10
+      fields:
+        - key: stake_credential
+          type: stake_credential
+        - key: pool_keyhash
+          type: pool_keyhash
+        - key: drep
+          type: drep
+    - name: stake_reg_deleg_cert
+      tag: 11
+      fields:
+        - key: stake_credential
+          type: stake_credential
+        - key: pool_keyhash
+          type: pool_keyhash
+        - key: coin
+          type: coin
+    - name: vote_reg_deleg_cert
+      tag: 12
+      fields:
+        - key: stake_credential
+          type: stake_credential
+        - key: drep
+          type: drep
+        - key: coin
+          type: coin
+    - name: stake_vote_reg_deleg_cert
+      tag: 13
+      fields:
+        - key: stake_credential
+          type: stake_credential
+        - key: pool_keyhash
+          type: pool_keyhash
+        - key: drep
+          type: drep
+        - key: coin
+          type: coin
+    - name: auth_committee_hot_cert
+      tag: 14
+      fields:
+        - key: committee_cold_credential
+          type: committee_cold_credential
+        - key: committee_hot_credential
+          type: committee_hot_credential
+    - name: resign_committee_cold_cert
+      tag: 15
+      fields:
+        - key: committee_cold_credential
+          type: committee_cold_credential
+        - key: anchor
+          type:
+            type: nullable
+            item_type: anchor
+    - name: reg_drep_cert
+      tag: 16
+      fields:
+        - key: drep_credential
+          type: drep_credential
+        - key: coin
+          type: coin
+        - key: anchor
+          type:
+            type: nullable
+            item_type: anchor
+    - name: unreg_drep_cert
+      tag: 17
+      fields:
+        - key: drep_credential
+          type: drep_credential
+        - key: coin
+          type: coin
+    - name: update_drep_cert
+      tag: 18
+      fields:
+        - key: drep_credential
+          type: drep_credential
+        - key: anchor
+          type:
+            type: nullable
+            item_type: anchor
+
+# delta_coin = int
+delta_coin:
+  type: int
+
+# credential =
+#   [  0, addr_keyhash
+#   // 1, scripthash
+#   ]
+credential:
+  type: tagged_record
+  variants:
+    - name: addr_keyhash
+      tag: 0
+      fields:
+        - key: addr_keyhash
+          type: addr_keyhash
+    - name: scripthash
+      tag: 1
+      fields:
+        - key: scripthash
+          type: scripthash
+
+# drep =
+#   [ 0, addr_keyhash
+#   // 1, scripthash
+#   // 2  ; always abstain
+#   // 3  ; always no confidence
+#   ]
+drep:
+  type: tagged_record
+  variants:
+    - name: addr_keyhash
+      tag: 0
+      fields:
+        - key: addr_keyhash
+          type: addr_keyhash
+    - name: scripthash
+      tag: 1
+      fields:
+        - key: scripthash
+          type: scripthash
+    - name: always_abstain
+      tag: 2
+    - name: always_no_confidence
+      tag: 3
+
+# stake_credential = credential
+# drep_credential = credential
+# committee_cold_credential = credential
+# committee_hot_credential = credential
+stake_credential:
+  type: credential
+drep_credential:
+  type: credential
+committee_cold_credential:
+  type: credential
+committee_hot_credential:
+  type: credential
+
+# pool_params = ( operator:       pool_keyhash
+#               , vrf_keyhash:    vrf_keyhash
+#               , pledge:         coin
+#               , cost:           coin
+#               , margin:         unit_interval
+#               , reward_account: reward_account
+#               , pool_owners:    set<addr_keyhash>
+#               , relays:         [* relay]
+#               , pool_metadata:  pool_metadata / null
+#               )
+pool_params:
+  type: group
+  fields:
+    - key: operator
+      type: pool_keyhash
+    - key: vrf_keyhash
+      type: vrf_keyhash
+    - key: pledge
+      type: coin
+    - key: cost
+      type: coin
+    - key: margin
+      type: unit_interval
+    - key: reward_account
+      type: reward_account
+    - key: pool_owners
+      type:
+        type: generic
+        name: set
+        args: [addr_keyhash]
+    - key: relays
+      type:
+        type: array
+        item_type: relay
+    - key: pool_metadata
+      type:
+        type: nullable
+        item_type: pool_metadata
+
+# port = uint .le 65535
+# ipv4 = bytes .size 4
+# ipv6 = bytes .size 16
+# dns_name = tstr .size (0..128)
+port:
+  type: uint
+  max: 65535
+ipv4:
+  type: bytes
+  len: 4
+ipv6:
+  type: bytes
+  len: 16
+dns_name:
+  type: string
+  max_len: 128
+
+# single_host_addr = ( 0
+#                    , port / null
+#                    , ipv4 / null
+#                    , ipv6 / null
+#                    )
+# single_host_name = ( 1
+#                    , port / null
+#                    , dns_name ; An A or AAAA DNS record
+#                    )
+# multi_host_name = ( 2
+#                    , dns_name ; A SRV DNS record
+#                    )
+# relay =
+#   [  single_host_addr
+#   // single_host_name
+#   // multi_host_name
+#   ]
+relay:
+  type: tagged_record
+  variants:
+    - name: single_host_addr
+      tag: 0
+      fields:
+        - key: port
+          type:
+            type: nullable
+            item_type: port
+        - key: ipv4
+          type:
+            type: nullable
+            item_type: ipv4
+        - key: ipv6
+          type:
+            type: nullable
+            item_type: ipv6
+    - name: single_host_name
+      tag: 1
+      fields:
+        - key: port
+          type:
+            type: nullable
+            item_type: port
+        - key: dns_name
+          type: dns_name
+    - name: multi_host_name
+      tag: 2
+      fields:
+        - key: dns_name
+          type: dns_name
+
+
+# pool_metadata = [url, pool_metadata_hash]
+pool_metadata:
+  type: record
+  fields:
+    - key: url
+      type: url
+    - key: pool_metadata_hash
+      type: pool_metadata_hash
+
+# url = tstr .size (0..128)
+url:
+  type: string
+  max_len: 128
+
+# withdrawals = { + reward_account => coin }
+withdrawals:
+  type: map
+  key_type: reward_account
+  value_type: coin
+  min_len: 1
+
+
+# protocol_param_update =
+#   { ? 0:  coin                   ; minfee A
+#   , ? 1:  coin                   ; minfee B
+#   , ? 2:  uint                   ; max block body size
+#   , ? 3:  uint                   ; max transaction size
+#   , ? 4:  uint                   ; max block header size
+#   , ? 5:  coin                   ; key deposit
+#   , ? 6:  coin                   ; pool deposit
+#   , ? 7:  epoch                  ; maximum epoch
+#   , ? 8:  uint                   ; n_opt: desired number of stake pools
+#   , ? 9:  nonnegative_interval   ; pool pledge influence
+#   , ? 10: unit_interval          ; expansion rate
+#   , ? 11: unit_interval          ; treasury growth rate
+#   , ? 16: coin                   ; min pool cost
+#   , ? 17: coin                   ; ada per utxo byte
+#   , ? 18: costmdls               ; cost models for script languages
+#   , ? 19: ex_unit_prices         ; execution costs
+#   , ? 20: ex_units               ; max tx ex units
+#   , ? 21: ex_units               ; max block ex units
+#   , ? 22: uint                   ; max value size
+#   , ? 23: uint                   ; collateral percentage
+#   , ? 24: uint                   ; max collateral inputs
+#   , ? 25: pool_voting_thresholds ; pool voting thresholds
+#   , ? 26: drep_voting_thresholds ; DRep voting thresholds
+#   , ? 27: uint                   ; min committee size
+#   , ? 28: epoch                  ; committee term limit
+#   , ? 29: epoch                  ; governance action validity period
+#   , ? 30: coin                   ; governance action deposit
+#   , ? 31: coin                   ; DRep deposit
+#   , ? 32: epoch                  ; DRep inactivity period
+#   , ? 33: nonnegative_interval   ; MinFee RefScriptCostPerByte
+#   }
+protocol_param_update:
+  type: struct
+  fields:
+    - id: 0
+      key: minfee_a
+      type:
+        type: nullable
+        item_type: coin
+    - id: 1
+      key: minfee_b
+      type:
+        type: nullable
+        item_type: coin
+    - id: 2
+      key: max_block_body_size
+      type:
+        type: nullable
+        item_type: uint
+    - id: 3
+      key: max_tx_size
+      type:
+        type: nullable
+        item_type: uint
+    - id: 4
+      key: max_block_header_size
+      type:
+        type: nullable
+        item_type: uint
+    - id: 5
+      key: key_deposit
+      type:
+        type: nullable
+        item_type: coin
+    - id: 6
+      key: pool_deposit
+      type:
+        type: nullable
+        item_type: coin
+    - id: 7
+      key: max_epoch
+      type:
+        type: nullable
+        item_type: epoch
+    - id: 8
+      key: n_opt
+      type:
+        type: nullable
+        item_type: uint
+    - id: 9
+      key: pool_pledge_influence
+      type:
+        type: nullable
+        item_type: nonnegative_interval
+    - id: 10
+      key: expansion_rate
+      type:
+        type: nullable
+        item_type: unit_interval
+    - id: 11
+      key: treasury_growth_rate
+      type:
+        type: nullable
+        item_type: unit_interval
+    - id: 16
+      key: min_pool_cost
+      type:
+        type: nullable
+        item_type: coin
+    - id: 17
+      key: ada_per_utxo_byte
+      type:
+        type: nullable
+        item_type: coin
+    - id: 18
+      key: costmdls
+      type:
+        type: nullable
+        item_type: costmdls
+    - id: 19
+      key: ex_unit_prices
+      type:
+        type: nullable
+        item_type: ex_unit_prices
+    - id: 20
+      key: max_tx_ex_units
+
+
+# pool_voting_thresholds =
+#   [ unit_interval ; motion no confidence
+#   , unit_interval ; committee normal
+#   , unit_interval ; committee no confidence
+#   , unit_interval ; hard fork initiation
+#   , unit_interval ; security relevant parameter voting threshold
+#   ]
+pool_voting_thresholds:
+  type: record
+  fields:
+    - key: motion_no_confidence
+      type: unit_interval
+    - key: committee_normal
+      type: unit_interval
+    - key: committee_no_confidence
+      type: unit_interval
+    - key: hard_fork_initiation
+      type: unit_interval
+    - key: security_relevant_parameter_voting_threshold
+      type: unit_interval
+
+# drep_voting_thresholds =
+#   [ unit_interval ; motion no confidence
+#   , unit_interval ; committee normal
+#   , unit_interval ; committee no confidence
+#   , unit_interval ; update constitution
+#   , unit_interval ; hard fork initiation
+#   , unit_interval ; PP network group
+#   , unit_interval ; PP economic group
+#   , unit_interval ; PP technical group
+#   , unit_interval ; PP governance group
+#   , unit_interval ; treasury withdrawal
+#   ]
+drep_voting_thresholds:
+  type: record
+  fields:
+    - key: motion_no_confidence
+      type: unit_interval
+    - key: committee_normal
+      type: unit_interval
+    - key: committee_no_confidence
+      type: unit_interval
+    - key: update_constitution
+      type: unit_interval
+    - key: hard_fork_initiation
+      type: unit_interval
+    - key: pp_network_group
+      type: unit_interval
+    - key: pp_economic_group
+      type: unit_interval
+    - key: pp_technical_group
+      type: unit_interval
+    - key: pp_governance_group
+      type: unit_interval
+    - key: treasury_withdrawal
+      type: unit_interval
+
+# transaction_witness_set =
+#   { ? 0: nonempty_set<vkeywitness>
+#   , ? 1: nonempty_set<native_script>
+#   , ? 2: nonempty_set<bootstrap_witness>
+#   , ? 3: nonempty_set<plutus_v1_script>
+#   , ? 4: nonempty_set<plutus_data>
+#   , ? 5: redeemers
+#   , ? 6: nonempty_set<plutus_v2_script>
+#   , ? 7: nonempty_set<plutus_v3_script>
+#   }
+transaction_witness_set:
+  type: struct
+  fields:
+    - id: 0
+      key: vkeywitnesses
+      type:
+        type: nullable
+        item_type:
+          type: generic
+          name: nonempty_set
+          args: [vkeywitness]
+    - id: 1
+      key: native_scripts
+      type:
+        type: nullable
+        item_type:
+          type: generic
+          name: nonempty_set
+          args: [native_script]
+    - id: 2
+      key: bootstrap_witnesses
+      type:
+        type: nullable
+        item_type:
+          type: generic
+          name: nonempty_set
+          args: [bootstrap_witness]
+    - id: 3
+      key: plutus_v1_scripts
+      type:
+        type: nullable
+        item_type:
+          type: generic
+          name: nonempty_set
+          args: [plutus_v1_script]
+    - id: 4
+      key: plutus_data
+      type:
+        type: nullable
+        item_type: plutus_data
+    - id: 5
+      key: redeemers
+      type:
+        type: nullable
+        item_type: redeemers
+    - id: 6
+      key: plutus_v2_scripts
+      type:
+        type: nullable
+        item_type:
+          type: generic
+          name: nonempty_set
+          args: [plutus_v2_script]
+    - id: 7
+      key: plutus_v3_scripts
+      type:
+        type: nullable
+        item_type:
+          type: generic
+          name: nonempty_set
+          args: [plutus_v3_script]
+
+# ; The real type of  plutus_v1_script, plutus_v2_script and plutus_v3_script is bytes.
+# ; However, because we enforce uniqueness when many scripts are supplied,
+# ; we need to hack around for tests in order to avoid generating duplicates,
+# ; since the cddl tool we use for roundtrip testing doesn't generate distinct collections.
+# plutus_v1_script = distinct<bytes>
+# plutus_v2_script = distinct<bytes>
+# plutus_v3_script = distinct<bytes>
+plutus_v1_script:
+  type: bytes
+plutus_v2_script:
+  type: bytes
+plutus_v3_script:
+  type: bytes
+
+# plutus_data =
+#     constr<plutus_data>
+#   / { * plutus_data => plutus_data }
+#   / [ * plutus_data ]
+#   / big_int
+#   / bounded_bytes
+plutus_data:
+  type: union
+  variants:
+    - name: constr
+      type:
+        type: generic
+        name: constr
+        args: [plutus_data]
+    - name: map
+      type: plutus_data
+    - name: list
+      type:
+        type: array
+        item_type: plutus_data
+    - name: big_int
+      type: big_int
+    - name: bounded_bytes
+      type: bounded_bytes
+
+# big_int = int / big_uint / big_nint
+big_int:
+  type: union
+  variants:
+    - name: int
+      type: int
+    - name: big_uint
+      type: big_uint
+    - name: big_nint
+      type: big_nint
+
+# big_uint = #6.2(bounded_bytes)
+big_uint:
+  type: tagged
+  tag: 2
+  item: bounded_bytes
+
+# big_nint = #6.3(bounded_bytes)
+big_nint:
+  type: tagged
+  tag: 3
+  item: bounded_bytes
+
+# constr<a> =
+#     #6.121([* a])
+#   / #6.122([* a])
+#   / #6.123([* a])
+#   / #6.124([* a])
+#   / #6.125([* a])
+#   / #6.126([* a])
+#   / #6.127([* a])
+#   ; similarly for tag range: 6.1280 .. 6.1400 inclusive
+#   / #6.102([uint, [* a]])
+constr:
+  type: generic
+  args: [a]
+  rhs:
+    type: union
+    variants:
+      - name: constr1
+        type:
+          type: tagged
+          tag:
+            ranges: 
+              - min: 121
+                max: 127
+              - min: 1280
+                max: 1400
+          item:
+            type: array
+            item_type: a
+      - name: constr2
+        type:
+          type: tagged
+          tag: 102
+          item:
+            type: record
+            fields:
+              - key: uint
+                type: uint
+              - key: items
+                type:
+                  type: array
+                  item_type: a
+
+# ; Flat Array support is included for backwards compatibility and will be removed in the next era.
+# ; It is recommended for tools to adopt using a Map instead of Array going forward.
+# redeemers =
+#   [ + [ tag: redeemer_tag, index: uint, data: plutus_data, ex_units: ex_units ] ]
+#   / { + [ tag: redeemer_tag, index: uint ] => [ data: plutus_data, ex_units: ex_units ] }
+redeemers:
+  type: union
+  variants:
+    - name: flat_array
+      type_discriminator: array
+      type_details:
+        type: record
+        fields:
+          - key: tag
+            type: redeemer_tag
+          - key: index
+            type: uint
+          - key: data
+            type: plutus_data
+          - key: ex_units
+            type: ex_units
+    - name: map
+      type_discriminator: map
+      type_details:
+        type: map
+        key_type:
+          type: record
+          fields:
+            - key: tag
+              type: redeemer_tag
+            - key: index
+              type: uint
+        value_type:
+          type: record
+          fields:
+            - key: data
+              type: plutus_data
+            - key: ex_units
+              type: ex_units
+
+# redeemer_tag =
+#     0 ; Spending
+#   / 1 ; Minting
+#   / 2 ; Certifying
+#   / 3 ; Rewarding
+#   / 4 ; Voting
+#   / 5 ; Proposing
+redeemer_tag:
+  type: enum
+  values:
+    - name: spending
+      value: 0
+    - name: minting
+      value: 1
+    - name: certifying
+      value: 2
+    - name: rewarding
+      value: 3
+    - name: voting
+      value: 4
+    - name: proposing
+      value: 5
+
+# ex_units = [mem: uint, steps: uint]
+ex_units:
+  type: record
+  fields:
+    - key: mem
+      type: uint
+    - key: steps
+      type: uint
+
+# ex_unit_prices =
+#   [ mem_price: nonnegative_interval, step_price: nonnegative_interval ]
+ex_unit_prices:
+  type: record
+  fields:
+    - key: mem_price
+      type: nonnegative_interval
+    - key: step_price
+      type: nonnegative_interval
+
+# language = 0 ; Plutus v1
+#          / 1 ; Plutus v2
+#          / 2 ; Plutus v3
+language:
+  type: enum
+  values:
+    - name: plutus_v1
+      value: 0
+    - name: plutus_v2
+      value: 1
+    - name: plutus_v3
+      value: 2
+
+# potential_languages = 0 .. 255
+potential_languages:
+  type: uint
+  min: 0
+  max: 255
+
+# ; The format for costmdls is flexible enough to allow adding Plutus built-ins and language
+# ; versions in the future.
+# ;
+# costmdls =
+#   { ? 0 : [ 166* int ] ; Plutus v1, only 166 integers are used, but more are accepted (and ignored)
+#   , ? 1 : [ 175* int ] ; Plutus v2, only 175 integers are used, but more are accepted (and ignored)
+#   , ? 2 : [ 233* int ] ; Plutus v3, only 233 integers are used, but more are accepted (and ignored)
+#   , ? 3 : [ int ] ; Any 8-bit unsigned number can be used as a key.
+#   }
+costmdls:
+  type: struct
+  fields:
+    - id: 0
+      key: plutus_v1
+      type:
+        type: array
+        item_type: int
+        min_len: 166
+    - id: 1
+      key: plutus_v2
+      type:
+        type: array
+        item_type: int
+        min_len: 175
+    - id: 2
+      key: plutus_v3
+      type:
+        type: array
+        item_type: int
+        min_len: 233
+    - id: 3
+      key: other
+      type:
+        type: array
+        item_type: int
+        min_len: 1
+        max_len: 1
+
+# transaction_metadatum =
+#     { * transaction_metadatum => transaction_metadatum }
+#   / [ * transaction_metadatum ]
+#   / int
+#   / bytes .size (0..64)
+#   / text .size (0..64)
+transaction_metadatum:
+  type: union
+  variants:
+    - name: map
+      type:
+        type: map
+        key_type: transaction_metadatum
+        value_type: transaction_metadatum
+    - name: list
+      type:
+        type: array
+        item_type: transaction_metadatum
+    - name: int
+      type_discriminator: int
+    - name: bytes
+      type_discriminator: bytes
+      type_details:
+        min_len: 0
+        max_len: 64
+    - name: text
+      type_discriminator: string
+      type_details:
+        min_len: 0
+        max_len: 64
+
+# transaction_metadatum_label = uint
+transaction_metadatum_label:
+  type: uint
+
+# metadata = { * transaction_metadatum_label => transaction_metadatum }
+metadata:
+  type: map
+  key_type: transaction_metadatum_label
+  value_type: transaction_metadatum
+
+# auxiliary_data =
+#   metadata ; Shelley
+#   / [ transaction_metadata: metadata ; Shelley-ma
+#     , auxiliary_scripts: [ * native_script ]
+#     ]
+#   / #6.259({ ? 0 => metadata         ; Alonzo and beyond
+#       , ? 1 => [ * native_script ]
+#       , ? 2 => [ * plutus_v1_script ]
+#       , ? 3 => [ * plutus_v2_script ]
+#       , ? 4 => [ * plutus_v3_script ]
+#       })
+auxiliary_data:
+  type: union
+  variants:
+    - name: shelley
+      type_discriminator: map
+      type_details:
+        type: metadata
+    - name: shelley_ma
+      type_discriminator: record
+      type_details:
+        fields:
+          - key: transaction_metadata
+            type: metadata
+          - key: auxiliary_scripts
+            type:
+              type: array
+              item_type: native_script
+    - name: alonzo_and_beyond
+      type_discriminator: map
+      type_details:
+        type: struct
+        fields:
+          - id: 0
+            key: metadata
+            type: metadata
+          - id: 1
+            key: native_scripts
+            type:
+              type: array
+              item_type: native_script
+          - id: 2
+            key: plutus_v1_scripts
+            type:
+              type: array
+              item_type: plutus_v1_script
+          - id: 3
+            key: plutus_v2_scripts
+            type:
+              type: array
+              item_type: plutus_v2_script
+          - id: 4
+            key: plutus_v3_scripts
+            type:
+              type: array
+              item_type: plutus_v3_script
+
+# vkeywitness = [ $vkey, $signature ]
+vkeywitness:
+  type: record
+  fields:
+    - key: vkey
+      type: vkey
+    - key: signature
+      type: signature
+
+# bootstrap_witness =
+#   [ public_key : $vkey
+#   , signature  : $signature
+#   , chain_code : bytes .size 32
+#   , attributes : bytes
+#   ]
+bootstrap_witness:
+  type: record
+  fields:
+    - key: public_key
+      type: vkey
+    - key: signature
+      type: signature
+    - key: chain_code
+      type: bytes
+      len: 32
+    - key: attributes
+      type: bytes
+
+# native_script =
+#   [ script_pubkey
+#   // script_all
+#   // script_any
+#   // script_n_of_k
+#   // invalid_before
+#      ; Timelock validity intervals are half-open intervals [a, b).
+#      ; This field specifies the left (included) endpoint a.
+#   // invalid_hereafter
+#      ; Timelock validity intervals are half-open intervals [a, b).
+#      ; This field specifies the right (excluded) endpoint b.
+#   ]
+# script_pubkey = (0, addr_keyhash)
+# script_all = (1, [ * native_script ])
+# script_any = (2, [ * native_script ])
+# script_n_of_k = (3, n: uint, [ * native_script ])
+# invalid_before = (4, uint)
+# invalid_hereafter = (5, uint)
+native_script:
+  type: tagged_record
+  variants:
+    - name: script_pubkey
+      tag: 0
+      fields:
+        - key: addr_keyhash
+          type: addr_keyhash
+    - name: script_all
+      tag: 1
+      fields:
+        - key: native_scripts
+          type:
+            type: array
+            item_type: native_script
+    - name: script_any
+      tag: 2
+      fields:
+        - key: native_scripts
+          type:
+            type: array
+            item_type: native_script
+    - name: script_n_of_k
+      tag: 3
+      fields:
+        - key: n
+          type: uint
+        - key: native_scripts
+          type:
+            type: array
+            item_type: native_script
+    - name: invalid_before
+      tag: 4
+      fields:
+        - key: index
+          type: uint
+    - name: invalid_hereafter
+      tag: 5
+      fields:
+        - key: index
+          type: uint
+
+# coin = uint
+coin:
+  type: uint
+
+# multiasset<a> = { + policy_id => { + asset_name => a } }
+multiasset:
+  type: generic
+  args: [a]
+  rhs:
+    type: map
+    key_type: policy_id
+    value_type:
+      type: map
+      key_type: asset_name
+      value_type: a
+
+# policy_id = scripthash
+policy_id:
+  type: scripthash
+
+# asset_name = bytes .size (0..32)
+asset_name:
+  type: bytes
+  max_len: 32
+
+# negInt64 = -9223372036854775808 .. -1
+negInt64:
+  type: nint
+  min: -9223372036854775808
+  max: -1
+  
+# posInt64 = 1 .. 9223372036854775807
+negInt64:
+  type: uint
+  min: 1
+  max: 9223372036854775807
+
+# nonZeroInt64 = negInt64 / posInt64 ; this is the same as the current int64 definition but without zero
+nonZeroInt64:
+  type: union
+  variants:
+    - name: negInt64
+      type: negInt64
+    - name: posInt64
+      type: posInt64
+
+# positive_coin = 1 .. 18446744073709551615
+
+# value = coin / [coin, multiasset<positive_coin>]
+value:
+  type: union
+  variants:
+    - name: coin
+      type_discriminator: int
+    - name: multiasset
+      type_discriminator: record
+      type_details:
+        fields:
+          - key: coin
+            type: coin
+          - key: multiasset
+            type:
+              type: generic
+              args: [positive_coin]
+
+# mint = multiasset<nonZeroInt64>
+mint:
+  type: multiasset
+  args: [nonZeroInt64]
+
+# int64 = -9223372036854775808 .. 9223372036854775807
+int64:
+  type: int
+
+# network_id = 0 / 1
+network_id:
+  type: enum
+  values:
+    - name: mainnet
+      value: 0
+    - name: testnet
+      value: 1
+
+# epoch = uint
+epoch:
+  type: uint
+
+# addr_keyhash           = $hash28
+addr_keyhash:
+  type: hash28
+# pool_keyhash           = $hash28
+pool_keyhash:
+  type: hash28
+
+# vrf_keyhash           = $hash32
+vrf_keyhash:
+  type: hash32
+# auxiliary_data_hash   = $hash32
+auxiliary_data_hash:
+  type: hash32
+# pool_metadata_hash    = $hash32
+pool_metadata_hash:
+  type: hash32
+
+# ; To compute a script hash, note that you must prepend
+# ; a tag to the bytes of the script before hashing.
+# ; The tag is determined by the language.
+# ; The tags in the Conway era are:
+# ;   "\x00" for multisig scripts
+# ;   "\x01" for Plutus V1 scripts
+# ;   "\x02" for Plutus V2 scripts
+# ;   "\x03" for Plutus V3 scripts
+# scripthash            = $hash28
+scripthash:
+  type: hash28
+
+# datum_hash = $hash32
+datum_hash:
+  type: hash32
+
+# data = #6.24(bytes .cbor plutus_data)
+data:
+  type: tagged
+  tag: 24
+  item:
+    type: bytes
+
+# datum_option = [ 0, $hash32 // 1, data ]
+datum_option:
+  type: tagged_record
+  variants:
+    - name: hash
+      tag: 0
+      fields:
+        - key: hash
+          type: datum_hash
+    - name: data
+      tag: 1
+      fields:
+        - key: data
+          type: data
+
+# script_ref = #6.24(bytes .cbor script)
+script_ref:
+  type: tagged
+  tag: 24
+  item:
+    type: bytes
+
+# script = [ 0, native_script // 1, plutus_v1_script // 2, plutus_v2_script // 3, plutus_v3_script ]
+script:
+  type: tagged_record
+  variants:
+    - name: native_script
+      tag: 0
+      fields:
+        - key: native_script
+          type: native_script
+    - name: plutus_v1_script
+      tag: 1
+      fields:
+        - key: plutus_v1_script
+          type: plutus_v1_script
+    - name: plutus_v2_script
+      tag: 2
+      fields:
+        - key: plutus_v2_script
+          type: plutus_v2_script
+    - name: plutus_v3_script
+      tag: 3
+      fields:
+        - key: plutus_v3_script
+          type: plutus_v3_script

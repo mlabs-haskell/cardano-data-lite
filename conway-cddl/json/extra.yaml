@@ -1,0 +1,146 @@
+# ; Conway era introduces an optional 258 tag for sets, which will become mandatory in the
+# ; second era after Conway. We recommend all the tooling to account for this future breaking
+# ; change sooner rather than later, in order to provide a smooth transition for their users.
+#
+# set<a> = #6.258([* a]) / [* a]
+set:
+  type: generic
+  args: [a]
+  rhs:
+    type: union
+    variants:
+      - type: tagged
+        tag: 258
+        item:
+          type: array
+          item: a
+      - type: array
+        item:
+          item: a
+
+# nonempty_set<a> = #6.258([+ a]) / [+ a]
+nonempty_set:
+  type: generic
+  args: [a]
+  rhs:
+    type: union
+    variants:
+      - type: tagged
+        tag: 258
+        item:
+          type: array
+          item: a
+          len:
+            min: 1
+      - type: array
+        item: a
+        len: 
+          min: 1
+
+# nonempty_oset<a> = #6.258([+ a]) / [+ a]
+nonempty_oset:
+  type: generic
+  args: [a]
+  rhs:
+    type: union
+    variants:
+      - type: tagged
+        tag: 258
+        item:
+          type: array
+          item: a
+          len:
+            min: 1
+      - type: array
+        item: a
+        len: 
+          min: 1
+
+# positive_int = 1 .. 18446744073709551615
+positive_int:
+  type: uint
+  value:
+    min: 1
+    max: 18446744073709551615
+
+# unit_interval = #6.30([1, 2])
+#   ; unit_interval = #6.30([uint, uint])
+#   ;
+#   ; Comment above depicts the actual definition for `unit_interval`.
+#   ;
+#   ; Unit interval is a number in the range between 0 and 1, which
+#   ; means there are two extra constraints:
+#   ; * numerator <= denominator
+#   ; * denominator > 0
+#   ;
+#   ; Relation between numerator and denominator cannot be expressed in CDDL, which
+#   ; poses a problem for testing. We need to be able to generate random valid data
+#   ; for testing implementation of our encoders/decoders. Which means we cannot use
+#   ; the actual definition here and we hard code the value to 1/2
+unit_interval:
+  type: tagged
+  tag: 30
+  item:
+    type: record
+    fields:
+      - name: numerator
+        type: uint
+        value:
+          max: denominator
+      - name: denominator
+        type: uint
+        value:
+          min: 1
+
+# nonnegative_interval = #6.30([uint, positive_int])
+nonnegative_interval:
+  type: tagged
+  tag: 30
+  item:
+    type: record
+    fields:
+      - name: start
+        type: uint
+      - name: length
+        type: positive_int
+#
+# address =
+#   h'001000000000000000000000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000' /
+#   h'102000000000000000000000000000000000000000000000000000000022000000000000000000000000000000000000000000000000000000' /
+#   h'203000000000000000000000000000000000000000000000000000000033000000000000000000000000000000000000000000000000000000' /
+#   h'304000000000000000000000000000000000000000000000000000000044000000000000000000000000000000000000000000000000000000' /
+#   h'405000000000000000000000000000000000000000000000000000000087680203' /
+#   h'506000000000000000000000000000000000000000000000000000000087680203' /
+#   h'6070000000000000000000000000000000000000000000000000000000' /
+#   h'7080000000000000000000000000000000000000000000000000000000'
+address:
+  type: bytes
+
+# reward_account =
+#   h'E090000000000000000000000000000000000000000000000000000000' /
+#   h'F0A0000000000000000000000000000000000000000000000000000000'
+reward_account:
+  type: bytes
+
+# bounded_bytes = bytes .size (0..64)
+#   ; the real bounded_bytes does not have this limit. it instead has a different
+#   ; limit which cannot be expressed in CDDL.
+#   ; The limit is as follows:
+#   ;  - bytes with a definite-length encoding are limited to size 0..64
+#   ;  - for bytes with an indefinite-length CBOR encoding, each chunk is
+#   ;    limited to size 0..64
+#   ;  ( reminder: in CBOR, the indefinite-length encoding of bytestrings
+#   ;    consists of a token #2.31 followed by a sequence of definite-length
+#   ;    encoded bytestrings and a stop code )
+bounded_bytes:
+  type: bytes
+  custom: true
+
+# ; a type for distinct values.
+# ; The type parameter must support .size, for example: bytes or uint
+# distinct<a> = a .size 8 / a .size 16 / a .size 20 / a .size 24 / a .size 30 / a .size 32
+# TODO: Implement validation
+distinct:
+  type: generic
+  args: [a]
+  rhs: a
