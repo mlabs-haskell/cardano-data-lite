@@ -5,7 +5,7 @@
 # set<a> = #6.258([* a]) / [* a]
 set:
   type: generic
-  args: [a]
+  args: [ a ]
   rhs:
     type: union
     variants:
@@ -21,7 +21,7 @@ set:
 # nonempty_set<a> = #6.258([+ a]) / [+ a]
 nonempty_set:
   type: generic
-  args: [a]
+  args: [ a ]
   rhs:
     type: union
     variants:
@@ -34,13 +34,13 @@ nonempty_set:
             min: 1
       - type: array
         item: a
-        len: 
+        len:
           min: 1
 
 # nonempty_oset<a> = #6.258([+ a]) / [+ a]
 nonempty_oset:
   type: generic
-  args: [a]
+  args: [ a ]
   rhs:
     type: union
     variants:
@@ -53,7 +53,7 @@ nonempty_oset:
             min: 1
       - type: array
         item: a
-        len: 
+        len:
           min: 1
 
 # positive_int = 1 .. 18446744073709551615
@@ -83,14 +83,16 @@ unit_interval:
   item:
     type: record
     fields:
-      - name: numerator
-        type: uint
+      - key: numerator
         value:
-          max: denominator
-      - name: denominator
-        type: uint
+          type: uint
+          value:
+            max: denominator
+      - key: denominator
         value:
-          min: 1
+          type: uint
+          value:
+            min: 1
 
 # nonnegative_interval = #6.30([uint, positive_int])
 nonnegative_interval:
@@ -99,10 +101,10 @@ nonnegative_interval:
   item:
     type: record
     fields:
-      - name: start
-        type: uint
-      - name: length
-        type: positive_int
+      - key: start
+        value: uint
+      - key: length
+        value: positive_int
 #
 # address =
 #   h'001000000000000000000000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000' /
@@ -142,5 +144,5 @@ bounded_bytes:
 # TODO: Implement validation
 distinct:
   type: generic
-  args: [a]
+  args: [ a ]
   rhs: a
