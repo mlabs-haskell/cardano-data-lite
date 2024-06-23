@@ -170,7 +170,7 @@ transaction_body:
     - id: 0
       key: inputs
       value:
-        type: generic
+        type: generic_apply
         name: set
         args: [ transaction_input ]
     - id: 1
@@ -212,7 +212,7 @@ transaction_body:
     - id: 13
       key: collateral_inputs
       value:
-        type: generic
+        type: generic_apply
         name: set
         args: [ transaction_input ]
       optional: true
@@ -235,7 +235,7 @@ transaction_body:
     - id: 18
       key: reference_inputs
       value:
-        type: generic
+        type: generic_apply
         name: set
         args: [ transaction_input ]
       optional: true
@@ -303,13 +303,13 @@ proposal_procedure:
 
 # proposal_procedures = nonempty_oset<proposal_procedure>
 proposal_procedures:
-  type: generic
+  type: generic_apply
   name: nonempty_oset
   args: [ proposal_procedure ]
 
 # certificates = nonempty_oset<certificate>
 certificates:
-  type: generic
+  type: generic_apply
   name: nonempty_oset
   args: [ certificate ]
 
@@ -385,7 +385,7 @@ gov_action:
             item: gov_action_id
         - key: committee_cold_credentials
           value:
-            type: generic
+            type: generic_apply
             name: set
             args: [ committee_cold_credential ]
         - key: epochs
@@ -504,7 +504,7 @@ gov_action_id:
 # required_signers = nonempty_set<addr_keyhash>
 required_signers:
   type:
-    type: generic
+    type: generic_apply
     name: nonempty_set
     args: [ addr_keyhash ]
 
@@ -542,11 +542,13 @@ transaction_output:
       item:
         type: record
         fields:
-          - value: address
-          - value: value
-          - value:
-              type: nullable
-              item: hash32
+          - key: address
+            value: address
+          - key: amount
+            value: value
+          - key: datum_hash
+            value: hash32
+            optional: true
     - name: post_alonzo_transaction_output
       item:
         type: struct
@@ -934,7 +936,7 @@ pool_params:
       value: reward_account
     - key: pool_owners
       value:
-        type: generic
+        type: generic_apply
         name: set
         args: [ addr_keyhash ]
     - key: relays
@@ -1075,86 +1077,124 @@ protocol_param_update:
   fields:
     - id: 0
       key: minfee_a
-      value:
-        type: nullable
-        item: coin
+      value: coin
+      optional: true
     - id: 1
       key: minfee_b
-      value:
-        type: nullable
-        item: coin
+      value: coin
+      optional: true
     - id: 2
       key: max_block_body_size
-      value:
-        type: nullable
-        item: uint
+      value: uint
+      optional: true
     - id: 3
       key: max_tx_size
-      value:
-        type: nullable
-        item: uint
+      value: uint
+      optional: true
     - id: 4
       key: max_block_header_size
-      value:
-        type: nullable
-        item: uint
+      value: uint
+      optional: true
     - id: 5
       key: key_deposit
-      value:
-        type: nullable
-        item: coin
+      value: coin
+      optional: true
     - id: 6
       key: pool_deposit
-      value:
-        type: nullable
-        item: coin
+      value: coin
+      optional: true
     - id: 7
       key: max_epoch
-      value:
-        type: nullable
-        item: epoch
+      value: epoch
+      optional: true
     - id: 8
       key: n_opt
-      value:
-        type: nullable
-        item: uint
+      value: uint
+      optional: true
     - id: 9
       key: pool_pledge_influence
-      value:
-        type: nullable
-        item: nonnegative_interval
+      value: nonnegative_interval
+      optional: true
     - id: 10
       key: expansion_rate
-      value:
-        type: nullable
-        item: unit_interval
+      value: unit_interval
+      optional: true
     - id: 11
       key: treasury_growth_rate
-      value:
-        type: nullable
-        item: unit_interval
+      value: unit_interval
+      optional: true
     - id: 16
       key: min_pool_cost
-      value:
-        type: nullable
-        item: coin
+      value: coin
+      optional: true
     - id: 17
       key: ada_per_utxo_byte
-      value:
-        type: nullable
-        item: coin
+      value: coin
+      optional: true
     - id: 18
       key: costmdls
-      value:
-        type: nullable
-        item: costmdls
+      value: costmdls
+      optional: true
     - id: 19
       key: ex_unit_prices
-      value:
-        type: nullable
-        item: ex_unit_prices
+      value: ex_unit_prices
+      optional: true
     - id: 20
       key: max_tx_ex_units
+      value: max_tx_ex_units
+      optional: true
+    - id: 21
+      key: max_block_ex_units
+      value: max_block_ex_units
+      optional: true
+    - id: 22
+      key: max_value_size
+      value: uint
+      optional: true
+    - id: 23
+      key: collateral_percentage
+      value: uint
+      optional: true
+    - id: 24
+      key: max_collateral_inputs
+      value: uint
+      optional: true
+    - id: 25
+      key: pool_voting_thresholds
+      value: pool_voting_thresholds
+      optional: true
+    - id: 26
+      key: drep_voting_thresholds
+      value: drep_voting_thresholds
+      optional: true
+    - id: 27
+      key: min_committee_size
+      value: uint
+      optional: true
+    - id: 28
+      key: committee_term_limit
+      value: epoch
+      optional: true
+    - id: 29
+      key: governance_action_validity_period
+      value: epoch
+      optional: true
+    - id: 30
+      key: governance_action_deposit
+      value: coin
+      optional: true
+    - id: 31
+      key: drep_deposit
+      value: coin
+      optional: true
+    - id: 32
+      key: drep_inactivity_period
+      value: epoch
+      optional: true
+    - id: 33
+      key: min_fee_ref_script_cost_per_byte
+      value: nonnegative_interval
+      optional: true
 
 # pool_voting_thresholds =
 #   [ unit_interval ; motion no confidence
@@ -1231,7 +1271,7 @@ transaction_witness_set:
       value:
         type: nullable
         item:
-          type: generic
+          type: generic_apply
           name: nonempty_set
           args: [ vkeywitness ]
     - id: 1
@@ -1239,7 +1279,7 @@ transaction_witness_set:
       value:
         type: nullable
         item:
-          type: generic
+          type: generic_apply
           name: nonempty_set
           args: [ native_script ]
     - id: 2
@@ -1247,7 +1287,7 @@ transaction_witness_set:
       value:
         type: nullable
         item:
-          type: generic
+          type: generic_apply
           name: nonempty_set
           args: [ bootstrap_witness ]
     - id: 3
@@ -1255,7 +1295,7 @@ transaction_witness_set:
       value:
         type: nullable
         item:
-          type: generic
+          type: generic_apply
           name: nonempty_set
           args: [ plutus_v1_script ]
     - id: 4
@@ -1273,7 +1313,7 @@ transaction_witness_set:
       value:
         type: nullable
         item:
-          type: generic
+          type: generic_apply
           name: nonempty_set
           args: [ plutus_v2_script ]
     - id: 7
@@ -1281,7 +1321,7 @@ transaction_witness_set:
       value:
         type: nullable
         item:
-          type: generic
+          type: generic_apply
           name: nonempty_set
           args: [ plutus_v3_script ]
 
@@ -1309,31 +1349,31 @@ plutus_data:
   type: union
   variants:
     - name: constr
-      type:
-        type: generic
+      item:
+        type: generic_apply
         name: constr
         args: [ plutus_data ]
     - name: map
-      type: plutus_data
+      item: plutus_data
     - name: list
-      type:
+      item:
         type: array
         item: plutus_data
     - name: big_int
-      type: big_int
+      item: big_int
     - name: bounded_bytes
-      type: bounded_bytes
+      item: bounded_bytes
 
 # big_int = int / big_uint / big_nint
 big_int:
   type: union
   variants:
     - name: int
-      type: int
+      item: int
     - name: big_uint
-      type: big_uint
+      item: big_uint
     - name: big_nint
-      type: big_nint
+      item: big_nint
 
 # big_uint = #6.2(bounded_bytes)
 big_uint:
@@ -1364,7 +1404,7 @@ constr:
     type: union
     variants:
       - name: constr1
-        type:
+        item:
           type: tagged
           tag:
             ranges:
@@ -1376,7 +1416,7 @@ constr:
             type: array
             item: a
       - name: constr2
-        type:
+        item:
           type: tagged
           tag: 102
           item:
@@ -1541,23 +1581,28 @@ transaction_metadatum:
   type: union
   variants:
     - name: map
-      type:
+      item:
         type: map
         key: transaction_metadatum
         value: transaction_metadatum
     - name: list
-      type:
+      item:
         type: array
         item: transaction_metadatum
     - name: int
+      item: int
     - name: bytes
       item:
-        min_len: 0
-        max_len: 64
+        type: bytes
+        len: 
+          min: 0
+          max: 64
     - name: text
       item:
-        min_len: 0
-        max_len: 64
+        type: text
+        len: 
+          min: 0
+          max: 64
 
 # transaction_metadatum_label = uint
 transaction_metadatum_label:
@@ -1745,7 +1790,7 @@ negInt64:
     max: -1
 
 # posInt64 = 1 .. 9223372036854775807
-negInt64:
+posInt64:
   type: uint
   value:
     min: 1
@@ -1756,9 +1801,9 @@ nonZeroInt64:
   type: union
   variants:
     - name: negInt64
-      type: negInt64
+      item: negInt64
     - name: posInt64
-      type: posInt64
+      item: posInt64
 
 # positive_coin = 1 .. 18446744073709551615
 
@@ -1767,6 +1812,7 @@ value:
   type: union
   variants:
     - name: coin
+      item: coin
     - name: multiasset
       item:
         fields:
@@ -1774,7 +1820,7 @@ value:
             type: coin
           - key: multiasset
             type:
-              type: generic
+              type: generic_apply
               args: [ positive_coin ]
 
 # mint = multiasset<nonZeroInt64>
@@ -1785,6 +1831,9 @@ mint:
 # int64 = -9223372036854775808 .. 9223372036854775807
 int64:
   type: int
+  value:
+    min: -9223372036854775808
+    max: 9223372036854775807
 
 # network_id = 0 / 1
 network_id:
