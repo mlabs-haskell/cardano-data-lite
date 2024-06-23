@@ -359,6 +359,10 @@ export class CBORReaderValue implements CBORCustom {
     return this.getChoice({ uint: (x) => x, nint: (x) => x });
   }
 
+  getType(): CBORTypeName {
+    return this.inner.type;
+  }
+
   toCBOR(writer: CBORWriter) {
     writer.write(this.inner.value);
   }

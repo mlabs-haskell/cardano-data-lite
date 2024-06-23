@@ -161,6 +161,11 @@ export class CBORWriter {
   writeCustom(value: CBORCustom) {
     value.toCBOR(this);
   }
+
+  // Write to the underlying buffer directly if you want to encode a custom value
+  getBuffer(): GrowableBuffer {
+    return this.buffer;
+  }
 }
 
 function encodeBigInt(
