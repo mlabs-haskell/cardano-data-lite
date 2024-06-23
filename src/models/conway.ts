@@ -1,5 +1,10 @@
 import { GrowableBuffer } from "../cbor/growable-buffer";
-import { bigintFromBytes, CBORReaderValue, ParseFailed } from "../cbor/reader";
+import {
+  bigintFromBytes,
+  CBORArrayReader,
+  CBORReaderValue,
+  ParseFailed,
+} from "../cbor/reader";
 import {
   CBORCustom,
   CBORMap,
@@ -35,7 +40,7 @@ function mapOptional<T, U>(
 //               , relays:         [* relay]
 //               , pool_metadata:  pool_metadata / null
 //               )
-export class PoolParams implements CBORCustom {
+export class PoolParams {
   public readonly operator: PoolKeyHash;
   public readonly vrfKeyhash: VrfKeyHash;
   public readonly pledge: Coin;
@@ -68,19 +73,18 @@ export class PoolParams implements CBORCustom {
     this.poolMetadata = poolMetadata;
   }
 
-  static fromCBOR(value: CBORReaderValue): PoolParams {
-    let array = value.get("array");
-    const operator = Bytes28.fromCBOR(array.getRequired(0));
-    const vrfKeyHash = Bytes32.fromCBOR(array.getRequired(1));
-    const pledge = array.getRequired(2).get("uint");
-    const cost = array.getRequired(3).get("uint");
-    const margin = UnitInterval.fromCBOR(array.getRequired(4));
-    const rewardAccount = array.getRequired(5).get("bstr");
-    const poolOwners = ConwaySet.fromCBOR(array.getRequired(6)).map(
+  static fromCBOR(array: CBORArrayReader<CBORReaderValue>): PoolParams {
+    const operator = Bytes28.fromCBOR(array.shiftRequired());
+    const vrfKeyHash = Bytes32.fromCBOR(array.shiftRequired());
+    const pledge = array.shiftRequired().get("uint");
+    const cost = array.shiftRequired().get("uint");
+    const margin = UnitInterval.fromCBOR(array.shiftRequired());
+    const rewardAccount = array.shiftRequired().get("bstr");
+    const poolOwners = ConwaySet.fromCBOR(array.shiftRequired()).map(
       Bytes32.fromCBOR
     );
-    const relays = array.getRequired(7).get("array").map(Relay.fromCBOR);
-    let poolMetadataCBOR = array.getRequired(8);
+    const relays = array.shiftRequired().get("array").map(Relay.fromCBOR);
+    let poolMetadataCBOR = array.shiftRequired();
     const poolMetadata = poolMetadataCBOR.getChoice({
       array: () => PoolMetadata.fromCBOR(poolMetadataCBOR),
       null: () => null,
@@ -98,8 +102,8 @@ export class PoolParams implements CBORCustom {
     );
   }
 
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray([
+  toCBOR(): CBORValue[] {
+    return [
       this.operator,
       this.vrfKeyhash,
       this.pledge,
@@ -109,7 +113,7 @@ export class PoolParams implements CBORCustom {
       this.poolOwners,
       this.relays,
       this.poolMetadata,
-    ]);
+    ];
   }
 }
 
@@ -214,19 +218,19 @@ export class Relay implements CBORCustom {
 
     let variant: RelayVariant;
 
-    let tag = Number(array.getRequired(0).get("uint"));
+    let tag = Number(array.shiftRequired().get("uint"));
     if (tag == 0) {
       variant = {
         kind: "single_host_addr",
         value: {
           port: array
-            .getRequired(1)
+            .shiftRequired()
             .getChoice({ uint: (uint) => new Port(uint), null: () => null }),
-          ipv4: array.getRequired(2).getChoice({
+          ipv4: array.shiftRequired().getChoice({
             bstr: (bstr) => new IPv4(bstr),
             null: () => null,
           }),
-          ipv6: array.getRequired(3).getChoice({
+          ipv6: array.shiftRequired().getChoice({
             bstr: (bstr) => new IPv6(bstr),
             null: () => null,
           }),
@@ -239,14 +243,14 @@ export class Relay implements CBORCustom {
           port: array
             .getRequired(1)
             .getChoice({ uint: (x) => new Port(x), null: () => null }),
-          dns_name: array.getRequired(2).get("tstr"),
+          dns_name: array.shiftRequired().get("tstr"),
         },
       };
     } else if (tag == 2) {
       variant = {
         kind: "multi_host_name",
         value: {
-          dns_name: array.getRequired(1).get("tstr"),
+          dns_name: array.shiftRequired().get("tstr"),
         },
       };
     } else {
@@ -289,8 +293,8 @@ export class PoolMetadata implements CBORCustom {
   static fromCBOR(value: CBORReaderValue): PoolMetadata {
     let array = value.get("array");
     return new PoolMetadata(
-      array.getRequired(0).get("tstr"),
-      Bytes28.fromCBOR(array.getRequired(1))
+      array.shiftRequired().get("tstr"),
+      Bytes28.fromCBOR(array.shiftRequired())
     );
   }
 
@@ -575,11 +579,11 @@ export class PoolVotingThresholds implements CBORCustom {
   static fromCBOR(value: CBORReaderValue): PoolVotingThresholds {
     let array = value.get("array");
     return new PoolVotingThresholds({
-      motionNoConfidence: UnitInterval.fromCBOR(array.getRequired(0)),
-      committeeNormal: UnitInterval.fromCBOR(array.getRequired(1)),
-      committeeNoConfidence: UnitInterval.fromCBOR(array.getRequired(2)),
-      hardForkInitiation: UnitInterval.fromCBOR(array.getRequired(3)),
-      securityRelevantParameter: UnitInterval.fromCBOR(array.getRequired(4)),
+      motionNoConfidence: UnitInterval.fromCBOR(array.shiftRequired()),
+      committeeNormal: UnitInterval.fromCBOR(array.shiftRequired()),
+      committeeNoConfidence: UnitInterval.fromCBOR(array.shiftRequired()),
+      hardForkInitiation: UnitInterval.fromCBOR(array.shiftRequired()),
+      securityRelevantParameter: UnitInterval.fromCBOR(array.shiftRequired()),
     });
   }
 
@@ -1462,12 +1466,12 @@ export class DatumOption implements CBORCustom {
 
   static fromCBOR(value: CBORReaderValue) {
     let array = value.get("array");
-    let tag = array.getRequired(0).get("uint");
+    let tag = array.shiftRequired().get("uint");
     if (tag == 0n) {
       let hash = Bytes32.fromCBOR(array.getRequired(1));
       return new DatumOption({ kind: "hash", value: hash });
     } else if (tag == 1n) {
-      let data = Data.fromCBOR(array.getRequired(1));
+      let data = Data.fromCBOR(array.shiftRequired());
       return new DatumOption({ kind: "data", value: data });
     } else {
       throw new ParseFailed(array.path, "value", "tag: 0|1", tag.toString());

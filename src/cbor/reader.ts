@@ -370,10 +370,29 @@ export class CBORReaderValue implements CBORCustom {
 
 export class CBORArrayReader<T extends CBORValue> extends Array<T> {
   public readonly path: string[];
+  shiftedCount = 0;
 
   constructor(path: string[]) {
     super();
     this.path = path;
+  }
+
+  shiftRequired(): T {
+    if (this.length == 0) {
+      throw new ParseFailed(
+        this.path,
+        "value",
+        "Index out of bounds",
+        String(this.shiftedCount)
+      );
+    }
+    return this.shift() as T;
+  }
+
+  shift(): T | undefined {
+    if (this.length > 0)
+      this.shiftedCount += 1;
+    return this.shift()
   }
 
   getRequired(index: number): T {
@@ -383,7 +402,7 @@ export class CBORArrayReader<T extends CBORValue> extends Array<T> {
         this.path,
         "value",
         "index not found",
-        index.toString()
+        (this.shiftedCount + index).toString()
       );
     }
     return value;
@@ -396,7 +415,7 @@ export class CBORArrayReader<T extends CBORValue> extends Array<T> {
 
 export class CBORMapReader<
   K extends CBORValue,
-  V extends CBORValue
+  V extends CBORValue,
 > extends CBORMap<K, V> {
   public readonly path: string[];
 
@@ -416,7 +435,7 @@ export class CBORMapReader<
 
 export class CBORMultiMapReader<
   K extends CBORValue,
-  V extends CBORValue
+  V extends CBORValue,
 > extends CBORMultiMap<K, V> {
   public readonly path: string[];
 
