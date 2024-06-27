@@ -1,12 +1,4 @@
-export type PrimitiveType =
-  | "bool"
-  | "bytes"
-  | "int"
-  | "string"
-  | "uint"
-  | "nint";
-
-export type PrimitiveExtended =
+export type Primitive =
   | {
       type: "bool";
     }
@@ -29,22 +21,39 @@ export type PrimitiveExtended =
   | {
       type: "nint";
       value?: NumberConstraints;
+    }
+  | {
+      type: "float";
+      value?: NumberConstraints;
     };
 
-export type CompositeType =
-  | "array"
-  | "record"
-  | "tagged_record"
-  | "map"
-  | "struct"
-  | "enum"
-  | "tagged"
-  | "union"
-  | "group"
-  | "generic"
-  | "nullable";
+export type PrimitiveShort = Primitive["type"];
 
-export type Schema =
+export function isPrimitive(value: any): value is PrimitiveShort | Primitive {
+  if (typeof value === "string") {
+    return (
+      value === "bool" ||
+      value === "bytes" ||
+      value === "int" ||
+      value === "string" ||
+      value === "uint" ||
+      value === "nint" ||
+      value === "float"
+    );
+  } else {
+    return (
+      value.type === "bool" ||
+      value.type === "bytes" ||
+      value.type === "int" ||
+      value.type === "string" ||
+      value.type === "uint" ||
+      value.type === "nint" ||
+      value.type === "float"
+    );
+  }
+}
+
+export type Composite =
   | {
       type: "array";
       item: Schema;
@@ -52,20 +61,20 @@ export type Schema =
     }
   | {
       type: "record";
-      fields: { key: Schema; value: Schema; optional?: boolean }[];
+      fields: { key: string; value: Schema; optional?: boolean }[];
     }
   | {
       type: "tagged_record";
       variants: {
         name: string;
         tag: number;
-        fields?: { key: Schema; value: Schema }[];
+        fields?: { key: string; value: Schema }[];
       }[];
     }
-  | { type: "map"; key: Schema; value: Schema; len?: NumberConstraints }
+  | { type: "map"; key: string; value: Schema; len?: NumberConstraints }
   | {
       type: "struct";
-      fields: { id: number; key: Schema; value: Schema; optional?: boolean }[];
+      fields: { id: number; key: string; value: Schema; optional?: boolean }[];
     }
   | {
       type: "enum";
@@ -96,10 +105,9 @@ export type Schema =
   | {
       type: "nullable";
       item: Schema;
-    }
-  | PrimitiveType
-  | PrimitiveExtended
-  | string;
+    };
+
+export type Schema = Composite | Primitive | PrimitiveShort | string;
 
 export type NumberConstraint =
   | {
@@ -109,3 +117,5 @@ export type NumberConstraint =
   | number;
 
 export type NumberConstraints = NumberConstraint | NumberConstraint[];
+export type Schema_<T> = Exclude<Schema & { type: T }, string>;
+export type Composite_<T> = Composite & { type: T };
