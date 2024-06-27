@@ -1,4 +1,4 @@
-import { genConstructor, genMembers } from "./custom";
+import { genAccessors, genConstructor, genMembers } from "./custom";
 
 export type Field = {
   name: string;
@@ -20,6 +20,7 @@ export class GenRecord {
       export class ${this.name} {
         ${genMembers(this.fields)}
         ${genConstructor(this.fields)}
+        ${genAccessors(this.fields)}
         
         static fromCBOR(value: CBORValue): ${this.name} {
           let array = value.get("array");

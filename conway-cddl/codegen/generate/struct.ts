@@ -1,4 +1,4 @@
-import { genConstructor, genMembers } from "./custom";
+import { genAccessors, genConstructor, genMembers } from "./custom";
 
 export type Field = {
   id: number;
@@ -20,8 +20,8 @@ export class GenStruct {
     return `
       export class ${this.name} {
         ${genMembers(this.fields)}
-
         ${genConstructor(this.fields)}
+        ${genAccessors(this.fields)}
         
         static fromCBOR(value: CBORValue): ${this.name} {
           let map = value.get("map");
