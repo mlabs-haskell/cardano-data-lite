@@ -171,7 +171,7 @@ export class CBORWriter {
 function encodeBigInt(
   tagBase: number, // tag & 0b111_00000
   value: bigint,
-  buffer: GrowableBuffer
+  buffer: GrowableBuffer,
 ) {
   if (value < 0n) value = -value;
   if (value < 0x18) {
