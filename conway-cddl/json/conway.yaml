@@ -46,7 +46,7 @@ transaction:
     - key: transaction_witness_set
       value: transaction_witness_set
     - key: is_valid
-      value: bool
+      value: boolean
     - key: auxiliary_data
       value:
         type: nullable
@@ -535,6 +535,7 @@ transaction_input:
 #   , ? 2 : datum_option ; datum option
 #   , ? 3 : script_ref   ; script reference
 #   }
+#   TODO: Custom
 transaction_output:
   type: union
   variants:
@@ -1072,6 +1073,7 @@ withdrawals:
 #   , ? 32: epoch                  ; DRep inactivity period
 #   , ? 33: nonnegative_interval   ; MinFee RefScriptCostPerByte
 #   }
+# Note: CSL uses unit_interval in place of nonnegative_interval
 protocol_param_update:
   type: struct
   fields:
@@ -1113,7 +1115,7 @@ protocol_param_update:
       optional: true
     - id: 9
       key: pool_pledge_influence
-      value: nonnegative_interval
+      value: unit_interval
       optional: true
     - id: 10
       key: expansion_rate
@@ -1193,7 +1195,7 @@ protocol_param_update:
       optional: true
     - id: 33
       key: min_fee_ref_script_cost_per_byte
-      value: nonnegative_interval
+      value: unit_interval
       optional: true
 
 # pool_voting_thresholds =
@@ -1269,61 +1271,45 @@ transaction_witness_set:
     - id: 0
       key: vkeywitnesses
       value:
-        type: nullable
-        item:
-          type: generic_apply
-          name: nonempty_set
-          args: [ vkeywitness ]
+        type: generic_apply
+        name: nonempty_set
+        args: [ vkeywitness ]
     - id: 1
       key: native_scripts
       value:
-        type: nullable
-        item:
-          type: generic_apply
-          name: nonempty_set
-          args: [ native_script ]
+        type: generic_apply
+        name: nonempty_set
+        args: [ native_script ]
     - id: 2
       key: bootstrap_witnesses
       value:
-        type: nullable
-        item:
-          type: generic_apply
-          name: nonempty_set
-          args: [ bootstrap_witness ]
+        type: generic_apply
+        name: nonempty_set
+        args: [ bootstrap_witness ]
     - id: 3
       key: plutus_v1_scripts
       value:
-        type: nullable
-        item:
-          type: generic_apply
-          name: nonempty_set
-          args: [ plutus_v1_script ]
+        type: generic_apply
+        name: nonempty_set
+        args: [ plutus_v1_script ]
     - id: 4
       key: plutus_data
-      value:
-        type: nullable
-        item: plutus_data
+      value: plutus_data
     - id: 5
       key: redeemers
-      value:
-        type: nullable
-        item: redeemers
+      value: redeemers
     - id: 6
       key: plutus_v2_scripts
       value:
-        type: nullable
-        item:
-          type: generic_apply
-          name: nonempty_set
-          args: [ plutus_v2_script ]
+        type: generic_apply
+        name: nonempty_set
+        args: [ plutus_v2_script ]
     - id: 7
       key: plutus_v3_scripts
       value:
-        type: nullable
-        item:
-          type: generic_apply
-          name: nonempty_set
-          args: [ plutus_v3_script ]
+        type: generic_apply
+        name: nonempty_set
+        args: [ plutus_v3_script ]
 
 # ; The real type of  plutus_v1_script, plutus_v2_script and plutus_v3_script is bytes.
 # ; However, because we enforce uniqueness when many scripts are supplied,
@@ -1345,6 +1331,7 @@ plutus_v3_script:
 #   / [ * plutus_data ]
 #   / big_int
 #   / bounded_bytes
+# TODO: Custom
 plutus_data:
   type: union
   variants:
@@ -1434,6 +1421,7 @@ constr:
 # redeemers =
 #   [ + [ tag: redeemer_tag, index: uint, data: plutus_data, ex_units: ex_units ] ]
 #   / { + [ tag: redeemer_tag, index: uint ] => [ data: plutus_data, ex_units: ex_units ] }
+#   TODO: Custom
 redeemers:
   type: union
   variants:
@@ -1501,13 +1489,14 @@ ex_units:
 
 # ex_unit_prices =
 #   [ mem_price: nonnegative_interval, step_price: nonnegative_interval ]
+# Note: CSL uses unit_interval in place of nonnegative_interval
 ex_unit_prices:
   type: record
   fields:
     - key: mem_price
-      value: nonnegative_interval
+      value: unit_interval
     - key: step_price
-      value: nonnegative_interval
+      value: unit_interval
 
 # language = 0 ; Plutus v1
 #          / 1 ; Plutus v2
@@ -1523,11 +1512,11 @@ language:
       value: 2
 
 # potential_languages = 0 .. 255
-potential_languages:
-  type: uint
-  value:
-    min: 0
-    max: 255
+# potential_languages:
+#   type: uint
+#   value:
+#     min: 0
+#     max: 255
 
 # ; The format for costmdls is flexible enough to allow adding Plutus built-ins and language
 # ; versions in the future.
@@ -1538,6 +1527,12 @@ potential_languages:
 #   , ? 2 : [ 233* int ] ; Plutus v3, only 233 integers are used, but more are accepted (and ignored)
 #   , ? 3 : [ int ] ; Any 8-bit unsigned number can be used as a key.
 #   }
+#   TODO: Rewrite as custom
+#         CostMdls is Map<Language, CostModel>
+#         CostModel is custom Vec<Int>:
+#           get(operation): self[operation]
+#           set(operation, cost): fill zero from self.len to operation; self[operation] = cost
+# TODO: Custom
 costmdls:
   type: struct
   fields:
@@ -1625,6 +1620,7 @@ metadata:
 #       , ? 3 => [ * plutus_v2_script ]
 #       , ? 4 => [ * plutus_v3_script ]
 #       })
+# TODO: Custom
 auxiliary_data:
   type: union
   variants:
@@ -1808,6 +1804,7 @@ nonZeroInt64:
 # positive_coin = 1 .. 18446744073709551615
 
 # value = coin / [coin, multiasset<positive_coin>]
+# TODO: Custom
 value:
   type: union
   variants:
@@ -1824,6 +1821,7 @@ value:
               args: [ positive_coin ]
 
 # mint = multiasset<nonZeroInt64>
+# TODO: Custom
 mint:
   type: multiasset
   args: [ nonZeroInt64 ]
@@ -1889,6 +1887,7 @@ data:
     type: bytes
 
 # datum_option = [ 0, $hash32 // 1, data ]
+# TODO: Custom
 datum_option:
   type: tagged_record
   variants:
