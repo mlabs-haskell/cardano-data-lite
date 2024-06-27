@@ -17,7 +17,7 @@ export class ParseFailed extends Error {
     path: string[],
     errorKind: "type" | "value",
     expected: string,
-    received?: string | undefined
+    received?: string | undefined,
   ) {
     super("Failed to parse CBOR");
     this.path = path;
@@ -152,7 +152,7 @@ export class CBORReader {
       this.path,
       "type",
       "This is an invalid tag or we don't recognize this tag yet",
-      this.buffer[0].toString(16)
+      this.buffer[0].toString(16),
     );
   }
 
@@ -167,7 +167,7 @@ export class CBORReader {
         this.path,
         "value",
         "0x00 <= len <= 0x1b",
-        len.toString(16)
+        len.toString(16),
       );
     }
 
@@ -197,7 +197,7 @@ export class CBORReader {
         this.path,
         "value",
         "0x00 <= len <= 0x1b || len == 0x1f",
-        len.toString(16)
+        len.toString(16),
       );
     }
 
@@ -210,7 +210,7 @@ export class CBORReader {
       while (this.buffer[0] != 0xff) {
         i += 1;
         chunk = this.withPath(i.toString(), (reader) =>
-          reader.readByteString()
+          reader.readByteString(),
         );
         chunks.push(chunk);
       }
@@ -235,12 +235,12 @@ export class CBORReader {
         this.path,
         "value",
         "0x00 <= len <= 0x1b || len == 0x1f",
-        len.toString(16)
+        len.toString(16),
       );
     }
 
     let array: CBORArrayReader<CBORReaderValue> = new CBORArrayReader(
-      this.path
+      this.path,
     );
 
     if (len == 0x1f) {
@@ -273,7 +273,7 @@ export class CBORReader {
         this.path,
         "value",
         "0x00 <= len <= 0x1b || len == 0x1f",
-        len.toString(16)
+        len.toString(16),
       );
     }
 
@@ -332,7 +332,7 @@ export class CBORReaderValue implements CBORCustom {
 
   getChoice<T>(fns: {
     [TypeName in CBORTypeName]?: (
-      value: CBORReaderValueInnerNarrowed<TypeName>
+      value: CBORReaderValueInnerNarrowed<TypeName>,
     ) => T;
   }): T {
     let typeName = this.inner.type;
@@ -342,7 +342,7 @@ export class CBORReaderValue implements CBORCustom {
         this.path,
         "type",
         Object.keys(fns).join(" | "),
-        typeName
+        typeName,
       );
     }
     return (fn as any)(this.inner.value);
@@ -383,16 +383,15 @@ export class CBORArrayReader<T extends CBORValue> extends Array<T> {
         this.path,
         "value",
         "Index out of bounds",
-        String(this.shiftedCount)
+        String(this.shiftedCount),
       );
     }
     return this.shift() as T;
   }
 
   shift(): T | undefined {
-    if (this.length > 0)
-      this.shiftedCount += 1;
-    return this.shift()
+    if (this.length > 0) this.shiftedCount += 1;
+    return this.shift();
   }
 
   getRequired(index: number): T {
@@ -402,7 +401,7 @@ export class CBORArrayReader<T extends CBORValue> extends Array<T> {
         this.path,
         "value",
         "index not found",
-        (this.shiftedCount + index).toString()
+        (this.shiftedCount + index).toString(),
       );
     }
     return value;
@@ -452,7 +451,7 @@ export class CBORMultiMapReader<
           this.path,
           "value",
           "duplicate values for key",
-          keyStr(key)
+          keyStr(key),
         );
       }
       map.set(key, value);
@@ -477,7 +476,7 @@ export class CBORTaggedReader<T extends CBORValue> extends CBORTagged<T> {
       this.path,
       "value",
       "tag: " + tag,
-      this.tag.toString()
+      this.tag.toString(),
     );
   }
 }
