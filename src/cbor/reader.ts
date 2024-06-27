@@ -464,7 +464,7 @@ export class CBORMultiMapReader<
 
   toMap(): CBORMapReader<K, V> {
     let map: CBORMapReader<K, V> = new CBORMapReader(this.path);
-    for (let [key, value] of this.entries) {
+    for (let [key, value] of this.entries_) {
       if (map.get(key) != null) {
         throw new ParseFailed(
           this.path,

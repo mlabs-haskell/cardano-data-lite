@@ -31,18 +31,19 @@ export class CBORTagged<T extends CBORValue> implements CBORCustom {
 }
 
 export class CBORMap<K extends CBORValue, V extends CBORValue>
-  implements CBORCustom {
-  public entries: [K, V][];
+  implements CBORCustom
+{
+  private entries_: [K, V][];
   public predicate?: (key: K, value: V) => boolean;
 
   protected constructor(
     entries: [K, V][] = [],
-    predicate?: (key: K, value: V) => boolean
+    predicate?: (key: K, value: V) => boolean,
   ) {
     if (predicate != null) {
-      this.entries = entries.filter(([key, value]) => predicate(key, value));
+      this.entries_ = entries.filter(([key, value]) => predicate(key, value));
     } else {
-      this.entries = [...entries];
+      this.entries_ = [...entries];
     }
     this.predicate = predicate;
   }
@@ -51,9 +52,13 @@ export class CBORMap<K extends CBORValue, V extends CBORValue>
     return new CBORMap([]);
   }
 
+  entries(): [K, V][] {
+    return this.entries_;
+  }
+
   get(key: K): V | undefined {
-    let entry = this.entries.find(
-      (entry) => CBORWriter.compare(entry[0], key) === 0
+    let entry = this.entries_.find(
+      (entry) => CBORWriter.compare(entry[0], key) === 0,
     );
     return entry != null ? entry[1] : undefined;
   }
@@ -64,27 +69,27 @@ export class CBORMap<K extends CBORValue, V extends CBORValue>
       return;
     }
 
-    for (let entry of this.entries) {
+    for (let entry of this.entries_) {
       if (CBORWriter.compare(key, entry[0]) === 0) {
         entry[1] = value;
         return;
       }
     }
-    this.entries.push([key, value]);
+    this.entries_.push([key, value]);
   }
 
   delete(key: K) {
-    this.entries = this.entries.filter(
-      (item) => !(CBORWriter.compare(item[0], key) === 0)
+    this.entries_ = this.entries_.filter(
+      (item) => !(CBORWriter.compare(item[0], key) === 0),
     );
   }
 
   size(): number {
-    return this.entries.length;
+    return this.entries_.length;
   }
 
   sortedEntries(): [K, V][] {
-    let entries = [...this.entries];
+    let entries = [...this.entries_];
     entries.sort((a, b) => CBORWriter.compare(a, b));
     return entries;
   }
@@ -100,61 +105,73 @@ export class CBORMap<K extends CBORValue, V extends CBORValue>
     predicate?: (key: K1, value: V1) => boolean;
   }): CBORMap<K1, V1> {
     return new CBORMap(
-      this.entries.map(([key, value]) => [
+      this.entries_.map(([key, value]) => [
         options.key(key),
         options.value(value),
       ]),
-      options.predicate
+      options.predicate,
     );
   }
 
   filter(predicate: (key: K, value: V) => boolean): CBORMap<K, V> {
     return new CBORMap(
-      this.entries.filter(([key, value]) => predicate(key, value))
+      this.entries_.filter(([key, value]) => predicate(key, value)),
     );
   }
 }
 
 export class CBORMultiMap<K extends CBORValue, V extends CBORValue>
-  implements CBORCustom {
-  public entries: [K, V][];
+  implements CBORCustom
+{
+  public entries_: [K, V][];
 
   protected constructor(entries: [K, V][] = []) {
-    this.entries = [...entries];
+    this.entries_ = [...entries];
+  }
+
+  static newEmpty<K extends CBORValue, V extends CBORValue>(): CBORMultiMap<
+    K,
+    V
+  > {
+    return new CBORMultiMap([]);
+  }
+
+  entries(): [K, V][] {
+    return this.entries_;
   }
 
   get(key: K): V[] {
-    return this.entries
+    return this.entries_
       .filter((entry) => CBORWriter.compare(entry[0], key) === 0)
       .map((entry) => entry[1]);
   }
 
   add(key: K, value: V) {
-    this.entries.push([key, value]);
+    this.entries_.push([key, value]);
   }
 
   delete(key: K, value: V) {
-    this.entries = this.entries.filter(
+    this.entries_ = this.entries_.filter(
       (item) =>
         !(
           CBORWriter.compare(item[0], key) === 0 &&
           CBORWriter.compare(item[1], value) === 0
-        )
+        ),
     );
   }
 
   deleteKey(key: K) {
-    this.entries = this.entries.filter(
-      (entry) => CBORWriter.compare(entry[0], key) !== 0
+    this.entries_ = this.entries_.filter(
+      (entry) => CBORWriter.compare(entry[0], key) !== 0,
     );
   }
 
   size(): number {
-    return this.entries.length;
+    return this.entries_.length;
   }
 
   sortedEntries(): [K, V][] {
-    let entries = [...this.entries];
+    let entries = [...this.entries_];
     entries.sort((a, b) => CBORWriter.compare(a, b));
     return entries;
   }
@@ -169,16 +186,16 @@ export class CBORMultiMap<K extends CBORValue, V extends CBORValue>
     value: (value: V) => V1;
   }): CBORMultiMap<K1, V1> {
     return new CBORMultiMap(
-      this.entries.map(([key, value]) => [
+      this.entries_.map(([key, value]) => [
         options.key(key),
         options.value(value),
-      ])
+      ]),
     );
   }
 
   filter(predicate: (key: K, value: V) => boolean): CBORMultiMap<K, V> {
     return new CBORMultiMap(
-      this.entries.filter(([key, value]) => predicate(key, value))
+      this.entries_.filter(([key, value]) => predicate(key, value)),
     );
   }
 }
