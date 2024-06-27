@@ -21,9 +21,8 @@ vrf_vkey:
 # $vrf_cert /= [bytes, bytes .size 80]
 vrf_cert:
   type: array
-  items:
-    - type: bytes
-    - len: 80
+  item: bytes
+  len: 80
 
 # $kes_vkey /= bytes .size 32
 kes_vkey:

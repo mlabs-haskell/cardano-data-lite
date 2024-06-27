@@ -3,58 +3,14 @@
 # ; change sooner rather than later, in order to provide a smooth transition for their users.
 #
 # set<a> = #6.258([* a]) / [* a]
-set:
-  type: generic
-  args: [ a ]
-  rhs:
-    type: union
-    variants:
-      - type: tagged
-        tag: 258
-        item:
-          type: array
-          item: a
-      - type: array
-        item:
-          item: a
-
 # nonempty_set<a> = #6.258([+ a]) / [+ a]
-nonempty_set:
-  type: generic
-  args: [ a ]
-  rhs:
-    type: union
-    variants:
-      - type: tagged
-        tag: 258
-        item:
-          type: array
-          item: a
-          len:
-            min: 1
-      - type: array
-        item: a
-        len:
-          min: 1
-
 # nonempty_oset<a> = #6.258([+ a]) / [+ a]
-nonempty_oset:
-  type: generic
-  args: [ a ]
-  rhs:
-    type: union
-    variants:
-      - type: tagged
-        tag: 258
-        item:
-          type: array
-          item: a
-          len:
-            min: 1
-      - type: array
-        item: a
-        len:
-          min: 1
+
+# All kinds of sets will be handled with the custom builtin type `set`
+# This is how CSL does it. 
+# It treats Set as basically a list.
+# Duplicates are allowed.
+# Provides a to_option() method which returns undefined if set is empty.
 
 # positive_int = 1 .. 18446744073709551615
 positive_int:
