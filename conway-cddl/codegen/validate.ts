@@ -442,6 +442,7 @@ function validateNumberConstraints(constraints: NumberConstraints, path = "") {
   }
   throw new ValidationError(path, "Expected number or object");
 }
+
 let file = fs.readFileSync("../json/conway.yaml", "utf8");
 let doc = yaml.parse(file);
 for (let [key, value] of Object.entries(doc)) {
