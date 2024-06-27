@@ -1,0 +1,17 @@
+array
+group
+bool
+bytes
+enum
+generic
+int
+map
+nint
+nullable
+record
+string
+struct
+tagged
+tagged_record
+uint
+union
