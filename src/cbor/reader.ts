@@ -355,6 +355,16 @@ export class CBORReaderValue implements CBORCustom {
     throw new ParseFailed(this.path, "type", type, this.inner.type);
   }
 
+  getNullable<T extends CBORTypeName>(
+    type: T,
+  ): CBORReaderValueInnerNarrowed<T> | null {
+    if (this.inner.type == "null") return null;
+    if (type == this.inner.type) {
+      return this.inner.value as any;
+    }
+    throw new ParseFailed(this.path, "type", type + " | null", this.inner.type);
+  }
+
   getInt(): bigint {
     return this.getChoice({ uint: (x) => x, nint: (x) => x });
   }
@@ -365,6 +375,15 @@ export class CBORReaderValue implements CBORCustom {
 
   toCBOR(writer: CBORWriter) {
     writer.write(this.inner.value);
+  }
+
+  with<U>(fn: (x: CBORReaderValue) => U): U {
+    try {
+      return fn(this);
+    } catch (e) {
+      let msg = (e as any).toString();
+      throw new ParseFailed(this.path, "value", msg);
+    }
   }
 }
 
