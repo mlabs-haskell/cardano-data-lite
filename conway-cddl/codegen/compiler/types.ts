@@ -53,6 +53,26 @@ export function isPrimitive(value: any): value is PrimitiveShort | Primitive {
   }
 }
 
+function validatePrimitiveType(value: string): PrimitiveShort | null {
+  return value === "bool" ||
+    value === "bytes" ||
+    value === "int" ||
+    value === "string" ||
+    value === "uint" ||
+    value === "nint" ||
+    value === "float"
+    ? value
+    : null;
+}
+
+export function getPrimitiveType(value: any): PrimitiveShort | null {
+  if (typeof value === "string") {
+    return validatePrimitiveType(value);
+  } else {
+    return validatePrimitiveType(value.type);
+  }
+}
+
 export type Composite =
   | {
       type: "array";
@@ -60,8 +80,18 @@ export type Composite =
       len?: NumberConstraints;
     }
   | {
+      type: "set";
+      item: Schema;
+      len?: NumberConstraints;
+    }
+  | {
       type: "record";
-      fields: { key: string; value: Schema; optional?: boolean }[];
+      fields: {
+        key: string;
+        value: Schema;
+        optional?: boolean;
+        nullable?: boolean;
+      }[];
     }
   | {
       type: "tagged_record";
@@ -94,19 +124,8 @@ export type Composite =
     }
   | {
       type: "group";
-      fields: { key: Schema; value: Schema }[];
-    }
-  | {
-      type: "generic_apply";
-      name: string;
-      args: Schema[];
-    }
-  | { type: "generic"; args: string[]; rhs: Schema }
-  | {
-      type: "nullable";
-      item: Schema;
+      fields: { key: string; value: Schema }[];
     };
-
 export type Schema = Composite | Primitive | PrimitiveShort | string;
 
 export type NumberConstraint =

@@ -48,9 +48,8 @@ transaction:
     - key: is_valid
       value: boolean
     - key: auxiliary_data
-      value:
-        type: nullable
-        item: auxiliary_data
+      value: auxiliary_data
+      nullable: true
 
 # transaction_index = uint .size 2
 transaction_index:
@@ -89,9 +88,8 @@ header_body:
     - key: slot
       value: uint
     - key: prev_hash
-      value:
-        type: nullable
-        item: hash32
+      value: hash32
+      nullable: true
     - key: issuer_vkey
       value: vkey
     - key: vrf_vkey
@@ -170,9 +168,8 @@ transaction_body:
     - id: 0
       key: inputs
       value:
-        type: generic_apply
-        name: set
-        args: [ transaction_input ]
+        type: set
+        item: transaction_input
     - id: 1
       key: transaction_outputs
       value:
@@ -212,9 +209,8 @@ transaction_body:
     - id: 13
       key: collateral_inputs
       value:
-        type: generic_apply
-        name: set
-        args: [ transaction_input ]
+        type: set
+        item: transaction_input
       optional: true
     - id: 14
       key: required_signers
@@ -235,9 +231,8 @@ transaction_body:
     - id: 18
       key: reference_inputs
       value:
-        type: generic_apply
-        name: set
-        args: [ transaction_input ]
+        type: set
+        item: transaction_input
       optional: true
     - id: 19
       key: voting_procedures
@@ -279,9 +274,8 @@ voting_procedure:
     - key: vote
       value: vote
     - key: anchor
-      value:
-        type: nullable
-        item: anchor
+      value: anchor
+      nullable: true
 
 # proposal_procedure =
 #   [ deposit : coin
@@ -303,15 +297,13 @@ proposal_procedure:
 
 # proposal_procedures = nonempty_oset<proposal_procedure>
 proposal_procedures:
-  type: generic_apply
-  name: nonempty_oset
-  args: [ proposal_procedure ]
+  type: set
+  item: proposal_procedure
 
 # certificates = nonempty_oset<certificate>
 certificates:
-  type: generic_apply
-  name: nonempty_oset
-  args: [ certificate ]
+  type: set
+  item: certificate
 
 # policy_hash = scripthash
 policy_hash: scripthash
@@ -339,55 +331,45 @@ gov_action:
       tag: 0
       fields:
         - key: gov_action_id
-          value:
-            type: nullable
-            item: gov_action_id
+          value: gov_action_id
+          nullable: true
         - key: protocol_param_update
           value: protocol_param_update
         - key: policy_hash
-          value:
-            type: nullable
-            item: policy_hash
+          value: policy_hash
+          nullable: true
     - name: hard_fork_initiation_action
       tag: 1
       fields:
         - key: gov_action_id
-          value:
-            type: nullable
-            item: gov_action_id
+          value: gov_action_id
+          nullable: true
         - key: protocol_version
           value: protocol_version
     - name: treasury_withdrawals_action
       tag: 2
       fields:
         - key: withdrawals
-          value:
-            type: map
-            key: reward_account
-            value: coin
+          value: withdrawals
         - key: policy_hash
-          value:
-            type: nullable
-            item: policy_hash
+          value: policy_hash
+          nullable: true
     - name: no_confidence
       tag: 3
       fields:
         - key: gov_action_id
-          value:
-            type: nullable
-            item: gov_action_id
+          value: gov_action_id
+          nullable: true
     - name: update_committee
       tag: 4
       fields:
         - key: gov_action_id
-          value:
-            type: nullable
-            item: gov_action_id
+          value: gov_action_id
+          nullable: true
         - key: committee_cold_credentials
           value:
-            type: generic_apply
-            name: set
-            args: [ committee_cold_credential ]
+            type: set
+            item: committee_cold_credential
         - key: epochs
           value:
             type: map
@@ -399,9 +381,8 @@ gov_action:
       tag: 5
       fields:
         - key: gov_action_id
-          value:
-            type: nullable
-            item: gov_action_id
+          value: gov_action_id
+          nullable: true
         - key: constitution
           value: constitution
     - name: info_action
@@ -418,9 +399,8 @@ constitution:
     - key: anchor
       value: anchor
     - key: scripthash
-      value:
-        type: nullable
-        item: scripthash
+      value: scripthash
+      nullable: true
 
 # ; Constitutional Committee Hot KeyHash: 0
 # ; Constitutional Committee Hot ScriptHash: 1
@@ -504,9 +484,8 @@ gov_action_id:
 # required_signers = nonempty_set<addr_keyhash>
 required_signers:
   type:
-    type: generic_apply
-    name: nonempty_set
-    args: [ addr_keyhash ]
+    type: set
+    args: addr_keyhash
 
 # transaction_input = [ transaction_id : $hash32
 #                     , index : uint
@@ -820,9 +799,8 @@ certificate:
         - key: committee_cold_credential
           value: committee_cold_credential
         - key: anchor
-          value:
-            type: nullable
-            item: anchor
+          value: anchor
+          nullable: true
     - name: reg_drep_cert
       tag: 16
       fields:
@@ -831,9 +809,8 @@ certificate:
         - key: coin
           value: coin
         - key: anchor
-          value:
-            type: nullable
-            item: anchor
+          value: anchor
+          nullable: true
     - name: unreg_drep_cert
       tag: 17
       fields:
@@ -847,9 +824,8 @@ certificate:
         - key: drep_credential
           value: drep_credential
         - key: anchor
-          value:
-            type: nullable
-            item: anchor
+          value: anchor
+          nullable: true
 
 # delta_coin = int
 delta_coin:
@@ -937,17 +913,15 @@ pool_params:
       value: reward_account
     - key: pool_owners
       value:
-        type: generic_apply
-        name: set
-        args: [ addr_keyhash ]
+        type: set
+        item: addr_keyhash
     - key: relays
       value:
         type: array
         item: relay
     - key: pool_metadata
-      value:
-        type: nullable
-        item: pool_metadata
+      value: pool_metadata
+      nullable: true
 
 # port = uint .le 65535
 # ipv4 = bytes .size 4
@@ -992,24 +966,20 @@ relay:
       tag: 0
       fields:
         - key: port
-          value:
-            type: nullable
-            item: port
+          value: port
+          nullable: true
         - key: ipv4
-          value:
-            type: nullable
-            item: ipv4
+          value: ipv4
+          nullable: true
         - key: ipv6
-          value:
-            type: nullable
-            item: ipv6
+          value: ipv6
+          nullable: true
     - name: single_host_name
       tag: 1
       fields:
         - key: port
-          value:
-            type: nullable
-            item: port
+          value: port
+          nullable: true
         - key: dns_name
           value: dns_name
     - name: multi_host_name
@@ -1038,8 +1008,6 @@ withdrawals:
   type: map
   key: reward_account
   value: coin
-  len:
-    min: 1
 
 # protocol_param_update =
 #   { ? 0:  coin                   ; minfee A
@@ -1271,27 +1239,23 @@ transaction_witness_set:
     - id: 0
       key: vkeywitnesses
       value:
-        type: generic_apply
-        name: nonempty_set
-        args: [ vkeywitness ]
+        type: set
+        item: vkeywitness
     - id: 1
       key: native_scripts
       value:
-        type: generic_apply
-        name: nonempty_set
-        args: [ native_script ]
+        type: set
+        item: native_script
     - id: 2
       key: bootstrap_witnesses
       value:
-        type: generic_apply
-        name: nonempty_set
-        args: [ bootstrap_witness ]
+        type: set
+        item: bootstrap_witness
     - id: 3
       key: plutus_v1_scripts
       value:
-        type: generic_apply
-        name: nonempty_set
-        args: [ plutus_v1_script ]
+        type: set
+        item: plutus_v1_script
     - id: 4
       key: plutus_data
       value: plutus_data
@@ -1301,15 +1265,13 @@ transaction_witness_set:
     - id: 6
       key: plutus_v2_scripts
       value:
-        type: generic_apply
-        name: nonempty_set
-        args: [ plutus_v2_script ]
+        type: set
+        item: plutus_v2_script
     - id: 7
       key: plutus_v3_scripts
       value:
-        type: generic_apply
-        name: nonempty_set
-        args: [ plutus_v3_script ]
+        type: set
+        item: plutus_v3_script
 
 # ; The real type of  plutus_v1_script, plutus_v2_script and plutus_v3_script is bytes.
 # ; However, because we enforce uniqueness when many scripts are supplied,
@@ -1382,7 +1344,7 @@ big_nint:
 #   / #6.125([* a])
 #   / #6.126([* a])
 #   / #6.127([* a])
-#   ; similarly for tag range: 6.1280 .. 6.1400 inclusive
+#   ; similarly for tag range: 6.128 .. 6.140 inclusive
 #   / #6.102([uint, [* a]])
 constr:
   type: generic
@@ -1397,8 +1359,6 @@ constr:
             ranges:
               - min: 121
                 max: 127
-              - min: 1280
-                max: 1400
           item:
             type: array
             item: a

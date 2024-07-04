@@ -13,11 +13,12 @@
 # Provides a to_option() method which returns undefined if set is empty.
 
 # positive_int = 1 .. 18446744073709551615
-positive_int:
-  type: uint
-  value:
-    min: 1
-    max: 18446744073709551615
+# unused.
+# positive_int:
+#   type: uint
+#   value:
+#     min: 1
+#     max: 18446744073709551615
 
 # unit_interval = #6.30([1, 2])
 #   ; unit_interval = #6.30([uint, uint])
@@ -51,16 +52,17 @@ unit_interval:
             min: 1
 
 # nonnegative_interval = #6.30([uint, positive_int])
-nonnegative_interval:
-  type: tagged
-  tag: 30
-  item:
-    type: record
-    fields:
-      - key: start
-        value: uint
-      - key: length
-        value: positive_int
+# This type is not used by CSL. UnitInterval is used everywhere instead.
+# nonnegative_interval:
+#   type: tagged
+#   tag: 30
+#   item:
+#     type: record
+#     fields:
+#       - key: start
+#         value: uint
+#       - key: length
+#         value: positive_int
 #
 # address =
 #   h'001000000000000000000000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000' /
@@ -98,7 +100,7 @@ bounded_bytes:
 # ; The type parameter must support .size, for example: bytes or uint
 # distinct<a> = a .size 8 / a .size 16 / a .size 20 / a .size 24 / a .size 30 / a .size 32
 # TODO: Implement validation
-distinct:
-  type: generic
-  args: [ a ]
-  rhs: a
+# distinct:
+#   type: generic
+#   args: [ a ]
+#   rhs: a

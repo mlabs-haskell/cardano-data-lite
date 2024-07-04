@@ -2,9 +2,10 @@ export type Variant = {
   tag: number;
   name: string;
   type: string;
+  type_discriminator: string;
 };
 
-export class GenTaggedRecord {
+export class GenUnion {
   name: string;
   variants: Variant[];
 
@@ -47,28 +48,22 @@ export class GenTaggedRecord {
           .join("\n")}
         
         static fromCBOR(value: CBORReaderValue): ${this.name} {
-          let array = value.get("array");
-          let [tag, variant] = array.shiftRequired().with(tag_ => {
-            let tag = Number(tag_.get("uint"));
+          return value.getChoice({
             ${this.variants
               .map(
-                (x) => `
-              if(tag == ${x.tag}) return [tag, ${x.type}.fromArray(array)]
-            `,
+                (x) => `"${x.type_discriminator}": (v) => 
+                          new ${this.name}({
+                            kind: ${x.tag},
+                            value: ${x.type}.fromCBOR(v)
+                          }),`,
               )
               .join("\n")}
-            throw "Unrecognized tag: " + tag + " for ${this.name}";
+            
           });
-          
-          return new ${this.name}({kind: tag, value: variant});
         }
 
         toCBOR(writer: CBORWriter) {
-          let entries = [
-            this.variant.kind,
-            ...this.variant.value.toArray()
-          ];
-          writer.writeArray(entries);
+          this.variant.value.toCBOR(writer);
         }
       }`;
   }

@@ -385,6 +385,11 @@ export class CBORReaderValue implements CBORCustom {
       throw new ParseFailed(this.path, "value", msg);
     }
   }
+
+  withNullable<U>(fn: (x: CBORReaderValue) => U): U | null {
+    if (this.inner.type == "null") return null;
+    return this.with(fn);
+  }
 }
 
 export class CBORArrayReader<T extends CBORValue> extends Array<T> {
@@ -437,8 +442,8 @@ export class CBORMapReader<
 > extends CBORMap<K, V> {
   public readonly path: string[];
 
-  constructor(path: string[]) {
-    super();
+  constructor(path: string[], entries: [K, V][] = []) {
+    super(entries);
     this.path = path;
   }
 
@@ -448,6 +453,20 @@ export class CBORMapReader<
       throw new ParseFailed(this.path, "value", "key not found", keyStr(key));
     }
     return value;
+  }
+
+  map<K1 extends CBORValue, V1 extends CBORValue>(options: {
+    key: (key: K) => K1;
+    value: (value: V) => V1;
+    predicate?: ((key: K1, value: V1) => boolean) | undefined;
+  }): CBORMapReader<K1, V1> {
+    return new CBORMapReader(
+      this.path,
+      this.entries_.map(([key, value]) => [
+        options.key(key),
+        options.value(value),
+      ]),
+    );
   }
 }
 

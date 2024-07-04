@@ -1,3 +1,4 @@
+import { GenLeaf } from ".";
 import { genAccessors, genConstructor, genMembers } from "./custom";
 
 export type Field = {
@@ -23,13 +24,13 @@ export class GenStruct {
         ${genConstructor(this.fields)}
         ${genAccessors(this.fields)}
         
-        static fromCBOR(value: CBORValue): ${this.name} {
-          let map = value.get("map");
+        static fromCBOR(value: CBORReaderValue): ${this.name} {
+          let map = value.get("map").toMap().map({key: x => Number(x.getInt()), value: x => x});
           ${this.fields
             .map((x) => {
               let out = [];
               out.push(
-                `let ${x.name}_ = map.${x.optional ? "getOptional" : "get"}(${x.id});`,
+                `let ${x.name}_ = map.${x.optional ? "get" : "getRequired"}(${x.id});`,
               );
               out.push(
                 `let ${x.name} = ${x.name}_ != undefined ? ${x.type.fromCBOR(x.name + "_")} : undefined;`,

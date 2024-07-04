@@ -60,11 +60,18 @@ export function validate(entry: any, path = "") {
     }
     return;
   }
+  if (entry.type == "set") {
+    validate(entry.item, path + ".item");
+    if (entry.len != null) {
+      validateNumberConstraints(entry.len, path + ".len");
+    }
+    return;
+  }
   if (entry.type == "record") {
     if (!Array.isArray(entry.fields)) {
       throw new ValidationError(
         path + ".fields",
-        "Expected fields to be an array"
+        "Expected fields to be an array",
       );
     }
     let encounteredOptional = false;
@@ -73,32 +80,32 @@ export function validate(entry: any, path = "") {
       if (typeof field != "object") {
         throw new ValidationError(
           path + ".fields[" + i + "]",
-          "Expected object"
+          "Expected object",
         );
       }
       if (field == null) {
         throw new ValidationError(
           path + ".fields[" + i + "]",
-          "Expected non-null"
+          "Expected non-null",
         );
       }
       if (field.key == null) {
         throw new ValidationError(
           path + ".fields[" + i + "].key",
-          "Expected key field"
+          "Expected key field",
         );
       }
       if (field.value == null) {
         throw new ValidationError(
           path + ".fields[" + i + "].value",
-          "Expected value field"
+          "Expected value field",
         );
       }
       if (field.optional != null) {
         if (typeof field.optional !== "boolean") {
           throw new ValidationError(
             path + ".fields[" + i + "].optional",
-            "Expected optional to be a boolean"
+            "Expected optional to be a boolean",
           );
         }
         encounteredOptional = true;
@@ -106,7 +113,7 @@ export function validate(entry: any, path = "") {
       if (encounteredOptional && !field.optional) {
         throw new ValidationError(
           path + ".fields[" + i + "].optional",
-          "Expected all fields after an optional field to be optional"
+          "Expected all fields after an optional field to be optional",
         );
       }
       validate(field.key, path + ".fields[" + i + "].key");
@@ -118,79 +125,79 @@ export function validate(entry: any, path = "") {
     if (!Array.isArray(entry.variants)) {
       throw new ValidationError(
         path + ".variants",
-        "Expected variants to be an array"
+        "Expected variants to be an array",
       );
     }
     for (let [i, variant] of entry.variants.entries()) {
       if (typeof variant != "object") {
         throw new ValidationError(
           path + ".variants[" + i + "]",
-          "Expected variant to be an object"
+          "Expected variant to be an object",
         );
       }
       if (variant == null) {
         throw new ValidationError(
           path + ".variants[" + i + "]",
-          "Expected non-null variant"
+          "Expected non-null variant",
         );
       }
       if (variant.name == null) {
         throw new ValidationError(
           path + ".variants[" + i + "].name",
-          "Expected name field"
+          "Expected name field",
         );
       }
       if (variant.tag == null) {
         throw new ValidationError(
           path + ".variants[" + i + "].tag",
-          "Expected tag field"
+          "Expected tag field",
         );
       }
       if (typeof variant.tag != "number") {
         throw new ValidationError(
           path + ".variants[" + i + "].tag",
-          "Expected tag to be a number"
+          "Expected tag to be a number",
         );
       }
       if (variant.fields != null) {
         if (!Array.isArray(variant.fields)) {
           throw new ValidationError(
             path + ".variants[" + i + "].fields",
-            "Expected fields to be an array"
+            "Expected fields to be an array",
           );
         }
         for (let [j, field] of variant.fields.entries()) {
           if (typeof field != "object") {
             throw new ValidationError(
               path + ".variants[" + i + "].fields[" + j + "]",
-              "Expected field to be an object"
+              "Expected field to be an object",
             );
           }
           if (field == null) {
             throw new ValidationError(
               path + ".variants[" + i + "].fields[" + j + "]",
-              "Expected non-null field"
+              "Expected non-null field",
             );
           }
           if (field.key == null) {
             throw new ValidationError(
               path + ".variants[" + i + "].fields[" + j + "].key",
-              "Expected key field"
+              "Expected key field",
             );
           }
           if (field.value == null) {
             throw new ValidationError(
               path + ".variants[" + i + "].fields[" + j + "].value",
-              "Expected value field"
+              "Expected value field",
             );
           }
           validate(
             field.key,
-            path + ".variants[" + i + "].fields[" + j + "].key"
+            path + ".variants[" + i + "].fields[" + j + "].key",
           );
           validate(
             field.value,
-            path + ".variants[" + i + "].fields[" + j + "].value"
+            path + ".variants[" + i + "].fields[" + j + "].value",
           );
         }
       }
@@ -209,51 +216,51 @@ export function validate(entry: any, path = "") {
     if (!Array.isArray(entry.fields)) {
       throw new ValidationError(
         path + ".fields",
-        "Expected fields to be an array"
+        "Expected fields to be an array",
       );
     }
     for (let [i, field] of entry.fields.entries()) {
       if (typeof field != "object") {
         throw new ValidationError(
           path + ".fields[" + i + "]",
-          "Expected field to be an object"
+          "Expected field to be an object",
         );
       }
       if (field == null) {
         throw new ValidationError(
           path + ".fields[" + i + "]",
-          "Expected non-null field"
+          "Expected non-null field",
         );
       }
       if (field.id == null) {
         throw new ValidationError(
           path + ".fields[" + i + "].id",
-          "Expected id field"
+          "Expected id field",
         );
       }
       if (typeof field.id != "number") {
         throw new ValidationError(
           path + ".fields[" + i + "].id",
-          "Expected id to be a number"
+          "Expected id to be a number",
         );
       }
       if (field.key == null) {
         throw new ValidationError(
           path + ".fields[" + i + "].key",
-          "Expected key field"
+          "Expected key field",
         );
       }
       if (field.value == null) {
         throw new ValidationError(
           path + ".fields[" + i + "].value",
-          "Expected value field"
+          "Expected value field",
         );
       }
       if (field.optional != null) {
         if (typeof field.optional !== "boolean") {
           throw new ValidationError(
             path + ".fields[" + i + "].optional",
-            "Expected optional to be a boolean"
+            "Expected optional to be a boolean",
           );
         }
       }
@@ -266,38 +273,38 @@ export function validate(entry: any, path = "") {
     if (!Array.isArray(entry.values)) {
       throw new ValidationError(
         path + ".values",
-        "Expected values to be an array"
+        "Expected values to be an array",
       );
     }
     for (let [i, value] of entry.values.entries()) {
       if (typeof value != "object") {
         throw new ValidationError(
           path + ".values[" + i + "]",
-          "Expected value to be an object"
+          "Expected value to be an object",
         );
       }
       if (value == null) {
         throw new ValidationError(
           path + ".values[" + i + "]",
-          "Expected non-null value"
+          "Expected non-null value",
         );
       }
       if (value.name == null) {
         throw new ValidationError(
           path + ".values[" + i + "].name",
-          "Expected name field"
+          "Expected name field",
         );
       }
       if (value.value == null) {
         throw new ValidationError(
           path + ".values[" + i + "].value",
-          "Expected value field"
+          "Expected value field",
         );
       }
       if (typeof value.value != "number") {
         throw new ValidationError(
           path + ".values[" + i + "].value",
-          "Expected value to be a number"
+          "Expected value to be a number",
         );
       }
     }
@@ -314,32 +321,32 @@ export function validate(entry: any, path = "") {
     if (!Array.isArray(entry.variants)) {
       throw new ValidationError(
         path + ".variants",
-        "Expected variants to be an array"
+        "Expected variants to be an array",
       );
     }
     for (let [i, variant] of entry.variants.entries()) {
       if (typeof variant != "object") {
         throw new ValidationError(
           path + ".variants[" + i + "]",
-          "Expected variant to be an object"
+          "Expected variant to be an object",
         );
       }
       if (variant == null) {
         throw new ValidationError(
           path + ".variants[" + i + "]",
-          "Expected non-null variant"
+          "Expected non-null variant",
         );
       }
       if (variant.name == null) {
         throw new ValidationError(
           path + ".variants[" + i + "].name",
-          "Expected name field"
+          "Expected name field",
         );
       }
       if (variant.item == null) {
         throw new ValidationError(
           path + ".variants[" + i + "].item",
-          "Expected item field"
+          "Expected item field",
         );
       }
       validate(variant.item, path + ".variants[" + i + "].item");
@@ -350,77 +357,46 @@ export function validate(entry: any, path = "") {
     if (!Array.isArray(entry.fields)) {
       throw new ValidationError(
         path + ".fields",
-        "Expected fields to be an array"
+        "Expected fields to be an array",
       );
     }
     for (let [i, field] of entry.fields.entries()) {
       if (typeof field != "object") {
         throw new ValidationError(
           path + ".fields[" + i + "]",
-          "Expected field to be an object"
+          "Expected field to be an object",
         );
       }
       if (field == null) {
         throw new ValidationError(
           path + ".fields[" + i + "]",
-          "Expected non-null field"
+          "Expected non-null field",
         );
       }
       if (field.key == null) {
         throw new ValidationError(
           path + ".fields[" + i + "].key",
-          "Expected key field"
+          "Expected key field",
+        );
+      }
+      if (typeof field.key != "string") {
+        throw new ValidationError(
+          path + ".fields[" + i + "].key",
+          "Expected key to be string",
         );
       }
       if (field.value == null) {
         throw new ValidationError(
           path + ".fields[" + i + "].value",
-          "Expected value field"
+          "Expected value field",
         );
       }
-      validate(field.key, path + ".fields[" + i + "].key");
       validate(field.value, path + ".fields[" + i + "].value");
     }
     return;
   }
-  if (entry.type == "generic_apply") {
-    if (entry.name == null) {
-      throw new ValidationError(path + ".name", "Expected name field");
-    }
-    if (entry.args == null) {
-      throw new ValidationError(path + ".args", "Expected args field");
-    }
-    if (!Array.isArray(entry.args)) {
-      throw new ValidationError(path + ".args", "Expected args to be an array");
-    }
-    for (let [i, arg] of entry.args.entries()) {
-      validate(arg, path + ".args[" + i + "]");
-    }
-    return;
-  }
-  if (entry.type == "generic") {
-    if (entry.args == null) {
-      throw new ValidationError(path + ".args", "Expected args field");
-    }
-    if (!Array.isArray(entry.args)) {
-      throw new ValidationError(path + ".args", "Expected args to be an array");
-    }
-    for (let [i, arg] of entry.args.entries()) {
-      if (typeof arg !== "string") {
-        throw new ValidationError(
-          path + ".args[" + i + "]",
-          "Expected arg to be a string"
-        );
-      }
-    }
-    validate(entry.rhs, path + ".rhs");
-    return;
-  }
-  if (entry.type == "nullable") {
-    validate(entry.item, path + ".item");
-    return;
-  }
 }
+
 function validateNumberConstraints(constraints: NumberConstraints, path = "") {
   if (typeof constraints === "number") {
     return;
@@ -443,7 +419,7 @@ function validateNumberConstraints(constraints: NumberConstraints, path = "") {
   throw new ValidationError(path, "Expected number or object");
 }
 
-let file = fs.readFileSync("../json/conway.yaml", "utf8");
+let file = fs.readFileSync("../../yaml/conway.yaml", "utf8");
 let doc = yaml.parse(file);
 for (let [key, value] of Object.entries(doc)) {
   try {
