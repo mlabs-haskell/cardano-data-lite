@@ -33,7 +33,7 @@ export class CBORTagged<T extends CBORValue> implements CBORCustom {
 export class CBORMap<K extends CBORValue, V extends CBORValue>
   implements CBORCustom
 {
-  private entries_: [K, V][];
+  protected entries_: [K, V][];
   public predicate?: (key: K, value: V) => boolean;
 
   protected constructor(

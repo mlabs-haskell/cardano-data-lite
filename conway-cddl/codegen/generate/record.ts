@@ -1,9 +1,11 @@
+import { GenLeaf } from ".";
 import { genAccessors, genConstructor, genMembers } from "./custom";
 
 export type Field = {
   name: string;
   type: GenLeaf;
   optional?: boolean;
+  nullable?: boolean;
 };
 
 export class GenRecord {
@@ -21,11 +23,6 @@ export class GenRecord {
         ${genMembers(this.fields)}
         ${genConstructor(this.fields)}
         ${genAccessors(this.fields)}
-        
-        static fromCBOR(value: CBORValue): ${this.name} {
-          let array = value.get("array");
-          ${this.name}.fromArray(array);
-        }
 
         static fromArray(array: CBORArrayReader<CBORReaderValue>): ${this.name} {
           ${this.fields
@@ -34,7 +31,14 @@ export class GenRecord {
               out.push(
                 `let ${x.name}_ = array.${x.optional ? "shift" : "shiftRequired"}();`,
               );
-              out.push(`let ${x.name} = ` + x.type.fromCBOR(x.name + "_"));
+              if (x.nullable) {
+                out.push(
+                  `let ${x.name}__ = ${x.name}_.withNullable(x => ${x.type.fromCBOR("x")});`,
+                  `let ${x.name} = ${x.name}__ == null ? undefined : ${x.name}__;`,
+                );
+              } else {
+                out.push(`let ${x.name} = ${x.type.fromCBOR(x.name + "_")};`);
+              }
               return out.join("\n");
             })
             .join("\n")}
@@ -42,7 +46,7 @@ export class GenRecord {
           return new ${this.name}(${this.fields.map((x) => x.name).join(", ")}) 
         }
 
-        toCBOR(writer: CBORWriter) {
+        toArray() {
           let entries = [];
           ${this.fields
             .map((x) =>
@@ -51,7 +55,16 @@ export class GenRecord {
                 : `entries.push(this.${x.name});`,
             )
             .join("\n")}
-          writer.writeArray(entries);
+          return entries;
+        }
+        
+        static fromCBOR(value: CBORReaderValue): ${this.name} {
+          let array = value.get("array");
+          return ${this.name}.fromArray(array);
+        }
+
+        toCBOR(writer: CBORWriter) {
+          writer.writeArray(this.toArray());
         }
       }`;
   }
