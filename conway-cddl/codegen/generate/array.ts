@@ -1,3 +1,5 @@
+import { GenLeaf, GenRoot } from ".";
+
 export class GenArray implements GenRoot {
   name: string;
   item: GenLeaf;

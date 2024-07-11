@@ -2,6 +2,7 @@ export type Variant = {
   tag: number;
   name: string;
   type: string;
+  kind: "single" | "array";
 };
 
 export class GenTaggedRecord {
@@ -53,7 +54,13 @@ export class GenTaggedRecord {
             ${this.variants
               .map(
                 (x) => `
-              if(tag == ${x.tag}) return [tag, ${x.type}.fromArray(array)]
+              if(tag == ${x.tag}) {
+                ${
+                  x.kind == "array"
+                    ? `return [tag, ${x.type}.fromArray(array)]`
+                    : `return [tag, ${x.type}.fromCBOR(array.shiftRequired())]`
+                }
+              }
             `,
               )
               .join("\n")}
@@ -64,10 +71,15 @@ export class GenTaggedRecord {
         }
 
         toCBOR(writer: CBORWriter) {
-          let entries = [
-            this.variant.kind,
-            ...this.variant.value.toArray()
-          ];
+          let entries = 
+            this.variant.value.toArray != null 
+              ? [
+                this.variant.kind,
+                ...this.variant.value.toArray()
+              ] : [
+                this.variant.kind,
+                this.variant.value
+              ];
           writer.writeArray(entries);
         }
       }`;

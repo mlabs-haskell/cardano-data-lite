@@ -9,6 +9,9 @@ async function main() {
     let file = fs.readFileSync(`../yaml/${filename}.yaml`, "utf8");
     let doc = yaml.parse(file);
     for (let [key, value] of Object.entries(doc)) {
+      if ((value as any).custom == true) {
+        continue;
+      }
       try {
         compiler.compile(key, value as any);
       } catch (error) {
