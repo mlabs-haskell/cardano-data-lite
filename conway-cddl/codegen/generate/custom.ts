@@ -1,3 +1,5 @@
+import { GenLeaf } from ".";
+
 type Field = {
   name: string;
   type: GenLeaf;
@@ -35,4 +37,26 @@ export function genAccessors(fields: Field[]) {
         `,
     )
     .join("\n");
+}
+
+export function genCSL(className: string) {
+  return `
+    static from_bytes(data: Uint8Array): ${className} {
+      let cborValue = new CBORReader(data).read();
+      return ${className}.fromCBOR(cborValue);
+    }
+
+    static from_hex(hex_str: string): ${className} {
+      return ${className}.from_bytes(hexToBytes(hex_str));
+    }
+
+    
+    to_bytes(): Uint8Array {
+      return CBORWriter.toBytes(this);
+    }
+
+    to_hex(): string {
+      return bytesToHex(this.to_bytes());
+    }
+  `;
 }

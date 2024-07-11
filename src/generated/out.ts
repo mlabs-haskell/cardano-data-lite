@@ -248,6 +248,8 @@ export class Transaction {
   }
 }
 
+export type TransactionIndex = number;
+
 export class Header {
   private header_body: HeaderBody;
   private body_signature: KesSignature;
@@ -559,6 +561,8 @@ export class OperationalCert {
   }
 }
 
+export type MajorProtocolVersion = number;
+
 export class ProtocolVersion {
   private major_protocol_version: MajorProtocolVersion;
   private minor_protocol_version: number;
@@ -686,7 +690,7 @@ export class TransactionBody {
   private voting_procedures: VotingProcedures | undefined;
   private proposal_procedures: ProposalProcedures | undefined;
   private current_treasury_value: Coin | undefined;
-  private donation: PositiveCoin | undefined;
+  private donation: Coin | undefined;
 
   constructor(
     inputs: Inputs,
@@ -708,7 +712,7 @@ export class TransactionBody {
     voting_procedures: VotingProcedures | undefined,
     proposal_procedures: ProposalProcedures | undefined,
     current_treasury_value: Coin | undefined,
-    donation: PositiveCoin | undefined,
+    donation: Coin | undefined,
   ) {
     this.inputs = inputs;
     this.transaction_outputs = transaction_outputs;
@@ -884,11 +888,11 @@ export class TransactionBody {
     this.current_treasury_value = current_treasury_value;
   }
 
-  get_donation(): PositiveCoin | undefined {
+  get_donation(): Coin | undefined {
     return this.donation;
   }
 
-  set_donation(donation: PositiveCoin): void {
+  set_donation(donation: Coin): void {
     this.donation = donation;
   }
 
@@ -981,7 +985,7 @@ export class TransactionBody {
         : undefined;
     let donation_ = map.get(22);
     let donation =
-      donation_ != undefined ? PositiveCoin.fromCBOR(donation_) : undefined;
+      donation_ != undefined ? Coin.fromCBOR(donation_) : undefined;
 
     return new TransactionBody(
       inputs,
@@ -1041,6 +1045,36 @@ export class TransactionBody {
       entries.push([21, this.current_treasury_value]);
     if (this.donation !== undefined) entries.push([22, this.donation]);
     writer.writeMap(entries);
+  }
+}
+
+export class VotingProceduresByVoter extends CBORMap<
+  Voter,
+  VotingProceduresByGovActionId
+> {
+  static fromCBOR(value: CBORReaderValue): VotingProceduresByVoter {
+    let map = value.get("map");
+    return new VotingProceduresByVoter(
+      map.map({
+        key: (x) => Voter.fromCBOR(x),
+        value: (x) => Voter.fromCBOR(x),
+      }),
+    );
+  }
+}
+
+export class VotingProceduresByGovActionId extends CBORMap<
+  GovActionId,
+  VotingProcedure
+> {
+  static fromCBOR(value: CBORReaderValue): VotingProceduresByGovActionId {
+    let map = value.get("map");
+    return new VotingProceduresByGovActionId(
+      map.map({
+        key: (x) => GovActionId.fromCBOR(x),
+        value: (x) => GovActionId.fromCBOR(x),
+      }),
+    );
   }
 }
 
@@ -1204,13 +1238,15 @@ export class Certificates extends Array<Certificate> {
   }
 }
 
+export type PolicyHash = Uint8Array;
+
 export class ParameterChangeAction {
-  private gov_action_id: GovActionId | undefined;
+  private gov_action_id: GovernanceActionId | undefined;
   private protocol_param_update: ProtocolParamUpdate;
   private policy_hash: PolicyHash | undefined;
 
   constructor(
-    gov_action_id: GovActionId | undefined,
+    gov_action_id: GovernanceActionId | undefined,
     protocol_param_update: ProtocolParamUpdate,
     policy_hash: PolicyHash | undefined,
   ) {
@@ -1219,11 +1255,11 @@ export class ParameterChangeAction {
     this.policy_hash = policy_hash;
   }
 
-  get_gov_action_id(): GovActionId | undefined {
+  get_gov_action_id(): GovernanceActionId | undefined {
     return this.gov_action_id;
   }
 
-  set_gov_action_id(gov_action_id: GovActionId): void {
+  set_gov_action_id(gov_action_id: GovernanceActionId): void {
     this.gov_action_id = gov_action_id;
   }
 
@@ -1248,7 +1284,7 @@ export class ParameterChangeAction {
   ): ParameterChangeAction {
     let gov_action_id_ = array.shiftRequired();
     let gov_action_id__ = gov_action_id_.withNullable((x) =>
-      GovActionId.fromCBOR(x),
+      GovernanceActionId.fromCBOR(x),
     );
     let gov_action_id = gov_action_id__ == null ? undefined : gov_action_id__;
     let protocol_param_update_ = array.shiftRequired();
@@ -1287,22 +1323,22 @@ export class ParameterChangeAction {
 }
 
 export class HardForkInitiationAction {
-  private gov_action_id: GovActionId | undefined;
+  private gov_action_id: GovernanceActionId | undefined;
   private protocol_version: ProtocolVersion;
 
   constructor(
-    gov_action_id: GovActionId | undefined,
+    gov_action_id: GovernanceActionId | undefined,
     protocol_version: ProtocolVersion,
   ) {
     this.gov_action_id = gov_action_id;
     this.protocol_version = protocol_version;
   }
 
-  get_gov_action_id(): GovActionId | undefined {
+  get_gov_action_id(): GovernanceActionId | undefined {
     return this.gov_action_id;
   }
 
-  set_gov_action_id(gov_action_id: GovActionId): void {
+  set_gov_action_id(gov_action_id: GovernanceActionId): void {
     this.gov_action_id = gov_action_id;
   }
 
@@ -1319,7 +1355,7 @@ export class HardForkInitiationAction {
   ): HardForkInitiationAction {
     let gov_action_id_ = array.shiftRequired();
     let gov_action_id__ = gov_action_id_.withNullable((x) =>
-      GovActionId.fromCBOR(x),
+      GovernanceActionId.fromCBOR(x),
     );
     let gov_action_id = gov_action_id__ == null ? undefined : gov_action_id__;
     let protocol_version_ = array.shiftRequired();
@@ -1342,18 +1378,6 @@ export class HardForkInitiationAction {
 
   toCBOR(writer: CBORWriter) {
     writer.writeArray(this.toArray());
-  }
-}
-
-export class Withdrawals extends CBORMap<RewardAccount, Coin> {
-  static fromCBOR(value: CBORReaderValue): Withdrawals {
-    let map = value.get("map");
-    return new Withdrawals(
-      map.map({
-        key: (x) => RewardAccount.fromCBOR(x),
-        value: (x) => RewardAccount.fromCBOR(x),
-      }),
-    );
   }
 }
 
@@ -1413,47 +1437,6 @@ export class TreasuryWithdrawalsAction {
   }
 }
 
-export class NoConfidence {
-  private gov_action_id: GovActionId | undefined;
-
-  constructor(gov_action_id: GovActionId | undefined) {
-    this.gov_action_id = gov_action_id;
-  }
-
-  get_gov_action_id(): GovActionId | undefined {
-    return this.gov_action_id;
-  }
-
-  set_gov_action_id(gov_action_id: GovActionId): void {
-    this.gov_action_id = gov_action_id;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): NoConfidence {
-    let gov_action_id_ = array.shiftRequired();
-    let gov_action_id__ = gov_action_id_.withNullable((x) =>
-      GovActionId.fromCBOR(x),
-    );
-    let gov_action_id = gov_action_id__ == null ? undefined : gov_action_id__;
-
-    return new NoConfidence(gov_action_id);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.gov_action_id);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): NoConfidence {
-    let array = value.get("array");
-    return NoConfidence.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
 export class CommitteeColdCredentials extends Array<CommitteeColdCredential> {
   static fromCBOR(value: CBORReaderValue): CommitteeColdCredentials {
     let tagged = value.get("tagged");
@@ -1481,13 +1464,13 @@ export class Epochs extends CBORMap<CommitteeColdCredential, Epoch> {
 }
 
 export class UpdateCommittee {
-  private gov_action_id: GovActionId | undefined;
+  private gov_action_id: GovernanceActionId | undefined;
   private committee_cold_credentials: CommitteeColdCredentials;
   private epochs: Epochs;
   private unit_interval: UnitInterval;
 
   constructor(
-    gov_action_id: GovActionId | undefined,
+    gov_action_id: GovernanceActionId | undefined,
     committee_cold_credentials: CommitteeColdCredentials,
     epochs: Epochs,
     unit_interval: UnitInterval,
@@ -1498,11 +1481,11 @@ export class UpdateCommittee {
     this.unit_interval = unit_interval;
   }
 
-  get_gov_action_id(): GovActionId | undefined {
+  get_gov_action_id(): GovernanceActionId | undefined {
     return this.gov_action_id;
   }
 
-  set_gov_action_id(gov_action_id: GovActionId): void {
+  set_gov_action_id(gov_action_id: GovernanceActionId): void {
     this.gov_action_id = gov_action_id;
   }
 
@@ -1535,7 +1518,7 @@ export class UpdateCommittee {
   static fromArray(array: CBORArrayReader<CBORReaderValue>): UpdateCommittee {
     let gov_action_id_ = array.shiftRequired();
     let gov_action_id__ = gov_action_id_.withNullable((x) =>
-      GovActionId.fromCBOR(x),
+      GovernanceActionId.fromCBOR(x),
     );
     let gov_action_id = gov_action_id__ == null ? undefined : gov_action_id__;
     let committee_cold_credentials_ = array.shiftRequired();
@@ -1574,23 +1557,23 @@ export class UpdateCommittee {
   }
 }
 
-export class NewConstitution {
-  private gov_action_id: GovActionId | undefined;
+export class NewConstitutionAction {
+  private gov_action_id: GovernanceActionId | undefined;
   private constitution: Constitution;
 
   constructor(
-    gov_action_id: GovActionId | undefined,
+    gov_action_id: GovernanceActionId | undefined,
     constitution: Constitution,
   ) {
     this.gov_action_id = gov_action_id;
     this.constitution = constitution;
   }
 
-  get_gov_action_id(): GovActionId | undefined {
+  get_gov_action_id(): GovernanceActionId | undefined {
     return this.gov_action_id;
   }
 
-  set_gov_action_id(gov_action_id: GovActionId): void {
+  set_gov_action_id(gov_action_id: GovernanceActionId): void {
     this.gov_action_id = gov_action_id;
   }
 
@@ -1602,16 +1585,18 @@ export class NewConstitution {
     this.constitution = constitution;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): NewConstitution {
+  static fromArray(
+    array: CBORArrayReader<CBORReaderValue>,
+  ): NewConstitutionAction {
     let gov_action_id_ = array.shiftRequired();
     let gov_action_id__ = gov_action_id_.withNullable((x) =>
-      GovActionId.fromCBOR(x),
+      GovernanceActionId.fromCBOR(x),
     );
     let gov_action_id = gov_action_id__ == null ? undefined : gov_action_id__;
     let constitution_ = array.shiftRequired();
     let constitution = Constitution.fromCBOR(constitution_);
 
-    return new NewConstitution(gov_action_id, constitution);
+    return new NewConstitutionAction(gov_action_id, constitution);
   }
 
   toArray() {
@@ -1621,9 +1606,9 @@ export class NewConstitution {
     return entries;
   }
 
-  static fromCBOR(value: CBORReaderValue): NewConstitution {
+  static fromCBOR(value: CBORReaderValue): NewConstitutionAction {
     let array = value.get("array");
-    return NewConstitution.fromArray(array);
+    return NewConstitutionAction.fromArray(array);
   }
 
   toCBOR(writer: CBORWriter) {
@@ -1654,64 +1639,76 @@ export class InfoAction {
   }
 }
 
-export enum GovActionKind {
+export enum GovernanceActionKind {
   ParameterChangeAction = 0,
   HardForkInitiationAction = 1,
   TreasuryWithdrawalsAction = 2,
-  NoConfidence = 3,
+  GovernanceActionId = 3,
   UpdateCommittee = 4,
-  NewConstitution = 5,
+  NewConstitutionAction = 5,
   InfoAction = 6,
 }
 
-export type GovActionVariant =
+export type GovernanceActionVariant =
   | { kind: 0; value: ParameterChangeAction }
   | { kind: 1; value: HardForkInitiationAction }
   | { kind: 2; value: TreasuryWithdrawalsAction }
-  | { kind: 3; value: NoConfidence }
+  | { kind: 3; value: GovernanceActionId }
   | { kind: 4; value: UpdateCommittee }
-  | { kind: 5; value: NewConstitution }
+  | { kind: 5; value: NewConstitutionAction }
   | { kind: 6; value: InfoAction };
 
-export class GovAction {
-  private variant: GovActionVariant;
+export class GovernanceAction {
+  private variant: GovernanceActionVariant;
 
-  constructor(variant: GovActionVariant) {
+  constructor(variant: GovernanceActionVariant) {
     this.variant = variant;
   }
 
   static new_parameter_change_action(
     parameter_change_action: ParameterChangeAction,
-  ): GovAction {
-    return new GovAction({ kind: 0, value: parameter_change_action });
+  ): GovernanceAction {
+    return new GovernanceAction({ kind: 0, value: parameter_change_action });
   }
 
   static new_hard_fork_initiation_action(
     hard_fork_initiation_action: HardForkInitiationAction,
-  ): GovAction {
-    return new GovAction({ kind: 1, value: hard_fork_initiation_action });
+  ): GovernanceAction {
+    return new GovernanceAction({
+      kind: 1,
+      value: hard_fork_initiation_action,
+    });
   }
 
   static new_treasury_withdrawals_action(
     treasury_withdrawals_action: TreasuryWithdrawalsAction,
-  ): GovAction {
-    return new GovAction({ kind: 2, value: treasury_withdrawals_action });
+  ): GovernanceAction {
+    return new GovernanceAction({
+      kind: 2,
+      value: treasury_withdrawals_action,
+    });
   }
 
-  static new_no_confidence(no_confidence: NoConfidence): GovAction {
-    return new GovAction({ kind: 3, value: no_confidence });
+  static new_no_confidence_action(
+    no_confidence_action: GovernanceActionId,
+  ): GovernanceAction {
+    return new GovernanceAction({ kind: 3, value: no_confidence_action });
   }
 
-  static new_update_committee(update_committee: UpdateCommittee): GovAction {
-    return new GovAction({ kind: 4, value: update_committee });
+  static new_update_committee(
+    update_committee: UpdateCommittee,
+  ): GovernanceAction {
+    return new GovernanceAction({ kind: 4, value: update_committee });
   }
 
-  static new_new_constitution(new_constitution: NewConstitution): GovAction {
-    return new GovAction({ kind: 5, value: new_constitution });
+  static new_new_constitution_action(
+    new_constitution_action: NewConstitutionAction,
+  ): GovernanceAction {
+    return new GovernanceAction({ kind: 5, value: new_constitution_action });
   }
 
-  static new_info_action(info_action: InfoAction): GovAction {
-    return new GovAction({ kind: 6, value: info_action });
+  static new_info_action(info_action: InfoAction): GovernanceAction {
+    return new GovernanceAction({ kind: 6, value: info_action });
   }
 
   as_parameter_change_action(): ParameterChangeAction | undefined {
@@ -1726,7 +1723,7 @@ export class GovAction {
     if (this.variant.kind == 2) return this.variant.value;
   }
 
-  as_no_confidence(): NoConfidence | undefined {
+  as_no_confidence_action(): GovernanceActionId | undefined {
     if (this.variant.kind == 3) return this.variant.value;
   }
 
@@ -1734,7 +1731,7 @@ export class GovAction {
     if (this.variant.kind == 4) return this.variant.value;
   }
 
-  as_new_constitution(): NewConstitution | undefined {
+  as_new_constitution_action(): NewConstitutionAction | undefined {
     if (this.variant.kind == 5) return this.variant.value;
   }
 
@@ -1742,33 +1739,50 @@ export class GovAction {
     if (this.variant.kind == 6) return this.variant.value;
   }
 
-  static fromCBOR(value: CBORReaderValue): GovAction {
+  static fromCBOR(value: CBORReaderValue): GovernanceAction {
     let array = value.get("array");
     let [tag, variant] = array.shiftRequired().with((tag_) => {
       let tag = Number(tag_.get("uint"));
 
-      if (tag == 0) return [tag, ParameterChangeAction.fromArray(array)];
+      if (tag == 0) {
+        return [tag, ParameterChangeAction.fromArray(array)];
+      }
 
-      if (tag == 1) return [tag, HardForkInitiationAction.fromArray(array)];
+      if (tag == 1) {
+        return [tag, HardForkInitiationAction.fromArray(array)];
+      }
 
-      if (tag == 2) return [tag, TreasuryWithdrawalsAction.fromArray(array)];
+      if (tag == 2) {
+        return [tag, TreasuryWithdrawalsAction.fromArray(array)];
+      }
 
-      if (tag == 3) return [tag, NoConfidence.fromArray(array)];
+      if (tag == 3) {
+        return [tag, GovernanceActionId.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 4) return [tag, UpdateCommittee.fromArray(array)];
+      if (tag == 4) {
+        return [tag, UpdateCommittee.fromArray(array)];
+      }
 
-      if (tag == 5) return [tag, NewConstitution.fromArray(array)];
+      if (tag == 5) {
+        return [tag, NewConstitutionAction.fromArray(array)];
+      }
 
-      if (tag == 6) return [tag, InfoAction.fromArray(array)];
+      if (tag == 6) {
+        return [tag, InfoAction.fromArray(array)];
+      }
 
-      throw "Unrecognized tag: " + tag + " for GovAction";
+      throw "Unrecognized tag: " + tag + " for GovernanceAction";
     });
 
-    return new GovAction({ kind: tag, value: variant });
+    return new GovernanceAction({ kind: tag, value: variant });
   }
 
   toCBOR(writer: CBORWriter) {
-    let entries = [this.variant.kind, ...this.variant.value.toArray()];
+    let entries =
+      this.variant.value.toArray != null
+        ? [this.variant.kind, ...this.variant.value.toArray()]
+        : [this.variant.kind, this.variant.value];
     writer.writeArray(entries);
   }
 }
@@ -1825,218 +1839,20 @@ export class Constitution {
   }
 }
 
-export class ConstitutionalCommitteeHotKeyhash {
-  private addr_keyhash: AddrKeyhash;
-
-  constructor(addr_keyhash: AddrKeyhash) {
-    this.addr_keyhash = addr_keyhash;
-  }
-
-  get_addr_keyhash(): AddrKeyhash {
-    return this.addr_keyhash;
-  }
-
-  set_addr_keyhash(addr_keyhash: AddrKeyhash): void {
-    this.addr_keyhash = addr_keyhash;
-  }
-
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): ConstitutionalCommitteeHotKeyhash {
-    let addr_keyhash_ = array.shiftRequired();
-    let addr_keyhash = AddrKeyhash.fromCBOR(addr_keyhash_);
-
-    return new ConstitutionalCommitteeHotKeyhash(addr_keyhash);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.addr_keyhash);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): ConstitutionalCommitteeHotKeyhash {
-    let array = value.get("array");
-    return ConstitutionalCommitteeHotKeyhash.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class ConstitutionalCommitteeHotScripthash {
-  private scripthash: Scripthash;
-
-  constructor(scripthash: Scripthash) {
-    this.scripthash = scripthash;
-  }
-
-  get_scripthash(): Scripthash {
-    return this.scripthash;
-  }
-
-  set_scripthash(scripthash: Scripthash): void {
-    this.scripthash = scripthash;
-  }
-
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): ConstitutionalCommitteeHotScripthash {
-    let scripthash_ = array.shiftRequired();
-    let scripthash = Scripthash.fromCBOR(scripthash_);
-
-    return new ConstitutionalCommitteeHotScripthash(scripthash);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.scripthash);
-    return entries;
-  }
-
-  static fromCBOR(
-    value: CBORReaderValue,
-  ): ConstitutionalCommitteeHotScripthash {
-    let array = value.get("array");
-    return ConstitutionalCommitteeHotScripthash.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class DrepKeyhash {
-  private addr_keyhash: AddrKeyhash;
-
-  constructor(addr_keyhash: AddrKeyhash) {
-    this.addr_keyhash = addr_keyhash;
-  }
-
-  get_addr_keyhash(): AddrKeyhash {
-    return this.addr_keyhash;
-  }
-
-  set_addr_keyhash(addr_keyhash: AddrKeyhash): void {
-    this.addr_keyhash = addr_keyhash;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): DrepKeyhash {
-    let addr_keyhash_ = array.shiftRequired();
-    let addr_keyhash = AddrKeyhash.fromCBOR(addr_keyhash_);
-
-    return new DrepKeyhash(addr_keyhash);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.addr_keyhash);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): DrepKeyhash {
-    let array = value.get("array");
-    return DrepKeyhash.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class DrepScripthash {
-  private scripthash: Scripthash;
-
-  constructor(scripthash: Scripthash) {
-    this.scripthash = scripthash;
-  }
-
-  get_scripthash(): Scripthash {
-    return this.scripthash;
-  }
-
-  set_scripthash(scripthash: Scripthash): void {
-    this.scripthash = scripthash;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): DrepScripthash {
-    let scripthash_ = array.shiftRequired();
-    let scripthash = Scripthash.fromCBOR(scripthash_);
-
-    return new DrepScripthash(scripthash);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.scripthash);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): DrepScripthash {
-    let array = value.get("array");
-    return DrepScripthash.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class StakingPoolKeyhash {
-  private addr_keyhash: AddrKeyhash;
-
-  constructor(addr_keyhash: AddrKeyhash) {
-    this.addr_keyhash = addr_keyhash;
-  }
-
-  get_addr_keyhash(): AddrKeyhash {
-    return this.addr_keyhash;
-  }
-
-  set_addr_keyhash(addr_keyhash: AddrKeyhash): void {
-    this.addr_keyhash = addr_keyhash;
-  }
-
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): StakingPoolKeyhash {
-    let addr_keyhash_ = array.shiftRequired();
-    let addr_keyhash = AddrKeyhash.fromCBOR(addr_keyhash_);
-
-    return new StakingPoolKeyhash(addr_keyhash);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.addr_keyhash);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): StakingPoolKeyhash {
-    let array = value.get("array");
-    return StakingPoolKeyhash.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
 export enum VoterKind {
-  ConstitutionalCommitteeHotKeyhash = 0,
-  ConstitutionalCommitteeHotScripthash = 1,
-  DrepKeyhash = 2,
-  DrepScripthash = 3,
-  StakingPoolKeyhash = 4,
+  AddrKeyhash = 0,
+  Scripthash = 1,
+  AddrKeyhash = 2,
+  Scripthash = 3,
+  AddrKeyhash = 4,
 }
 
 export type VoterVariant =
-  | { kind: 0; value: ConstitutionalCommitteeHotKeyhash }
-  | { kind: 1; value: ConstitutionalCommitteeHotScripthash }
-  | { kind: 2; value: DrepKeyhash }
-  | { kind: 3; value: DrepScripthash }
-  | { kind: 4; value: StakingPoolKeyhash };
+  | { kind: 0; value: AddrKeyhash }
+  | { kind: 1; value: Scripthash }
+  | { kind: 2; value: AddrKeyhash }
+  | { kind: 3; value: Scripthash }
+  | { kind: 4; value: AddrKeyhash };
 
 export class Voter {
   private variant: VoterVariant;
@@ -2046,13 +1862,13 @@ export class Voter {
   }
 
   static new_constitutional_committee_hot_keyhash(
-    constitutional_committee_hot_keyhash: ConstitutionalCommitteeHotKeyhash,
+    constitutional_committee_hot_keyhash: AddrKeyhash,
   ): Voter {
     return new Voter({ kind: 0, value: constitutional_committee_hot_keyhash });
   }
 
   static new_constitutional_committee_hot_scripthash(
-    constitutional_committee_hot_scripthash: ConstitutionalCommitteeHotScripthash,
+    constitutional_committee_hot_scripthash: Scripthash,
   ): Voter {
     return new Voter({
       kind: 1,
@@ -2060,41 +1876,35 @@ export class Voter {
     });
   }
 
-  static new_drep_keyhash(drep_keyhash: DrepKeyhash): Voter {
+  static new_drep_keyhash(drep_keyhash: AddrKeyhash): Voter {
     return new Voter({ kind: 2, value: drep_keyhash });
   }
 
-  static new_drep_scripthash(drep_scripthash: DrepScripthash): Voter {
+  static new_drep_scripthash(drep_scripthash: Scripthash): Voter {
     return new Voter({ kind: 3, value: drep_scripthash });
   }
 
-  static new_staking_pool_keyhash(
-    staking_pool_keyhash: StakingPoolKeyhash,
-  ): Voter {
+  static new_staking_pool_keyhash(staking_pool_keyhash: AddrKeyhash): Voter {
     return new Voter({ kind: 4, value: staking_pool_keyhash });
   }
 
-  as_constitutional_committee_hot_keyhash():
-    | ConstitutionalCommitteeHotKeyhash
-    | undefined {
+  as_constitutional_committee_hot_keyhash(): AddrKeyhash | undefined {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
-  as_constitutional_committee_hot_scripthash():
-    | ConstitutionalCommitteeHotScripthash
-    | undefined {
+  as_constitutional_committee_hot_scripthash(): Scripthash | undefined {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
-  as_drep_keyhash(): DrepKeyhash | undefined {
+  as_drep_keyhash(): AddrKeyhash | undefined {
     if (this.variant.kind == 2) return this.variant.value;
   }
 
-  as_drep_scripthash(): DrepScripthash | undefined {
+  as_drep_scripthash(): Scripthash | undefined {
     if (this.variant.kind == 3) return this.variant.value;
   }
 
-  as_staking_pool_keyhash(): StakingPoolKeyhash | undefined {
+  as_staking_pool_keyhash(): AddrKeyhash | undefined {
     if (this.variant.kind == 4) return this.variant.value;
   }
 
@@ -2103,17 +1913,25 @@ export class Voter {
     let [tag, variant] = array.shiftRequired().with((tag_) => {
       let tag = Number(tag_.get("uint"));
 
-      if (tag == 0)
-        return [tag, ConstitutionalCommitteeHotKeyhash.fromArray(array)];
+      if (tag == 0) {
+        return [tag, AddrKeyhash.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 1)
-        return [tag, ConstitutionalCommitteeHotScripthash.fromArray(array)];
+      if (tag == 1) {
+        return [tag, Scripthash.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 2) return [tag, DrepKeyhash.fromArray(array)];
+      if (tag == 2) {
+        return [tag, AddrKeyhash.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 3) return [tag, DrepScripthash.fromArray(array)];
+      if (tag == 3) {
+        return [tag, Scripthash.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 4) return [tag, StakingPoolKeyhash.fromArray(array)];
+      if (tag == 4) {
+        return [tag, AddrKeyhash.fromCBOR(array.shiftRequired())];
+      }
 
       throw "Unrecognized tag: " + tag + " for Voter";
     });
@@ -2122,7 +1940,10 @@ export class Voter {
   }
 
   toCBOR(writer: CBORWriter) {
-    let entries = [this.variant.kind, ...this.variant.value.toArray()];
+    let entries =
+      this.variant.value.toArray != null
+        ? [this.variant.kind, ...this.variant.value.toArray()]
+        : [this.variant.kind, this.variant.value];
     writer.writeArray(entries);
   }
 }
@@ -2222,13 +2043,13 @@ export class Vote {
   }
 }
 
-export class GovActionId {
+export class GovernanceActionId {
   private transaction_id: Hash32;
-  private gov_action_index: number;
+  private index: number;
 
-  constructor(transaction_id: Hash32, gov_action_index: number) {
+  constructor(transaction_id: Hash32, index: number) {
     this.transaction_id = transaction_id;
-    this.gov_action_index = gov_action_index;
+    this.index = index;
   }
 
   get_transaction_id(): Hash32 {
@@ -2239,33 +2060,35 @@ export class GovActionId {
     this.transaction_id = transaction_id;
   }
 
-  get_gov_action_index(): number {
-    return this.gov_action_index;
+  get_index(): number {
+    return this.index;
   }
 
-  set_gov_action_index(gov_action_index: number): void {
-    this.gov_action_index = gov_action_index;
+  set_index(index: number): void {
+    this.index = index;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): GovActionId {
+  static fromArray(
+    array: CBORArrayReader<CBORReaderValue>,
+  ): GovernanceActionId {
     let transaction_id_ = array.shiftRequired();
     let transaction_id = Hash32.fromCBOR(transaction_id_);
-    let gov_action_index_ = array.shiftRequired();
-    let gov_action_index = gov_action_index_.get("uint");
+    let index_ = array.shiftRequired();
+    let index = index_.get("uint");
 
-    return new GovActionId(transaction_id, gov_action_index);
+    return new GovernanceActionId(transaction_id, index);
   }
 
   toArray() {
     let entries = [];
     entries.push(this.transaction_id);
-    entries.push(this.gov_action_index);
+    entries.push(this.index);
     return entries;
   }
 
-  static fromCBOR(value: CBORReaderValue): GovActionId {
+  static fromCBOR(value: CBORReaderValue): GovernanceActionId {
     let array = value.get("array");
-    return GovActionId.fromArray(array);
+    return GovernanceActionId.fromArray(array);
   }
 
   toCBOR(writer: CBORWriter) {
@@ -2539,84 +2362,6 @@ export class TransactionOutput {
   }
 }
 
-export class StakeRegistration {
-  private stake_credential: StakeCredential;
-
-  constructor(stake_credential: StakeCredential) {
-    this.stake_credential = stake_credential;
-  }
-
-  get_stake_credential(): StakeCredential {
-    return this.stake_credential;
-  }
-
-  set_stake_credential(stake_credential: StakeCredential): void {
-    this.stake_credential = stake_credential;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): StakeRegistration {
-    let stake_credential_ = array.shiftRequired();
-    let stake_credential = StakeCredential.fromCBOR(stake_credential_);
-
-    return new StakeRegistration(stake_credential);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.stake_credential);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): StakeRegistration {
-    let array = value.get("array");
-    return StakeRegistration.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class StakeDeregistration {
-  private stake_credential: StakeCredential;
-
-  constructor(stake_credential: StakeCredential) {
-    this.stake_credential = stake_credential;
-  }
-
-  get_stake_credential(): StakeCredential {
-    return this.stake_credential;
-  }
-
-  set_stake_credential(stake_credential: StakeCredential): void {
-    this.stake_credential = stake_credential;
-  }
-
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): StakeDeregistration {
-    let stake_credential_ = array.shiftRequired();
-    let stake_credential = StakeCredential.fromCBOR(stake_credential_);
-
-    return new StakeDeregistration(stake_credential);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.stake_credential);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): StakeDeregistration {
-    let array = value.get("array");
-    return StakeDeregistration.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
 export class StakeDelegation {
   private stake_credential: StakeCredential;
   private pool_keyhash: PoolKeyhash;
@@ -2661,44 +2406,6 @@ export class StakeDelegation {
   static fromCBOR(value: CBORReaderValue): StakeDelegation {
     let array = value.get("array");
     return StakeDelegation.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class PoolRegistration {
-  private pool_params: PoolParams;
-
-  constructor(pool_params: PoolParams) {
-    this.pool_params = pool_params;
-  }
-
-  get_pool_params(): PoolParams {
-    return this.pool_params;
-  }
-
-  set_pool_params(pool_params: PoolParams): void {
-    this.pool_params = pool_params;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): PoolRegistration {
-    let pool_params_ = array.shiftRequired();
-    let pool_params = PoolParams.fromCBOR(pool_params_);
-
-    return new PoolRegistration(pool_params);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.pool_params);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): PoolRegistration {
-    let array = value.get("array");
-    return PoolRegistration.fromArray(array);
   }
 
   toCBOR(writer: CBORWriter) {
@@ -3502,10 +3209,10 @@ export class UpdateDrepCert {
 }
 
 export enum CertificateKind {
-  StakeRegistration = 0,
-  StakeDeregistration = 1,
+  StakeCredential = 0,
+  StakeCredential = 1,
   StakeDelegation = 2,
-  PoolRegistration = 3,
+  PoolParams = 3,
   PoolRetirement = 4,
   RegCert = 7,
   UnregCert = 8,
@@ -3522,10 +3229,10 @@ export enum CertificateKind {
 }
 
 export type CertificateVariant =
-  | { kind: 0; value: StakeRegistration }
-  | { kind: 1; value: StakeDeregistration }
+  | { kind: 0; value: StakeCredential }
+  | { kind: 1; value: StakeCredential }
   | { kind: 2; value: StakeDelegation }
-  | { kind: 3; value: PoolRegistration }
+  | { kind: 3; value: PoolParams }
   | { kind: 4; value: PoolRetirement }
   | { kind: 7; value: RegCert }
   | { kind: 8; value: UnregCert }
@@ -3548,13 +3255,13 @@ export class Certificate {
   }
 
   static new_stake_registration(
-    stake_registration: StakeRegistration,
+    stake_registration: StakeCredential,
   ): Certificate {
     return new Certificate({ kind: 0, value: stake_registration });
   }
 
   static new_stake_deregistration(
-    stake_deregistration: StakeDeregistration,
+    stake_deregistration: StakeCredential,
   ): Certificate {
     return new Certificate({ kind: 1, value: stake_deregistration });
   }
@@ -3563,9 +3270,7 @@ export class Certificate {
     return new Certificate({ kind: 2, value: stake_delegation });
   }
 
-  static new_pool_registration(
-    pool_registration: PoolRegistration,
-  ): Certificate {
+  static new_pool_registration(pool_registration: PoolParams): Certificate {
     return new Certificate({ kind: 3, value: pool_registration });
   }
 
@@ -3633,11 +3338,11 @@ export class Certificate {
     return new Certificate({ kind: 18, value: update_drep_cert });
   }
 
-  as_stake_registration(): StakeRegistration | undefined {
+  as_stake_registration(): StakeCredential | undefined {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
-  as_stake_deregistration(): StakeDeregistration | undefined {
+  as_stake_deregistration(): StakeCredential | undefined {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
@@ -3645,7 +3350,7 @@ export class Certificate {
     if (this.variant.kind == 2) return this.variant.value;
   }
 
-  as_pool_registration(): PoolRegistration | undefined {
+  as_pool_registration(): PoolParams | undefined {
     if (this.variant.kind == 3) return this.variant.value;
   }
 
@@ -3706,39 +3411,73 @@ export class Certificate {
     let [tag, variant] = array.shiftRequired().with((tag_) => {
       let tag = Number(tag_.get("uint"));
 
-      if (tag == 0) return [tag, StakeRegistration.fromArray(array)];
+      if (tag == 0) {
+        return [tag, StakeCredential.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 1) return [tag, StakeDeregistration.fromArray(array)];
+      if (tag == 1) {
+        return [tag, StakeCredential.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 2) return [tag, StakeDelegation.fromArray(array)];
+      if (tag == 2) {
+        return [tag, StakeDelegation.fromArray(array)];
+      }
 
-      if (tag == 3) return [tag, PoolRegistration.fromArray(array)];
+      if (tag == 3) {
+        return [tag, PoolParams.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 4) return [tag, PoolRetirement.fromArray(array)];
+      if (tag == 4) {
+        return [tag, PoolRetirement.fromArray(array)];
+      }
 
-      if (tag == 7) return [tag, RegCert.fromArray(array)];
+      if (tag == 7) {
+        return [tag, RegCert.fromArray(array)];
+      }
 
-      if (tag == 8) return [tag, UnregCert.fromArray(array)];
+      if (tag == 8) {
+        return [tag, UnregCert.fromArray(array)];
+      }
 
-      if (tag == 9) return [tag, VoteDelegCert.fromArray(array)];
+      if (tag == 9) {
+        return [tag, VoteDelegCert.fromArray(array)];
+      }
 
-      if (tag == 10) return [tag, StakeVoteDelegCert.fromArray(array)];
+      if (tag == 10) {
+        return [tag, StakeVoteDelegCert.fromArray(array)];
+      }
 
-      if (tag == 11) return [tag, StakeRegDelegCert.fromArray(array)];
+      if (tag == 11) {
+        return [tag, StakeRegDelegCert.fromArray(array)];
+      }
 
-      if (tag == 12) return [tag, VoteRegDelegCert.fromArray(array)];
+      if (tag == 12) {
+        return [tag, VoteRegDelegCert.fromArray(array)];
+      }
 
-      if (tag == 13) return [tag, StakeVoteRegDelegCert.fromArray(array)];
+      if (tag == 13) {
+        return [tag, StakeVoteRegDelegCert.fromArray(array)];
+      }
 
-      if (tag == 14) return [tag, AuthCommitteeHotCert.fromArray(array)];
+      if (tag == 14) {
+        return [tag, AuthCommitteeHotCert.fromArray(array)];
+      }
 
-      if (tag == 15) return [tag, ResignCommitteeColdCert.fromArray(array)];
+      if (tag == 15) {
+        return [tag, ResignCommitteeColdCert.fromArray(array)];
+      }
 
-      if (tag == 16) return [tag, RegDrepCert.fromArray(array)];
+      if (tag == 16) {
+        return [tag, RegDrepCert.fromArray(array)];
+      }
 
-      if (tag == 17) return [tag, UnregDrepCert.fromArray(array)];
+      if (tag == 17) {
+        return [tag, UnregDrepCert.fromArray(array)];
+      }
 
-      if (tag == 18) return [tag, UpdateDrepCert.fromArray(array)];
+      if (tag == 18) {
+        return [tag, UpdateDrepCert.fromArray(array)];
+      }
 
       throw "Unrecognized tag: " + tag + " for Certificate";
     });
@@ -3747,86 +3486,15 @@ export class Certificate {
   }
 
   toCBOR(writer: CBORWriter) {
-    let entries = [this.variant.kind, ...this.variant.value.toArray()];
+    let entries =
+      this.variant.value.toArray != null
+        ? [this.variant.kind, ...this.variant.value.toArray()]
+        : [this.variant.kind, this.variant.value];
     writer.writeArray(entries);
   }
 }
 
-export class AddrKeyhash {
-  private addr_keyhash: AddrKeyhash;
-
-  constructor(addr_keyhash: AddrKeyhash) {
-    this.addr_keyhash = addr_keyhash;
-  }
-
-  get_addr_keyhash(): AddrKeyhash {
-    return this.addr_keyhash;
-  }
-
-  set_addr_keyhash(addr_keyhash: AddrKeyhash): void {
-    this.addr_keyhash = addr_keyhash;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): AddrKeyhash {
-    let addr_keyhash_ = array.shiftRequired();
-    let addr_keyhash = AddrKeyhash.fromCBOR(addr_keyhash_);
-
-    return new AddrKeyhash(addr_keyhash);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.addr_keyhash);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): AddrKeyhash {
-    let array = value.get("array");
-    return AddrKeyhash.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class Scripthash {
-  private scripthash: Scripthash;
-
-  constructor(scripthash: Scripthash) {
-    this.scripthash = scripthash;
-  }
-
-  get_scripthash(): Scripthash {
-    return this.scripthash;
-  }
-
-  set_scripthash(scripthash: Scripthash): void {
-    this.scripthash = scripthash;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): Scripthash {
-    let scripthash_ = array.shiftRequired();
-    let scripthash = Scripthash.fromCBOR(scripthash_);
-
-    return new Scripthash(scripthash);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.scripthash);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): Scripthash {
-    let array = value.get("array");
-    return Scripthash.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
+export type DeltaCoin = number;
 
 export enum CredentialKind {
   AddrKeyhash = 0,
@@ -3865,9 +3533,13 @@ export class Credential {
     let [tag, variant] = array.shiftRequired().with((tag_) => {
       let tag = Number(tag_.get("uint"));
 
-      if (tag == 0) return [tag, AddrKeyhash.fromArray(array)];
+      if (tag == 0) {
+        return [tag, AddrKeyhash.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 1) return [tag, Scripthash.fromArray(array)];
+      if (tag == 1) {
+        return [tag, Scripthash.fromCBOR(array.shiftRequired())];
+      }
 
       throw "Unrecognized tag: " + tag + " for Credential";
     });
@@ -3876,10 +3548,167 @@ export class Credential {
   }
 
   toCBOR(writer: CBORWriter) {
-    let entries = [this.variant.kind, ...this.variant.value.toArray()];
+    let entries =
+      this.variant.value.toArray != null
+        ? [this.variant.kind, ...this.variant.value.toArray()]
+        : [this.variant.kind, this.variant.value];
     writer.writeArray(entries);
   }
 }
+
+export class AlwaysAbstain {
+  constructor() {}
+
+  static fromArray(array: CBORArrayReader<CBORReaderValue>): AlwaysAbstain {
+    return new AlwaysAbstain();
+  }
+
+  toArray() {
+    let entries = [];
+
+    return entries;
+  }
+
+  static fromCBOR(value: CBORReaderValue): AlwaysAbstain {
+    let array = value.get("array");
+    return AlwaysAbstain.fromArray(array);
+  }
+
+  toCBOR(writer: CBORWriter) {
+    writer.writeArray(this.toArray());
+  }
+}
+
+export class AlwaysNoConfidence {
+  constructor() {}
+
+  static fromArray(
+    array: CBORArrayReader<CBORReaderValue>,
+  ): AlwaysNoConfidence {
+    return new AlwaysNoConfidence();
+  }
+
+  toArray() {
+    let entries = [];
+
+    return entries;
+  }
+
+  static fromCBOR(value: CBORReaderValue): AlwaysNoConfidence {
+    let array = value.get("array");
+    return AlwaysNoConfidence.fromArray(array);
+  }
+
+  toCBOR(writer: CBORWriter) {
+    writer.writeArray(this.toArray());
+  }
+}
+
+export enum DrepKind {
+  AddrKeyhash = 0,
+  Scripthash = 1,
+  AlwaysAbstain = 2,
+  AlwaysNoConfidence = 3,
+}
+
+export type DrepVariant =
+  | { kind: 0; value: AddrKeyhash }
+  | { kind: 1; value: Scripthash }
+  | { kind: 2; value: AlwaysAbstain }
+  | { kind: 3; value: AlwaysNoConfidence };
+
+export class Drep {
+  private variant: DrepVariant;
+
+  constructor(variant: DrepVariant) {
+    this.variant = variant;
+  }
+
+  static new_addr_keyhash(addr_keyhash: AddrKeyhash): Drep {
+    return new Drep({ kind: 0, value: addr_keyhash });
+  }
+
+  static new_scripthash(scripthash: Scripthash): Drep {
+    return new Drep({ kind: 1, value: scripthash });
+  }
+
+  static new_always_abstain(always_abstain: AlwaysAbstain): Drep {
+    return new Drep({ kind: 2, value: always_abstain });
+  }
+
+  static new_always_no_confidence(
+    always_no_confidence: AlwaysNoConfidence,
+  ): Drep {
+    return new Drep({ kind: 3, value: always_no_confidence });
+  }
+
+  as_addr_keyhash(): AddrKeyhash | undefined {
+    if (this.variant.kind == 0) return this.variant.value;
+  }
+
+  as_scripthash(): Scripthash | undefined {
+    if (this.variant.kind == 1) return this.variant.value;
+  }
+
+  as_always_abstain(): AlwaysAbstain | undefined {
+    if (this.variant.kind == 2) return this.variant.value;
+  }
+
+  as_always_no_confidence(): AlwaysNoConfidence | undefined {
+    if (this.variant.kind == 3) return this.variant.value;
+  }
+
+  static fromCBOR(value: CBORReaderValue): Drep {
+    let array = value.get("array");
+    let [tag, variant] = array.shiftRequired().with((tag_) => {
+      let tag = Number(tag_.get("uint"));
+
+      if (tag == 0) {
+        return [tag, AddrKeyhash.fromCBOR(array.shiftRequired())];
+      }
+
+      if (tag == 1) {
+        return [tag, Scripthash.fromCBOR(array.shiftRequired())];
+      }
+
+      if (tag == 2) {
+        return [tag, AlwaysAbstain.fromArray(array)];
+      }
+
+      if (tag == 3) {
+        return [tag, AlwaysNoConfidence.fromArray(array)];
+      }
+
+      throw "Unrecognized tag: " + tag + " for Drep";
+    });
+
+    return new Drep({ kind: tag, value: variant });
+  }
+
+  toCBOR(writer: CBORWriter) {
+    let entries =
+      this.variant.value.toArray != null
+        ? [this.variant.kind, ...this.variant.value.toArray()]
+        : [this.variant.kind, this.variant.value];
+    writer.writeArray(entries);
+  }
+}
+
+export type StakeCredential = Credential;
+
+export type DrepCredential = Credential;
+
+export type CommitteeColdCredential = Credential;
+
+export type CommitteeHotCredential = Credential;
+
+export type Port = number;
+
+export type Ipv4 = Uint8Array;
+
+export type Ipv6 = Uint8Array;
+
+export type DnsName = string;
 
 export class SingleHostAddr {
   private port: Port | undefined;
@@ -4004,54 +3833,16 @@ export class SingleHostName {
   }
 }
 
-export class MultiHostName {
-  private dns_name: DnsName;
-
-  constructor(dns_name: DnsName) {
-    this.dns_name = dns_name;
-  }
-
-  get_dns_name(): DnsName {
-    return this.dns_name;
-  }
-
-  set_dns_name(dns_name: DnsName): void {
-    this.dns_name = dns_name;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): MultiHostName {
-    let dns_name_ = array.shiftRequired();
-    let dns_name = DnsName.fromCBOR(dns_name_);
-
-    return new MultiHostName(dns_name);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.dns_name);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): MultiHostName {
-    let array = value.get("array");
-    return MultiHostName.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
 export enum RelayKind {
   SingleHostAddr = 0,
   SingleHostName = 1,
-  MultiHostName = 2,
+  DnsName = 2,
 }
 
 export type RelayVariant =
   | { kind: 0; value: SingleHostAddr }
   | { kind: 1; value: SingleHostName }
-  | { kind: 2; value: MultiHostName };
+  | { kind: 2; value: DnsName };
 
 export class Relay {
   private variant: RelayVariant;
@@ -4068,7 +3859,7 @@ export class Relay {
     return new Relay({ kind: 1, value: single_host_name });
   }
 
-  static new_multi_host_name(multi_host_name: MultiHostName): Relay {
+  static new_multi_host_name(multi_host_name: DnsName): Relay {
     return new Relay({ kind: 2, value: multi_host_name });
   }
 
@@ -4080,7 +3871,7 @@ export class Relay {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
-  as_multi_host_name(): MultiHostName | undefined {
+  as_multi_host_name(): DnsName | undefined {
     if (this.variant.kind == 2) return this.variant.value;
   }
 
@@ -4089,11 +3880,17 @@ export class Relay {
     let [tag, variant] = array.shiftRequired().with((tag_) => {
       let tag = Number(tag_.get("uint"));
 
-      if (tag == 0) return [tag, SingleHostAddr.fromArray(array)];
+      if (tag == 0) {
+        return [tag, SingleHostAddr.fromArray(array)];
+      }
 
-      if (tag == 1) return [tag, SingleHostName.fromArray(array)];
+      if (tag == 1) {
+        return [tag, SingleHostName.fromArray(array)];
+      }
 
-      if (tag == 2) return [tag, MultiHostName.fromArray(array)];
+      if (tag == 2) {
+        return [tag, DnsName.fromCBOR(array.shiftRequired())];
+      }
 
       throw "Unrecognized tag: " + tag + " for Relay";
     });
@@ -4102,7 +3899,10 @@ export class Relay {
   }
 
   toCBOR(writer: CBORWriter) {
-    let entries = [this.variant.kind, ...this.variant.value.toArray()];
+    let entries =
+      this.variant.value.toArray != null
+        ? [this.variant.kind, ...this.variant.value.toArray()]
+        : [this.variant.kind, this.variant.value];
     writer.writeArray(entries);
   }
 }
@@ -4158,6 +3958,20 @@ export class PoolMetadata {
   }
 }
 
+export type Url = string;
+
+export class Withdrawals extends CBORMap<RewardAccount, Coin> {
+  static fromCBOR(value: CBORReaderValue): Withdrawals {
+    let map = value.get("map");
+    return new Withdrawals(
+      map.map({
+        key: (x) => RewardAccount.fromCBOR(x),
+        value: (x) => RewardAccount.fromCBOR(x),
+      }),
+    );
+  }
+}
+
 export class ProtocolParamUpdate {
   private minfee_a: Coin | undefined;
   private minfee_b: Coin | undefined;
@@ -4175,8 +3989,8 @@ export class ProtocolParamUpdate {
   private ada_per_utxo_byte: Coin | undefined;
   private costmdls: Costmdls | undefined;
   private ex_unit_prices: ExUnitPrices | undefined;
-  private max_tx_ex_units: MaxTxExUnits | undefined;
-  private max_block_ex_units: MaxBlockExUnits | undefined;
+  private max_tx_ex_units: ExUnits | undefined;
+  private max_block_ex_units: ExUnits | undefined;
   private max_value_size: number | undefined;
   private collateral_percentage: number | undefined;
   private max_collateral_inputs: number | undefined;
@@ -4207,8 +4021,8 @@ export class ProtocolParamUpdate {
     ada_per_utxo_byte: Coin | undefined,
     costmdls: Costmdls | undefined,
     ex_unit_prices: ExUnitPrices | undefined,
-    max_tx_ex_units: MaxTxExUnits | undefined,
-    max_block_ex_units: MaxBlockExUnits | undefined,
+    max_tx_ex_units: ExUnits | undefined,
+    max_block_ex_units: ExUnits | undefined,
     max_value_size: number | undefined,
     collateral_percentage: number | undefined,
     max_collateral_inputs: number | undefined,
@@ -4382,19 +4196,19 @@ export class ProtocolParamUpdate {
     this.ex_unit_prices = ex_unit_prices;
   }
 
-  get_max_tx_ex_units(): MaxTxExUnits | undefined {
+  get_max_tx_ex_units(): ExUnits | undefined {
     return this.max_tx_ex_units;
   }
 
-  set_max_tx_ex_units(max_tx_ex_units: MaxTxExUnits): void {
+  set_max_tx_ex_units(max_tx_ex_units: ExUnits): void {
     this.max_tx_ex_units = max_tx_ex_units;
   }
 
-  get_max_block_ex_units(): MaxBlockExUnits | undefined {
+  get_max_block_ex_units(): ExUnits | undefined {
     return this.max_block_ex_units;
   }
 
-  set_max_block_ex_units(max_block_ex_units: MaxBlockExUnits): void {
+  set_max_block_ex_units(max_block_ex_units: ExUnits): void {
     this.max_block_ex_units = max_block_ex_units;
   }
 
@@ -4571,12 +4385,12 @@ export class ProtocolParamUpdate {
     let max_tx_ex_units_ = map.get(20);
     let max_tx_ex_units =
       max_tx_ex_units_ != undefined
-        ? MaxTxExUnits.fromCBOR(max_tx_ex_units_)
+        ? ExUnits.fromCBOR(max_tx_ex_units_)
         : undefined;
     let max_block_ex_units_ = map.get(21);
     let max_block_ex_units =
       max_block_ex_units_ != undefined
-        ? MaxBlockExUnits.fromCBOR(max_block_ex_units_)
+        ? ExUnits.fromCBOR(max_block_ex_units_)
         : undefined;
     let max_value_size_ = map.get(22);
     let max_value_size =
@@ -5255,87 +5069,11 @@ export class TransactionWitnessSet {
   }
 }
 
-export class FlatArray {
-  private tag: RedeemerTag;
-  private index: number;
-  private data: PlutusData;
-  private ex_units: ExUnits;
+export type PlutusV1Script = Uint8Array;
 
-  constructor(
-    tag: RedeemerTag,
-    index: number,
-    data: PlutusData,
-    ex_units: ExUnits,
-  ) {
-    this.tag = tag;
-    this.index = index;
-    this.data = data;
-    this.ex_units = ex_units;
-  }
+export type PlutusV2Script = Uint8Array;
 
-  get_tag(): RedeemerTag {
-    return this.tag;
-  }
-
-  set_tag(tag: RedeemerTag): void {
-    this.tag = tag;
-  }
-
-  get_index(): number {
-    return this.index;
-  }
-
-  set_index(index: number): void {
-    this.index = index;
-  }
-
-  get_data(): PlutusData {
-    return this.data;
-  }
-
-  set_data(data: PlutusData): void {
-    this.data = data;
-  }
-
-  get_ex_units(): ExUnits {
-    return this.ex_units;
-  }
-
-  set_ex_units(ex_units: ExUnits): void {
-    this.ex_units = ex_units;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): FlatArray {
-    let tag_ = array.shiftRequired();
-    let tag = RedeemerTag.fromCBOR(tag_);
-    let index_ = array.shiftRequired();
-    let index = index_.get("uint");
-    let data_ = array.shiftRequired();
-    let data = PlutusData.fromCBOR(data_);
-    let ex_units_ = array.shiftRequired();
-    let ex_units = ExUnits.fromCBOR(ex_units_);
-
-    return new FlatArray(tag, index, data, ex_units);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.tag);
-    entries.push(this.index);
-    entries.push(this.data);
-    entries.push(this.ex_units);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): FlatArray {
-    let array = value.get("array");
-    return FlatArray.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
+export type PlutusV3Script = Uint8Array;
 
 export enum RedeemerTagKind {
   Spending = 0,
@@ -5675,18 +5413,365 @@ export class List extends Array<TransactionMetadatum> {
   }
 }
 
-export class Metadata extends CBORMap<
+export type Int = number;
+
+export type Bytes = Uint8Array;
+
+export type String = string;
+
+export enum TransactionMetadatumKind {
+  Map = 0,
+  List = 1,
+  Int = 2,
+  Bytes = 3,
+  String = 4,
+}
+
+export type TransactionMetadatumVariant =
+  | { kind: 0; value: Map }
+  | { kind: 1; value: List }
+  | { kind: 2; value: Int }
+  | { kind: 3; value: Bytes }
+  | { kind: 4; value: String };
+
+export class TransactionMetadatum {
+  private variant: TransactionMetadatumVariant;
+
+  constructor(variant: TransactionMetadatumVariant) {
+    this.variant = variant;
+  }
+
+  static new_map(map: Map): TransactionMetadatum {
+    return new TransactionMetadatum({ kind: 0, value: map });
+  }
+
+  static new_list(list: List): TransactionMetadatum {
+    return new TransactionMetadatum({ kind: 1, value: list });
+  }
+
+  static new_int(int: Int): TransactionMetadatum {
+    return new TransactionMetadatum({ kind: 2, value: int });
+  }
+
+  static new_bytes(bytes: Bytes): TransactionMetadatum {
+    return new TransactionMetadatum({ kind: 3, value: bytes });
+  }
+
+  static new_string(string: String): TransactionMetadatum {
+    return new TransactionMetadatum({ kind: 4, value: string });
+  }
+
+  as_map(): Map | undefined {
+    if (this.variant.kind == 0) return this.variant.value;
+  }
+
+  as_list(): List | undefined {
+    if (this.variant.kind == 1) return this.variant.value;
+  }
+
+  as_int(): Int | undefined {
+    if (this.variant.kind == 2) return this.variant.value;
+  }
+
+  as_bytes(): Bytes | undefined {
+    if (this.variant.kind == 3) return this.variant.value;
+  }
+
+  as_string(): String | undefined {
+    if (this.variant.kind == 4) return this.variant.value;
+  }
+
+  static fromCBOR(value: CBORReaderValue): TransactionMetadatum {
+    return value.getChoice({
+      "": (v) =>
+        new TransactionMetadatum({
+          kind: 0,
+          value: Map.fromCBOR(v),
+        }),
+      "": (v) =>
+        new TransactionMetadatum({
+          kind: 1,
+          value: List.fromCBOR(v),
+        }),
+      "": (v) =>
+        new TransactionMetadatum({
+          kind: 2,
+          value: Int.fromCBOR(v),
+        }),
+      "": (v) =>
+        new TransactionMetadatum({
+          kind: 3,
+          value: Bytes.fromCBOR(v),
+        }),
+      "": (v) =>
+        new TransactionMetadatum({
+          kind: 4,
+          value: String.fromCBOR(v),
+        }),
+    });
+  }
+
+  toCBOR(writer: CBORWriter) {
+    this.variant.value.toCBOR(writer);
+  }
+}
+
+export type TransactionMetadatumLabel = number;
+
+export class GeneralTransactionMetadata extends CBORMap<
   TransactionMetadatumLabel,
   TransactionMetadatum
 > {
-  static fromCBOR(value: CBORReaderValue): Metadata {
+  static fromCBOR(value: CBORReaderValue): GeneralTransactionMetadata {
     let map = value.get("map");
-    return new Metadata(
+    return new GeneralTransactionMetadata(
       map.map({
         key: (x) => TransactionMetadatumLabel.fromCBOR(x),
         value: (x) => TransactionMetadatumLabel.fromCBOR(x),
       }),
     );
+  }
+}
+
+export type Shelley = GeneralTransactionMetadata;
+
+export class AuxiliaryScripts extends Array<NativeScript> {
+  static fromCBOR(value: CBORReaderValue): AuxiliaryScripts {
+    let array = value.get("array");
+    return new AuxiliaryScripts(...array.map((x) => NativeScript.fromCBOR(x)));
+  }
+}
+
+export class ShelleyMa {
+  private transaction_metadata: Metadata;
+  private auxiliary_scripts: AuxiliaryScripts;
+
+  constructor(
+    transaction_metadata: Metadata,
+    auxiliary_scripts: AuxiliaryScripts,
+  ) {
+    this.transaction_metadata = transaction_metadata;
+    this.auxiliary_scripts = auxiliary_scripts;
+  }
+
+  get_transaction_metadata(): Metadata {
+    return this.transaction_metadata;
+  }
+
+  set_transaction_metadata(transaction_metadata: Metadata): void {
+    this.transaction_metadata = transaction_metadata;
+  }
+
+  get_auxiliary_scripts(): AuxiliaryScripts {
+    return this.auxiliary_scripts;
+  }
+
+  set_auxiliary_scripts(auxiliary_scripts: AuxiliaryScripts): void {
+    this.auxiliary_scripts = auxiliary_scripts;
+  }
+
+  static fromArray(array: CBORArrayReader<CBORReaderValue>): ShelleyMa {
+    let transaction_metadata_ = array.shiftRequired();
+    let transaction_metadata = Metadata.fromCBOR(transaction_metadata_);
+    let auxiliary_scripts_ = array.shiftRequired();
+    let auxiliary_scripts = AuxiliaryScripts.fromCBOR(auxiliary_scripts_);
+
+    return new ShelleyMa(transaction_metadata, auxiliary_scripts);
+  }
+
+  toArray() {
+    let entries = [];
+    entries.push(this.transaction_metadata);
+    entries.push(this.auxiliary_scripts);
+    return entries;
+  }
+
+  static fromCBOR(value: CBORReaderValue): ShelleyMa {
+    let array = value.get("array");
+    return ShelleyMa.fromArray(array);
+  }
+
+  toCBOR(writer: CBORWriter) {
+    writer.writeArray(this.toArray());
+  }
+}
+
+export class AlonzoAndBeyond {
+  private metadata: Metadata;
+  private native_scripts: NativeScripts;
+  private plutus_v1_scripts: PlutusV1Scripts;
+  private plutus_v2_scripts: PlutusV2Scripts;
+  private plutus_v3_scripts: PlutusV3Scripts;
+
+  constructor(
+    metadata: Metadata,
+    native_scripts: NativeScripts,
+    plutus_v1_scripts: PlutusV1Scripts,
+    plutus_v2_scripts: PlutusV2Scripts,
+    plutus_v3_scripts: PlutusV3Scripts,
+  ) {
+    this.metadata = metadata;
+    this.native_scripts = native_scripts;
+    this.plutus_v1_scripts = plutus_v1_scripts;
+    this.plutus_v2_scripts = plutus_v2_scripts;
+    this.plutus_v3_scripts = plutus_v3_scripts;
+  }
+
+  get_metadata(): Metadata {
+    return this.metadata;
+  }
+
+  set_metadata(metadata: Metadata): void {
+    this.metadata = metadata;
+  }
+
+  get_native_scripts(): NativeScripts {
+    return this.native_scripts;
+  }
+
+  set_native_scripts(native_scripts: NativeScripts): void {
+    this.native_scripts = native_scripts;
+  }
+
+  get_plutus_v1_scripts(): PlutusV1Scripts {
+    return this.plutus_v1_scripts;
+  }
+
+  set_plutus_v1_scripts(plutus_v1_scripts: PlutusV1Scripts): void {
+    this.plutus_v1_scripts = plutus_v1_scripts;
+  }
+
+  get_plutus_v2_scripts(): PlutusV2Scripts {
+    return this.plutus_v2_scripts;
+  }
+
+  set_plutus_v2_scripts(plutus_v2_scripts: PlutusV2Scripts): void {
+    this.plutus_v2_scripts = plutus_v2_scripts;
+  }
+
+  get_plutus_v3_scripts(): PlutusV3Scripts {
+    return this.plutus_v3_scripts;
+  }
+
+  set_plutus_v3_scripts(plutus_v3_scripts: PlutusV3Scripts): void {
+    this.plutus_v3_scripts = plutus_v3_scripts;
+  }
+
+  static fromCBOR(value: CBORReaderValue): AlonzoAndBeyond {
+    let map = value
+      .get("map")
+      .toMap()
+      .map({ key: (x) => Number(x.getInt()), value: (x) => x });
+    let metadata_ = map.getRequired(0);
+    let metadata =
+      metadata_ != undefined ? Metadata.fromCBOR(metadata_) : undefined;
+    let native_scripts_ = map.getRequired(1);
+    let native_scripts =
+      native_scripts_ != undefined
+        ? NativeScripts.fromCBOR(native_scripts_)
+        : undefined;
+    let plutus_v1_scripts_ = map.getRequired(2);
+    let plutus_v1_scripts =
+      plutus_v1_scripts_ != undefined
+        ? PlutusV1Scripts.fromCBOR(plutus_v1_scripts_)
+        : undefined;
+    let plutus_v2_scripts_ = map.getRequired(3);
+    let plutus_v2_scripts =
+      plutus_v2_scripts_ != undefined
+        ? PlutusV2Scripts.fromCBOR(plutus_v2_scripts_)
+        : undefined;
+    let plutus_v3_scripts_ = map.getRequired(4);
+    let plutus_v3_scripts =
+      plutus_v3_scripts_ != undefined
+        ? PlutusV3Scripts.fromCBOR(plutus_v3_scripts_)
+        : undefined;
+
+    return new AlonzoAndBeyond(
+      metadata,
+      native_scripts,
+      plutus_v1_scripts,
+      plutus_v2_scripts,
+      plutus_v3_scripts,
+    );
+  }
+
+  toCBOR(writer: CBORWriter) {
+    let entries = [];
+    entries.push([0, this.metadata]);
+    entries.push([1, this.native_scripts]);
+    entries.push([2, this.plutus_v1_scripts]);
+    entries.push([3, this.plutus_v2_scripts]);
+    entries.push([4, this.plutus_v3_scripts]);
+    writer.writeMap(entries);
+  }
+}
+
+export enum AuxiliaryDataKind {
+  Shelley = 0,
+  ShelleyMa = 1,
+  AlonzoAndBeyond = 2,
+}
+
+export type AuxiliaryDataVariant =
+  | { kind: 0; value: Shelley }
+  | { kind: 1; value: ShelleyMa }
+  | { kind: 2; value: AlonzoAndBeyond };
+
+export class AuxiliaryData {
+  private variant: AuxiliaryDataVariant;
+
+  constructor(variant: AuxiliaryDataVariant) {
+    this.variant = variant;
+  }
+
+  static new_shelley(shelley: Shelley): AuxiliaryData {
+    return new AuxiliaryData({ kind: 0, value: shelley });
+  }
+
+  static new_shelley_ma(shelley_ma: ShelleyMa): AuxiliaryData {
+    return new AuxiliaryData({ kind: 1, value: shelley_ma });
+  }
+
+  static new_alonzo_and_beyond(
+    alonzo_and_beyond: AlonzoAndBeyond,
+  ): AuxiliaryData {
+    return new AuxiliaryData({ kind: 2, value: alonzo_and_beyond });
+  }
+
+  as_shelley(): Shelley | undefined {
+    if (this.variant.kind == 0) return this.variant.value;
+  }
+
+  as_shelley_ma(): ShelleyMa | undefined {
+    if (this.variant.kind == 1) return this.variant.value;
+  }
+
+  as_alonzo_and_beyond(): AlonzoAndBeyond | undefined {
+    if (this.variant.kind == 2) return this.variant.value;
+  }
+
+  static fromCBOR(value: CBORReaderValue): AuxiliaryData {
+    return value.getChoice({
+      "": (v) =>
+        new AuxiliaryData({
+          kind: 0,
+          value: Shelley.fromCBOR(v),
+        }),
+      "": (v) =>
+        new AuxiliaryData({
+          kind: 1,
+          value: ShelleyMa.fromCBOR(v),
+        }),
+      "": (v) =>
+        new AuxiliaryData({
+          kind: 2,
+          value: AlonzoAndBeyond.fromCBOR(v),
+        }),
+    });
+  }
+
+  toCBOR(writer: CBORWriter) {
+    this.variant.value.toCBOR(writer);
   }
 }
 
@@ -5823,43 +5908,234 @@ export class BootstrapWitness {
   }
 }
 
-export class ScriptPubkey {
-  private addr_keyhash: AddrKeyhash;
+export class ScriptNOfK {
+  private n: number;
+  private native_scripts: NativeScripts;
 
-  constructor(addr_keyhash: AddrKeyhash) {
-    this.addr_keyhash = addr_keyhash;
+  constructor(n: number, native_scripts: NativeScripts) {
+    this.n = n;
+    this.native_scripts = native_scripts;
   }
 
-  get_addr_keyhash(): AddrKeyhash {
-    return this.addr_keyhash;
+  get_n(): number {
+    return this.n;
   }
 
-  set_addr_keyhash(addr_keyhash: AddrKeyhash): void {
-    this.addr_keyhash = addr_keyhash;
+  set_n(n: number): void {
+    this.n = n;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): ScriptPubkey {
-    let addr_keyhash_ = array.shiftRequired();
-    let addr_keyhash = AddrKeyhash.fromCBOR(addr_keyhash_);
+  get_native_scripts(): NativeScripts {
+    return this.native_scripts;
+  }
 
-    return new ScriptPubkey(addr_keyhash);
+  set_native_scripts(native_scripts: NativeScripts): void {
+    this.native_scripts = native_scripts;
+  }
+
+  static fromArray(array: CBORArrayReader<CBORReaderValue>): ScriptNOfK {
+    let n_ = array.shiftRequired();
+    let n = n_.get("uint");
+    let native_scripts_ = array.shiftRequired();
+    let native_scripts = NativeScripts.fromCBOR(native_scripts_);
+
+    return new ScriptNOfK(n, native_scripts);
   }
 
   toArray() {
     let entries = [];
-    entries.push(this.addr_keyhash);
+    entries.push(this.n);
+    entries.push(this.native_scripts);
     return entries;
   }
 
-  static fromCBOR(value: CBORReaderValue): ScriptPubkey {
+  static fromCBOR(value: CBORReaderValue): ScriptNOfK {
     let array = value.get("array");
-    return ScriptPubkey.fromArray(array);
+    return ScriptNOfK.fromArray(array);
   }
 
   toCBOR(writer: CBORWriter) {
     writer.writeArray(this.toArray());
   }
 }
+
+export enum NativeScriptKind {
+  AddrKeyhash = 0,
+  NativeScripts = 1,
+  NativeScripts = 2,
+  ScriptNOfK = 3,
+  number = 4,
+  number = 5,
+}
+
+export type NativeScriptVariant =
+  | { kind: 0; value: AddrKeyhash }
+  | { kind: 1; value: NativeScripts }
+  | { kind: 2; value: NativeScripts }
+  | { kind: 3; value: ScriptNOfK }
+  | { kind: 4; value: number }
+  | { kind: 5; value: number };
+
+export class NativeScript {
+  private variant: NativeScriptVariant;
+
+  constructor(variant: NativeScriptVariant) {
+    this.variant = variant;
+  }
+
+  static new_script_pubkey(script_pubkey: AddrKeyhash): NativeScript {
+    return new NativeScript({ kind: 0, value: script_pubkey });
+  }
+
+  static new_script_all(script_all: NativeScripts): NativeScript {
+    return new NativeScript({ kind: 1, value: script_all });
+  }
+
+  static new_script_any(script_any: NativeScripts): NativeScript {
+    return new NativeScript({ kind: 2, value: script_any });
+  }
+
+  static new_script_n_of_k(script_n_of_k: ScriptNOfK): NativeScript {
+    return new NativeScript({ kind: 3, value: script_n_of_k });
+  }
+
+  static new_invalid_before(invalid_before: number): NativeScript {
+    return new NativeScript({ kind: 4, value: invalid_before });
+  }
+
+  static new_invalid_hereafter(invalid_hereafter: number): NativeScript {
+    return new NativeScript({ kind: 5, value: invalid_hereafter });
+  }
+
+  as_script_pubkey(): AddrKeyhash | undefined {
+    if (this.variant.kind == 0) return this.variant.value;
+  }
+
+  as_script_all(): NativeScripts | undefined {
+    if (this.variant.kind == 1) return this.variant.value;
+  }
+
+  as_script_any(): NativeScripts | undefined {
+    if (this.variant.kind == 2) return this.variant.value;
+  }
+
+  as_script_n_of_k(): ScriptNOfK | undefined {
+    if (this.variant.kind == 3) return this.variant.value;
+  }
+
+  as_invalid_before(): number | undefined {
+    if (this.variant.kind == 4) return this.variant.value;
+  }
+
+  as_invalid_hereafter(): number | undefined {
+    if (this.variant.kind == 5) return this.variant.value;
+  }
+
+  static fromCBOR(value: CBORReaderValue): NativeScript {
+    let array = value.get("array");
+    let [tag, variant] = array.shiftRequired().with((tag_) => {
+      let tag = Number(tag_.get("uint"));
+
+      if (tag == 0) {
+        return [tag, AddrKeyhash.fromCBOR(array.shiftRequired())];
+      }
+
+      if (tag == 1) {
+        return [tag, NativeScripts.fromCBOR(array.shiftRequired())];
+      }
+
+      if (tag == 2) {
+        return [tag, NativeScripts.fromCBOR(array.shiftRequired())];
+      }
+
+      if (tag == 3) {
+        return [tag, ScriptNOfK.fromArray(array)];
+      }
+
+      if (tag == 4) {
+        return [tag, number.fromCBOR(array.shiftRequired())];
+      }
+
+      if (tag == 5) {
+        return [tag, number.fromCBOR(array.shiftRequired())];
+      }
+
+      throw "Unrecognized tag: " + tag + " for NativeScript";
+    });
+
+    return new NativeScript({ kind: tag, value: variant });
+  }
+
+  toCBOR(writer: CBORWriter) {
+    let entries =
+      this.variant.value.toArray != null
+        ? [this.variant.kind, ...this.variant.value.toArray()]
+        : [this.variant.kind, this.variant.value];
+    writer.writeArray(entries);
+  }
+}
+
+export type Coin = number;
+
+export type AssetName = Uint8Array;
+
+export type NegInt64 = number;
+
+export type PosInt64 = number;
+
+export enum NonZeroInt64Kind {
+  NegInt64 = 0,
+  PosInt64 = 1,
+}
+
+export type NonZeroInt64Variant =
+  | { kind: 0; value: NegInt64 }
+  | { kind: 1; value: PosInt64 };
+
+export class NonZeroInt64 {
+  private variant: NonZeroInt64Variant;
+
+  constructor(variant: NonZeroInt64Variant) {
+    this.variant = variant;
+  }
+
+  static new_negInt64(negInt64: NegInt64): NonZeroInt64 {
+    return new NonZeroInt64({ kind: 0, value: negInt64 });
+  }
+
+  static new_posInt64(posInt64: PosInt64): NonZeroInt64 {
+    return new NonZeroInt64({ kind: 1, value: posInt64 });
+  }
+
+  as_negInt64(): NegInt64 | undefined {
+    if (this.variant.kind == 0) return this.variant.value;
+  }
+
+  as_posInt64(): PosInt64 | undefined {
+    if (this.variant.kind == 1) return this.variant.value;
+  }
+
+  static fromCBOR(value: CBORReaderValue): NonZeroInt64 {
+    return value.getChoice({
+      "": (v) =>
+        new NonZeroInt64({
+          kind: 0,
+          value: NegInt64.fromCBOR(v),
+        }),
+      "": (v) =>
+        new NonZeroInt64({
+          kind: 1,
+          value: PosInt64.fromCBOR(v),
+        }),
+    });
+  }
+
+  toCBOR(writer: CBORWriter) {
+    this.variant.value.toCBOR(writer);
+  }
+}
+
+export type Int64 = number;
 
 export enum NetworkIdKind {
   Mainnet = 0,
@@ -5898,89 +6174,15 @@ export class NetworkId {
   }
 }
 
-export class Hash {
-  private hash: DatumHash;
-
-  constructor(hash: DatumHash) {
-    this.hash = hash;
-  }
-
-  get_hash(): DatumHash {
-    return this.hash;
-  }
-
-  set_hash(hash: DatumHash): void {
-    this.hash = hash;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): Hash {
-    let hash_ = array.shiftRequired();
-    let hash = DatumHash.fromCBOR(hash_);
-
-    return new Hash(hash);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.hash);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): Hash {
-    let array = value.get("array");
-    return Hash.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class Data {
-  private data: Data;
-
-  constructor(data: Data) {
-    this.data = data;
-  }
-
-  get_data(): Data {
-    return this.data;
-  }
-
-  set_data(data: Data): void {
-    this.data = data;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): Data {
-    let data_ = array.shiftRequired();
-    let data = Data.fromCBOR(data_);
-
-    return new Data(data);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.data);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): Data {
-    let array = value.get("array");
-    return Data.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
+export type Epoch = number;
 
 export enum DatumOptionKind {
-  Hash = 0,
+  DatumHash = 0,
   Data = 1,
 }
 
 export type DatumOptionVariant =
-  | { kind: 0; value: Hash }
+  | { kind: 0; value: DatumHash }
   | { kind: 1; value: Data };
 
 export class DatumOption {
@@ -5990,7 +6192,7 @@ export class DatumOption {
     this.variant = variant;
   }
 
-  static new_hash(hash: Hash): DatumOption {
+  static new_hash(hash: DatumHash): DatumOption {
     return new DatumOption({ kind: 0, value: hash });
   }
 
@@ -5998,7 +6200,7 @@ export class DatumOption {
     return new DatumOption({ kind: 1, value: data });
   }
 
-  as_hash(): Hash | undefined {
+  as_hash(): DatumHash | undefined {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
@@ -6011,9 +6213,13 @@ export class DatumOption {
     let [tag, variant] = array.shiftRequired().with((tag_) => {
       let tag = Number(tag_.get("uint"));
 
-      if (tag == 0) return [tag, Hash.fromArray(array)];
+      if (tag == 0) {
+        return [tag, DatumHash.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 1) return [tag, Data.fromArray(array)];
+      if (tag == 1) {
+        return [tag, Data.fromCBOR(array.shiftRequired())];
+      }
 
       throw "Unrecognized tag: " + tag + " for DatumOption";
     });
@@ -6022,160 +6228,11 @@ export class DatumOption {
   }
 
   toCBOR(writer: CBORWriter) {
-    let entries = [this.variant.kind, ...this.variant.value.toArray()];
+    let entries =
+      this.variant.value.toArray != null
+        ? [this.variant.kind, ...this.variant.value.toArray()]
+        : [this.variant.kind, this.variant.value];
     writer.writeArray(entries);
-  }
-}
-
-export class NativeScript {
-  private native_script: NativeScript;
-
-  constructor(native_script: NativeScript) {
-    this.native_script = native_script;
-  }
-
-  get_native_script(): NativeScript {
-    return this.native_script;
-  }
-
-  set_native_script(native_script: NativeScript): void {
-    this.native_script = native_script;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): NativeScript {
-    let native_script_ = array.shiftRequired();
-    let native_script = NativeScript.fromCBOR(native_script_);
-
-    return new NativeScript(native_script);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.native_script);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): NativeScript {
-    let array = value.get("array");
-    return NativeScript.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class PlutusV1Script {
-  private plutus_v1_script: PlutusV1Script;
-
-  constructor(plutus_v1_script: PlutusV1Script) {
-    this.plutus_v1_script = plutus_v1_script;
-  }
-
-  get_plutus_v1_script(): PlutusV1Script {
-    return this.plutus_v1_script;
-  }
-
-  set_plutus_v1_script(plutus_v1_script: PlutusV1Script): void {
-    this.plutus_v1_script = plutus_v1_script;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): PlutusV1Script {
-    let plutus_v1_script_ = array.shiftRequired();
-    let plutus_v1_script = PlutusV1Script.fromCBOR(plutus_v1_script_);
-
-    return new PlutusV1Script(plutus_v1_script);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.plutus_v1_script);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): PlutusV1Script {
-    let array = value.get("array");
-    return PlutusV1Script.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class PlutusV2Script {
-  private plutus_v2_script: PlutusV2Script;
-
-  constructor(plutus_v2_script: PlutusV2Script) {
-    this.plutus_v2_script = plutus_v2_script;
-  }
-
-  get_plutus_v2_script(): PlutusV2Script {
-    return this.plutus_v2_script;
-  }
-
-  set_plutus_v2_script(plutus_v2_script: PlutusV2Script): void {
-    this.plutus_v2_script = plutus_v2_script;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): PlutusV2Script {
-    let plutus_v2_script_ = array.shiftRequired();
-    let plutus_v2_script = PlutusV2Script.fromCBOR(plutus_v2_script_);
-
-    return new PlutusV2Script(plutus_v2_script);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.plutus_v2_script);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): PlutusV2Script {
-    let array = value.get("array");
-    return PlutusV2Script.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class PlutusV3Script {
-  private plutus_v3_script: PlutusV3Script;
-
-  constructor(plutus_v3_script: PlutusV3Script) {
-    this.plutus_v3_script = plutus_v3_script;
-  }
-
-  get_plutus_v3_script(): PlutusV3Script {
-    return this.plutus_v3_script;
-  }
-
-  set_plutus_v3_script(plutus_v3_script: PlutusV3Script): void {
-    this.plutus_v3_script = plutus_v3_script;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): PlutusV3Script {
-    let plutus_v3_script_ = array.shiftRequired();
-    let plutus_v3_script = PlutusV3Script.fromCBOR(plutus_v3_script_);
-
-    return new PlutusV3Script(plutus_v3_script);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.plutus_v3_script);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): PlutusV3Script {
-    let array = value.get("array");
-    return PlutusV3Script.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
   }
 }
 
@@ -6236,13 +6293,21 @@ export class Script {
     let [tag, variant] = array.shiftRequired().with((tag_) => {
       let tag = Number(tag_.get("uint"));
 
-      if (tag == 0) return [tag, NativeScript.fromArray(array)];
+      if (tag == 0) {
+        return [tag, NativeScript.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 1) return [tag, PlutusV1Script.fromArray(array)];
+      if (tag == 1) {
+        return [tag, PlutusV1Script.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 2) return [tag, PlutusV2Script.fromArray(array)];
+      if (tag == 2) {
+        return [tag, PlutusV2Script.fromCBOR(array.shiftRequired())];
+      }
 
-      if (tag == 3) return [tag, PlutusV3Script.fromArray(array)];
+      if (tag == 3) {
+        return [tag, PlutusV3Script.fromCBOR(array.shiftRequired())];
+      }
 
       throw "Unrecognized tag: " + tag + " for Script";
     });
@@ -6251,10 +6316,21 @@ export class Script {
   }
 
   toCBOR(writer: CBORWriter) {
-    let entries = [this.variant.kind, ...this.variant.value.toArray()];
+    let entries =
+      this.variant.value.toArray != null
+        ? [this.variant.kind, ...this.variant.value.toArray()]
+        : [this.variant.kind, this.variant.value];
     writer.writeArray(entries);
   }
 }
+
+export type Hash28 = Uint8Array;
+
+export type Hash32 = Uint8Array;
+
+export type Vkey = Uint8Array;
+
+export type VrfVkey = Uint8Array;
 
 export class VrfCert extends Array<Uint8Array> {
   static fromCBOR(value: CBORReaderValue): VrfCert {
@@ -6262,3 +6338,15 @@ export class VrfCert extends Array<Uint8Array> {
     return new VrfCert(...array.map((x) => x.get("bstr")));
   }
 }
+
+export type KesVkey = Uint8Array;
+
+export type KesSignature = Uint8Array;
+
+export type SignkeyKes = Uint8Array;
+
+export type Signature = Uint8Array;
+
+export type Address = Uint8Array;
+
+export type RewardAccount = Uint8Array;
