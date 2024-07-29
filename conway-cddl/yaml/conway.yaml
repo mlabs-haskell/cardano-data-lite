@@ -9,28 +9,32 @@
 #    ;    must be the same
 #    ; 2) every transaction_index must be strictly smaller than the
 #    ;    length of transaction_bodies
-block:
+Block:
   type: record
   fields:
     - key: header
-      value: header
+      value: Header
     - key: transaction_bodies
-      value:
-        type: array
-        item: transaction_body
+      value: TransactionBodies
     - key: transaction_witness_sets
-      value:
-        type: array
-        item: transaction_witness_set
+      value: TransactionWitnessSets
     - key: auxiliary_data_set
-      value:
-        type: map
-        key: transaction_index
-        value: auxiliary_data
+      value: AuxiliaryDataSet
     - key: invalid_transactions
-      value:
-        type: array
-        item: transaction_index
+      value: Uint32Array
+
+TransactionBodies:
+  type: array
+  item: TransactionBody
+
+TransactionWitnessSets:
+  type: array
+  item: TransactionWitnessSet
+
+AuxiliaryDataSet:
+  type: map
+  key: number
+  value: AuxiliaryData
 
 # transaction =
 #   [ transaction_body
@@ -38,35 +42,32 @@ block:
 #   , bool
 #   , auxiliary_data / null
 #   ]
-transaction:
+Transaction:
   type: record
   fields:
-    - key: transaction_body
-      value: transaction_body
-    - key: transaction_witness_set
-      value: transaction_witness_set
+    - key: body
+      value: TransactionBody
+    - key: witness_set
+      value: TransactionWitnessSet
     - key: is_valid
       value: boolean
     - key: auxiliary_data
-      value: auxiliary_data
+      value: AuxiliaryData
       nullable: true
 
 # transaction_index = uint .size 2
-transaction_index:
-  type: uint
-  size: 2
 
 # header =
 #   [ header_body
 #   , body_signature : $kes_signature
 #   ]
-header:
+Header:
   type: record
   fields:
     - key: header_body
-      value: header_body
+      value: HeaderBody
     - key: body_signature
-      value: kes_signature
+      value: KESSignature
 
 # header_body =
 #   [ block_number     : uint
@@ -80,30 +81,30 @@ header:
 #   , operational_cert
 #   , protocol_version
 #   ]
-header_body:
+HeaderBody:
   type: record
   fields:
     - key: block_number
-      value: uint
+      value: number
     - key: slot
-      value: uint
+      value: BigNum
     - key: prev_hash
-      value: hash32
+      value: BlockHash
       nullable: true
     - key: issuer_vkey
-      value: vkey
+      value: Vkey
     - key: vrf_vkey
-      value: vrf_vkey
+      value: VRFVKey
     - key: vrf_result
-      value: vrf_cert
+      value: VRFCert
     - key: block_body_size
-      value: uint
+      value: number
     - key: block_body_hash
-      value: hash32
+      value: BlockHash
     - key: operational_cert
-      value: operational_cert
+      value: OperationalCert
     - key: protocol_version
-      value: protocol_version
+      value: ProtocolVersion
 
 # operational_cert =
 #   [ hot_vkey        : $kes_vkey
@@ -111,34 +112,29 @@ header_body:
 #   , kes_period      : uint
 #   , sigma           : $signature
 #   ]
-operational_cert:
+OperationalCert:
   type: record
   fields:
     - key: hot_vkey
-      value: kes_vkey
+      value: KESVKey
     - key: sequence_number
-      value: uint
+      value: number
     - key: kes_period
-      value: uint
+      value: number
     - key: sigma
-      value: signature
+      value: Ed25519Signature
 
 # next_major_protocol_version = 10
 # major_protocol_version = 1..next_major_protocol_version
-major_protocol_version:
-  type: uint
-  value:
-    min: 1
-    max: 10
 
 # protocol_version = [(major_protocol_version, uint)]
-protocol_version:
+ProtocolVersion:
   type: record
   fields:
-    - key: major_protocol_version
-      value: major_protocol_version
-    - key: minor_protocol_version
-      value: uint
+    - key: major
+      value: number
+    - key: minor
+      value: number
 
 # transaction_body =
 #   { 0 : set<transaction_input>             ; inputs
@@ -162,120 +158,113 @@ protocol_version:
 #   , ? 21 : coin                            ; New; current treasury value
 #   , ? 22 : positive_coin                   ; New; donation
 #   }
-transaction_body:
+TransactionBody:
   type: struct
   fields:
     - id: 0
       key: inputs
-      value:
-        type: set
-        item: transaction_input
+      value: TransactionInputs
     - id: 1
-      key: transaction_outputs
-      value:
-        type: array
-        item: transaction_output
+      key: outputs
+      value: TransactionOutputs
     - id: 2
       key: fee
-      value: coin
+      value: BigNum0
     - id: 3
-      key: time_to_live
-      value: uint
+      key: ttl
+      value: BigNum
       optional: true
     - id: 4
-      key: certificates
-      value: certificates
+      key: certs
+      value: Certificates
       optional: true
     - id: 5
       key: withdrawals
-      value: withdrawals
+      value: Withdrawals
       optional: true
     - id: 7
       key: auxiliary_data_hash
-      value: auxiliary_data_hash
+      value: AuxiliaryDataHash
       optional: true
     - id: 8
-      key: validity_interval_start
-      value: uint
+      key: validity_start_interval
+      value: BigNum
       optional: true
     - id: 9
       key: mint
-      value: mint
+      value: Mint
       optional: true
     - id: 11
       key: script_data_hash
-      value: script_data_hash
+      value: ScriptDataHash
       optional: true
     - id: 13
-      key: collateral_inputs
-      value:
-        type: set
-        item: transaction_input
+      key: collateral
+      value: TransactionInputs
       optional: true
     - id: 14
       key: required_signers
-      value: required_signers
+      value: Ed25519KeyHashes
       optional: true
     - id: 15
       key: network_id
-      value: network_id
+      value: NetworkId
       optional: true
     - id: 16
       key: collateral_return
-      value: transaction_output
+      value: TransactionOutput
       optional: true
     - id: 17
       key: total_collateral
-      value: coin
+      value: BigNum0
       optional: true
     - id: 18
       key: reference_inputs
-      value:
-        type: set
-        item: transaction_input
+      value: TransactionInputs
       optional: true
     - id: 19
       key: voting_procedures
-      value: voting_procedures
+      value: VotingProcedures
       optional: true
     - id: 20
-      key: proposal_procedures
-      value: proposal_procedures
+      key: voting_proposals
+      value: VotingProposals
       optional: true
     - id: 21
       key: current_treasury_value
-      value: coin
+      value: BigNum0
       optional: true
     - id: 22
       key: donation
-      value: coin
+      value: BigNum0
       optional: true
 
+TransactionInputs:
+  type: set
+  item: TransactionInput
+
+TransactionOutputs:
+  type: array
+  item: TransactionOutput
+
+Ed25519KeyHashes:
+  type: set
+  item: Ed25519KeyHash
+
 # voting_procedures = { + voter => { + gov_action_id => voting_procedure } }
-voting_procedures_by_voter:
-  type: map
-  key: voter
-  value: voting_procedures_by_gov_action_id
-  len:
-    min: 1
-voting_procedures_by_gov_action_id:
-  type: map
-  key: gov_action_id
-  value: voting_procedure
-  len:
-    min: 1
+# TODO
 
 # voting_procedure =
 #   [ vote
 #   , anchor / null
 #   ]
-voting_procedure:
+VotingProcedure:
   type: record
   fields:
     - key: vote
-      value: vote
+      value: VoteKind
     - key: anchor
-      value: anchor
+      value: Anchor
       nullable: true
 
 # proposal_procedure =
@@ -284,30 +273,29 @@ voting_procedure:
 #   , gov_action
 #   , anchor
 #   ]
-proposal_procedure:
+VotingProposal:
   type: record
   fields:
     - key: deposit
-      value: coin
+      value: BigNum0
     - key: reward_account
-      value: reward_account
-    - key: gov_action
-      value: gov_action
+      value: RewardAddress
+    - key: governance_action
+      value: GovernanceAction
     - key: anchor
-      value: anchor
+      value: Anchor
 
 # proposal_procedures = nonempty_oset<proposal_procedure>
-proposal_procedures:
+VotingProposals:
   type: set
-  item: proposal_procedure
+  item: VotingProposal
 
 # certificates = nonempty_oset<certificate>
 certificates:
   type: set
-  item: certificate
+  item: Certificate
 
 # policy_hash = scripthash
-policy_hash: bytes
 
 # gov_action =
 #   [ parameter_change_action
@@ -325,83 +313,98 @@ policy_hash: bytes
 # update_committee = (4, gov_action_id / null, set<committee_cold_credential>, { committee_cold_credential => epoch }, unit_interval)
 # new_constitution = (5, gov_action_id / null, constitution)
 # info_action = 6
-governance_action:
+GovernanceAction:
   type: tagged_record
   variants:
     - name: parameter_change_action
       tag: 0
-      fields:
-        - key: gov_action_id
-          value: governance_action_id
-          nullable: true
-        - key: protocol_param_update
-          value: protocol_param_update
-        - key: policy_hash
-          value: policy_hash
-          nullable: true
+      value: ParameterChangeAction
     - name: hard_fork_initiation_action
       tag: 1
-      fields:
-        - key: gov_action_id
-          value: governance_action_id
-          nullable: true
-        - key: protocol_version
-          value: protocol_version
     - name: treasury_withdrawals_action
       tag: 2
-      fields:
-        - key: withdrawals
-          value: withdrawals
-        - key: policy_hash
-          value: policy_hash
-          nullable: true
+      value: HardForkInitiationAction
     - name: no_confidence_action
       tag: 3
-      fields:
-        - key: gov_action_id
-          value: governance_action_id
-          nullable: true
-    - name: update_committee
-      constuctor_name: new_committee_action
+      value: NoConfidenceAction
+    - name: new_committee_action
+      value: UpdateCommitteeAction
       tag: 4
-      fields:
-        - key: gov_action_id
-          value: governance_action_id
-          nullable: true
-        - key: committee_cold_credentials
-          value:
-            type: set
-            item: committee_cold_credential
-        - key: epochs
-          value:
-            type: map
-            key: committee_cold_credential
-            value: epoch
-        - key: unit_interval
-          value: unit_interval
     - name: new_constitution_action
+      value: NewConstitutionAction
       tag: 5
-      fields:
-        - key: gov_action_id
-          value: governance_action_id
-          nullable: true
-        - key: constitution
-          value: constitution
     - name: info_action
       tag: 6
-      fields: []
+      value: InfoAction
+
+ParameterChangeAction:
+  type: record
+  fields:
+    - key: gov_action_id
+      value: GovernanceActionId
+      nullable: true
+    - key: protocol_param_updates
+      value: ProtocolParamUpdate
+    - key: policy_hash
+      value: ScriptHash
+      nullable: true
+
+HardForkInitiationAction:
+  type: record
+  fields:
+    - key: gov_action_id
+      value: GovernanceActionId
+      nullable: true
+    - key: protocol_version
+      value: ProtocolVersion
+
+NoConfidenceAction:
+  type: record
+  fields:
+    - key: gov_action_id
+      value: GovernanceActionId
+      nullable: true
+
+UpdateCommitteeAction:
+  type: record
+  fields:
+    - key: gov_action_id
+      value: GovernanceActionId
+      nullable: true
+    - key: credentials
+      value: Credentials
+    - key: committee
+      value: Committee
+    - key: unit_interval
+      value: unit_interval
+
+NewConstitutionAction:
+  type: record
+  fields:
+    - key: gov_action_id
+      value: GovernanceActionId
+      nullable: true
+    - key: constitution
+      value: Constitution
+
+InfoAction:
+  type: empty_class
+
+Credentials:
+  type: set
+  item: Credential
 
 # constitution =
 #   [ anchor
 #   , scripthash / null
 #   ]
-constitution:
+Constitution:
   type: record
   fields:
     - key: anchor
-      value: anchor
+      value: Anchor
     - key: scripthash
-      value: scripthash
+      value: ScriptHash
       nullable: true
 
 # ; Constitutional Committee Hot KeyHash: 0
@@ -416,12 +419,12 @@ constitution:
 #   // 3, scripthash
 #   // 4, addr_keyhash
 #   ]
-voter:
+Voter: # TODO
   type: tagged_record
   variants:
-    - name: constitutional_committee_hot_keyhash
+    - name: constitutional_committee_hot_key
       tag: 0
-      fields:
+      value:
         - key: addr_keyhash
           value: addr_keyhash
     - name: constitutional_committee_hot_scripthash
@@ -452,17 +455,17 @@ voter:
 anchor:
   type: record
   fields:
-    - key: anchor_url
-      value: url
+    - key: url
+      value: URL
     - key: anchor_data_hash
-      value: hash32
+      value: AnchorDataHash
 
 # ; no - 0
 # ; yes - 1
 # ; abstain - 2
 # vote = 0 .. 2
-vote:
-  type: enum
+VoteKind:
+  type: enum2
   values:
     - name: no
       value: 0
@@ -475,30 +478,27 @@ vote:
 #   [ transaction_id   : $hash32
 #   , gov_action_index : uint
 #   ]
-governance_action_id:
+GovernanceActionId:
   type: record
   fields:
     - key: transaction_id
-      value: hash32
+      value: TransactionHash
     - key: index
-      value: uint
+      value: number
 
 # required_signers = nonempty_set<addr_keyhash>
-required_signers:
-  type:
-    type: set
-    args: addr_keyhash
+# Replaced by Ed25519KeyHashes. See TransactionBody
 
 # transaction_input = [ transaction_id : $hash32
 #                     , index : uint
 #                     ]
-transaction_input:
+TransactionInput:
   type: record
   fields:
     - key: transaction_id
-      value: hash32
+      value: TransactionHash
     - key: index
-      value: uint
+      value: number
 
 # ; Both of the Alonzo and Babbage style TxOut formats are equally valid
 # ; and can be used interchangeably
@@ -516,39 +516,23 @@ transaction_input:
 #   , ? 2 : datum_option ; datum option
 #   , ? 3 : script_ref   ; script reference
 #   }
-#   TODO: Custom
-transaction_output:
-  type: union
-  variants:
-    - name: pre_babbage_transaction_output
-      item:
-        type: record
-        fields:
-          - key: address
-            value: address
-          - key: amount
-            value: value
-          - key: datum_hash
-            value: hash32
-            optional: true
-    - name: post_alonzo_transaction_output
-      item:
-        type: struct
-        fields:
-          - id: 0
-            key: address
-            value: address
-          - id: 1
-            key: value
-            value: value
-          - id: 2
-            key: datum_option
-            value: datum_option
-            optional: true
-          - id: 3
-            key: script_ref
-            value: script_ref
-            optional: true
+TransactionOutput:
+  type: struct
+  fields:
+    - id: 0
+      key: address
+      value: Address
+    - id: 1
+      key: amount
+      value: Value
+    - id: 2
+      key: plutus_data
+      value: DataOption
+      optional: true
+    - id: 3
+      key: script_ref
+      value: ScriptRef
+      optional: true
 
 # script_data_hash = $hash32
 # ; This is a hash of data which may affect evaluation of a script.
@@ -648,8 +632,8 @@ transaction_output:
 # ; 1110: reward account: keyhash28
 # ; 1111: reward account: scripthash28
 # ; 1001 - 1101: future formats
-script_data_hash:
-  type: hash32
+# script_data_hash:
+#   type: hash32
 
 # certificate =
 #   [ stake_registration
@@ -697,113 +681,52 @@ script_data_hash:
 # reg_drep_cert = (16, drep_credential, coin, anchor / null)
 # unreg_drep_cert = (17, drep_credential, coin)
 # update_drep_cert = (18, drep_credential, anchor / null)
-certificate:
+Certificate:
   type: tagged_record
   variants:
     - name: stake_registration
       tag: 0
-      fields:
-        - key: stake_credential
-          value: stake_credential
+      value: StakeRegistration
     - name: stake_deregistration
       tag: 1
-      fields:
-        - key: stake_credential
-          value: stake_credential
+      value: StakeDeregistration
     - name: stake_delegation
       tag: 2
-      fields:
-        - key: stake_credential
-          value: stake_credential
-        - key: pool_keyhash
-          value: pool_keyhash
+      value: StakeDelegation
     - name: pool_registration
       tag: 3
-      fields:
-        - key: pool_params
-          value: pool_params
+      value: PoolRegistration
     - name: pool_retirement
       tag: 4
-      fields:
-        - key: pool_keyhash
-          value: pool_keyhash
-        - key: epoch
-          value: epoch
+      value: PoolRetirement
     - name: reg_cert
       tag: 7
-      fields:
-        - key: stake_credential
-          value: stake_credential
-        - key: coin
-          value: coin
+      value: RegCert
     - name: unreg_cert
       tag: 8
-      fields:
-        - key: stake_credential
-          value: stake_credential
-        - key: coin
-          value: coin
-    - name: vote_deleg_cert
+      value: UnregCert
+    - name: vote_delegation
       tag: 9
-      fields:
-        - key: stake_credential
-          value: stake_credential
-        - key: drep
-          value: drep
-    - name: stake_vote_deleg_cert
+      value: VoteDelegation
+    - name: stake_and_vote_delegation
       tag: 10
-      fields:
-        - key: stake_credential
-          value: stake_credential
-        - key: pool_keyhash
-          value: pool_keyhash
-        - key: drep
-          value: drep
-    - name: stake_reg_deleg_cert
+      value: StakeAndVoteDelegation
+    - name: stake_registration_and_delegation
       tag: 11
-      fields:
-        - key: stake_credential
-          value: stake_credential
-        - key: pool_keyhash
-          value: pool_keyhash
-        - key: coin
-          value: coin
-    - name: vote_reg_deleg_cert
+      value: StakeRegistrationAndDelegation
+    - name: vote_registration_and_delegation
       tag: 12
-      fields:
-        - key: stake_credential
-          value: stake_credential
-        - key: drep
-          value: drep
-        - key: coin
-          value: coin
-    - name: stake_vote_reg_deleg_cert
+      value: VoteRegistrationAndDelegation
+    - name: stake_vote_registration_and_delegation
       tag: 13
-      fields:
-        - key: stake_credential
-          value: stake_credential
-        - key: pool_keyhash
-          value: pool_keyhash
-        - key: drep
-          value: drep
-        - key: coin
-          value: coin
-    - name: auth_committee_hot_cert
+      value: StakeVoteRegistrationAndDelegation
+    - name: committee_hot_auth
       tag: 14
-      fields:
-        - key: committee_cold_credential
-          value: committee_cold_credential
-        - key: committee_hot_credential
-          value: committee_hot_credential
-    - name: resign_committee_cold_cert
+      value: CommitteeHotAuth
+    - name: committee_cold_resign
       tag: 15
-      fields:
-        - key: committee_cold_credential
-          value: committee_cold_credential
-        - key: anchor
-          value: anchor
-          nullable: true
-    - name: reg_drep_cert
+      value: CommitteeColdResign
+    - name: drep_registration
       tag: 16
       fields:
         - key: drep_credential
@@ -813,14 +736,14 @@ certificate:
         - key: anchor
           value: anchor
           nullable: true
-    - name: unreg_drep_cert
+    - name: drep_deregistration
       tag: 17
       fields:
         - key: drep_credential
           value: drep_credential
         - key: coin
           value: coin
-    - name: update_drep_cert
+    - name: drep_update
       tag: 18
       fields:
         - key: drep_credential
@@ -828,6 +751,123 @@ certificate:
         - key: anchor
           value: anchor
           nullable: true
+
+StakeRegistration:
+  type: record
+  fields:
+    - key: stake_credential
+      value: stake_credential
+
+StakeDeregistration:
+  type: record
+  fields:
+    - key: stake_credential
+      value: stake_credential
+
+StakeDelegation:
+  type: record
+  fields:
+    - key: stake_credential
+      value: stake_credential
+    - key: pool_keyhash
+      value: pool_keyhash
+
+PoolRegistration:
+  type: record
+  fields:
+    - key: pool_params
+      value: pool_params
+
+PoolRetirement:
+  type: record
+  fields:
+    - key: pool_keyhash
+      value: pool_keyhash
+    - key: epoch
+      value: epoch
+
+RegCert:
+  type: record
+  fields:
+    - key: stake_credential
+      value: stake_credential
+    - key: coin
+      value: coin
+
+UnregCert:
+  type: record
+  fields:
+    - key: stake_credential
+      value: stake_credential
+    - key: coin
+      value: coin
+
+VoteDelegation:
+  type: record
+  fields:
+    - key: stake_credential
+      value: stake_credential
+    - key: drep
+      value: drep
+
+StakeAndVoteDelegation:
+  type: record
+  fields:
+    - key: stake_credential
+      value: stake_credential
+    - key: pool_keyhash
+      value: pool_keyhash
+    - key: drep
+      value: drep
+
+StakeRegistrationAndDelegation:
+  type: record
+  fields:
+    - key: stake_credential
+      value: stake_credential
+    - key: pool_keyhash
+      value: pool_keyhash
+    - key: coin
+      value: coin
+
+VoteRegistrationAndDelegation:
+  type: record
+  fields:
+    - key: stake_credential
+      value: stake_credential
+    - key: drep
+      value: drep
+    - key: coin
+      value: coin
+
+StakeVoteRegistrationAndDelegation:
+  type: record
+  fields:
+    - key: stake_credential
+      value: stake_credential
+    - key: pool_keyhash
+      value: pool_keyhash
+    - key: drep
+      value: drep
+    - key: coin
+      value: coin
+
+CommitteeHotAuth:
+  type: record
+  fields:
+    - key: committee_cold_key
+      value: Credential
+    - key: committee_hot_key
+      value: Credential
+
+CommitteeColdResign:
+  type: record
+  fields:
+    - key: committee_cold_key
+      value: Credential
+    - key: anchor
+      value: anchor
+      nullable: true
 
 # delta_coin = int
 delta_coin:
@@ -840,7 +880,7 @@ delta_coin:
 credential:
   type: tagged_record
   variants:
-    - name: addr_keyhash
+    - name: keyhash
       tag: 0
       fields:
         - key: addr_keyhash
@@ -996,10 +1036,13 @@ pool_metadata:
       value: pool_metadata_hash
 
 # url = tstr .size (0..128)
-url:
-  type: string
-  len:
-    max: 128
+URL:
+  type: newtype
+  item: string
+  constraints:
+    len:
+      min: 0
+      max: 128
 
 # withdrawals = { + reward_account => coin }
 withdrawals:
@@ -1796,7 +1839,7 @@ int64:
     max: 9223372036854775807
 
 # network_id = 0 / 1
-network_id:
+NetworkId:
   type: enum
   values:
     - name: mainnet
