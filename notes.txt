@@ -8,6 +8,7 @@ Construct CBORMap subclasses from CBORMultiMap.
 Custom Constructors for optional fields.
 
 Normalize nested composite data structures into their own definitions.
+Done.
 
 To Support:
 	- Uint32Array
@@ -105,74 +106,5 @@ UnitInterval
 # TODO
 - Change BigNum0 to BigNum
 	annotate on the parent type whether any field needs special treatment
-
-# List of taggeed records
-1 GovernanceAction
-2 Certificate
-3 Voter
-4 Credential
-5 DRep
-6 Relay
-7 NativeScript
-8 DatumOption
-9 Script
-
-# Groups handling + Tagged record handling
-
-Tagged Record encoding:
-- If a variant only has a single field, then that field
-
-- TaggedRecord
-	fromCBOR
-		get tag
-		pass the remaining elements to the parser of the variant
-	toCBOR
-		use tag to 
-
-
-# Tagged Records in Conway
-
-
-Certificate
-	00 StakeRegistration*
-	01 StakeDeregistration*
-	02 StakeDelegation*
-	03 PoolRegistration*
-	04 PoolRetirement*
-	05 GenesisKeyDelegation [x]
-	06 MoveInstantaneousRewardCert [x]
-	07 RegCert ??
-	08 UnregCert ??
-	09 VoteDelegation
-	10 StakeAndVoteDelegation
-	11 StakeRegistrationAndDelegation
-	12 VoteRegistrationAndDelegation
-	13 StakeVoteRegistrationAndDelegation
-	14 CommitteHotAuth 
-	15 CommitteeColdResign 
-	16 DrepRegistration 
-	17 DrepDeregistration
-	18 DrepUpdate
-Notes:
-	StakeRegistration gets encoded as 00 or 07 depending on the coin arg is present.
-
-
-GovernanceAction
-  00 ParameterChangeAction
-	01 HardForkInitiationAction
-	02 TreasuryWithdrawalsAction
-	03 NoConfidenceAction
-	04 UpdateCommiteeAction
-	05 NewConstitutionAction
-	06 InfoAction
-
-
-
-To Clarify:
-	- What is Transaction.is_valid() ?
-	- StakeRegistration/Deregistration is deprecated in conway but not removed yet. 
-		To be removed in future releases.
-		RegCert/UnregCert to be used instead.
-		CSL combines both of them into the same data type: StakeRegistration and
-		encodes them as StakeRegistration (tag: 0) if coin is not present. Else
-		encodes as RegCert (tag: 7). Same for StakeDeregistration/UnregCert.
+- Change tagged_record's value to extend/value depending on whether it's
+	inlining a nested structure or have a single field in the variant.
