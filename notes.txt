@@ -1,26 +1,178 @@
-# Goals
+# Issues
 
-- Typesafety for the user . 
-	Provide as much bug-proofing as possible at compile time.
+Groups are not used.
+Alias types shouldn't use fromCBOR.
+Union types doesn't support decoding yet.
+Construct CBORMap subclasses from CBORMultiMap.
 
-- Typesafety for developer.
-	Make the library as bug-free as possible.
+Custom Constructors for optional fields.
 
-# Approaches
+Normalize nested composite data structures into their own definitions.
 
-- Typescript type-level DSL:
+To Support:
+	- Uint32Array
+	- number: encode as bigint, not float. We never use float.
+	- BigNum: provide field(): number and field_bignum(): BigNum
+	- BigNum0: field(): BigNum, unlike above
+	- fn remove_field() for nullable/optional fields
+	- empty_class type (InfoAction)
+	- enum2 (VoteKind)
+	- newtype
+		constraints:
+			len
+			min/max/eq
+	- check if array provides add()
 
-	Build a base DSL to represent all CBOR types.
-
-	Write functions which can use this DSL to parse CBOR in a typesafe way.
-
-	Use this to model conway.cddl
-
-- Parser, Schema with Value level DSL
+# Special Cases
+- AuxiliaryDataSet.indices(): Uint32Array
+- HeaderBody.has_vrf_result()
+- HeaderBody.vrf_result_or_nothing(): VRFCert | undefined (To support old versions with nonce_vrf/leader_vrf)
+- HeaderBody.new(...) (Uses slot: number) / HeaderBody.new_headerbody(...) (Users slot: BigNum)
+	Consider encoding this as custom constructors in the yaml instead of the code.
+- Ed25519KeyHashes.contains(keyhash)
+- Ed25519KeyHashes.get(index) (Set doesn't support get by index I think)
+- VotingProcedures:
+	{ voter => { gov_action_id => voting_procedure } }
+	Map.insert(voter, gov_action_id, voting_procedure)
+	Map.get(voter, gov_action_id): voting_procedure
+- VotingProcedure uses vote: VoteKind instead of vote: Vote
+	=> Will have to special case
+- UpdateCommitteAction::Committee inlines the quorum_threshold field
+- Credential
+	from_variant/to_variant instead of new_variant/as_variant functions.
+	Have commented on the PR.
+- TransactionOutput
+	this.plutus_data: DataOption (DataHash/PlutusData)
+	data_hash()/set_data_hash() => set this.plutus_data as data hash
+	plutus_data()/set_plutus_data() => set this.plutus_data as plutus data
+- TransactionWitnessSet
+	Combines plutus_v1/v2/v3 into single PlutusScripts
+- PlutusData
+	Is the only remaining union type.
+	I'd rather custom code this than coming up with the semantics of the union type in codegen.
+- Constr
+	Encoding logic is custom
+- Redeemer
+	CSL API is that of set<Redeemer>
+	CDDL says { [redeemer_tag, index] => [plutus_data, ex_units] }
+- Costmdls
+  CostMdls is Map<Language, CostModel>
+  CostModel is custom Vec<Int>:
+    get(operation): self[operation]
+    set(operation, cost): fill zero from self.len to operation; self[operation] = cost
+- TransactionMetadatum
+	This is the other (only other I guess) union.
+	I'd still rather do this custom.
+- Multiasset
+	The semantic doesn't exactly fit a map.
+	Generic is not needed, judging by CSL TS types.
+- Value
+	Is a union, but that's not what calls for the custom impl; but the API is quirky.
+- Mint
+	quirky API.
+- DataOption
+	Encode PlutusData as #6.24(bytes)
+	This is used in TransactionOutput, which is already a custom type.
+	DataOption is not exposed in CSL. So maybe we can inline the encoding in TransactionOutput's code.
+	Edit: Or maybe we can make DataOption a custom which encodes PlutusData into bytes during serialization
+	Edit2: Or maybe we can add codegen for encode as bytes and wrap into tagged.
+- ScriptRef
+	Encode as #6.24(bytes)
+	This is also used in TransactionOutput, which is already a custom type.
+	We could inline the encoding there.
+- Wherever PlutusScript hides the version number, I've made them explicit.
+	Need to confirm with Vlad the semantics of this.
 	
-	Developer needs to write typesafe interfaces/classes for each type in conway.cddl
-	Then manually map it to a schema.
-	The DSL should make it somewhat easier, but the developer needs to ensure
-	that the schema matches the CDDL file accurately.
+# Enum
+static variant(): Enum
+EnumKind: { variant_name: int }
+
+# Hashes and Signatures
+AuxiliaryDataHash
+BlockHash
+Ed25519Signature
+RewardAddress
+ScriptHash
+AnchorDataHash
+TransactionHash
+VRFKeyHash
+PoolMetadataHash
+Vkey
+
+# Other custom types
+UnitInterval
+
+# TODO
+- Change BigNum0 to BigNum
+	annotate on the parent type whether any field needs special treatment
+
+# List of taggeed records
+1 GovernanceAction
+2 Certificate
+3 Voter
+4 Credential
+5 DRep
+6 Relay
+7 NativeScript
+8 DatumOption
+9 Script
+
+# Groups handling + Tagged record handling
+
+Tagged Record encoding:
+- If a variant only has a single field, then that field
+
+- TaggedRecord
+	fromCBOR
+		get tag
+		pass the remaining elements to the parser of the variant
+	toCBOR
+		use tag to 
 
 
+# Tagged Records in Conway
+
+
+Certificate
+	00 StakeRegistration*
+	01 StakeDeregistration*
+	02 StakeDelegation*
+	03 PoolRegistration*
+	04 PoolRetirement*
+	05 GenesisKeyDelegation [x]
+	06 MoveInstantaneousRewardCert [x]
+	07 RegCert ??
+	08 UnregCert ??
+	09 VoteDelegation
+	10 StakeAndVoteDelegation
+	11 StakeRegistrationAndDelegation
+	12 VoteRegistrationAndDelegation
+	13 StakeVoteRegistrationAndDelegation
+	14 CommitteHotAuth 
+	15 CommitteeColdResign 
+	16 DrepRegistration 
+	17 DrepDeregistration
+	18 DrepUpdate
+Notes:
+	StakeRegistration gets encoded as 00 or 07 depending on the coin arg is present.
+
+
+GovernanceAction
+  00 ParameterChangeAction
+	01 HardForkInitiationAction
+	02 TreasuryWithdrawalsAction
+	03 NoConfidenceAction
+	04 UpdateCommiteeAction
+	05 NewConstitutionAction
+	06 InfoAction
+
+
+
+To Clarify:
+	- What is Transaction.is_valid() ?
+	- StakeRegistration/Deregistration is deprecated in conway but not removed yet. 
+		To be removed in future releases.
+		RegCert/UnregCert to be used instead.
+		CSL combines both of them into the same data type: StakeRegistration and
+		encodes them as StakeRegistration (tag: 0) if coin is not present. Else
+		encodes as RegCert (tag: 7). Same for StakeDeregistration/UnregCert.

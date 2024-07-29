@@ -728,129 +728,113 @@ Certificate:
       value: CommitteeColdResign
     - name: drep_registration
       tag: 16
-      fields:
-        - key: drep_credential
-          value: drep_credential
-        - key: coin
-          value: coin
-        - key: anchor
-          value: anchor
-          nullable: true
+      value: DrepRegistration
     - name: drep_deregistration
       tag: 17
-      fields:
-        - key: drep_credential
-          value: drep_credential
-        - key: coin
-          value: coin
+      value: DrepDeregistration
     - name: drep_update
       tag: 18
-      fields:
-        - key: drep_credential
-          value: drep_credential
-        - key: anchor
-          value: anchor
-          nullable: true
+      value: DrepUpdate
 
 StakeRegistration:
   type: record
   fields:
     - key: stake_credential
-      value: stake_credential
+      value: Credential
 
 StakeDeregistration:
   type: record
   fields:
     - key: stake_credential
-      value: stake_credential
+      value: Credential
 
 StakeDelegation:
   type: record
   fields:
     - key: stake_credential
-      value: stake_credential
+      value: Credential
     - key: pool_keyhash
-      value: pool_keyhash
+      value: Ed25519KeyHash
 
 PoolRegistration:
   type: record
   fields:
     - key: pool_params
-      value: pool_params
+      value: PoolParams
 
 PoolRetirement:
   type: record
   fields:
     - key: pool_keyhash
-      value: pool_keyhash
+      value: Ed25519KeyHash
     - key: epoch
-      value: epoch
+      value: number
 
 RegCert:
   type: record
   fields:
     - key: stake_credential
-      value: stake_credential
+      value: Credential
     - key: coin
-      value: coin
+      value: BigNum0
 
 UnregCert:
   type: record
   fields:
     - key: stake_credential
-      value: stake_credential
+      value: Credential
     - key: coin
-      value: coin
+      value: BigNum0
 
 VoteDelegation:
   type: record
   fields:
     - key: stake_credential
-      value: stake_credential
+      value: Credential
     - key: drep
-      value: drep
+      value: DRep
 
 StakeAndVoteDelegation:
   type: record
   fields:
     - key: stake_credential
-      value: stake_credential
+      value: Credential
     - key: pool_keyhash
-      value: pool_keyhash
+      value: Ed25519KeyHash
     - key: drep
-      value: drep
+      value: DRep
 
 StakeRegistrationAndDelegation:
   type: record
   fields:
     - key: stake_credential
-      value: stake_credential
+      value: Credential
     - key: pool_keyhash
-      value: pool_keyhash
+      value: Ed25519KeyHash
     - key: coin
-      value: coin
+      value: BigNum0
 
 VoteRegistrationAndDelegation:
   type: record
   fields:
     - key: stake_credential
-      value: stake_credential
+      value: Credential
     - key: drep
-      value: drep
+      value: DRep
     - key: coin
-      value: coin
+      value: BigNum0
 
 StakeVoteRegistrationAndDelegation:
   type: record
   fields:
     - key: stake_credential
-      value: stake_credential
+      value: Credential
     - key: pool_keyhash
-      value: pool_keyhash
+      value: Ed25519KeyHash
     - key: drep
-      value: drep
+      value: DRep
     - key: coin
-      value: coin
+      value: BigNum0
 
 CommitteeHotAuth:
   type: record
@@ -866,30 +850,52 @@ CommitteeColdResign:
     - key: committee_cold_key
       value: Credential
     - key: anchor
-      value: anchor
+      value: Anchor
+      nullable: true
+
+DrepRegistration:
+  type: record
+  fields:
+    - key: voting_credential
+      value: Credential
+    - key: coin
+      value: BigNum0
+    - key: anchor
+      value: Anchro
+      nullable: true
+
+DrepDeregistration:
+  type: record
+  fields:
+    - key: drep_credential
+      value: voting_credential
+    - key: coin
+      value: BigNum0
+
+DrepUpdate:
+  type: record
+  fields:
+    - key: drep_credential
+      value: Credential
+    - key: anchor
+      value: Anchor
       nullable: true
 
 # delta_coin = int
-delta_coin:
-  type: int
 
 # credential =
 #   [  0, addr_keyhash
 #   // 1, scripthash
 #   ]
-credential:
+Credential:
   type: tagged_record
   variants:
     - name: keyhash
       tag: 0
-      fields:
-        - key: addr_keyhash
-          value: addr_keyhash
+      value: Ed25519KeyHash
     - name: scripthash
       tag: 1
-      fields:
-        - key: scripthash
-          value: scripthash
+      value: ScriptHash
 
 # drep =
 #   [ 0, addr_keyhash
@@ -900,16 +906,12 @@ credential:
 drep:
   type: tagged_record
   variants:
-    - name: addr_keyhash
+    - name: key_hash
       tag: 0
-      fields:
-        - key: addr_keyhash
-          value: addr_keyhash
-    - name: scripthash
+      value: Ed25519KeyHash
+    - name: script_hash
       tag: 1
-      fields:
-        - key: scripthash
-          value: scripthash
+      value: ScriptHash
     - name: always_abstain
       tag: 2
     - name: always_no_confidence
@@ -919,10 +921,6 @@ drep:
 # drep_credential = credential
 # committee_cold_credential = credential
 # committee_hot_credential = credential
-stake_credential: credential
-drep_credential: credential
-committee_cold_credential: credential
-committee_hot_credential: credential
 
 # pool_params = ( operator:       pool_keyhash
 #               , vrf_keyhash:    vrf_keyhash
@@ -934,51 +932,61 @@ committee_hot_credential: credential
 #               , relays:         [* relay]
 #               , pool_metadata:  pool_metadata / null
 #               )
-pool_params:
-  type: group
+PoolParams:
+  type: record
   fields:
     - key: operator
-      value: pool_keyhash
+      value: Ed25519KeyHash
     - key: vrf_keyhash
-      value: vrf_keyhash
+      value: VRFKeyHash
     - key: pledge
-      value: coin
+      value: BigNum0
     - key: cost
-      value: coin
+      value: BigNum0
     - key: margin
-      value: unit_interval
+      value: UnitInterval
     - key: reward_account
-      value: reward_account
+      value: RewardAddress
     - key: pool_owners
-      value:
-        type: set
-        item: addr_keyhash
+      value: Ed25519KeyHashes
     - key: relays
-      value:
-        type: array
-        item: relay
+      value: Relays
     - key: pool_metadata
-      value: pool_metadata
+      value: PoolMetadata
       nullable: true
+
+Relays:
+  type: array
+  item: Relay
 
 # port = uint .le 65535
 # ipv4 = bytes .size 4
 # ipv6 = bytes .size 16
 # dns_name = tstr .size (0..128)
-port:
-  type: uint
-  value:
-    max: 65535
-ipv4:
-  type: bytes
-  len: 4
-ipv6:
-  type: bytes
-  len: 16
-dns_name:
+
+Ipv4:
+  type: newtype
+  item: bytes
+  constraints:
+    len:
+      eq: 4
+
+Ipv6:
+  type: newtype
+  item: bytes
+  constraints:
+    len:
+      eq: 16
+
+DNSRecordAorAAAA:
   type: string
   len:
-    max: 128
+    max: 64
+
+DNSRecordSRV:
+  type: string
+  len:
+    max: 64
 
 # single_host_addr = ( 0
 #                    , port / null
@@ -997,43 +1005,52 @@ dns_name:
 #   // single_host_name
 #   // multi_host_name
 #   ]
-relay:
+Relay:
   type: tagged_record
   variants:
     - name: single_host_addr
       tag: 0
-      fields:
-        - key: port
-          value: port
-          nullable: true
-        - key: ipv4
-          value: ipv4
-          nullable: true
-        - key: ipv6
-          value: ipv6
-          nullable: true
+      value: SingleHostAddr
     - name: single_host_name
       tag: 1
-      fields:
-        - key: port
-          value: port
-          nullable: true
-        - key: dns_name
-          value: dns_name
+      value: SingleHostName
     - name: multi_host_name
       tag: 2
-      fields:
-        - key: dns_name
-          value: dns_name
+      value: MultiHostName
+
+SingleHostAddr:
+  fields:
+    - key: port
+      value: number
+      nullable: true
+    - key: ipv4
+      value: Ipv4
+      nullable: true
+    - key: ipv6
+      value: Ipv6
+      nullable: true
+
+SingleHostName:
+  fields:
+    - key: port
+      value: number
+      nullable: true
+    - key: dns_name
+      value: DNSRecordAorAAAA
+
+MultiHostName:
+  fields:
+    - key: dns_name
+      value: DNSRecordSRV
 
 # pool_metadata = [url, pool_metadata_hash]
 pool_metadata:
   type: record
   fields:
     - key: url
-      value: url
+      value: URL
     - key: pool_metadata_hash
-      value: pool_metadata_hash
+      value: PoolMetadataHash
 
 # url = tstr .size (0..128)
 URL:
@@ -1045,10 +1062,10 @@ URL:
       max: 128
 
 # withdrawals = { + reward_account => coin }
-withdrawals:
+Withdrawals:
   type: map
-  key: reward_account
-  value: coin
+  key: RewardAddress
+  value: BigNum
 
 # protocol_param_update =
 #   { ? 0:  coin                   ; minfee A
@@ -1088,123 +1105,123 @@ protocol_param_update:
   fields:
     - id: 0
       key: minfee_a
-      value: coin
+      value: BigNum
       optional: true
     - id: 1
       key: minfee_b
-      value: coin
+      value: BigNum
       optional: true
     - id: 2
       key: max_block_body_size
-      value: uint
+      value: number
       optional: true
     - id: 3
       key: max_tx_size
-      value: uint
+      value: number
       optional: true
     - id: 4
       key: max_block_header_size
-      value: uint
+      value: number
       optional: true
     - id: 5
       key: key_deposit
-      value: coin
+      value: BigNum
       optional: true
     - id: 6
       key: pool_deposit
-      value: coin
+      value: BigNum
       optional: true
     - id: 7
       key: max_epoch
-      value: epoch
+      value: number
       optional: true
     - id: 8
       key: n_opt
-      value: uint
+      value: number
       optional: true
     - id: 9
       key: pool_pledge_influence
-      value: unit_interval
+      value: UnitInterval
       optional: true
     - id: 10
       key: expansion_rate
-      value: unit_interval
+      value: UnitInterval
       optional: true
     - id: 11
       key: treasury_growth_rate
-      value: unit_interval
+      value: UnitInterval
       optional: true
     - id: 16
       key: min_pool_cost
-      value: coin
+      value: BigNum
       optional: true
     - id: 17
       key: ada_per_utxo_byte
-      value: coin
+      value: BigNum
       optional: true
     - id: 18
       key: costmdls
-      value: costmdls
+      value: Costmdls
       optional: true
     - id: 19
-      key: ex_unit_prices
-      value: ex_unit_prices
+      key: execution_costs
+      value: ExUnitPrices
       optional: true
     - id: 20
       key: max_tx_ex_units
-      value: ex_units
+      value: ExUnits
       optional: true
     - id: 21
       key: max_block_ex_units
-      value: ex_units
+      value: ExUnits
       optional: true
     - id: 22
       key: max_value_size
-      value: uint
+      value: number
       optional: true
     - id: 23
       key: collateral_percentage
-      value: uint
+      value: number
       optional: true
     - id: 24
       key: max_collateral_inputs
-      value: uint
+      value: number
       optional: true
     - id: 25
       key: pool_voting_thresholds
-      value: pool_voting_thresholds
+      value: PoolVotingThresholds
       optional: true
     - id: 26
       key: drep_voting_thresholds
-      value: drep_voting_thresholds
+      value: DrepVotingThresholds
       optional: true
     - id: 27
       key: min_committee_size
-      value: uint
+      value: number
       optional: true
     - id: 28
       key: committee_term_limit
-      value: epoch
+      value: number
       optional: true
     - id: 29
       key: governance_action_validity_period
-      value: epoch
+      value: number
       optional: true
     - id: 30
       key: governance_action_deposit
-      value: coin
+      value: BigNum
       optional: true
     - id: 31
       key: drep_deposit
-      value: coin
+      value: BigNum
       optional: true
     - id: 32
       key: drep_inactivity_period
-      value: epoch
+      value: number
       optional: true
     - id: 33
-      key: min_fee_ref_script_cost_per_byte
-      value: unit_interval
+      key: script_cost_per_byte
+      value: UnitInterval
       optional: true
 
 # pool_voting_thresholds =
@@ -1214,19 +1231,19 @@ protocol_param_update:
 #   , unit_interval ; hard fork initiation
 #   , unit_interval ; security relevant parameter voting threshold
 #   ]
-pool_voting_thresholds:
+PoolVotingThresholds:
   type: record
   fields:
     - key: motion_no_confidence
-      value: unit_interval
+      value: UnitInterval
     - key: committee_normal
-      value: unit_interval
+      value: UnitInterval
     - key: committee_no_confidence
-      value: unit_interval
+      value: UnitInterval
     - key: hard_fork_initiation
-      value: unit_interval
-    - key: security_relevant_parameter_voting_threshold
-      value: unit_interval
+      value: UnitInterval
+    - key: security_relevant_threshold
+      value: UnitInterval
 
 # drep_voting_thresholds =
 #   [ unit_interval ; motion no confidence
@@ -1240,29 +1257,29 @@ pool_voting_thresholds:
 #   , unit_interval ; PP governance group
 #   , unit_interval ; treasury withdrawal
 #   ]
-drep_voting_thresholds:
+DrepVotingThresholds:
   type: record
   fields:
     - key: motion_no_confidence
-      value: unit_interval
+      value: UnitInterval
     - key: committee_normal
-      value: unit_interval
+      value: UnitInterval
     - key: committee_no_confidence
-      value: unit_interval
+      value: UnitInterval
     - key: update_constitution
-      value: unit_interval
+      value: UnitInterval
     - key: hard_fork_initiation
-      value: unit_interval
+      value: UnitInterval
     - key: pp_network_group
-      value: unit_interval
+      value: UnitInterval
     - key: pp_economic_group
-      value: unit_interval
+      value: UnitInterval
     - key: pp_technical_group
-      value: unit_interval
+      value: UnitInterval
     - key: pp_governance_group
-      value: unit_interval
+      value: UnitInterval
     - key: treasury_withdrawal
-      value: unit_interval
+      value: UnitInterval
 
 # transaction_witness_set =
 #   { ? 0: nonempty_set<vkeywitness>
@@ -1274,45 +1291,69 @@ drep_voting_thresholds:
 #   , ? 6: nonempty_set<plutus_v2_script>
 #   , ? 7: nonempty_set<plutus_v3_script>
 #   }
-transaction_witness_set:
+TransactionWitnessSet:
   type: struct
   fields:
     - id: 0
-      key: vkeywitnesses
-      value:
-        type: set
-        item: vkeywitness
+      key: vkeys
+      value: Vkeywitnesses
+      optional: true
     - id: 1
       key: native_scripts
-      value:
-        type: set
-        item: native_script
+      value: NativeScripts
+      optional: true
     - id: 2
-      key: bootstrap_witnesses
-      value:
-        type: set
-        item: bootstrap_witness
+      key: bootstraps
+      value: BootstrapWitnesses
+      optional: true
     - id: 3
-      key: plutus_v1_scripts
-      value:
-        type: set
-        item: plutus_v1_script
+      key: plutus_scripts_v1
+      value: PlutusScriptsV1
+      optional: true
     - id: 4
       key: plutus_data
-      value: plutus_data
+      value: PlutusList
+      optional: true
     - id: 5
       key: redeemers
-      value: redeemers
+      value: Redeemers
+      optional: true
     - id: 6
-      key: plutus_v2_scripts
-      value:
-        type: set
-        item: plutus_v2_script
+      key: plutus_scripts_v2
+      value: PlutusScriptsV2
+      optional: true
     - id: 7
-      key: plutus_v3_scripts
-      value:
-        type: set
-        item: plutus_v3_script
+      key: plutus_scripts_v3
+      value: PlutusScriptsV3
+      optional: true
+
+Vkeywitnesses:
+  type: set
+  item: Vkeywitness
+
+NativeScripts:
+  type: array
+  item: NativeScript
+
+BootstrapWitnesses:
+  type: array
+  item: BootstrapWitness
+
+PlutusScriptsV1:
+  type: array
+  item: PlutusScriptV1
+
+PlutusList:
+  type: set
+  item: PlutusData
+
+PlutusScriptsV2:
+  type: set
+  item: PlutusScriptV2
+
+PlutusScriptsV3:
+  type: set
+  item: PlutusScriptV3
 
 # ; The real type of  plutus_v1_script, plutus_v2_script and plutus_v3_script is bytes.
 # ; However, because we enforce uniqueness when many scripts are supplied,
@@ -1321,12 +1362,6 @@ transaction_witness_set:
 # plutus_v1_script = distinct<bytes>
 # plutus_v2_script = distinct<bytes>
 # plutus_v3_script = distinct<bytes>
-plutus_v1_script:
-  type: bytes
-plutus_v2_script:
-  type: bytes
-plutus_v3_script:
-  type: bytes
 
 # plutus_data =
 #     constr<plutus_data>
@@ -1335,49 +1370,10 @@ plutus_v3_script:
 #   / big_int
 #   / bounded_bytes
 # TODO: Custom
-plutus_data:
-  custom: true
-  type: union
-  variants:
-    - name: constr
-      item:
-        type: generic_apply
-        name: constr
-        args: [plutus_data]
-    - name: map
-      item: plutus_data
-    - name: list
-      item:
-        type: array
-        item: plutus_data
-    - name: big_int
-      item: big_int
-    - name: bounded_bytes
-      item: bounded_bytes
 
 # big_int = int / big_uint / big_nint
-big_int:
-  custom: true
-  type: union
-  variants:
-    - name: int
-      item: int
-    - name: big_uint
-      item: big_uint
-    - name: big_nint
-      item: big_nint
-
 # big_uint = #6.2(bounded_bytes)
-big_uint:
-  type: tagged
-  tag: 2
-  item: bounded_bytes
-
 # big_nint = #6.3(bounded_bytes)
-big_nint:
-  type: tagged
-  tag: 3
-  item: bounded_bytes
 
 # constr<a> =
 #     #6.121([* a])
@@ -1389,35 +1385,7 @@ big_nint:
 #   / #6.127([* a])
 #   ; similarly for tag range: 6.128 .. 6.140 inclusive
 #   / #6.102([uint, [* a]])
-constr:
-  type: generic
-  args: [a]
-  rhs:
-    type: union
-    variants:
-      - name: constr1
-        item:
-          type: tagged
-          tag:
-            ranges:
-              - min: 121
-                max: 127
-          item:
-            type: array
-            item: a
-      - name: constr2
-        item:
-          type: tagged
-          tag: 102
-          item:
-            type: record
-            fields:
-              - key: uint
-                value: uint
-              - key: items
-                value:
-                  type: array
-                  item: a
+#   TODO: Custom
 
 # ; Flat Array support is included for backwards compatibility and will be removed in the next era.
 # ; It is recommended for tools to adopt using a Map instead of Array going forward.
@@ -1425,39 +1393,6 @@ constr:
 #   [ + [ tag: redeemer_tag, index: uint, data: plutus_data, ex_units: ex_units ] ]
 #   / { + [ tag: redeemer_tag, index: uint ] => [ data: plutus_data, ex_units: ex_units ] }
 #   TODO: Custom
-redeemers:
-  custom: true
-  type: union
-  variants:
-    - name: flat_array
-      item:
-        type: record
-        fields:
-          - key: tag
-            value: redeemer_tag
-          - key: index
-            value: uint
-          - key: data
-            value: plutus_data
-          - key: ex_units
-            value: ex_units
-    - name: map
-      item:
-        type: map
-        key:
-          type: record
-          fields:
-            - key: tag
-              value: redeemer_tag
-            - key: index
-              value: uint
-        value:
-          type: record
-          fields:
-            - key: data
-              value: plutus_data
-            - key: ex_units
-              value: ex_units
 
 # redeemer_tag =
 #     0 ; Spending
@@ -1466,7 +1401,7 @@ redeemers:
 #   / 3 ; Rewarding
 #   / 4 ; Voting
 #   / 5 ; Proposing
-redeemer_tag:
+RedeemerTag:
   type: enum
   values:
     - name: spending
@@ -1483,29 +1418,29 @@ redeemer_tag:
       value: 5
 
 # ex_units = [mem: uint, steps: uint]
-ex_units:
+ExUnits:
   type: record
   fields:
     - key: mem
-      value: uint
+      value: BigNum
     - key: steps
-      value: uint
+      value: BigNum
 
 # ex_unit_prices =
 #   [ mem_price: nonnegative_interval, step_price: nonnegative_interval ]
 # Note: CSL uses unit_interval in place of nonnegative_interval
-ex_unit_prices:
+ExUnitPrices:
   type: record
   fields:
     - key: mem_price
-      value: unit_interval
+      value: UnitInterval
     - key: step_price
-      value: unit_interval
+      value: UnitInterval
 
 # language = 0 ; Plutus v1
 #          / 1 ; Plutus v2
 #          / 2 ; Plutus v3
-language:
+Language:
   type: enum
   values:
     - name: plutus_v1
@@ -1537,38 +1472,6 @@ language:
 #           get(operation): self[operation]
 #           set(operation, cost): fill zero from self.len to operation; self[operation] = cost
 # TODO: Custom
-costmdls:
-  type: struct
-  fields:
-    - id: 0
-      key: plutus_v1
-      value:
-        type: array
-        item: int
-        len:
-          min: 166
-    - id: 1
-      key: plutus_v2
-      value:
-        type: array
-        item: int
-        len:
-          min: 175
-    - id: 2
-      key: plutus_v3
-      value:
-        type: array
-        item: int
-        len:
-          min: 233
-    - id: 3
-      key: other
-      value:
-        type: array
-        item: int
-        len:
-          min: 1
-          max: 1
 
 # transaction_metadatum =
 #     { * transaction_metadatum => transaction_metadatum }
@@ -1576,42 +1479,15 @@ costmdls:
 #   / int
 #   / bytes .size (0..64)
 #   / text .size (0..64)
-transaction_metadatum:
-  type: union
-  variants:
-    - name: map
-      item:
-        type: map
-        key: transaction_metadatum
-        value: transaction_metadatum
-    - name: list
-      item:
-        type: array
-        item: transaction_metadatum
-    - name: int
-      item: int
-    - name: bytes
-      item:
-        type: bytes
-        len:
-          min: 0
-          max: 64
-    - name: string
-      item:
-        type: string
-        len:
-          min: 0
-          max: 64
+#   TODO: Custom
 
 # transaction_metadatum_label = uint
-transaction_metadatum_label:
-  type: uint
 
 # metadata = { * transaction_metadatum_label => transaction_metadatum }
-general_transaction_metadata:
+GeneralTransactionMetadata:
   type: map
-  key: transaction_metadatum_label
-  value: transaction_metadatum
+  key: BigNum
+  value: TransactionMetadatum
 
 # auxiliary_data =
 #   metadata ; Shelley
@@ -1624,58 +1500,33 @@ general_transaction_metadata:
 #       , ? 3 => [ * plutus_v2_script ]
 #       , ? 4 => [ * plutus_v3_script ]
 #       })
-# TODO: Custom
-auxiliary_data:
-  type: union
-  variants:
-    - name: shelley
-      item: general_transaction_metadata
-    - name: shelley_ma
-      item:
-        type: record
-        fields:
-          - key: transaction_metadata
-            value: metadata
-          - key: auxiliary_scripts
-            value:
-              type: array
-              item: native_script
-    - name: alonzo_and_beyond
-      item:
-        type: struct
-        fields:
-          - id: 0
-            key: metadata
-            value: metadata
-          - id: 1
-            key: native_scripts
-            value:
-              type: array
-              item: native_script
-          - id: 2
-            key: plutus_v1_scripts
-            value:
-              type: array
-              item: plutus_v1_script
-          - id: 3
-            key: plutus_v2_scripts
-            value:
-              type: array
-              item: plutus_v2_script
-          - id: 4
-            key: plutus_v3_scripts
-            value:
-              type: array
-              item: plutus_v3_script
+AuxiliaryData:
+  type: struct
+  fields:
+    - id: 0
+      key: metadata
+      value: GeneralTransactionMetadata
+    - id: 1
+      key: native_scripts
+      value: NativeScripts
+    - id: 2
+      key: plutus_scripts_v1
+      value: PlutusScriptsV1
+    - id: 3
+      key: plutus_scripts_v2
+      value: PlutusScriptsV2
+    - id: 4
+      key: plutus_scripts_v3
+      value: PlutusScriptsV3
 
 # vkeywitness = [ $vkey, $signature ]
-vkeywitness:
+Vkeywitness:
   type: record
   fields:
     - key: vkey
-      value: vkey
+      value: Vkey
     - key: signature
-      value: signature
+      value: Ed25519Signature
 
 # bootstrap_witness =
 #   [ public_key : $vkey
@@ -1683,16 +1534,15 @@ vkeywitness:
 #   , chain_code : bytes .size 32
 #   , attributes : bytes
 #   ]
-bootstrap_witness:
+BootstrapWitness:
   type: record
   fields:
-    - key: public_key
-      value: vkey
+    - key: vkey
+      value: VKey
     - key: signature
-      value: signature
+      value: Ed25519Signature
     - key: chain_code
       value: bytes
-      len: 32
     - key: attributes
       value: bytes
 
@@ -1719,124 +1569,91 @@ native_script:
   variants:
     - name: script_pubkey
       tag: 0
-      fields:
-        - key: addr_keyhash
-          value: addr_keyhash
+      value: ScriptPubkey
     - name: script_all
       tag: 1
-      fields:
-        - key: native_scripts
-          value:
-            type: array
-            item: native_script
+      value: ScriptAll
     - name: script_any
       tag: 2
-      fields:
-        - key: native_scripts
-          value:
-            type: array
-            item: native_script
+      value: ScriptAny
     - name: script_n_of_k
       tag: 3
-      fields:
-        - key: n
-          value: uint
-        - key: native_scripts
-          value:
-            type: array
-            item: native_script
-    - name: invalid_before
+      value: ScriptNOfK
+    - name: timelock_start
       tag: 4
-      fields:
-        - key: index
-          value: uint
-    - name: invalid_hereafter
+      value: TimelockStart
+    - name: timelock_expiry
       tag: 5
-      fields:
-        - key: index
-          value: uint
+      value: TimelockExpiry
+
+ScriptPubkey:
+  type: record
+  fields:
+    - key: addr_keyhash
+      value: Ed25519KeyHash
+
+ScriptAll:
+  type: record
+  fields:
+    - key: native_scripts
+      value: NativeScripts
+
+ScriptAny:
+  type: record
+  fields:
+    - key: native_scripts
+      value: NativeScripts
+
+ScriptNOfK:
+  type: record
+  fields:
+    - key: n
+      value: number
+    - key: native_scripts
+      value: NativeScripts
+
+TimelockStart:
+  type: record
+  fields:
+    - key: slot
+      value: BigNum
+
+TimelockExpiry:
+  type: record
+  fields:
+    - key: slot
+      value: BigNum
 
 # coin = uint
-coin:
-  type: uint
 
 # multiasset<a> = { + policy_id => { + asset_name => a } }
-multiasset:
-  type: generic
-  args: [a]
-  rhs:
-    type: map
-    key: policy_id
-    value:
-      type: map
-      key: asset_name
-      value: a
+# TODO: Custom
 
 # policy_id = scripthash
-policy_id:
-  type: scripthash
 
 # asset_name = bytes .size (0..32)
 asset_name:
-  type: bytes
-  len:
-    max: 32
+  type: newtype
+  item: bytes
+  constraints:
+    len:
+      max: 32
 
 # negInt64 = -9223372036854775808 .. -1
-negInt64:
-  type: nint
-  value:
-    min: -9223372036854775808
-    max: -1
 
 # posInt64 = 1 .. 9223372036854775807
-posInt64:
-  type: uint
-  value:
-    min: 1
-    max: 9223372036854775807
 
 # nonZeroInt64 = negInt64 / posInt64 ; this is the same as the current int64 definition but without zero
-nonZeroInt64:
-  type: union
-  variants:
-    - name: negInt64
-      item: negInt64
-    - name: posInt64
-      item: posInt64
 
 # positive_coin = 1 .. 18446744073709551615
 
 # value = coin / [coin, multiasset<positive_coin>]
 # TODO: Custom
-value:
-  custom: true
-  type: union
-  variants:
-    - name: coin
-      item: coin
-    - name: multiasset
-      item:
-        fields:
-          - key: coin
-            type: coin
-          - key: multiasset
-            type:
-              type: generic_apply
-              args: [coin]
 
 # mint = multiasset<nonZeroInt64>
 # TODO: Custom
-mint:
-  type: multiasset
-  args: [nonZeroInt64]
 
 # int64 = -9223372036854775808 .. 9223372036854775807
-int64:
-  type: int
-  value:
-    min: -9223372036854775808
-    max: 9223372036854775807
 
 # network_id = 0 / 1
 NetworkId:
@@ -1848,25 +1665,12 @@ NetworkId:
       value: 1
 
 # epoch = uint
-epoch:
-  type: uint
 
 # addr_keyhash           = $hash28
-addr_keyhash:
-  type: hash28
 # pool_keyhash           = $hash28
-pool_keyhash:
-  type: hash28
-
 # vrf_keyhash           = $hash32
-vrf_keyhash:
-  type: hash32
 # auxiliary_data_hash   = $hash32
-auxiliary_data_hash:
-  type: hash32
 # pool_metadata_hash    = $hash32
-pool_metadata_hash:
-  type: hash32
 
 # ; To compute a script hash, note that you must prepend
 # ; a tag to the bytes of the script before hashing.
@@ -1877,64 +1681,38 @@ pool_metadata_hash:
 # ;   "\x02" for Plutus V2 scripts
 # ;   "\x03" for Plutus V3 scripts
 # scripthash            = $hash28
-scripthash:
-  type: hash28
 
 # datum_hash = $hash32
-datum_hash:
-  type: hash32
 
 # data = #6.24(bytes .cbor plutus_data)
-data:
-  type: tagged
-  tag: 24
-  item:
-    type: bytes
 
 # datum_option = [ 0, $hash32 // 1, data ]
-# TODO: Custom
-datum_option:
+DataOption:
   type: tagged_record
   variants:
     - name: hash
       tag: 0
-      fields:
-        - key: hash
-          value: datum_hash
+      value: DataHash
     - name: data
       tag: 1
-      fields:
-        - key: data
-          value: data
+      value: PlutusData # TODO: Encode as #6.24(bytes)
 
 # script_ref = #6.24(bytes .cbor script)
-script_ref:
-  type: tagged
-  tag: 24
-  item:
-    type: bytes
+# TODO: Custom
 
 # script = [ 0, native_script // 1, plutus_v1_script // 2, plutus_v2_script // 3, plutus_v3_script ]
-script:
+ScriptRef:
   type: tagged_record
   variants:
     - name: native_script
       tag: 0
-      fields:
-        - key: native_script
-          value: native_script
-    - name: plutus_v1_script
+      value: NativeScript
+    - name: plutus_script_v1
       tag: 1
-      fields:
-        - key: plutus_v1_script
-          value: plutus_v1_script
-    - name: plutus_v2_script
+      value: PlutusScriptV1
+    - name: plutus_script_v2
       tag: 2
-      fields:
-        - key: plutus_v2_script
-          value: plutus_v2_script
-    - name: plutus_v3_script
+      value: PlutusScriptV2
+    - name: plutus_script_v3
       tag: 3
-      fields:
-        - key: plutus_v3_script
-          value: plutus_v3_script
+      value: PlutusScriptV3
