@@ -1,20 +1,21 @@
-import { GenLeaf, GenRoot } from ".";
+import { SymbolTable, SymbolDefinition } from ".";
 
-export class GenArray implements GenRoot {
+export class GenArray implements SymbolDefinition {
   name: string;
-  item: GenLeaf;
+  item: string;
 
-  constructor(name: string, item: GenLeaf) {
+  constructor(name: string, item: string) {
     this.name = name;
     this.item = item;
   }
 
-  generate(): string {
+  generate(symbolTable: SymbolTable): string {
+    let item = symbolTable[this.item];
     return `
-    export class ${this.name} extends Array<${this.item.name()}> {
+    export class ${this.name} extends Array<${this.item}> {
       static fromCBOR(value: CBORReaderValue): ${this.name} {
         let array = value.get("array");
-        return new ${this.name}(...array.map((x) => ${this.item.fromCBOR("x")}));  
+        return new ${this.name}(...array.map((x) => ${item.fromCBOR("x")}));  
       }
     }
     `;

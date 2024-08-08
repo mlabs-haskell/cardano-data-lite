@@ -1,35 +1,40 @@
 import { CBORTypeName } from "../../../src/cbor/reader";
-import { Primitive, PrimitiveShort } from "../compiler/types";
+import { PrimitiveShort } from "../compiler/types";
 
-export interface GenLeaf {
-  name(): string;
+export type SymbolTable = { [key: string]: CompilerSymbol };
+
+export interface CompilerSymbol {
+  typeName(): string;
   fromCBOR(varName: string): string;
-  // toCBOR(varName: string): string | null;
-  // toCBOR is probably not needed.
+  toCBOR(varname: string): string;
 }
 
-export interface GenRoot {
+export interface SymbolDefinition {
+  typeName(): string;
+  generate(symbols: SymbolTable): string;
+}
+
+export class ClassSymbol implements CompilerSymbol {
   name: string;
-  generate(): string;
-}
-
-export class GenLeafRef implements GenLeaf {
-  name_: string;
 
   constructor(name: string) {
-    this.name_ = name;
+    this.name = name;
   }
 
-  name() {
-    return this.name_;
+  typeName(): string {
+    return this.name;
   }
 
   fromCBOR(varName: string): string {
-    return `${this.name_}.fromCBOR(${varName})`;
+    return `${this.name}.fromCBOR(${varName})`;
+  }
+
+  toCBOR(varName: string): string {
+    return `${varName}`;
   }
 }
 
-class GenLeafPrimitive implements GenLeaf {
+export class PrimitiveSymbol implements CompilerSymbol {
   jsType: string;
   cborType: CBORTypeName;
 
@@ -44,21 +49,25 @@ class GenLeafPrimitive implements GenLeaf {
     this.cborType = cborType;
   }
 
-  name(): string {
+  typeName(): string {
     return this.jsType;
   }
 
   fromCBOR(varName: string): string {
     return `${varName}.get("${this.cborType}")`;
   }
+
+  toCBOR(varName: string): string {
+    return `${varName}`;
+  }
 }
 
-export const Primitives: { [key in PrimitiveShort]: GenLeafPrimitive } = {
-  string: new GenLeafPrimitive({ jsType: "string", cborType: "tstr" }),
-  int: new GenLeafPrimitive({ jsType: "number", cborType: "uint" }),
-  bool: new GenLeafPrimitive({ jsType: "boolean", cborType: "boolean" }),
-  bytes: new GenLeafPrimitive({ jsType: "Uint8Array", cborType: "bstr" }),
-  uint: new GenLeafPrimitive({ jsType: "number", cborType: "uint" }),
-  nint: new GenLeafPrimitive({ jsType: "number", cborType: "nint" }),
-  float: new GenLeafPrimitive({ jsType: "number", cborType: "float" }),
+export const Primitives: { [key in PrimitiveShort]: PrimitiveSymbol } = {
+  string: new PrimitiveSymbol({ jsType: "string", cborType: "tstr" }),
+  int: new PrimitiveSymbol({ jsType: "number", cborType: "uint" }),
+  bool: new PrimitiveSymbol({ jsType: "boolean", cborType: "boolean" }),
+  bytes: new PrimitiveSymbol({ jsType: "Uint8Array", cborType: "bstr" }),
+  uint: new PrimitiveSymbol({ jsType: "number", cborType: "uint" }),
+  nint: new PrimitiveSymbol({ jsType: "number", cborType: "nint" }),
+  float: new PrimitiveSymbol({ jsType: "number", cborType: "float" }),
 };

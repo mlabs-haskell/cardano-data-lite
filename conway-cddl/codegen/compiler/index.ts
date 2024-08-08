@@ -1,4 +1,8 @@
-import { Primitives, GenLeaf, GenRoot, GenLeafRef } from "../generate/index";
+import {
+  Primitives,
+  CompilerSymbol,
+  SymbolDefinition,
+} from "../generate/index";
 import { Schema, Schema_, getPrimitiveType } from "./types";
 import { GenArray } from "../generate/array";
 import * as changeCase from "change-case";
@@ -31,20 +35,18 @@ function jsType(cborType: string): string {
 }
 
 export class Compiler {
-  stack: string[];
-  groups: { [key: string]: { fields: { key: string; value: GenLeaf }[] } };
-  types: { [key: string]: GenRoot };
+  symbols: { [key: string]: CompilerSymbol };
+  definitions: SymbolDefinition[];
 
   constructor() {
-    this.stack = [];
-    this.groups = {};
-    this.types = {};
+    this.symbols = {};
+    this.definitions = [];
   }
 
   generate(): string {
     let out = [];
-    for (let item of this.stack) {
-      out.push(this.types[item].generate());
+    for (let item of this.definitions) {
+      out.push(item.generate(this.symbols));
     }
     return out.join("\n\n");
   }
@@ -98,7 +100,7 @@ export class Compiler {
     return new GenLeafRef(gen.name);
   }
 
-  getLeaf(schema: Schema) {
+  getLeaf(schema: Schema): GenLeaf {
     let primitive = getPrimitiveType(schema);
     if (primitive != null) {
       return Primitives[primitive];
