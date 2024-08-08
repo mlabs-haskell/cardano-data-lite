@@ -7,104 +7,219 @@ Construct CBORMap subclasses from CBORMultiMap.
 
 Custom Constructors for optional fields.
 
-Normalize nested composite data structures into their own definitions.
-Done.
+Normalize nested composite data structures into their own definitions. [DONE]
 
 To Support:
-	- Uint32Array
+	- Uint32Array (parse list of numbers to/from Uint32Array)
 	- number: encode as bigint, not float. We never use float.
 	- BigNum: provide field(): number and field_bignum(): BigNum
 	- BigNum0: field(): BigNum, unlike above
 	- fn remove_field() for nullable/optional fields
 	- empty_class type (InfoAction)
-	- enum2 (VoteKind)
+	- enum2 (VoteKind) (Rename to enum_simple)
 	- newtype
 		constraints:
 			len
 			min/max/eq
 	- check if array provides add()
+	- Flags: bignum_as_num
+	- map(number,T) flags: indices_uint32array
 
 # Special Cases
-- AuxiliaryDataSet.indices(): Uint32Array
-- HeaderBody.has_vrf_result()
-- HeaderBody.vrf_result_or_nothing(): VRFCert | undefined (To support old versions with nonce_vrf/leader_vrf)
-- HeaderBody.new(...) (Uses slot: number) / HeaderBody.new_headerbody(...) (Users slot: BigNum)
-	Consider encoding this as custom constructors in the yaml instead of the code.
-- Ed25519KeyHashes.contains(keyhash)
-- Ed25519KeyHashes.get(index) (Set doesn't support get by index I think)
-- VotingProcedures:
-	{ voter => { gov_action_id => voting_procedure } }
-	Map.insert(voter, gov_action_id, voting_procedure)
-	Map.get(voter, gov_action_id): voting_procedure
-- VotingProcedure uses vote: VoteKind instead of vote: Vote
-	=> Will have to special case
-- UpdateCommitteAction::Committee inlines the quorum_threshold field
-- Credential
-	from_variant/to_variant instead of new_variant/as_variant functions.
-	Have commented on the PR.
-- TransactionOutput
-	this.plutus_data: DataOption (DataHash/PlutusData)
-	data_hash()/set_data_hash() => set this.plutus_data as data hash
-	plutus_data()/set_plutus_data() => set this.plutus_data as plutus data
-- TransactionWitnessSet
-	Combines plutus_v1/v2/v3 into single PlutusScripts
-- PlutusData
-	Is the only remaining union type.
-	I'd rather custom code this than coming up with the semantics of the union type in codegen.
-- Constr
-	Encoding logic is custom
-- Redeemer
-	CSL API is that of set<Redeemer>
-	CDDL says { [redeemer_tag, index] => [plutus_data, ex_units] }
-- Costmdls
-  CostMdls is Map<Language, CostModel>
-  CostModel is custom Vec<Int>:
-    get(operation): self[operation]
-    set(operation, cost): fill zero from self.len to operation; self[operation] = cost
-- TransactionMetadatum
-	This is the other (only other I guess) union.
-	I'd still rather do this custom.
-- Multiasset
-	The semantic doesn't exactly fit a map.
-	Generic is not needed, judging by CSL TS types.
-- Value
-	Is a union, but that's not what calls for the custom impl; but the API is quirky.
-- Mint
-	quirky API.
-- DataOption
+
+== Design Figured Out ==
+
+- [OK] AuxiliaryDataSet.indices(): Uint32Array
+	=> Can add as a flag
+		 If key is a number in Map, allow adding indices(): Uint32Array
+
+- [OK] VotingProcedure uses vote: VoteKind instead of vote: Vote
+	=> Can design a new enum type
+
+- [OK] ScriptRef
+	Encode as #6.24(bytes)
+	This is also used in TransactionOutput, which is already a custom type.
+	We could inline the encoding there.
+	=> Add codegen for encode as bytes and wrap into tagged.
+
+- [OK] DataOption [TODO: Check CSL Impl]
 	Encode PlutusData as #6.24(bytes)
 	This is used in TransactionOutput, which is already a custom type.
 	DataOption is not exposed in CSL. So maybe we can inline the encoding in TransactionOutput's code.
 	Edit: Or maybe we can make DataOption a custom which encodes PlutusData into bytes during serialization
-	Edit2: Or maybe we can add codegen for encode as bytes and wrap into tagged.
-- ScriptRef
-	Encode as #6.24(bytes)
-	This is also used in TransactionOutput, which is already a custom type.
-	We could inline the encoding there.
-- Wherever PlutusScript hides the version number, I've made them explicit.
-	Need to confirm with Vlad the semantics of this.
-	
+	=> Add codegen for encode as bytes and wrap into tagged.
+
+- [OK] Credentials use from_variant()/to_variant() instead of new_variant()/as_variant()
+	=> Add a flag to switch the function names.
+
+
+== Design To Be Figured Out / Low priority ==
+
+- [P3] HeaderBody.new(...) (Uses slot: number) / HeaderBody.new_headerbody(...) (Users slot: BigNum)
+	Consider encoding this as custom constructors in the yaml instead of the code.
+
+- [P3] Ed25519KeyHashes.get(index) (Set doesn't support get by index I think)
+	=> Skip?
+
+- [P3] Certificate doesn't have RegCert/UnregCert.
+	=> Custom? Some other idea?
+
+- [P2] UnitInterval
+	tagged (6.30) wrapper over record [numerator: BigNum, denominator: BigNum]
+
+== Maybe Custom Types ==
+
+- [CUSTOM??] TransactionMetadatum
+	This is the other (only other I guess) union.
+	I'd still rather do this custom.
+	** It's a simple union though.
+
+== Fully Custom Types ==
+
+- [CUSTOM] VotingProcedures:
+	{ voter => { gov_action_id => voting_procedure } }
+	Map.insert(voter, gov_action_id, voting_procedure)
+	Map.get(voter, gov_action_id): voting_procedure
+
+- UpdateCommitteAction::Committee inlines the quorum_threshold field
+
+- [CUSTOM] TransactionOutput
+	this.plutus_data: DataOption (DataHash/PlutusData)
+	data_hash()/set_data_hash() => set this.plutus_data as data hash
+	plutus_data()/set_plutus_data() => set this.plutus_data as plutus data
+
+- [CUSTOM] PlutusData
+	Union
+	from_address logic is complex
+
+- [CUSTOM] Constr
+	Encoding logic is custom
+
+- [CUSTOM] Redeemer
+	CSL API is that of set<Redeemer>
+	CDDL says { [redeemer_tag, index] => [plutus_data, ex_units] }
+
+- [CUSTOM] Costmdls
+  CostMdls is Map<Language, CostModel>
+  CostModel is custom Vec<Int>:
+    get(operation): self[operation]
+    set(operation, cost): fill zero from self.len to operation; self[operation] = cost
+
+- [CUSTOM] MultiAsset
+		The semantic doesn't exactly fit a map.
+			- insert(policy_id, assets): Assets | undefined - OK.
+			- get(policy_id): Assets | undefined - OK.
+			- set_asset(policy_id, asset_name, value): BigNum | undefined - CUSTOM.
+					return this.get(policy_id).set(asset_name, value)
+			- get_asset(policy_id, asset_name): BigNum | undefined - CUSTOM.
+					return this.get(policy_id).get(asset_name)
+			- keys(): ScriptHashes
+			- sub(MultiAsset): MultiAsset
+
+		Generic is not needed, judging by CSL TS types.
+		CDDL uses generics to parametrize it by positive_coin/nonZeroInt64 at
+	 		two different places. CSL just combines them both into a BigNum.
+
+- [CUSTOM] Value
+		Union coin/[coin, MultiAsset]
+			Serialize to either depending on whether MultiAsset is present or not.
+		new()/new_from_assets()/new_with_assets()
+		zero()/is_zero()
+		checked_add()/checked_sub()/clamped_sub()
+		compare(Value): number | undefined
+
+- [CUSTOM] Mint
+		Looks a bit like Map<ScriptHash, MintAssets> (len, insert, get)
+		Looks a bit like MultiAsset except Assets is swapped out for MultiAsset
+		keys(): ScriptHashes
+		new()/new_from_entry(ScriptHash, MintAssets)
+		Is actually a multimap:
+			get(ScriptHash) returns MintsAssets(MintAsset[]) instead of MintAssets
+
+		as_positive_multiasset()/as_negative_multiasset()
+
+== Solved ==
+
+- [DONE] HeaderBody.has_vrf_result()
+  		 HeaderBody.vrf_result_or_nothing(): VRFCert | undefined 
+			 (To support old versions with nonce_vrf/leader_vrf)
+		=> Don't need to support old versions
+
+- [DONE]  Ed25519KeyHashes.contains(keyhash)
+		=> Sets need the contains function
+
+- [DONE] TransactionWitnessSet
+		Combines plutus_v1/v2/v3 into single PlutusScripts
+		=> Confirmed by vlad. Can do custom.
+
+- [DONE] Wherever PlutusScript hides the version number, I've made them explicit.
+		- Script
+		Need to confirm with Vlad the semantics of this.
+		=> Confirmed by vlad. Can do custom.
+
+== Hash/Address ==
+
+Simple:
+	Vkey (newtype over PublicKey)
+		static new(PublicKey): Vkey
+		public_key(): PublicKey
+
+Address:
+	- RewardAddress
+	- Address
+	=> Might need custom impl. 
+		 See CSL impl details to see if any commonality is present.
+
+Signature:
+	=> See impl_signature!() macro
+	Ed25519Signature
+
+Hash:
+	=> see impl_hash_type!(name, len) macro
+	AuxiliaryDataHash
+	BlockHash
+	ScriptHash
+	AnchorDataHash
+	TransactionHash
+	PoolMetadataHash
+	VRFKeyHash
+	VRFVKey (looks like a hash. Can only be constructed from to_bech32/from_bech32).
+
+== Remaining Stuff ==
+
+Get a list of classes from CSL and see which are missing in the YAML.
+Stuff I noticed:
+- BaseAddress
+- PlutusScript.hash()
+- PublicKey
+- PublicKeys
+- PrivateKey
+- Bip32PublicKey
+- Bip32PrivateKey
+
+
 # Enum
 static variant(): Enum
 EnumKind: { variant_name: int }
 
-# Hashes and Signatures
-AuxiliaryDataHash
-BlockHash
-Ed25519Signature
-RewardAddress
-ScriptHash
-AnchorDataHash
-TransactionHash
-VRFKeyHash
-PoolMetadataHash
-Vkey
-
-# Other custom types
-UnitInterval
-
 # TODO
 - Change BigNum0 to BigNum
 	annotate on the parent type whether any field needs special treatment
+
 - Change tagged_record's value to extend/value depending on whether it's
 	inlining a nested structure or have a single field in the variant.
+
+
+# Plan 30/07/24 (Tue)
+- Design something for encode as bytes and wrap in tagged.
+- Go through conway.yaml once more
+	- Double check the types with CSL
+	- Change BigNum/BigNum0 to flags on the record/struct types.
+	- Change tagged_record value to extend/value depending on inline or not.
+		- Consider changing record to group where it's sole purpose is to be inlined?
+	- Rename enum2 to enum_simple
+- There's something wrong with the current compiler design.
+	It's not properly doing recursive breakdown of the problems.
+- Define the hash types
+	- See what CSL is doing
+	- Research crypto libraries for them
