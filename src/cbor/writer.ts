@@ -1,13 +1,9 @@
 import { GrowableBuffer } from "./growable-buffer";
-import { CBORCustom, CBORValue } from "./types";
 
 const HEX_LUT = new Array(0x100);
 for (let i = 0; i < 0x100; i++) {
   HEX_LUT[i] = i.toString(16).padStart(2, "0");
 }
-
-// TODO: A subclass of CBORWriter that compares to a source array as it writes
-// and throws an error if they don't match
 
 export class CBORWriter {
   private buffer: GrowableBuffer;
@@ -26,112 +22,40 @@ export class CBORWriter {
       .join("");
   }
 
-  static toBytes(value: CBORValue): Uint8Array {
-    let writer = new CBORWriter();
-    writer.write(value);
-    return writer.getBytes();
-  }
-
-  static toHex(value: CBORValue): string {
-    let writer = new CBORWriter();
-    writer.write(value);
-    return writer.getHex();
-  }
-
-  static compare(a: CBORValue, b: CBORValue): number {
-    let aHex = CBORWriter.toHex(a);
-    let bHex = CBORWriter.toHex(b);
-
-    if (aHex < bHex) return -1;
-    if (aHex > bHex) return 1;
-    return 0;
-  }
-
-  write(value: CBORValue) {
-    switch (typeof value) {
-      case "bigint":
-        this.writeBigInt(value);
-        return;
-      case "number":
-        this.writeFloat(value);
-        return;
-      case "string":
-        this.writeString(value);
-        return;
-      case "object":
-        if (value === null) {
-          this.writeNull();
-          return;
-        }
-        if ("toCBOR" in value && value.toCBOR != null) {
-          this.writeCustom(value);
-          return;
-        }
-        if (value instanceof Uint8Array) {
-          this.writeBinary(value);
-          return;
-        }
-        if (Array.isArray(value)) {
-          this.writeArray(value);
-          return;
-        }
-        throw new Error("Unsupported object type");
-      case "boolean":
-        this.writeBoolean(value);
-        return;
-      case "undefined":
-        this.writeUndefined();
-        return;
-      default:
-        throw new Error("Unsupported type");
-    }
-  }
-
-  writeBigInt(value: bigint) {
+  writeInt(value: bigint) {
     if (value >= 0) {
-      encodeBigInt(0x00, value, this.buffer);
+      this.writeBigInt(0x00, value);
     } else {
-      encodeBigInt(0x20, -1n - value, this.buffer);
+      this.writeBigInt(0x20, -1n - value);
     }
   }
 
-  writeBinary(value: Uint8Array) {
-    encodeBigInt(0x40, BigInt(value.length), this.buffer);
+  writeBytesTag(len: number | null) {
+    this.writeBigInt(0x40, len == null ? null : BigInt(len));
+  }
+
+  writeBytes(value: Uint8Array) {
     this.buffer.pushByteArray(value);
   }
 
-  writeBinaryChunked(value: Uint8Array[]) {
-    this.buffer.pushByte(0x5f);
-    for (let chunk of value) {
-      this.writeBinary(chunk);
-    }
-    this.buffer.pushByte(0xff);
+  writeStringTag(len: number | null) {
+    this.writeBigInt(0x60, len == null ? null : BigInt(len));
   }
 
   writeString(value: string) {
-    let encoder = new TextEncoder();
-    let bytes = encoder.encode(value);
-    encodeBigInt(0x60, BigInt(bytes.length), this.buffer);
+    this.writeBytes(new TextEncoder().encode(value));
   }
 
-  writeArray(value: CBORValue[]) {
-    encodeBigInt(0x80, BigInt(value.length), this.buffer);
-    for (let item of value) {
-      this.write(item);
-    }
+  writeArrayTag(len: number | null) {
+    this.writeBigInt(0x80, len == null ? null : BigInt(len));
   }
 
-  writeMap(entries: [CBORValue, CBORValue][]) {
-    encodeBigInt(0xa0, BigInt(entries.length), this.buffer);
-    for (let [key, value] of entries) {
-      this.write(key);
-      this.write(value);
-    }
+  wriiteMapTag(len: number | null) {
+    this.writeBigInt(0xa0, len == null ? null : BigInt(len));
   }
 
-  writeTagged(tag: bigint, value: CBORValue) {
-    encodeBigInt(0xc0, tag, this.buffer);
-    this.write(value);
+  writeTaggedTag(tag: number) {
+    this.writeBigInt(0xc0, BigInt(tag));
   }
 
   writeBoolean(value: boolean) {
@@ -158,26 +82,26 @@ export class CBORWriter {
     }
   }
 
-  writeCustom(value: CBORCustom) {
-    value.toCBOR(this);
-  }
+  private writeBigInt(
+    tagBase: number, // tag & 0b111_00000
+    value: bigint | null,
+  ) {
+    if (value == null) {
+      let tag = tagBase | 0x1f;
+      this.buffer.pushByte(tag);
+      return;
+    }
 
-  // Write to the underlying buffer directly if you want to encode a custom value
-  getBuffer(): GrowableBuffer {
-    return this.buffer;
-  }
-}
+    if (value < 0n) {
+      throw new CBORWriteError("Can't write negative bigint: " + String(value));
+    }
 
-function encodeBigInt(
-  tagBase: number, // tag & 0b111_00000
-  value: bigint,
-  buffer: GrowableBuffer,
-) {
-  if (value < 0n) value = -value;
-  if (value < 0x18) {
-    let tag = tagBase | Number(value);
-    buffer.pushByte(tag);
-  } else {
+    if (value < 0x18) {
+      let tag = tagBase | Number(value);
+      this.buffer.pushByte(tag);
+      return;
+    }
+
     let size: number;
     let nBits = value.toString(2).length;
     let nBytes = nBits / 8;
@@ -189,7 +113,13 @@ function encodeBigInt(
 
     let additional = 0x18 + size;
     let tag = tagBase | additional;
-    buffer.pushByte(tag);
-    buffer.pushBigInt(value, Math.pow(2, size + 1));
+    this.buffer.pushByte(tag);
+    this.buffer.pushBigInt(value, Math.pow(2, size + 1));
+  }
+}
+
+export class CBORWriteError extends Error {
+  constructor(message: string) {
+    super(message);
   }
 }
