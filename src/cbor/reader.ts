@@ -1,48 +1,8 @@
-import {
-  CBORCustom,
-  CBORMap,
-  CBORMultiMap,
-  CBORTagged,
-  CBORValue,
-} from "./types";
-import { CBORWriter } from "./writer";
-
-export class ParseFailed extends Error {
-  path: string[];
-  errorKind: "type" | "value";
-  expected: string;
-  received?: string;
-
-  constructor(
-    path: string[],
-    errorKind: "type" | "value",
-    expected: string,
-    received?: string | undefined,
-  ) {
-    super("Failed to parse CBOR");
-    this.path = path;
-    this.errorKind = errorKind;
-    this.expected = expected;
-    this.received = received;
-  }
-}
-
-export function withPath<T>(path: string, fn: () => T): T {
-  try {
-    return fn();
-  } catch (e) {
-    if (e instanceof ParseFailed) {
-      e.path = [path, ...e.path];
-    }
-    throw e;
-  }
-}
-
-export type CBORTypeName =
+type CBORType =
   | "uint"
   | "nint"
-  | "bstr"
-  | "tstr"
+  | "bytes"
+  | "string"
   | "array"
   | "map"
   | "boolean"
@@ -52,108 +12,141 @@ export type CBORTypeName =
   | "tagged";
 
 export class CBORReader {
-  public readonly path: string[];
   private buffer: Uint8Array;
 
-  constructor(buffer: Uint8Array, path?: string[]) {
+  constructor(buffer: Uint8Array) {
     this.buffer = buffer;
-    this.path = path || [];
   }
 
-  private withPath<T>(path: string, fn: (reader: CBORReader) => T): T {
-    this.path.push(path);
-    try {
-      let x = fn(this);
-      this.path.pop();
-      return x;
-    } catch (e) {
-      this.path.pop();
-      throw e;
-    }
-  }
-
-  read(): CBORReaderValue {
+  peekType(): CBORType {
     let tag = this.buffer[0] >> 5;
     switch (tag) {
       case 0b000:
-        let uint = this.readBigInt();
-        return new CBORReaderValue(this.path, { type: "uint", value: uint });
+        return "uint";
       case 0b001:
-        let nint = 1n - this.readBigInt();
-        return new CBORReaderValue(this.path, { type: "nint", value: nint });
+        return "nint";
       case 0b010:
-        let bstr: Uint8Array = this.readByteString();
-        return new CBORReaderValue(this.path, { type: "bstr", value: bstr });
+        return "bytes";
       case 0b011:
-        bstr = this.readByteString();
-        let tstr = new TextDecoder().decode(bstr);
-        return new CBORReaderValue(this.path, { type: "tstr", value: tstr });
+        return "string";
       case 0b100:
-        let array = this.readArray();
-        return new CBORReaderValue(this.path, { type: "array", value: array });
+        return "array";
       case 0b101:
-        let map = this.readMap();
-        return new CBORReaderValue(this.path, { type: "map", value: map });
+        return "map";
       case 0b110:
-        let tagValue = this.readBigInt();
-        let inner = this.read();
-        return new CBORReaderValue(this.path, {
-          type: "tagged",
-          value: new CBORTaggedReader(this.path, tagValue, inner),
-        });
+        return "tagged";
       case 0b111:
         switch (this.buffer[0] & 0b11111) {
           case 20:
-            this.buffer = this.buffer.slice(1);
-            return new CBORReaderValue(this.path, {
-              type: "boolean",
-              value: false,
-            });
           case 21:
-            this.buffer = this.buffer.slice(1);
-            return new CBORReaderValue(this.path, {
-              type: "boolean",
-              value: true,
-            });
+            return "boolean";
           case 22:
-            this.buffer = this.buffer.slice(1);
-            return new CBORReaderValue(this.path, {
-              type: "null",
-              value: null,
-            });
+            return "null";
           case 23:
-            this.buffer = this.buffer.slice(1);
-            return new CBORReaderValue(this.path, {
-              type: "undefined",
-              value: undefined,
-            });
+            return "undefined";
           // case 25:
           // TODO: Support half precision floats
           case 26:
-            this.buffer = this.buffer.slice(1);
-            let f32 = new DataView(this.buffer.buffer).getFloat32(0);
-            this.buffer = this.buffer.slice(4);
-            return new CBORReaderValue(this.path, {
-              type: "float",
-              value: f32,
-            });
           case 27:
-            this.buffer = this.buffer.slice(1);
-            let f64 = new DataView(this.buffer.buffer).getFloat64(0);
-            this.buffer = this.buffer.slice(8);
-            return new CBORReaderValue(this.path, {
-              type: "float",
-              value: f64,
-            });
+            return "float";
         }
     }
+    throw new CBORInvalidTag(tag);
+  }
 
-    throw new ParseFailed(
-      this.path,
-      "type",
-      "This is an invalid tag or we don't recognize this tag yet",
-      this.buffer[0].toString(16),
-    );
+  readInt(): bigint {
+    this.assertType(["uint", "nint"]);
+    if (this.peekType() == "uint") {
+      return this.readBigInt();
+    } else if (this.peekType() == "nint") {
+      return 1n - this.readBigInt();
+    } else {
+      throw new Error("Unreachable");
+    }
+  }
+
+  readBytes(): Uint8Array {
+    this.assertType(["bytes"]);
+    return this.readByteString();
+  } // ret Uint8Array as read only reference to the source bytes
+  readString(): string {
+    this.assertType(["bytes"]);
+    let bytes = this.readByteString();
+    return new TextDecoder().decode(bytes);
+  }
+  // reads array tag and returns the length as number or null if indefinite length.
+  readArray(): number | null {
+    this.assertType(["array"]);
+    return this.readLength();
+  }
+  // reads map tag and returns the length as number or null if indefinite length.
+  readMap(): number | null {
+    this.assertType(["map"]);
+    return this.readLength();
+  }
+
+  readBoolean(): boolean {
+    this.assertType(["boolean"]);
+    let tag = this.buffer[0];
+    this.buffer = this.buffer.slice(1);
+    return tag == 0xf5;
+  }
+
+  readNull(): null {
+    this.assertType(["null"]);
+    this.buffer = this.buffer.slice(1);
+    return null;
+  }
+
+  readUndefined(): undefined {
+    this.assertType(["undefined"]);
+    this.buffer = this.buffer.slice(1);
+    return;
+  }
+
+  readFloat(): number {
+    this.assertType(["float"]);
+    let tag = this.buffer[0];
+    this.buffer = this.buffer.slice(1);
+    let nBytes = 4;
+    let float;
+    if (tag == 0xfa) {
+      nBytes = 4;
+      float = new DataView(this.buffer.buffer).getFloat32(
+        0,
+        false /* false means Big Endian */,
+      );
+    } else if (tag == 0xfb) {
+      nBytes = 8;
+      float = new DataView(this.buffer.buffer).getFloat64(
+        0,
+        false /* false means Big Endian */,
+      );
+    } else {
+      throw new Error("Unreachable");
+    }
+    this.buffer = this.buffer.slice(nBytes);
+    return float;
+  }
+
+  // read cbor tag and return the tag value as number
+  readTagged(): number {
+    this.assertType(["tagged"]);
+    return Number(this.readBigInt());
+  }
+
+  assertType(expectedTypes: CBORType[]) {
+    let receivedType = this.peekType();
+    if (!expectedTypes.includes(receivedType)) {
+      throw new CBORUnexpectedType(expectedTypes, receivedType);
+    }
+  }
+
+  private readLength(): number | null {
+    let tag = this.buffer[0];
+    let len = tag & 0b11111;
+    if (len == 0x1f) return null;
+    return Number(this.readBigInt());
   }
 
   private readBigInt(): bigint {
@@ -163,12 +156,7 @@ export class CBORReader {
 
     // the value of the length field must be between 0x00 and 0x1b
     if (!(len >= 0x00 && len <= 0x1b)) {
-      throw new ParseFailed(
-        this.path,
-        "value",
-        "0x00 <= len <= 0x1b",
-        len.toString(16),
-      );
+      throw new CBORInvalidTag(tag);
     }
 
     this.buffer = this.buffer.slice(1);
@@ -193,12 +181,7 @@ export class CBORReader {
     let len = tag & 0b11111;
 
     if (!((len >= 0x00 && len <= 0x1b) || len == 0x1f)) {
-      throw new ParseFailed(
-        this.path,
-        "value",
-        "0x00 <= len <= 0x1b || len == 0x1f",
-        len.toString(16),
-      );
+      throw new CBORInvalidTag(tag);
     }
 
     this.buffer = this.buffer.slice(1);
@@ -209,10 +192,7 @@ export class CBORReader {
       let i = -1;
       while (this.buffer[0] != 0xff) {
         i += 1;
-        chunk = this.withPath(i.toString(), (reader) =>
-          reader.readByteString(),
-        );
-        chunks.push(chunk);
+        (chunk = this.readByteString()), chunks.push(chunk);
       }
       return concatUint8Array(chunks);
     } else {
@@ -224,302 +204,9 @@ export class CBORReader {
       return chunk;
     }
   }
-
-  private readArray(): CBORArrayReader<CBORReaderValue> {
-    let tag = this.buffer[0];
-
-    let len = tag & 0b11111;
-
-    if (!((len >= 0x00 && len <= 0x1b) || len == 0x1f)) {
-      throw new ParseFailed(
-        this.path,
-        "value",
-        "0x00 <= len <= 0x1b || len == 0x1f",
-        len.toString(16),
-      );
-    }
-
-    let array: CBORArrayReader<CBORReaderValue> = new CBORArrayReader(
-      this.path,
-    );
-
-    if (len == 0x1f) {
-      this.buffer = this.buffer.slice(1);
-      let i = -1;
-      while (this.buffer[0] != 0xff) {
-        i += 1;
-        let item = this.withPath(i.toString(), (reader) => reader.read());
-        array.push(item);
-      }
-    } else {
-      let n = Number(this.readBigInt());
-
-      for (let i = 0; i < n; i++) {
-        let item = this.withPath(i.toString(), (reader) => reader.read());
-        array.push(item);
-      }
-    }
-
-    return array;
-  }
-
-  private readMap(): CBORMultiMapReader<CBORReaderValue, CBORReaderValue> {
-    let tag = this.buffer[0];
-
-    let len = tag & 0b11111;
-
-    if (!((len >= 0x00 && len <= 0x1b) || len == 0x1f)) {
-      throw new ParseFailed(
-        this.path,
-        "value",
-        "0x00 <= len <= 0x1b || len == 0x1f",
-        len.toString(16),
-      );
-    }
-
-    this.buffer = this.buffer.slice(1);
-
-    let map: CBORMultiMapReader<CBORReaderValue, CBORReaderValue> =
-      new CBORMultiMapReader(this.path);
-
-    if (len == 0x1f) {
-      let i = -1;
-      while (this.buffer[0] != 0xff) {
-        i += 1;
-        let key = this.withPath(i + "/key", (reader) => reader.read());
-        let value = this.withPath(i + "/value", (reader) => reader.read());
-        map.add(key, value);
-      }
-    } else {
-      let n = Number(this.readBigInt());
-
-      for (let i = 0; i < n; i++) {
-        let key = this.withPath(i + "/key", (reader) => reader.read());
-        let value = this.withPath(i + "/value", (reader) => reader.read());
-        map.add(key, value);
-      }
-    }
-
-    return map;
-  }
 }
 
-type CBORReaderValueInner =
-  | { type: "uint"; value: bigint }
-  | { type: "nint"; value: bigint }
-  | { type: "bstr"; value: Uint8Array }
-  | { type: "tstr"; value: string }
-  | { type: "array"; value: CBORArrayReader<CBORReaderValue> }
-  | { type: "map"; value: CBORMultiMapReader<CBORReaderValue, CBORReaderValue> }
-  | { type: "boolean"; value: boolean }
-  | { type: "null"; value: null }
-  | { type: "undefined"; value: undefined }
-  | { type: "float"; value: number }
-  | { type: "tagged"; value: CBORTaggedReader<CBORReaderValue> };
-
-type CBORReaderValueInnerNarrowed<T> = (CBORReaderValueInner & {
-  type: T;
-})["value"];
-
-export class CBORReaderValue implements CBORCustom {
-  public readonly path: string[];
-  private inner: CBORReaderValueInner;
-
-  constructor(path: string[], inner: CBORReaderValueInner) {
-    this.path = path;
-    this.inner = inner;
-  }
-
-  getChoice<T>(fns: {
-    [TypeName in CBORTypeName]?: (
-      value: CBORReaderValueInnerNarrowed<TypeName>,
-    ) => T;
-  }): T {
-    let typeName = this.inner.type;
-    let fn = fns[typeName];
-    if (fn == null) {
-      throw new ParseFailed(
-        this.path,
-        "type",
-        Object.keys(fns).join(" | "),
-        typeName,
-      );
-    }
-    return (fn as any)(this.inner.value);
-  }
-
-  get<T extends CBORTypeName>(type: T): CBORReaderValueInnerNarrowed<T> {
-    if (type == this.inner.type) {
-      return this.inner.value as any;
-    }
-    throw new ParseFailed(this.path, "type", type, this.inner.type);
-  }
-
-  getNullable<T extends CBORTypeName>(
-    type: T,
-  ): CBORReaderValueInnerNarrowed<T> | null {
-    if (this.inner.type == "null") return null;
-    if (type == this.inner.type) {
-      return this.inner.value as any;
-    }
-    throw new ParseFailed(this.path, "type", type + " | null", this.inner.type);
-  }
-
-  getInt(): bigint {
-    return this.getChoice({ uint: (x) => x, nint: (x) => x });
-  }
-
-  getType(): CBORTypeName {
-    return this.inner.type;
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.write(this.inner.value);
-  }
-
-  with<U>(fn: (x: CBORReaderValue) => U): U {
-    try {
-      return fn(this);
-    } catch (e) {
-      let msg = (e as any).toString();
-      throw new ParseFailed(this.path, "value", msg);
-    }
-  }
-
-  withNullable<U>(fn: (x: CBORReaderValue) => U): U | null {
-    if (this.inner.type == "null") return null;
-    return this.with(fn);
-  }
-}
-
-export class CBORArrayReader<T extends CBORValue> extends Array<T> {
-  public readonly path: string[];
-  shiftedCount = 0;
-
-  constructor(path: string[]) {
-    super();
-    this.path = path;
-  }
-
-  shiftRequired(): T {
-    if (this.length == 0) {
-      throw new ParseFailed(
-        this.path,
-        "value",
-        "Index out of bounds",
-        String(this.shiftedCount),
-      );
-    }
-    return this.shift() as T;
-  }
-
-  shift(): T | undefined {
-    if (this.length > 0) this.shiftedCount += 1;
-    return this.shift();
-  }
-
-  getRequired(index: number): T {
-    let value = this[index];
-    if (value == null) {
-      throw new ParseFailed(
-        this.path,
-        "value",
-        "index not found",
-        (this.shiftedCount + index).toString(),
-      );
-    }
-    return value;
-  }
-
-  get(index: number): T | undefined {
-    return this[index];
-  }
-}
-
-export class CBORMapReader<
-  K extends CBORValue,
-  V extends CBORValue,
-> extends CBORMap<K, V> {
-  public readonly path: string[];
-
-  constructor(path: string[], entries: [K, V][] = []) {
-    super(entries);
-    this.path = path;
-  }
-
-  getRequired(key: K): V {
-    let value = super.get(key);
-    if (value == null) {
-      throw new ParseFailed(this.path, "value", "key not found", keyStr(key));
-    }
-    return value;
-  }
-
-  map<K1 extends CBORValue, V1 extends CBORValue>(options: {
-    key: (key: K) => K1;
-    value: (value: V) => V1;
-    predicate?: ((key: K1, value: V1) => boolean) | undefined;
-  }): CBORMapReader<K1, V1> {
-    return new CBORMapReader(
-      this.path,
-      this.entries_.map(([key, value]) => [
-        options.key(key),
-        options.value(value),
-      ]),
-    );
-  }
-}
-
-export class CBORMultiMapReader<
-  K extends CBORValue,
-  V extends CBORValue,
-> extends CBORMultiMap<K, V> {
-  public readonly path: string[];
-
-  constructor(path: string[]) {
-    super();
-    this.path = path;
-  }
-
-  toMap(): CBORMapReader<K, V> {
-    let map: CBORMapReader<K, V> = new CBORMapReader(this.path);
-    for (let [key, value] of this.entries_) {
-      if (map.get(key) != null) {
-        throw new ParseFailed(
-          this.path,
-          "value",
-          "duplicate values for key",
-          keyStr(key),
-        );
-      }
-      map.set(key, value);
-    }
-    return map;
-  }
-}
-
-export class CBORTaggedReader<T extends CBORValue> extends CBORTagged<T> {
-  public readonly path: string[];
-
-  constructor(path: string[], tag: bigint, value: T) {
-    super(tag, value);
-    this.path = path;
-  }
-
-  getTagged(tag: bigint): T {
-    if (tag == this.tag) {
-      return this.value;
-    }
-    throw new ParseFailed(
-      this.path,
-      "value",
-      "tag: " + tag,
-      this.tag.toString(),
-    );
-  }
-}
-
-export function bigintFromBytes(nBytes: number, stream: Uint8Array): bigint {
+function bigintFromBytes(nBytes: number, stream: Uint8Array): bigint {
   let x = BigInt(0);
   for (let i = 0; i < nBytes; i++) {
     x = x << 8n;
@@ -545,14 +232,26 @@ function concatUint8Array(chunks: Uint8Array[]): Uint8Array {
   return concat;
 }
 
-function keyStr(key: CBORValue): string | undefined {
-  if (typeof key == "string") {
-    return key;
-  } else if (typeof key == "number") {
-    return key.toString();
-  } else if (typeof key == "bigint") {
-    return key.toString();
-  } else {
-    return undefined;
+/* Error Type */
+
+export class CBORInvalidTag extends Error {
+  tag: number;
+
+  constructor(tag: number) {
+    super(`Invalid CBOR tag: ${tag}`);
+    this.tag = tag;
+  }
+}
+
+export class CBORUnexpectedType extends Error {
+  expected: CBORType[];
+  received: CBORType;
+
+  constructor(expected: CBORType[], received: CBORType) {
+    super(
+      `Unexpected CBOR type: expected ${expected.join("/")}, received ${received}`,
+    );
+    this.expected = expected;
+    this.received = received;
   }
 }
