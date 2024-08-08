@@ -35,6 +35,8 @@ AuxiliaryDataSet:
   type: map
   key: number
   value: AuxiliaryData
+  flags:
+    - indices_uint32array
 
 # transaction =
 #   [ transaction_body
