@@ -1,6 +1,6 @@
 import { CodeGenerator } from ".";
-import { eqType, jsType, readType, writeType } from "./cbor-utils";
-import { genCSL } from "./custom";
+import { jsType, eqType, readType, writeType } from "./utils/cbor-utils";
+import { genCSL } from "./utils/csl";
 
 export class GenSet implements CodeGenerator {
   name: string;
