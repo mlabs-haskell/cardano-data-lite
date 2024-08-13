@@ -58,7 +58,7 @@ function processType(value: any, typeRefs: Set<string>) {
     "boolean",
     "bytes",
     "bignum",
-    "bytes32",
+    "arrayToUint32Array",
   ];
   if (typeof value == "string") {
     if (!PRIMITIVES.includes(value)) typeRefs.add(value);
