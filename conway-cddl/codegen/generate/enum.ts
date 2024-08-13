@@ -1,10 +1,11 @@
+import { CodeGenerator } from ".";
+
 export type Variant = {
-  tag: number;
   name: string;
-  type: string;
+  value: number;
 };
 
-export class GenEnum {
+export class GenEnum implements CodeGenerator {
   name: string;
   variants: Variant[];
 
@@ -16,7 +17,7 @@ export class GenEnum {
   generate(): string {
     return `
       export enum ${this.name}Kind {
-        ${this.variants.map((x) => `${x.type} = ${x.tag},`).join("\n")}
+        ${this.variants.map((x) => `${x.name} = ${x.value},`).join("\n")}
       }
 
       export class ${this.name} {
@@ -30,27 +31,25 @@ export class GenEnum {
           .map(
             (x) => `
         static new_${x.name}(): ${this.name} {
-          return new ${this.name}(${x.tag});
+          return new ${this.name}(${x.value});
         }`,
           )
           .join("\n")}
         
-        static fromCBOR(value: CBORReaderValue): ${this.name} {
-          return value.with(value => {
-            let kind = Number(value.getInt());
-            ${this.variants
-              .map(
-                (x) => `
-              if(kind == ${x.tag}) return new ${this.name}(${x.tag})
-            `,
-              )
-              .join("\n")}
+        static deserialize(reader: CBORReader): ${this.name} {
+          let kind = Number(reader.readInt());
+          ${this.variants
+            .map(
+              (x) =>
+                `if(kind == ${x.value}) return new ${this.name}(${x.value})`,
+            )
+            .join("\n")}
             throw "Unrecognized enum value: " + kind + " for " + ${this.name};
           });
         }
 
-        toCBOR(writer: CBORWriter) {
-          writer.write(this.kind_);
+        serialize (writer: CBORWriter) {
+          writer.writeInt(BigInt(this.kind_));
         }
       }`;
   }
