@@ -21,7 +21,7 @@ Block:
     - key: auxiliary_data_set
       value: AuxiliaryDataSet
     - key: invalid_transactions
-      value: bytes32
+      value: arrayToUint32Array
 
 TransactionBodies:
   type: array
