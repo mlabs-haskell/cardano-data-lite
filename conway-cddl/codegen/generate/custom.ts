@@ -40,10 +40,13 @@ export function genAccessors(fields: Field[]) {
 }
 
 export function genCSL(className: string) {
-  return `
+  return `  
+    // no-op
+    free(): void {}
+
     static from_bytes(data: Uint8Array): ${className} {
-      let cborValue = new CBORReader(data).read();
-      return ${className}.fromCBOR(cborValue);
+      let reader = new CBORReader(data);
+      return ${className}.deserialize(reader);
     }
 
     static from_hex(hex_str: string): ${className} {
@@ -52,7 +55,9 @@ export function genCSL(className: string) {
 
     
     to_bytes(): Uint8Array {
-      return CBORWriter.toBytes(this);
+      let writer = new CBORWriter();
+      this.serialize(writer);
+      return writer.getBytes();
     }
 
     to_hex(): string {
