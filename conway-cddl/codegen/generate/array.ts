@@ -1,6 +1,6 @@
 import { CodeGenerator } from ".";
-import { jsType, readType, writeType } from "./cbor-utils";
-import { genCSL } from "./custom";
+import { jsType, readType, writeType } from "./utils/cbor-utils";
+import { genCSL } from "./utils/csl";
 
 export class GenArray implements CodeGenerator {
   name: string;
