@@ -1,14 +1,15 @@
-import { GenLeaf } from ".";
-import { genAccessors, genConstructor, genMembers } from "./custom";
+import { CodeGenerator } from ".";
+import { readType, writeType } from "./utils/cbor-utils";
+import { genAccessors, genConstructor, genMembers } from "./utils/structured";
 
 export type Field = {
   id: number;
   name: string;
-  type: GenLeaf;
+  type: string;
   optional?: boolean;
 };
 
-export class GenStruct {
+export class GenStruct implements CodeGenerator {
   name: string;
   fields: Field[];
 
@@ -17,42 +18,59 @@ export class GenStruct {
     this.fields = fields;
   }
 
-  generate(): string {
+  generate(customTypes: Set<string>): string {
     return `
       export class ${this.name} {
         ${genMembers(this.fields)}
         ${genConstructor(this.fields)}
         ${genAccessors(this.fields)}
         
-        static fromCBOR(value: CBORReaderValue): ${this.name} {
-          let map = value.get("map").toMap().map({key: x => Number(x.getInt()), value: x => x});
-          ${this.fields
-            .map((x) => {
-              let out = [];
-              out.push(
-                `let ${x.name}_ = map.${x.optional ? "get" : "getRequired"}(${x.id});`,
-              );
-              out.push(
-                `let ${x.name} = ${x.name}_ != undefined ? ${x.type.fromCBOR(x.name + "_")} : undefined;`,
-              );
-              return out.join("\n");
-            })
-            .join("\n")}
+        static deserialize(reader: CBORReader): ${this.name} {
+          let fields = {};
+          reader.readMap(r => {
+            let key = Number(r.readUint()); 
+            switch(key) {
+              ${this.fields
+                .map(
+                  (x) => `
+                  case ${x.id}:   
+                      fields.${x.name} = ${readType(customTypes, "r", x.type)}; 
+                      break;
+                `,
+                )
+                .join("\n")}
+            }
+          });
 
-          return new ${this.name}(${this.fields.map((x) => x.name).join(", ")})
+          return new ${this.name}(
+            ${this.fields
+              .map((x) =>
+                x.optional
+                  ? `fields.${x.name}`
+                  : `fields.${x.name} !== undefined 
+                        ? fields.${x.name} 
+                        : throw new Error("Value not provided for field ${x.id} (${x.name})")`,
+              )
+              .join(", ")}
+          );
         }
 
-        toCBOR(writer: CBORWriter) {
-          let entries = [];
+        serialize(writer: CBORWriter) {
+          let len = ${this.fields.length};
           ${this.fields
             .map((x) =>
-              x.optional
-                ? `if(this.${x.name} !== undefined) entries.push([${x.id}, this.${x.name}]);`
-                : `entries.push([${x.id}, this.${x.name}])`,
+              x.optional ? `if(this.${x.name} === undefined) len -= 1;` : ``,
             )
+            .filter((x) => x != "")
             .join("\n")}
-          writer.writeMap(entries);
-        }
+          writer.writeMapTag(entries.length);
+          ${this.fields.map((x) => {
+            let write = `
+              writer.writeInt(${x.id}n);
+              ${writeType(customTypes, "writer", `this.${x.name}`, x.type)};
+            `;
+            return `${x.optional ? `if(this.${x.name} !== undefined) { ${write} }` : write}`;
+          })}
       }`;
   }
 }
