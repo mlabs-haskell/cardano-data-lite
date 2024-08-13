@@ -1,6 +1,8 @@
-import { SymbolTable, SymbolDefinition } from ".";
+import { CodeGenerator } from ".";
+import { jsType, readType, writeType } from "./cbor-utils";
+import { genCSL } from "./custom";
 
-export class GenArray implements SymbolDefinition {
+export class GenArray implements CodeGenerator {
   name: string;
   item: string;
 
@@ -9,15 +11,45 @@ export class GenArray implements SymbolDefinition {
     this.item = item;
   }
 
-  generate(symbolTable: SymbolTable): string {
-    let item = symbolTable[this.item];
+  generate(customTypes: Set<string>): string {
+    let itemJsType = jsType(this.item, customTypes);
     return `
-    export class ${this.name} extends Array<${this.item}> {
-      static fromCBOR(value: CBORReaderValue): ${this.name} {
-        let array = value.get("array");
-        return new ${this.name}(...array.map((x) => ${item.fromCBOR("x")}));  
+      export class ${this.name} {
+        private items: ${itemJsType}[];
+
+        constructor(items: ${itemJsType}[]) {
+          this.items = items;
+        }
+
+        static new(): ${this.name} {
+          return new ${this.name}([]);
+        }
+
+        len(): number {
+          return this.items.length;
+        }
+
+        get(index: number): ${itemJsType} {
+          if(index >= this.items.length) throw new Error("Array out of bounds");
+          return this.items[index];
+        }
+
+        add(elem: ${itemJsType}): void {
+          this.items.push(elem);
+        }
+
+        ${genCSL(this.name)}
+
+        static deserialize(reader: CBORReader): ${this.name} {
+          let ret = new ${this.name}();
+          ret.items = reader.readArray(reader => ${readType(customTypes, "reader", this.item)});
+          return ret;
+        }
+
+        serialize(writer: CBORWriter) {
+          writer.writeArray(this.items, (writer, x) => ${writeType(customTypes, "writer", "x", this.item)});
+        }
       }
-    }
     `;
   }
 }

@@ -1,25 +1,64 @@
-export class GenMap {
-  name: string;
-  key: GenLeaf;
-  value: GenLeaf;
+import { CodeGenerator } from ".";
+import { eqType, jsType, readType, writeType } from "./cbor-utils";
+import { genCSL } from "./custom";
 
-  constructor(name: string, key: GenLeaf, value: GenLeaf) {
+export class GenMap implements CodeGenerator {
+  name: string;
+  key: string;
+  value: string;
+
+  constructor(name: string, key: string, value: string) {
     this.name = name;
     this.key = key;
     this.value = value;
   }
 
-  generate(): string {
+  generate(customTypes: Set<string>): string {
+    let keyJsType = jsType(this.key, customTypes);
+    let valueJsType = jsType(this.value, customTypes);
+    let entryJsType = `[${keyJsType}, ${valueJsType}]`;
     return `
-    export class ${this.name} extends CBORMap<${this.key.name()},${this.value.name()}> {
-      static fromCBOR(value: CBORReaderValue): ${this.name} {
-        let map = value.get("map");
-        return new ${this.name}(map.map({
-          key: (x) => ${this.key.fromCBOR("x")},
-          value: (x) => ${this.key.fromCBOR("x")}
-        })); 
+      export class ${this.name} {
+        private items: ${entryJsType}[];
+
+        constructor(items: ${entryJsType}[]) {
+          this.items = items;
+        }
+
+        static new(): ${this.name} {
+          return new ${this.name}([]);
+        }
+
+        len(): number {
+          return this.items.length;
+        }
+
+        insert(key: ${keyJsType}, value: ${valueJsType}): void {
+          this.items.push([key, value]);
+        }
+
+        get(key: ${keyJsType}): ${valueJsType} | undefined {
+          let entry = this.items.find(x => ${eqType(customTypes, "key", "x[0]", this.key)});
+          if(entry == null) return undefined;
+          return entry[1];
+        }
+
+
+        ${genCSL(this.name)}
+
+        static deserialize(reader: CBORReader): ${this.name} {
+          let ret = new ${this.name}();
+          ret.items = reader.readMap(reader => [${(readType(customTypes, "reader", this.key), readType(customTypes, "reader", this.value))}]);
+          return ret;
+        }
+
+        serialize(writer: CBORWriter) {
+          writer.writeMap(this.items, (writer, x) => {
+            ${writeType(customTypes, "writer", "x[0]", this.key)};
+            ${writeType(customTypes, "writer", "x[1]", this.value)};
+          });
+        }
       }
-    }
     `;
   }
 }
