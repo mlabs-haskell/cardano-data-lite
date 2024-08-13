@@ -152,6 +152,11 @@ export class CBORReader {
     return null;
   }
 
+  readNullable<T>(fn: (reader: CBORReader) => T): T | null {
+    if (this.peekType() == "null") return null;
+    return fn(this);
+  }
+
   readUndefined(): undefined {
     this.assertType(["undefined"]);
     this.buffer = this.buffer.slice(1);
