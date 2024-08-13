@@ -21,7 +21,7 @@ Block:
     - key: auxiliary_data_set
       value: AuxiliaryDataSet
     - key: invalid_transactions
-      value: Uint32Array
+      value: bytes32
 
 TransactionBodies:
   type: array
@@ -89,7 +89,7 @@ HeaderBody:
     - key: block_number
       value: number
     - key: slot
-      value: BigNum
+      value: bignum
     - key: prev_hash
       value: BlockHash
       nullable: true
@@ -171,11 +171,13 @@ TransactionBody:
       value: TransactionOutputs
     - id: 2
       key: fee
-      value: BigNum0
+      value: bignum
     - id: 3
       key: ttl
-      value: BigNum
+      value: bignum
       optional: true
+      flags:
+        - as_number
     - id: 4
       key: certs
       value: Certificates
@@ -190,7 +192,7 @@ TransactionBody:
       optional: true
     - id: 8
       key: validity_start_interval
-      value: BigNum
+      value: bignum
       optional: true
     - id: 9
       key: mint
@@ -218,7 +220,7 @@ TransactionBody:
       optional: true
     - id: 17
       key: total_collateral
-      value: BigNum0
+      value: bignum
       optional: true
     - id: 18
       key: reference_inputs
@@ -234,11 +236,11 @@ TransactionBody:
       optional: true
     - id: 21
       key: current_treasury_value
-      value: BigNum0
+      value: bignum
       optional: true
     - id: 22
       key: donation
-      value: BigNum0
+      value: bignum
       optional: true
 
 TransactionInputs:
@@ -279,7 +281,7 @@ VotingProposal:
   type: record
   fields:
     - key: deposit
-      value: BigNum0
+      value: bignum
     - key: reward_account
       value: RewardAddress
     - key: governance_action
@@ -323,9 +325,10 @@ GovernanceAction:
       value: ParameterChangeAction
     - name: hard_fork_initiation_action
       tag: 1
+      value: HardForkInitiationAction
     - name: treasury_withdrawals_action
       tag: 2
-      value: HardForkInitiationAction
+      value: TreasuryWithdrawalsAction
     - name: no_confidence_action
       tag: 3
       value: NoConfidenceAction
@@ -347,6 +350,15 @@ ParameterChangeAction:
       nullable: true
     - key: protocol_param_updates
       value: ProtocolParamUpdate
+    - key: policy_hash
+      value: ScriptHash
+      nullable: true
+
+TreasuryWithdrawalsAction:
+  type: record
+  fields:
+    - key: withdrawals
+      value: TreasuryWithdrawals
     - key: policy_hash
       value: ScriptHash
       nullable: true
@@ -373,12 +385,12 @@ UpdateCommitteeAction:
     - key: gov_action_id
       value: GovernanceActionId
       nullable: true
-    - key: credentials
+    - key: members_to_remove
       value: Credentials
     - key: committee
       value: Committee
-    - key: unit_interval
-      value: unit_interval
+    - key: quorom_threshold
+      value: UnitInterval
 
 NewConstitutionAction:
   type: record
@@ -421,40 +433,21 @@ Constitution:
 #   // 3, scripthash
 #   // 4, addr_keyhash
 #   ]
-Voter: # TODO
-  type: tagged_record
-  variants:
-    - name: constitutional_committee_hot_key
-      tag: 0
-      value:
-        - key: addr_keyhash
-          value: addr_keyhash
-    - name: constitutional_committee_hot_scripthash
-      tag: 1
-      fields:
-        - key: scripthash
-          value: scripthash
-    - name: drep_keyhash
-      tag: 2
-      fields:
-        - key: addr_keyhash
-          value: addr_keyhash
-    - name: drep_scripthash
-      tag: 3
-      fields:
-        - key: scripthash
-          value: scripthash
-    - name: staking_pool_keyhash
-      tag: 4
-      fields:
-        - key: addr_keyhash
-          value: addr_keyhash
+Voter: # TODO (custom serializer)
+  type: record
+  fields:
+    - key: constitutional_committee_hot_key
+      value: Credential
+    - key: drep
+      value: Credential
+    - name: staking_pool
+      value: Ed25519KeyHash
 
 # anchor =
 #   [ anchor_url       : url
 #   , anchor_data_hash : $hash32
 #   ]
-anchor:
+Anchor:
   type: record
   fields:
     - key: url
@@ -467,7 +460,7 @@ anchor:
 # ; abstain - 2
 # vote = 0 .. 2
 VoteKind:
-  type: enum2
+  type: enum_simple
   values:
     - name: no
       value: 0
@@ -778,7 +771,7 @@ RegCert:
     - key: stake_credential
       value: Credential
     - key: coin
-      value: BigNum0
+      value: bignum
 
 UnregCert:
   type: record
@@ -786,7 +779,7 @@ UnregCert:
     - key: stake_credential
       value: Credential
     - key: coin
-      value: BigNum0
+      value: bignum
 
 VoteDelegation:
   type: record
@@ -814,7 +807,7 @@ StakeRegistrationAndDelegation:
     - key: pool_keyhash
       value: Ed25519KeyHash
     - key: coin
-      value: BigNum0
+      value: bignum
 
 VoteRegistrationAndDelegation:
   type: record
@@ -824,7 +817,7 @@ VoteRegistrationAndDelegation:
     - key: drep
       value: DRep
     - key: coin
-      value: BigNum0
+      value: bignum
 
 StakeVoteRegistrationAndDelegation:
   type: record
@@ -836,7 +829,7 @@ StakeVoteRegistrationAndDelegation:
     - key: drep
       value: DRep
     - key: coin
-      value: BigNum0
+      value: bignum
 
 CommitteeHotAuth:
   type: record
@@ -861,18 +854,18 @@ DrepRegistration:
     - key: voting_credential
       value: Credential
     - key: coin
-      value: BigNum0
+      value: bignum
     - key: anchor
-      value: Anchro
+      value: Anchor
       nullable: true
 
 DrepDeregistration:
   type: record
   fields:
     - key: drep_credential
-      value: voting_credential
+      value: Credential
     - key: coin
-      value: BigNum0
+      value: bignum
 
 DrepUpdate:
   type: record
@@ -905,7 +898,7 @@ Credential:
 #   // 2  ; always abstain
 #   // 3  ; always no confidence
 #   ]
-drep:
+DRep:
   type: tagged_record
   variants:
     - name: key_hash
@@ -942,9 +935,9 @@ PoolParams:
     - key: vrf_keyhash
       value: VRFKeyHash
     - key: pledge
-      value: BigNum0
+      value: bignum
     - key: cost
-      value: BigNum0
+      value: bignum
     - key: margin
       value: UnitInterval
     - key: reward_account
@@ -981,14 +974,18 @@ Ipv6:
       eq: 16
 
 DNSRecordAorAAAA:
-  type: string
-  len:
-    max: 64
+  type: newtype
+  item: string
+  constraints:
+    len:
+      max: 64
 
 DNSRecordSRV:
-  type: string
-  len:
-    max: 64
+  type: newtype
+  item: string
+  constraints:
+    len:
+      max: 64
 
 # single_host_addr = ( 0
 #                    , port / null
@@ -1021,6 +1018,7 @@ Relay:
       value: MultiHostName
 
 SingleHostAddr:
+  type: record
   fields:
     - key: port
       value: number
@@ -1033,6 +1031,7 @@ SingleHostAddr:
       nullable: true
 
 SingleHostName:
+  type: record
   fields:
     - key: port
       value: number
@@ -1041,6 +1040,7 @@ SingleHostName:
       value: DNSRecordAorAAAA
 
 MultiHostName:
+  type: record
   fields:
     - key: dns_name
       value: DNSRecordSRV
@@ -1067,7 +1067,7 @@ URL:
 Withdrawals:
   type: map
   key: RewardAddress
-  value: BigNum
+  value: bignum
 
 # protocol_param_update =
 #   { ? 0:  coin                   ; minfee A
@@ -1107,11 +1107,11 @@ protocol_param_update:
   fields:
     - id: 0
       key: minfee_a
-      value: BigNum
+      value: bignum
       optional: true
     - id: 1
       key: minfee_b
-      value: BigNum
+      value: bignum
       optional: true
     - id: 2
       key: max_block_body_size
@@ -1127,11 +1127,11 @@ protocol_param_update:
       optional: true
     - id: 5
       key: key_deposit
-      value: BigNum
+      value: bignum
       optional: true
     - id: 6
       key: pool_deposit
-      value: BigNum
+      value: bignum
       optional: true
     - id: 7
       key: max_epoch
@@ -1155,11 +1155,11 @@ protocol_param_update:
       optional: true
     - id: 16
       key: min_pool_cost
-      value: BigNum
+      value: bignum
       optional: true
     - id: 17
       key: ada_per_utxo_byte
-      value: BigNum
+      value: bignum
       optional: true
     - id: 18
       key: costmdls
@@ -1211,11 +1211,11 @@ protocol_param_update:
       optional: true
     - id: 30
       key: governance_action_deposit
-      value: BigNum
+      value: bignum
       optional: true
     - id: 31
       key: drep_deposit
-      value: BigNum
+      value: bignum
       optional: true
     - id: 32
       key: drep_inactivity_period
@@ -1310,7 +1310,7 @@ TransactionWitnessSet:
       optional: true
     - id: 3
       key: plutus_scripts_v1
-      value: PlutusScriptsV1
+      value: PlutusScripts
       optional: true
     - id: 4
       key: plutus_data
@@ -1322,11 +1322,11 @@ TransactionWitnessSet:
       optional: true
     - id: 6
       key: plutus_scripts_v2
-      value: PlutusScriptsV2
+      value: PlutusScripts
       optional: true
     - id: 7
       key: plutus_scripts_v3
-      value: PlutusScriptsV3
+      value: PlutusScripts
       optional: true
 
 Vkeywitnesses:
@@ -1341,21 +1341,13 @@ BootstrapWitnesses:
   type: array
   item: BootstrapWitness
 
-PlutusScriptsV1:
+PlutusScripts:
   type: array
-  item: PlutusScriptV1
+  item: bytes
 
 PlutusList:
   type: set
   item: PlutusData
-
-PlutusScriptsV2:
-  type: set
-  item: PlutusScriptV2
-
-PlutusScriptsV3:
-  type: set
-  item: PlutusScriptV3
 
 # ; The real type of  plutus_v1_script, plutus_v2_script and plutus_v3_script is bytes.
 # ; However, because we enforce uniqueness when many scripts are supplied,
@@ -1424,9 +1416,9 @@ ExUnits:
   type: record
   fields:
     - key: mem
-      value: BigNum
+      value: bignum
     - key: steps
-      value: BigNum
+      value: bignum
 
 # ex_unit_prices =
 #   [ mem_price: nonnegative_interval, step_price: nonnegative_interval ]
@@ -1488,7 +1480,7 @@ Language:
 # metadata = { * transaction_metadatum_label => transaction_metadatum }
 GeneralTransactionMetadata:
   type: map
-  key: BigNum
+  key: bignum
   value: TransactionMetadatum
 
 # auxiliary_data =
@@ -1513,13 +1505,13 @@ AuxiliaryData:
       value: NativeScripts
     - id: 2
       key: plutus_scripts_v1
-      value: PlutusScriptsV1
+      value: PlutusScripts
     - id: 3
       key: plutus_scripts_v2
-      value: PlutusScriptsV2
+      value: PlutusScripts
     - id: 4
       key: plutus_scripts_v3
-      value: PlutusScriptsV3
+      value: PlutusScripts
 
 # vkeywitness = [ $vkey, $signature ]
 Vkeywitness:
@@ -1618,13 +1610,13 @@ TimelockStart:
   type: record
   fields:
     - key: slot
-      value: BigNum
+      value: bignum
 
 TimelockExpiry:
   type: record
   fields:
     - key: slot
-      value: BigNum
+      value: bignum
 
 # coin = uint
 
@@ -1711,10 +1703,10 @@ ScriptRef:
       value: NativeScript
     - name: plutus_script_v1
       tag: 1
-      value: PlutusScriptV1
+      value: bytes
     - name: plutus_script_v2
       tag: 2
-      value: PlutusScriptV2
+      value: bytes
     - name: plutus_script_v3
       tag: 3
-      value: PlutusScriptV3
+      value: bytes
