@@ -1,14 +1,14 @@
-import { GenLeaf } from ".";
-import { genAccessors, genConstructor, genMembers } from "./custom";
+import { CodeGenerator } from ".";
+import { readType, writeType } from "./utils/cbor-utils";
+import { genAccessors, genConstructor, genMembers } from "./utils/structured";
 
 export type Field = {
   name: string;
-  type: GenLeaf;
-  optional?: boolean;
+  type: string;
   nullable?: boolean;
 };
 
-export class GenRecord {
+export class GenRecord implements CodeGenerator {
   name: string;
   fields: Field[];
 
@@ -17,54 +17,46 @@ export class GenRecord {
     this.fields = fields;
   }
 
-  generate(): string {
+  generate(customTypes: Set<string>): string {
     return `
       export class ${this.name} {
         ${genMembers(this.fields)}
         ${genConstructor(this.fields)}
         ${genAccessors(this.fields)}
 
-        static fromArray(array: CBORArrayReader<CBORReaderValue>): ${this.name} {
+        static deserialize(reader: CBORReader): ${this.name} {
+          let len = reader.readArrayTag();
+          if(len != null && len < ${this.fields.length}) {
+            throw new Error("Insufficient number of fields in record. Expected ${this.fields.length}. Received " + len);
+          }
+
           ${this.fields
-            .map((x) => {
-              let out: string[] = [];
-              out.push(
-                `let ${x.name}_ = array.${x.optional ? "shift" : "shiftRequired"}();`,
-              );
-              if (x.nullable) {
-                out.push(
-                  `let ${x.name}__ = ${x.name}_.withNullable(x => ${x.type.fromCBOR("x")});`,
-                  `let ${x.name} = ${x.name}__ == null ? undefined : ${x.name}__;`,
-                );
-              } else {
-                out.push(`let ${x.name} = ${x.type.fromCBOR(x.name + "_")};`);
-              }
-              return out.join("\n");
-            })
+            .map(
+              (x) => `
+              let ${x.name} = ${
+                x.nullable
+                  ? `reader.readNullable(r => ${readType(customTypes, "r", x.type)})`
+                  : readType(customTypes, "reader", x.type)
+              };`,
+            )
             .join("\n")}
 
           return new ${this.name}(${this.fields.map((x) => x.name).join(", ")}) 
         }
 
-        toArray() {
-          let entries = [];
+        serialize(writer: CBORWriter): void {
+          writer.writeArrayTag(${this.fields.length});
           ${this.fields
             .map((x) =>
-              x.optional
-                ? `if(this.${x.name} !== undefined) entries.push(this.${x.name});`
-                : `entries.push(this.${x.name});`,
+              x.nullable
+                ? `if(this.${x.name} == null) { 
+                      writer.writeNull();
+                  } else { 
+                      ${writeType(customTypes, "writer", `this.${x.name}`, x.type)};
+                  }`
+                : `${writeType(customTypes, "writer", `this.${x.name}`, x.type)};`,
             )
             .join("\n")}
-          return entries;
-        }
-        
-        static fromCBOR(value: CBORReaderValue): ${this.name} {
-          let array = value.get("array");
-          return ${this.name}.fromArray(array);
-        }
-
-        toCBOR(writer: CBORWriter) {
-          writer.writeArray(this.toArray());
         }
       }`;
   }
