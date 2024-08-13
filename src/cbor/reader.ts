@@ -54,6 +54,22 @@ export class CBORReader {
     throw new CBORInvalidTag(tag);
   }
 
+  isBreak(): boolean {
+    return this.buffer[0] == 0xff;
+  }
+
+  readBreak() {
+    if (!this.isBreak()) {
+      throw new Error("Expected break");
+    }
+    this.buffer = this.buffer.slice(1);
+  }
+
+  readUint(): bigint {
+    this.assertType(["uint"]);
+    return this.readBigInt();
+  }
+
   readInt(): bigint {
     this.assertType(["uint", "nint"]);
     if (this.peekType() == "uint") {
@@ -65,24 +81,62 @@ export class CBORReader {
     }
   }
 
+  // ret Uint8Array as read only reference to the source bytes
   readBytes(): Uint8Array {
     this.assertType(["bytes"]);
     return this.readByteString();
-  } // ret Uint8Array as read only reference to the source bytes
+  }
+
   readString(): string {
     this.assertType(["bytes"]);
     let bytes = this.readByteString();
     return new TextDecoder().decode(bytes);
   }
+
   // reads array tag and returns the length as number or null if indefinite length.
-  readArray(): number | null {
+  readArrayTag(): number | null {
     this.assertType(["array"]);
     return this.readLength();
   }
+
   // reads map tag and returns the length as number or null if indefinite length.
-  readMap(): number | null {
+  readMapTag(): number | null {
     this.assertType(["map"]);
     return this.readLength();
+  }
+
+  readN(n: number, fn: (reader: CBORReader) => void) {
+    for (let i = 0; i < n; i++) {
+      fn(this);
+    }
+  }
+
+  readTillBreak(fn: (reader: CBORReader) => void) {
+    while (!this.isBreak()) {
+      fn(this);
+    }
+    this.readBreak();
+  }
+
+  readMultiple(n: number | null, fn: (reader: CBORReader) => void) {
+    if (n == null) this.readTillBreak(fn);
+    else this.readN(n, fn);
+  }
+
+  readArray<T>(readItem: (reader: CBORReader) => T): T[] {
+    let ret: T[] = [];
+    this.readMultiple(this.readArrayTag(), (reader) =>
+      ret.push(readItem(reader)),
+    );
+    return ret;
+  }
+
+  readMap<T>(readItem: (reader: CBORReader) => T): T[] {
+    let ret: T[] = [];
+    this.readMultiple(this.readMapTag(), (reader) =>
+      ret.push(readItem(reader)),
+    );
+    return ret;
   }
 
   readBoolean(): boolean {
@@ -130,7 +184,7 @@ export class CBORReader {
   }
 
   // read cbor tag and return the tag value as number
-  readTagged(): number {
+  readTaggedTag(): number {
     this.assertType(["tagged"]);
     return Number(this.readBigInt());
   }

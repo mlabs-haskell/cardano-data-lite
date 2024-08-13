@@ -34,24 +34,54 @@ export class CBORWriter {
     this.writeBigInt(0x40, len == null ? null : BigInt(len));
   }
 
-  writeBytes(value: Uint8Array) {
+  writeBytesValue(value: Uint8Array) {
     this.buffer.pushByteArray(value);
+  }
+
+  writeBytes(value: Uint8Array) {
+    this.writeBytesTag(value.length);
+    this.writeBytesValue(value);
   }
 
   writeStringTag(len: number | null) {
     this.writeBigInt(0x60, len == null ? null : BigInt(len));
   }
 
-  writeString(value: string) {
+  writeStringValue(value: string) {
     this.writeBytes(new TextEncoder().encode(value));
+  }
+
+  writeString(value: string) {
+    this.writeStringTag(value.length);
+    this.writeStringValue(value);
   }
 
   writeArrayTag(len: number | null) {
     this.writeBigInt(0x80, len == null ? null : BigInt(len));
   }
 
-  wriiteMapTag(len: number | null) {
+  writeArray<T>(
+    array: { length: number } & Iterable<T>,
+    write: (writer: CBORWriter, value: T) => void,
+  ) {
+    this.writeArrayTag(array.length);
+    for (let item of array) {
+      write(this, item);
+    }
+  }
+
+  writeMapTag(len: number | null) {
     this.writeBigInt(0xa0, len == null ? null : BigInt(len));
+  }
+
+  writeMap<T>(
+    map: { length: number } & Iterable<T>,
+    write: (writer: CBORWriter, value: T) => void,
+  ) {
+    this.writeMapTag(map.length);
+    for (let item of map) {
+      write(this, item);
+    }
   }
 
   writeTaggedTag(tag: number) {
