@@ -74,14 +74,25 @@ To Support:
 	I'd still rather do this custom.
 	** It's a simple union though.
 
+== Custom serializer ==
+- UpdateCommitteAction
+		UpdateCommitteeAction.committee: Committee inlines the quorom_threshold field
+
+- Voter
+		constitutional_committee_hot_key, drep has type Credential
+		they are serialized as 
+			- 0, 1 for constitutional_committee_hot_key 
+			- 2,3 for drep 
+		depending on whether the credential is a keyhash of scripthash
+		respectively.
+		I've modelled it as a record, but it's serializer needs to encode it as a tagged_record
+
 == Fully Custom Types ==
 
 - [CUSTOM] VotingProcedures:
 	{ voter => { gov_action_id => voting_procedure } }
 	Map.insert(voter, gov_action_id, voting_procedure)
 	Map.get(voter, gov_action_id): voting_procedure
-
-- UpdateCommitteAction::Committee inlines the quorum_threshold field
 
 - [CUSTOM] TransactionOutput
 	this.plutus_data: DataOption (DataHash/PlutusData)
