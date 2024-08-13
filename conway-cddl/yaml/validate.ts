@@ -69,6 +69,7 @@ function processType(value: any, typeRefs: Set<string>) {
     for (let field of value.fields) {
       processType(field.value, typeRefs);
     }
+    if (value.type == "record") processRecord(value);
   } else if (
     value.type == "array" ||
     value.type == "set" ||
@@ -86,6 +87,15 @@ function processType(value: any, typeRefs: Set<string>) {
     // pass
   } else {
     throw new Error("Unknown type: " + value.type);
+  }
+}
+
+function processRecord(value: any) {
+  for (let field of value.fields) {
+    if (field.optional == true) {
+      console.error("Optional detected", value);
+      return;
+    }
   }
 }
 
