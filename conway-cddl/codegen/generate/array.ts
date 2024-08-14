@@ -41,9 +41,7 @@ export class GenArray implements CodeGenerator {
         }
 
         static deserialize(reader: CBORReader): ${this.name} {
-          let ret = new ${this.name}();
-          ret.items = reader.readArray(reader => ${readType(customTypes, "reader", this.item)});
-          return ret;
+          return new ${this.name}(reader.readArray(reader => ${readType(customTypes, "reader", this.item)}));
         }
 
         serialize(writer: CBORWriter) {

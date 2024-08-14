@@ -40,10 +40,10 @@ export function readType(
     case "bytes":
       return `${reader}.readBytes()`;
     case "arrayToUint32Array":
-      return `new Uint32Array(${reader}.readArray((reader) => reader.readUint()));`;
+      return `new Uint32Array(${reader}.readArray((reader) => Number(reader.readUint())));`;
     default:
       console.error("Can't decode: " + type);
-      return "$CANT_READ";
+      return `$$CANT_READ("${type}")`;
   }
 }
 
@@ -54,7 +54,7 @@ export function writeType(
   type: string,
 ) {
   if (customTypes.has(type)) {
-    return `${type}.serialize(${writer})`;
+    return `${value}.serialize(${writer})`;
   }
 
   switch (type) {
@@ -69,9 +69,10 @@ export function writeType(
     case "bytes":
       return `${writer}.writeBytes(${value})`;
     case "arrayToUint32Array":
-      return `${writer}.writeArray(${value}, (writer, x) => writer.writeUint(x))`;
+      return `${writer}.writeArray(${value}, (writer, x) => writer.writeInt(BigInt(x)))`;
     default:
       console.error("Can't encode: " + type);
+      return `$$CANT_WRITE("${type}")`;
   }
 }
 
@@ -96,5 +97,6 @@ export function eqType(
       return `arrayEq(${var1}, ${var2})`;
     default:
       console.error("Can't compare: " + type);
+      return `$$CANT_EQ("${type}")`;
   }
 }

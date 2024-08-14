@@ -6,6 +6,7 @@ export type Variant = {
   tag: number;
   name: string;
   value?: string;
+  kind_name?: string;
 };
 
 export class GenTaggedRecord implements CodeGenerator {
@@ -20,7 +21,7 @@ export class GenTaggedRecord implements CodeGenerator {
   generate(customTypes: Set<string>): string {
     return `
       export enum ${this.name}Kind {
-        ${this.variants.map((x) => `${x.name} = ${x.tag},`).join("\n")}
+        ${this.variants.map((x) => `${x.kind_name ?? x.value} = ${x.tag},`).join("\n")}
       }
 
       export type ${this.name}Variant = 
@@ -70,8 +71,8 @@ export class GenTaggedRecord implements CodeGenerator {
           .join("\n")}
         
         static deserialize(reader: CBORReader): ${this.name} {
-          let len = value.readArrayTag();
-          let tag = Number(value.readUint());
+          let len = reader.readArrayTag();
+          let tag = Number(reader.readUint());
 
           let fragmentLen = len != null ? len - 1 : null;
           

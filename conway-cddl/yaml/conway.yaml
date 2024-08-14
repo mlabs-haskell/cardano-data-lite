@@ -754,9 +754,9 @@ StakeDelegation:
 
 PoolRegistration:
   type: record_fragment_wrapper
-  fields:
-    - name: pool_params
-      type: PoolParams
+  item:
+    name: pool_params
+    type: PoolParams
 
 PoolRetirement:
   type: record_fragment
@@ -910,8 +910,10 @@ DRep:
       value: ScriptHash
     - name: always_abstain
       tag: 2
+      kind_name: AlwaysAbstain
     - name: always_no_confidence
       tag: 3
+      kind_name: AlwaysNoConfidence
 
 # stake_credential = credential
 # drep_credential = credential
@@ -931,24 +933,24 @@ DRep:
 PoolParams:
   type: record_fragment
   fields:
-    - key: operator
-      value: Ed25519KeyHash
-    - key: vrf_keyhash
-      value: VRFKeyHash
-    - key: pledge
-      value: bignum
-    - key: cost
-      value: bignum
-    - key: margin
-      value: UnitInterval
-    - key: reward_account
-      value: RewardAddress
-    - key: pool_owners
-      value: Ed25519KeyHashes
-    - key: relays
-      value: Relays
-    - key: pool_metadata
-      value: PoolMetadata
+    - name: operator
+      type: Ed25519KeyHash
+    - name: vrf_keyhash
+      type: VRFKeyHash
+    - name: pledge
+      type: bignum
+    - name: cost
+      type: bignum
+    - name: margin
+      type: UnitInterval
+    - name: reward_account
+      type: RewardAddress
+    - name: pool_owners
+      type: Ed25519KeyHashes
+    - name: relays
+      type: Relays
+    - name: pool_metadata
+      type: PoolMetadata
       nullable: true
 
 Relays:
@@ -1108,7 +1110,7 @@ Withdrawals:
 #   , ? 33: nonnegative_interval   ; MinFee RefScriptCostPerByte
 #   }
 # Note: CSL uses unit_interval in place of nonnegative_interval
-protocol_param_update:
+ProtocolParamUpdate:
   type: struct
   fields:
     - id: 0
