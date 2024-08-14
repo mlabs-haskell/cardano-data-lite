@@ -1,3 +1,4 @@
+import { SchemaTable } from "../../compiler";
 import { jsType } from "./cbor-utils";
 
 type Field = {
@@ -7,24 +8,24 @@ type Field = {
   nullable?: boolean;
 };
 
-function fieldType(field: Field, customTypes: Set<string>) {
+function fieldType(field: Field, customTypes: SchemaTable) {
   return `${jsType(field.type, customTypes)} ${field.optional || field.nullable ? "| undefined" : ""}`;
 }
 
-export function genMembers(fields: Field[], customTypes: Set<string>) {
+export function genMembers(fields: Field[], customTypes: SchemaTable) {
   return fields
     .map((x) => `private ${x.name}: ${fieldType(x, customTypes)};`)
     .join("\n");
 }
 
-export function genConstructor(fields: Field[], customTypes: Set<string>) {
+export function genConstructor(fields: Field[], customTypes: SchemaTable) {
   return `
   constructor(${fields.map((x) => `${x.name}: ${fieldType(x, customTypes)}`).join(", ")}) {
     ${fields.map((x) => `this.${x.name} = ${x.name};`).join("\n")}
   }`;
 }
 
-export function genAccessors(fields: Field[], customTypes: Set<string>) {
+export function genAccessors(fields: Field[], customTypes: SchemaTable) {
   return fields
     .map(
       (x) => `

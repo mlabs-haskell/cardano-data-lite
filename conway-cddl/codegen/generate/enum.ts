@@ -1,4 +1,5 @@
 import { CodeGenerator } from ".";
+import { SchemaTable } from "../compiler";
 import { genCSL } from "./utils/csl";
 
 export type Variant = {
@@ -15,7 +16,7 @@ export class GenEnum implements CodeGenerator {
     this.variants = variants;
   }
 
-  generate(): string {
+  generate(_customTypes: SchemaTable): string {
     return `
       export enum ${this.name}Kind {
         ${this.variants.map((x) => `${x.name} = ${x.value},`).join("\n")}

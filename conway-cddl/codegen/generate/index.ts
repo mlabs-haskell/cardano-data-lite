@@ -1,3 +1,5 @@
+import { SchemaTable } from "../compiler";
+
 export interface CodeGenerator {
-  generate(customTypes: Set<string>): string;
+  generate(customTypes: SchemaTable): string;
 }

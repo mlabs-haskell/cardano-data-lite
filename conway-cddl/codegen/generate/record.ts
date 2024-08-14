@@ -1,4 +1,5 @@
 import { CodeGenerator } from ".";
+import { SchemaTable } from "../compiler";
 import { readType, writeType } from "./utils/cbor-utils";
 import { genCSL } from "./utils/csl";
 import { genAccessors, genConstructor, genMembers } from "./utils/structured";
@@ -18,7 +19,7 @@ export class GenRecord implements CodeGenerator {
     this.fields = fields;
   }
 
-  generate(customTypes: Set<string>): string {
+  generate(customTypes: SchemaTable): string {
     return `
       export class ${this.name} {
         ${genMembers(this.fields, customTypes)}

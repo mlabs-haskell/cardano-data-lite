@@ -1,4 +1,5 @@
 import { CodeGenerator } from ".";
+import { SchemaTable } from "../compiler";
 import { jsType, eqType, readType, writeType } from "./utils/cbor-utils";
 import { genCSL } from "./utils/csl";
 
@@ -13,7 +14,7 @@ export class GenMap implements CodeGenerator {
     this.value = value;
   }
 
-  generate(customTypes: Set<string>): string {
+  generate(customTypes: SchemaTable): string {
     let keyJsType = jsType(this.key, customTypes);
     let valueJsType = jsType(this.value, customTypes);
     let entryJsType = `[${keyJsType}, ${valueJsType}]`;
