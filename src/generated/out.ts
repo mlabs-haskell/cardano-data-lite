@@ -1631,7 +1631,7 @@ export class VotingProcedure {
       );
     }
 
-    let vote = VoteKind.deserialize(reader);
+    let vote = deserializeVoteKind(reader);
 
     let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
 
@@ -1641,7 +1641,7 @@ export class VotingProcedure {
   serialize(writer: CBORWriter): void {
     writer.writeArrayTag(2);
 
-    this.vote.serialize(writer);
+    serializeVoteKind(this.vote, writer);
     if (this.anchor == null) {
       writer.writeNull();
     } else {
@@ -2964,9 +2964,26 @@ export class Anchor {
 }
 
 export enum VoteKind {
-  no = 0,
-  yes = 1,
-  abstain = 2,
+  No = 0,
+  Yes = 1,
+  Abstain = 2,
+}
+
+export function deserializeVoteKind(reader: CBORReader): VoteKind {
+  let value = Number(reader.readInt());
+  switch (value) {
+    case 0:
+      return VoteKind.No;
+    case 1:
+      return VoteKind.Yes;
+    case 2:
+      return VoteKind.Abstain;
+  }
+  throw new Error("Invalid value for enum VoteKind: " + value);
+}
+
+export function serializeVoteKind(value: VoteKind, writer: CBORWriter): void {
+  writer.writeInt(BigInt(value));
 }
 
 export class GovernanceActionId {
