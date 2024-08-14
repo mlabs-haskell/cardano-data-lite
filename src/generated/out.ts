@@ -1,63 +1,20 @@
-import { CBORValue, CBORMap } from "../cbor/types";
-import {
-  CBORArrayReader,
-  CBORMapReader,
-  CBORReaderValue,
-} from "../cbor/reader";
+import { CBORReader } from "../cbor/reader";
 import { CBORWriter } from "../cbor/writer";
-
-export class TransactionBodies extends Array<TransactionBody> {
-  static fromCBOR(value: CBORReaderValue): TransactionBodies {
-    let array = value.get("array");
-    return new TransactionBodies(
-      ...array.map((x) => TransactionBody.fromCBOR(x)),
-    );
-  }
-}
-
-export class TransactionWitnessSets extends Array<TransactionWitnessSet> {
-  static fromCBOR(value: CBORReaderValue): TransactionWitnessSets {
-    let array = value.get("array");
-    return new TransactionWitnessSets(
-      ...array.map((x) => TransactionWitnessSet.fromCBOR(x)),
-    );
-  }
-}
-
-export class AuxiliaryDataSet extends CBORMap<TransactionIndex, AuxiliaryData> {
-  static fromCBOR(value: CBORReaderValue): AuxiliaryDataSet {
-    let map = value.get("map");
-    return new AuxiliaryDataSet(
-      map.map({
-        key: (x) => TransactionIndex.fromCBOR(x),
-        value: (x) => TransactionIndex.fromCBOR(x),
-      }),
-    );
-  }
-}
-
-export class InvalidTransactions extends Array<TransactionIndex> {
-  static fromCBOR(value: CBORReaderValue): InvalidTransactions {
-    let array = value.get("array");
-    return new InvalidTransactions(
-      ...array.map((x) => TransactionIndex.fromCBOR(x)),
-    );
-  }
-}
+import { hexToBytes, bytesToHex } from "../hex";
 
 export class Block {
   private header: Header;
   private transaction_bodies: TransactionBodies;
   private transaction_witness_sets: TransactionWitnessSets;
   private auxiliary_data_set: AuxiliaryDataSet;
-  private invalid_transactions: InvalidTransactions;
+  private invalid_transactions: Uint32Array;
 
   constructor(
     header: Header,
     transaction_bodies: TransactionBodies,
     transaction_witness_sets: TransactionWitnessSets,
     auxiliary_data_set: AuxiliaryDataSet,
-    invalid_transactions: InvalidTransactions,
+    invalid_transactions: Uint32Array,
   ) {
     this.header = header;
     this.transaction_bodies = transaction_bodies;
@@ -100,28 +57,55 @@ export class Block {
     this.auxiliary_data_set = auxiliary_data_set;
   }
 
-  get_invalid_transactions(): InvalidTransactions {
+  get_invalid_transactions(): Uint32Array {
     return this.invalid_transactions;
   }
 
-  set_invalid_transactions(invalid_transactions: InvalidTransactions): void {
+  set_invalid_transactions(invalid_transactions: Uint32Array): void {
     this.invalid_transactions = invalid_transactions;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): Block {
-    let header_ = array.shiftRequired();
-    let header = Header.fromCBOR(header_);
-    let transaction_bodies_ = array.shiftRequired();
-    let transaction_bodies = TransactionBodies.fromCBOR(transaction_bodies_);
-    let transaction_witness_sets_ = array.shiftRequired();
-    let transaction_witness_sets = TransactionWitnessSets.fromCBOR(
-      transaction_witness_sets_,
-    );
-    let auxiliary_data_set_ = array.shiftRequired();
-    let auxiliary_data_set = AuxiliaryDataSet.fromCBOR(auxiliary_data_set_);
-    let invalid_transactions_ = array.shiftRequired();
-    let invalid_transactions = InvalidTransactions.fromCBOR(
-      invalid_transactions_,
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Block {
+    let reader = new CBORReader(data);
+    return Block.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Block {
+    return Block.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): Block {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 5) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 5. Received " + len,
+      );
+    }
+
+    let header = Header.deserialize(reader);
+
+    let transaction_bodies = TransactionBodies.deserialize(reader);
+
+    let transaction_witness_sets = TransactionWitnessSets.deserialize(reader);
+
+    let auxiliary_data_set = AuxiliaryDataSet.deserialize(reader);
+
+    let invalid_transactions = new Uint32Array(
+      reader.readArray((reader) => Number(reader.readUint())),
     );
 
     return new Block(
@@ -133,67 +117,237 @@ export class Block {
     );
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.header);
-    entries.push(this.transaction_bodies);
-    entries.push(this.transaction_witness_sets);
-    entries.push(this.auxiliary_data_set);
-    entries.push(this.invalid_transactions);
-    return entries;
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(5);
+
+    this.header.serialize(writer);
+    this.transaction_bodies.serialize(writer);
+    this.transaction_witness_sets.serialize(writer);
+    this.auxiliary_data_set.serialize(writer);
+    writer.writeArray(this.invalid_transactions, (writer, x) =>
+      writer.writeInt(BigInt(x)),
+    );
+  }
+}
+
+export class TransactionBodies {
+  private items: TransactionBody[];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TransactionBodies {
+    let reader = new CBORReader(data);
+    return TransactionBodies.deserialize(reader);
   }
 
-  static fromCBOR(value: CBORReaderValue): Block {
-    let array = value.get("array");
-    return Block.fromArray(array);
+  static from_hex(hex_str: string): TransactionBodies {
+    return TransactionBodies.from_bytes(hexToBytes(hex_str));
   }
 
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(items: TransactionBody[]) {
+    this.items = items;
+  }
+
+  static new(): TransactionBodies {
+    return new TransactionBodies([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): TransactionBody {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: TransactionBody): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): TransactionBodies {
+    return new TransactionBodies(
+      reader.readArray((reader) => TransactionBody.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+}
+
+export class TransactionWitnessSets {
+  private items: TransactionWitnessSet[];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TransactionWitnessSets {
+    let reader = new CBORReader(data);
+    return TransactionWitnessSets.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TransactionWitnessSets {
+    return TransactionWitnessSets.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(items: TransactionWitnessSet[]) {
+    this.items = items;
+  }
+
+  static new(): TransactionWitnessSets {
+    return new TransactionWitnessSets([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): TransactionWitnessSet {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: TransactionWitnessSet): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): TransactionWitnessSets {
+    return new TransactionWitnessSets(
+      reader.readArray((reader) => TransactionWitnessSet.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+}
+
+export class AuxiliaryDataSet {
+  private items: [number, AuxiliaryData][];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): AuxiliaryDataSet {
+    let reader = new CBORReader(data);
+    return AuxiliaryDataSet.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): AuxiliaryDataSet {
+    return AuxiliaryDataSet.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(items: [number, AuxiliaryData][]) {
+    this.items = items;
+  }
+
+  static new(): AuxiliaryDataSet {
+    return new AuxiliaryDataSet([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(key: number, value: AuxiliaryData): void {
+    let entry = this.items.find((x) => key === x[0]);
+    if (entry != null) entry[1] = value;
+    else this.items.push([key, value]);
+  }
+
+  get(key: number): AuxiliaryData | undefined {
+    let entry = this.items.find((x) => key === x[0]);
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  static deserialize(reader: CBORReader): AuxiliaryDataSet {
+    let ret = new AuxiliaryDataSet([]);
+    reader.readMap((reader) =>
+      ret.insert(Number(reader.readInt()), AuxiliaryData.deserialize(reader)),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeMap(this.items, (writer, x) => {
+      writer.writeInt(BigInt(x[0]));
+      x[1].serialize(writer);
+    });
   }
 }
 
 export class Transaction {
-  private transaction_body: TransactionBody;
-  private transaction_witness_set: TransactionWitnessSet;
-  private is_valid: Boolean;
+  private body: TransactionBody;
+  private witness_set: TransactionWitnessSet;
+  private is_valid: boolean;
   private auxiliary_data: AuxiliaryData | undefined;
 
   constructor(
-    transaction_body: TransactionBody,
-    transaction_witness_set: TransactionWitnessSet,
-    is_valid: Boolean,
+    body: TransactionBody,
+    witness_set: TransactionWitnessSet,
+    is_valid: boolean,
     auxiliary_data: AuxiliaryData | undefined,
   ) {
-    this.transaction_body = transaction_body;
-    this.transaction_witness_set = transaction_witness_set;
+    this.body = body;
+    this.witness_set = witness_set;
     this.is_valid = is_valid;
     this.auxiliary_data = auxiliary_data;
   }
 
-  get_transaction_body(): TransactionBody {
-    return this.transaction_body;
+  get_body(): TransactionBody {
+    return this.body;
   }
 
-  set_transaction_body(transaction_body: TransactionBody): void {
-    this.transaction_body = transaction_body;
+  set_body(body: TransactionBody): void {
+    this.body = body;
   }
 
-  get_transaction_witness_set(): TransactionWitnessSet {
-    return this.transaction_witness_set;
+  get_witness_set(): TransactionWitnessSet {
+    return this.witness_set;
   }
 
-  set_transaction_witness_set(
-    transaction_witness_set: TransactionWitnessSet,
-  ): void {
-    this.transaction_witness_set = transaction_witness_set;
+  set_witness_set(witness_set: TransactionWitnessSet): void {
+    this.witness_set = witness_set;
   }
 
-  get_is_valid(): Boolean {
+  get_is_valid(): boolean {
     return this.is_valid;
   }
 
-  set_is_valid(is_valid: Boolean): void {
+  set_is_valid(is_valid: boolean): void {
     this.is_valid = is_valid;
   }
 
@@ -201,60 +355,72 @@ export class Transaction {
     return this.auxiliary_data;
   }
 
-  set_auxiliary_data(auxiliary_data: AuxiliaryData): void {
+  set_auxiliary_data(auxiliary_data: AuxiliaryData | undefined): void {
     this.auxiliary_data = auxiliary_data;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): Transaction {
-    let transaction_body_ = array.shiftRequired();
-    let transaction_body = TransactionBody.fromCBOR(transaction_body_);
-    let transaction_witness_set_ = array.shiftRequired();
-    let transaction_witness_set = TransactionWitnessSet.fromCBOR(
-      transaction_witness_set_,
-    );
-    let is_valid_ = array.shiftRequired();
-    let is_valid = Boolean.fromCBOR(is_valid_);
-    let auxiliary_data_ = array.shiftRequired();
-    let auxiliary_data__ = auxiliary_data_.withNullable((x) =>
-      AuxiliaryData.fromCBOR(x),
-    );
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Transaction {
+    let reader = new CBORReader(data);
+    return Transaction.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Transaction {
+    return Transaction.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): Transaction {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 4) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 4. Received " + len,
+      );
+    }
+
+    let body = TransactionBody.deserialize(reader);
+
+    let witness_set = TransactionWitnessSet.deserialize(reader);
+
+    let is_valid = reader.readBoolean();
+
     let auxiliary_data =
-      auxiliary_data__ == null ? undefined : auxiliary_data__;
+      reader.readNullable((r) => AuxiliaryData.deserialize(r)) ?? undefined;
 
-    return new Transaction(
-      transaction_body,
-      transaction_witness_set,
-      is_valid,
-      auxiliary_data,
-    );
+    return new Transaction(body, witness_set, is_valid, auxiliary_data);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.transaction_body);
-    entries.push(this.transaction_witness_set);
-    entries.push(this.is_valid);
-    entries.push(this.auxiliary_data);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(4);
 
-  static fromCBOR(value: CBORReaderValue): Transaction {
-    let array = value.get("array");
-    return Transaction.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    this.body.serialize(writer);
+    this.witness_set.serialize(writer);
+    writer.writeBoolean(this.is_valid);
+    if (this.auxiliary_data == null) {
+      writer.writeNull();
+    } else {
+      this.auxiliary_data.serialize(writer);
+    }
   }
 }
 
-export type TransactionIndex = number;
-
 export class Header {
   private header_body: HeaderBody;
-  private body_signature: KesSignature;
+  private body_signature: unknown;
 
-  constructor(header_body: HeaderBody, body_signature: KesSignature) {
+  constructor(header_body: HeaderBody, body_signature: unknown) {
     this.header_body = header_body;
     this.body_signature = body_signature;
   }
@@ -267,61 +433,81 @@ export class Header {
     this.header_body = header_body;
   }
 
-  get_body_signature(): KesSignature {
+  get_body_signature(): unknown {
     return this.body_signature;
   }
 
-  set_body_signature(body_signature: KesSignature): void {
+  set_body_signature(body_signature: unknown): void {
     this.body_signature = body_signature;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): Header {
-    let header_body_ = array.shiftRequired();
-    let header_body = HeaderBody.fromCBOR(header_body_);
-    let body_signature_ = array.shiftRequired();
-    let body_signature = KesSignature.fromCBOR(body_signature_);
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Header {
+    let reader = new CBORReader(data);
+    return Header.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Header {
+    return Header.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): Header {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let header_body = HeaderBody.deserialize(reader);
+
+    let body_signature = $$CANT_READ("KESSignature");
 
     return new Header(header_body, body_signature);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.header_body);
-    entries.push(this.body_signature);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
 
-  static fromCBOR(value: CBORReaderValue): Header {
-    let array = value.get("array");
-    return Header.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    this.header_body.serialize(writer);
+    $$CANT_WRITE("KESSignature");
   }
 }
 
 export class HeaderBody {
   private block_number: number;
-  private slot: number;
-  private prev_hash: Hash32 | undefined;
-  private issuer_vkey: Vkey;
-  private vrf_vkey: VrfVkey;
-  private vrf_result: VrfCert;
+  private slot: bigint;
+  private prev_hash: unknown | undefined;
+  private issuer_vkey: unknown;
+  private vrf_vkey: unknown;
+  private vrf_result: unknown;
   private block_body_size: number;
-  private block_body_hash: Hash32;
+  private block_body_hash: unknown;
   private operational_cert: OperationalCert;
   private protocol_version: ProtocolVersion;
 
   constructor(
     block_number: number,
-    slot: number,
-    prev_hash: Hash32 | undefined,
-    issuer_vkey: Vkey,
-    vrf_vkey: VrfVkey,
-    vrf_result: VrfCert,
+    slot: bigint,
+    prev_hash: unknown | undefined,
+    issuer_vkey: unknown,
+    vrf_vkey: unknown,
+    vrf_result: unknown,
     block_body_size: number,
-    block_body_hash: Hash32,
+    block_body_hash: unknown,
     operational_cert: OperationalCert,
     protocol_version: ProtocolVersion,
   ) {
@@ -345,43 +531,43 @@ export class HeaderBody {
     this.block_number = block_number;
   }
 
-  get_slot(): number {
+  get_slot(): bigint {
     return this.slot;
   }
 
-  set_slot(slot: number): void {
+  set_slot(slot: bigint): void {
     this.slot = slot;
   }
 
-  get_prev_hash(): Hash32 | undefined {
+  get_prev_hash(): unknown | undefined {
     return this.prev_hash;
   }
 
-  set_prev_hash(prev_hash: Hash32): void {
+  set_prev_hash(prev_hash: unknown | undefined): void {
     this.prev_hash = prev_hash;
   }
 
-  get_issuer_vkey(): Vkey {
+  get_issuer_vkey(): unknown {
     return this.issuer_vkey;
   }
 
-  set_issuer_vkey(issuer_vkey: Vkey): void {
+  set_issuer_vkey(issuer_vkey: unknown): void {
     this.issuer_vkey = issuer_vkey;
   }
 
-  get_vrf_vkey(): VrfVkey {
+  get_vrf_vkey(): unknown {
     return this.vrf_vkey;
   }
 
-  set_vrf_vkey(vrf_vkey: VrfVkey): void {
+  set_vrf_vkey(vrf_vkey: unknown): void {
     this.vrf_vkey = vrf_vkey;
   }
 
-  get_vrf_result(): VrfCert {
+  get_vrf_result(): unknown {
     return this.vrf_result;
   }
 
-  set_vrf_result(vrf_result: VrfCert): void {
+  set_vrf_result(vrf_result: unknown): void {
     this.vrf_result = vrf_result;
   }
 
@@ -393,11 +579,11 @@ export class HeaderBody {
     this.block_body_size = block_body_size;
   }
 
-  get_block_body_hash(): Hash32 {
+  get_block_body_hash(): unknown {
     return this.block_body_hash;
   }
 
-  set_block_body_hash(block_body_hash: Hash32): void {
+  set_block_body_hash(block_body_hash: unknown): void {
     this.block_body_hash = block_body_hash;
   }
 
@@ -417,28 +603,57 @@ export class HeaderBody {
     this.protocol_version = protocol_version;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): HeaderBody {
-    let block_number_ = array.shiftRequired();
-    let block_number = block_number_.get("uint");
-    let slot_ = array.shiftRequired();
-    let slot = slot_.get("uint");
-    let prev_hash_ = array.shiftRequired();
-    let prev_hash__ = prev_hash_.withNullable((x) => Hash32.fromCBOR(x));
-    let prev_hash = prev_hash__ == null ? undefined : prev_hash__;
-    let issuer_vkey_ = array.shiftRequired();
-    let issuer_vkey = Vkey.fromCBOR(issuer_vkey_);
-    let vrf_vkey_ = array.shiftRequired();
-    let vrf_vkey = VrfVkey.fromCBOR(vrf_vkey_);
-    let vrf_result_ = array.shiftRequired();
-    let vrf_result = VrfCert.fromCBOR(vrf_result_);
-    let block_body_size_ = array.shiftRequired();
-    let block_body_size = block_body_size_.get("uint");
-    let block_body_hash_ = array.shiftRequired();
-    let block_body_hash = Hash32.fromCBOR(block_body_hash_);
-    let operational_cert_ = array.shiftRequired();
-    let operational_cert = OperationalCert.fromCBOR(operational_cert_);
-    let protocol_version_ = array.shiftRequired();
-    let protocol_version = ProtocolVersion.fromCBOR(protocol_version_);
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): HeaderBody {
+    let reader = new CBORReader(data);
+    return HeaderBody.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): HeaderBody {
+    return HeaderBody.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): HeaderBody {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 10) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 10. Received " + len,
+      );
+    }
+
+    let block_number = Number(reader.readInt());
+
+    let slot = reader.readInt();
+
+    let prev_hash =
+      reader.readNullable((r) => $$CANT_READ("BlockHash")) ?? undefined;
+
+    let issuer_vkey = $$CANT_READ("Vkey");
+
+    let vrf_vkey = $$CANT_READ("VRFVKey");
+
+    let vrf_result = $$CANT_READ("VRFCert");
+
+    let block_body_size = Number(reader.readInt());
+
+    let block_body_hash = $$CANT_READ("BlockHash");
+
+    let operational_cert = OperationalCert.deserialize(reader);
+
+    let protocol_version = ProtocolVersion.deserialize(reader);
 
     return new HeaderBody(
       block_number,
@@ -454,42 +669,37 @@ export class HeaderBody {
     );
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.block_number);
-    entries.push(this.slot);
-    entries.push(this.prev_hash);
-    entries.push(this.issuer_vkey);
-    entries.push(this.vrf_vkey);
-    entries.push(this.vrf_result);
-    entries.push(this.block_body_size);
-    entries.push(this.block_body_hash);
-    entries.push(this.operational_cert);
-    entries.push(this.protocol_version);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(10);
 
-  static fromCBOR(value: CBORReaderValue): HeaderBody {
-    let array = value.get("array");
-    return HeaderBody.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    writer.writeInt(BigInt(this.block_number));
+    writer.writeInt(this.slot);
+    if (this.prev_hash == null) {
+      writer.writeNull();
+    } else {
+      $$CANT_WRITE("BlockHash");
+    }
+    $$CANT_WRITE("Vkey");
+    $$CANT_WRITE("VRFVKey");
+    $$CANT_WRITE("VRFCert");
+    writer.writeInt(BigInt(this.block_body_size));
+    $$CANT_WRITE("BlockHash");
+    this.operational_cert.serialize(writer);
+    this.protocol_version.serialize(writer);
   }
 }
 
 export class OperationalCert {
-  private hot_vkey: KesVkey;
+  private hot_vkey: unknown;
   private sequence_number: number;
   private kes_period: number;
-  private sigma: Signature;
+  private sigma: unknown;
 
   constructor(
-    hot_vkey: KesVkey,
+    hot_vkey: unknown,
     sequence_number: number,
     kes_period: number,
-    sigma: Signature,
+    sigma: unknown,
   ) {
     this.hot_vkey = hot_vkey;
     this.sequence_number = sequence_number;
@@ -497,11 +707,11 @@ export class OperationalCert {
     this.sigma = sigma;
   }
 
-  get_hot_vkey(): KesVkey {
+  get_hot_vkey(): unknown {
     return this.hot_vkey;
   }
 
-  set_hot_vkey(hot_vkey: KesVkey): void {
+  set_hot_vkey(hot_vkey: unknown): void {
     this.hot_vkey = hot_vkey;
   }
 
@@ -521,314 +731,298 @@ export class OperationalCert {
     this.kes_period = kes_period;
   }
 
-  get_sigma(): Signature {
+  get_sigma(): unknown {
     return this.sigma;
   }
 
-  set_sigma(sigma: Signature): void {
+  set_sigma(sigma: unknown): void {
     this.sigma = sigma;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): OperationalCert {
-    let hot_vkey_ = array.shiftRequired();
-    let hot_vkey = KesVkey.fromCBOR(hot_vkey_);
-    let sequence_number_ = array.shiftRequired();
-    let sequence_number = sequence_number_.get("uint");
-    let kes_period_ = array.shiftRequired();
-    let kes_period = kes_period_.get("uint");
-    let sigma_ = array.shiftRequired();
-    let sigma = Signature.fromCBOR(sigma_);
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): OperationalCert {
+    let reader = new CBORReader(data);
+    return OperationalCert.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): OperationalCert {
+    return OperationalCert.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): OperationalCert {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 4) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 4. Received " + len,
+      );
+    }
+
+    let hot_vkey = $$CANT_READ("KESVKey");
+
+    let sequence_number = Number(reader.readInt());
+
+    let kes_period = Number(reader.readInt());
+
+    let sigma = $$CANT_READ("Ed25519Signature");
 
     return new OperationalCert(hot_vkey, sequence_number, kes_period, sigma);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.hot_vkey);
-    entries.push(this.sequence_number);
-    entries.push(this.kes_period);
-    entries.push(this.sigma);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(4);
 
-  static fromCBOR(value: CBORReaderValue): OperationalCert {
-    let array = value.get("array");
-    return OperationalCert.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    $$CANT_WRITE("KESVKey");
+    writer.writeInt(BigInt(this.sequence_number));
+    writer.writeInt(BigInt(this.kes_period));
+    $$CANT_WRITE("Ed25519Signature");
   }
 }
-
-export type MajorProtocolVersion = number;
 
 export class ProtocolVersion {
-  private major_protocol_version: MajorProtocolVersion;
-  private minor_protocol_version: number;
+  private major: number;
+  private minor: number;
 
-  constructor(
-    major_protocol_version: MajorProtocolVersion,
-    minor_protocol_version: number,
-  ) {
-    this.major_protocol_version = major_protocol_version;
-    this.minor_protocol_version = minor_protocol_version;
+  constructor(major: number, minor: number) {
+    this.major = major;
+    this.minor = minor;
   }
 
-  get_major_protocol_version(): MajorProtocolVersion {
-    return this.major_protocol_version;
+  get_major(): number {
+    return this.major;
   }
 
-  set_major_protocol_version(
-    major_protocol_version: MajorProtocolVersion,
-  ): void {
-    this.major_protocol_version = major_protocol_version;
+  set_major(major: number): void {
+    this.major = major;
   }
 
-  get_minor_protocol_version(): number {
-    return this.minor_protocol_version;
+  get_minor(): number {
+    return this.minor;
   }
 
-  set_minor_protocol_version(minor_protocol_version: number): void {
-    this.minor_protocol_version = minor_protocol_version;
+  set_minor(minor: number): void {
+    this.minor = minor;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): ProtocolVersion {
-    let major_protocol_version_ = array.shiftRequired();
-    let major_protocol_version = MajorProtocolVersion.fromCBOR(
-      major_protocol_version_,
-    );
-    let minor_protocol_version_ = array.shiftRequired();
-    let minor_protocol_version = minor_protocol_version_.get("uint");
+  // no-op
+  free(): void {}
 
-    return new ProtocolVersion(major_protocol_version, minor_protocol_version);
+  static from_bytes(data: Uint8Array): ProtocolVersion {
+    let reader = new CBORReader(data);
+    return ProtocolVersion.deserialize(reader);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.major_protocol_version);
-    entries.push(this.minor_protocol_version);
-    return entries;
+  static from_hex(hex_str: string): ProtocolVersion {
+    return ProtocolVersion.from_bytes(hexToBytes(hex_str));
   }
 
-  static fromCBOR(value: CBORReaderValue): ProtocolVersion {
-    let array = value.get("array");
-    return ProtocolVersion.fromArray(array);
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
   }
 
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class Inputs extends Array<TransactionInput> {
-  static fromCBOR(value: CBORReaderValue): Inputs {
-    let tagged = value.get("tagged");
-    let array = tagged.getTagged(258n).get("array");
-    return new Inputs(...array.map((x) => TransactionInput.fromCBOR(x)));
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 
-  toCBOR(writer: CBORWriter) {
-    return writer.writeTagged(258n, [...this]);
-  }
-}
+  static deserialize(reader: CBORReader): ProtocolVersion {
+    let len = reader.readArrayTag();
 
-export class TransactionOutputs extends Array<TransactionOutput> {
-  static fromCBOR(value: CBORReaderValue): TransactionOutputs {
-    let array = value.get("array");
-    return new TransactionOutputs(
-      ...array.map((x) => TransactionOutput.fromCBOR(x)),
-    );
-  }
-}
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
 
-export class CollateralInputs extends Array<TransactionInput> {
-  static fromCBOR(value: CBORReaderValue): CollateralInputs {
-    let tagged = value.get("tagged");
-    let array = tagged.getTagged(258n).get("array");
-    return new CollateralInputs(
-      ...array.map((x) => TransactionInput.fromCBOR(x)),
-    );
+    let major = Number(reader.readInt());
+
+    let minor = Number(reader.readInt());
+
+    return new ProtocolVersion(major, minor);
   }
 
-  toCBOR(writer: CBORWriter) {
-    return writer.writeTagged(258n, [...this]);
-  }
-}
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
 
-export class ReferenceInputs extends Array<TransactionInput> {
-  static fromCBOR(value: CBORReaderValue): ReferenceInputs {
-    let tagged = value.get("tagged");
-    let array = tagged.getTagged(258n).get("array");
-    return new ReferenceInputs(
-      ...array.map((x) => TransactionInput.fromCBOR(x)),
-    );
-  }
-
-  toCBOR(writer: CBORWriter) {
-    return writer.writeTagged(258n, [...this]);
+    writer.writeInt(BigInt(this.major));
+    writer.writeInt(BigInt(this.minor));
   }
 }
 
 export class TransactionBody {
-  private inputs: Inputs;
-  private transaction_outputs: TransactionOutputs;
-  private fee: Coin;
-  private time_to_live: number | undefined;
-  private certificates: Certificates | undefined;
+  private inputs: TransactionInputs;
+  private outputs: TransactionOutputs;
+  private fee: bigint;
+  private ttl: bigint | undefined;
+  private certs: unknown | undefined;
   private withdrawals: Withdrawals | undefined;
-  private auxiliary_data_hash: AuxiliaryDataHash | undefined;
-  private validity_interval_start: number | undefined;
-  private mint: Mint | undefined;
-  private script_data_hash: ScriptDataHash | undefined;
-  private collateral_inputs: CollateralInputs | undefined;
-  private required_signers: RequiredSigners | undefined;
+  private auxiliary_data_hash: unknown | undefined;
+  private validity_start_interval: bigint | undefined;
+  private mint: unknown | undefined;
+  private script_data_hash: unknown | undefined;
+  private collateral: TransactionInputs | undefined;
+  private required_signers: Ed25519KeyHashes | undefined;
   private network_id: NetworkId | undefined;
   private collateral_return: TransactionOutput | undefined;
-  private total_collateral: Coin | undefined;
-  private reference_inputs: ReferenceInputs | undefined;
-  private voting_procedures: VotingProcedures | undefined;
-  private proposal_procedures: ProposalProcedures | undefined;
-  private current_treasury_value: Coin | undefined;
-  private donation: Coin | undefined;
+  private total_collateral: bigint | undefined;
+  private reference_inputs: TransactionInputs | undefined;
+  private voting_procedures: unknown | undefined;
+  private voting_proposals: VotingProposals | undefined;
+  private current_treasury_value: bigint | undefined;
+  private donation: bigint | undefined;
 
   constructor(
-    inputs: Inputs,
-    transaction_outputs: TransactionOutputs,
-    fee: Coin,
-    time_to_live: number | undefined,
-    certificates: Certificates | undefined,
+    inputs: TransactionInputs,
+    outputs: TransactionOutputs,
+    fee: bigint,
+    ttl: bigint | undefined,
+    certs: unknown | undefined,
     withdrawals: Withdrawals | undefined,
-    auxiliary_data_hash: AuxiliaryDataHash | undefined,
-    validity_interval_start: number | undefined,
-    mint: Mint | undefined,
-    script_data_hash: ScriptDataHash | undefined,
-    collateral_inputs: CollateralInputs | undefined,
-    required_signers: RequiredSigners | undefined,
+    auxiliary_data_hash: unknown | undefined,
+    validity_start_interval: bigint | undefined,
+    mint: unknown | undefined,
+    script_data_hash: unknown | undefined,
+    collateral: TransactionInputs | undefined,
+    required_signers: Ed25519KeyHashes | undefined,
     network_id: NetworkId | undefined,
     collateral_return: TransactionOutput | undefined,
-    total_collateral: Coin | undefined,
-    reference_inputs: ReferenceInputs | undefined,
-    voting_procedures: VotingProcedures | undefined,
-    proposal_procedures: ProposalProcedures | undefined,
-    current_treasury_value: Coin | undefined,
-    donation: Coin | undefined,
+    total_collateral: bigint | undefined,
+    reference_inputs: TransactionInputs | undefined,
+    voting_procedures: unknown | undefined,
+    voting_proposals: VotingProposals | undefined,
+    current_treasury_value: bigint | undefined,
+    donation: bigint | undefined,
   ) {
     this.inputs = inputs;
-    this.transaction_outputs = transaction_outputs;
+    this.outputs = outputs;
     this.fee = fee;
-    this.time_to_live = time_to_live;
-    this.certificates = certificates;
+    this.ttl = ttl;
+    this.certs = certs;
     this.withdrawals = withdrawals;
     this.auxiliary_data_hash = auxiliary_data_hash;
-    this.validity_interval_start = validity_interval_start;
+    this.validity_start_interval = validity_start_interval;
     this.mint = mint;
     this.script_data_hash = script_data_hash;
-    this.collateral_inputs = collateral_inputs;
+    this.collateral = collateral;
     this.required_signers = required_signers;
     this.network_id = network_id;
     this.collateral_return = collateral_return;
     this.total_collateral = total_collateral;
     this.reference_inputs = reference_inputs;
     this.voting_procedures = voting_procedures;
-    this.proposal_procedures = proposal_procedures;
+    this.voting_proposals = voting_proposals;
     this.current_treasury_value = current_treasury_value;
     this.donation = donation;
   }
 
-  get_inputs(): Inputs {
+  get_inputs(): TransactionInputs {
     return this.inputs;
   }
 
-  set_inputs(inputs: Inputs): void {
+  set_inputs(inputs: TransactionInputs): void {
     this.inputs = inputs;
   }
 
-  get_transaction_outputs(): TransactionOutputs {
-    return this.transaction_outputs;
+  get_outputs(): TransactionOutputs {
+    return this.outputs;
   }
 
-  set_transaction_outputs(transaction_outputs: TransactionOutputs): void {
-    this.transaction_outputs = transaction_outputs;
+  set_outputs(outputs: TransactionOutputs): void {
+    this.outputs = outputs;
   }
 
-  get_fee(): Coin {
+  get_fee(): bigint {
     return this.fee;
   }
 
-  set_fee(fee: Coin): void {
+  set_fee(fee: bigint): void {
     this.fee = fee;
   }
 
-  get_time_to_live(): number | undefined {
-    return this.time_to_live;
+  get_ttl(): bigint | undefined {
+    return this.ttl;
   }
 
-  set_time_to_live(time_to_live: number): void {
-    this.time_to_live = time_to_live;
+  set_ttl(ttl: bigint | undefined): void {
+    this.ttl = ttl;
   }
 
-  get_certificates(): Certificates | undefined {
-    return this.certificates;
+  get_certs(): unknown | undefined {
+    return this.certs;
   }
 
-  set_certificates(certificates: Certificates): void {
-    this.certificates = certificates;
+  set_certs(certs: unknown | undefined): void {
+    this.certs = certs;
   }
 
   get_withdrawals(): Withdrawals | undefined {
     return this.withdrawals;
   }
 
-  set_withdrawals(withdrawals: Withdrawals): void {
+  set_withdrawals(withdrawals: Withdrawals | undefined): void {
     this.withdrawals = withdrawals;
   }
 
-  get_auxiliary_data_hash(): AuxiliaryDataHash | undefined {
+  get_auxiliary_data_hash(): unknown | undefined {
     return this.auxiliary_data_hash;
   }
 
-  set_auxiliary_data_hash(auxiliary_data_hash: AuxiliaryDataHash): void {
+  set_auxiliary_data_hash(auxiliary_data_hash: unknown | undefined): void {
     this.auxiliary_data_hash = auxiliary_data_hash;
   }
 
-  get_validity_interval_start(): number | undefined {
-    return this.validity_interval_start;
+  get_validity_start_interval(): bigint | undefined {
+    return this.validity_start_interval;
   }
 
-  set_validity_interval_start(validity_interval_start: number): void {
-    this.validity_interval_start = validity_interval_start;
+  set_validity_start_interval(
+    validity_start_interval: bigint | undefined,
+  ): void {
+    this.validity_start_interval = validity_start_interval;
   }
 
-  get_mint(): Mint | undefined {
+  get_mint(): unknown | undefined {
     return this.mint;
   }
 
-  set_mint(mint: Mint): void {
+  set_mint(mint: unknown | undefined): void {
     this.mint = mint;
   }
 
-  get_script_data_hash(): ScriptDataHash | undefined {
+  get_script_data_hash(): unknown | undefined {
     return this.script_data_hash;
   }
 
-  set_script_data_hash(script_data_hash: ScriptDataHash): void {
+  set_script_data_hash(script_data_hash: unknown | undefined): void {
     this.script_data_hash = script_data_hash;
   }
 
-  get_collateral_inputs(): CollateralInputs | undefined {
-    return this.collateral_inputs;
+  get_collateral(): TransactionInputs | undefined {
+    return this.collateral;
   }
 
-  set_collateral_inputs(collateral_inputs: CollateralInputs): void {
-    this.collateral_inputs = collateral_inputs;
+  set_collateral(collateral: TransactionInputs | undefined): void {
+    this.collateral = collateral;
   }
 
-  get_required_signers(): RequiredSigners | undefined {
+  get_required_signers(): Ed25519KeyHashes | undefined {
     return this.required_signers;
   }
 
-  set_required_signers(required_signers: RequiredSigners): void {
+  set_required_signers(required_signers: Ed25519KeyHashes | undefined): void {
     this.required_signers = required_signers;
   }
 
@@ -836,7 +1030,7 @@ export class TransactionBody {
     return this.network_id;
   }
 
-  set_network_id(network_id: NetworkId): void {
+  set_network_id(network_id: NetworkId | undefined): void {
     this.network_id = network_id;
   }
 
@@ -844,254 +1038,557 @@ export class TransactionBody {
     return this.collateral_return;
   }
 
-  set_collateral_return(collateral_return: TransactionOutput): void {
+  set_collateral_return(
+    collateral_return: TransactionOutput | undefined,
+  ): void {
     this.collateral_return = collateral_return;
   }
 
-  get_total_collateral(): Coin | undefined {
+  get_total_collateral(): bigint | undefined {
     return this.total_collateral;
   }
 
-  set_total_collateral(total_collateral: Coin): void {
+  set_total_collateral(total_collateral: bigint | undefined): void {
     this.total_collateral = total_collateral;
   }
 
-  get_reference_inputs(): ReferenceInputs | undefined {
+  get_reference_inputs(): TransactionInputs | undefined {
     return this.reference_inputs;
   }
 
-  set_reference_inputs(reference_inputs: ReferenceInputs): void {
+  set_reference_inputs(reference_inputs: TransactionInputs | undefined): void {
     this.reference_inputs = reference_inputs;
   }
 
-  get_voting_procedures(): VotingProcedures | undefined {
+  get_voting_procedures(): unknown | undefined {
     return this.voting_procedures;
   }
 
-  set_voting_procedures(voting_procedures: VotingProcedures): void {
+  set_voting_procedures(voting_procedures: unknown | undefined): void {
     this.voting_procedures = voting_procedures;
   }
 
-  get_proposal_procedures(): ProposalProcedures | undefined {
-    return this.proposal_procedures;
+  get_voting_proposals(): VotingProposals | undefined {
+    return this.voting_proposals;
   }
 
-  set_proposal_procedures(proposal_procedures: ProposalProcedures): void {
-    this.proposal_procedures = proposal_procedures;
+  set_voting_proposals(voting_proposals: VotingProposals | undefined): void {
+    this.voting_proposals = voting_proposals;
   }
 
-  get_current_treasury_value(): Coin | undefined {
+  get_current_treasury_value(): bigint | undefined {
     return this.current_treasury_value;
   }
 
-  set_current_treasury_value(current_treasury_value: Coin): void {
+  set_current_treasury_value(current_treasury_value: bigint | undefined): void {
     this.current_treasury_value = current_treasury_value;
   }
 
-  get_donation(): Coin | undefined {
+  get_donation(): bigint | undefined {
     return this.donation;
   }
 
-  set_donation(donation: Coin): void {
+  set_donation(donation: bigint | undefined): void {
     this.donation = donation;
   }
 
-  static fromCBOR(value: CBORReaderValue): TransactionBody {
-    let map = value
-      .get("map")
-      .toMap()
-      .map({ key: (x) => Number(x.getInt()), value: (x) => x });
-    let inputs_ = map.getRequired(0);
-    let inputs = inputs_ != undefined ? Inputs.fromCBOR(inputs_) : undefined;
-    let transaction_outputs_ = map.getRequired(1);
-    let transaction_outputs =
-      transaction_outputs_ != undefined
-        ? TransactionOutputs.fromCBOR(transaction_outputs_)
-        : undefined;
-    let fee_ = map.getRequired(2);
-    let fee = fee_ != undefined ? Coin.fromCBOR(fee_) : undefined;
-    let time_to_live_ = map.get(3);
-    let time_to_live =
-      time_to_live_ != undefined ? time_to_live_.get("uint") : undefined;
-    let certificates_ = map.get(4);
-    let certificates =
-      certificates_ != undefined
-        ? Certificates.fromCBOR(certificates_)
-        : undefined;
-    let withdrawals_ = map.get(5);
-    let withdrawals =
-      withdrawals_ != undefined
-        ? Withdrawals.fromCBOR(withdrawals_)
-        : undefined;
-    let auxiliary_data_hash_ = map.get(7);
-    let auxiliary_data_hash =
-      auxiliary_data_hash_ != undefined
-        ? AuxiliaryDataHash.fromCBOR(auxiliary_data_hash_)
-        : undefined;
-    let validity_interval_start_ = map.get(8);
-    let validity_interval_start =
-      validity_interval_start_ != undefined
-        ? validity_interval_start_.get("uint")
-        : undefined;
-    let mint_ = map.get(9);
-    let mint = mint_ != undefined ? Mint.fromCBOR(mint_) : undefined;
-    let script_data_hash_ = map.get(11);
-    let script_data_hash =
-      script_data_hash_ != undefined
-        ? ScriptDataHash.fromCBOR(script_data_hash_)
-        : undefined;
-    let collateral_inputs_ = map.get(13);
-    let collateral_inputs =
-      collateral_inputs_ != undefined
-        ? CollateralInputs.fromCBOR(collateral_inputs_)
-        : undefined;
-    let required_signers_ = map.get(14);
-    let required_signers =
-      required_signers_ != undefined
-        ? RequiredSigners.fromCBOR(required_signers_)
-        : undefined;
-    let network_id_ = map.get(15);
-    let network_id =
-      network_id_ != undefined ? NetworkId.fromCBOR(network_id_) : undefined;
-    let collateral_return_ = map.get(16);
-    let collateral_return =
-      collateral_return_ != undefined
-        ? TransactionOutput.fromCBOR(collateral_return_)
-        : undefined;
-    let total_collateral_ = map.get(17);
-    let total_collateral =
-      total_collateral_ != undefined
-        ? Coin.fromCBOR(total_collateral_)
-        : undefined;
-    let reference_inputs_ = map.get(18);
-    let reference_inputs =
-      reference_inputs_ != undefined
-        ? ReferenceInputs.fromCBOR(reference_inputs_)
-        : undefined;
-    let voting_procedures_ = map.get(19);
-    let voting_procedures =
-      voting_procedures_ != undefined
-        ? VotingProcedures.fromCBOR(voting_procedures_)
-        : undefined;
-    let proposal_procedures_ = map.get(20);
-    let proposal_procedures =
-      proposal_procedures_ != undefined
-        ? ProposalProcedures.fromCBOR(proposal_procedures_)
-        : undefined;
-    let current_treasury_value_ = map.get(21);
-    let current_treasury_value =
-      current_treasury_value_ != undefined
-        ? Coin.fromCBOR(current_treasury_value_)
-        : undefined;
-    let donation_ = map.get(22);
-    let donation =
-      donation_ != undefined ? Coin.fromCBOR(donation_) : undefined;
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TransactionBody {
+    let reader = new CBORReader(data);
+    return TransactionBody.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TransactionBody {
+    return TransactionBody.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): TransactionBody {
+    let fields: any = {};
+    reader.readMap((r) => {
+      let key = Number(r.readUint());
+      switch (key) {
+        case 0:
+          fields.inputs = TransactionInputs.deserialize(r);
+          break;
+
+        case 1:
+          fields.outputs = TransactionOutputs.deserialize(r);
+          break;
+
+        case 2:
+          fields.fee = r.readInt();
+          break;
+
+        case 3:
+          fields.ttl = r.readInt();
+          break;
+
+        case 4:
+          fields.certs = $$CANT_READ("Certificates");
+          break;
+
+        case 5:
+          fields.withdrawals = Withdrawals.deserialize(r);
+          break;
+
+        case 7:
+          fields.auxiliary_data_hash = $$CANT_READ("AuxiliaryDataHash");
+          break;
+
+        case 8:
+          fields.validity_start_interval = r.readInt();
+          break;
+
+        case 9:
+          fields.mint = $$CANT_READ("Mint");
+          break;
+
+        case 11:
+          fields.script_data_hash = $$CANT_READ("ScriptDataHash");
+          break;
+
+        case 13:
+          fields.collateral = TransactionInputs.deserialize(r);
+          break;
+
+        case 14:
+          fields.required_signers = Ed25519KeyHashes.deserialize(r);
+          break;
+
+        case 15:
+          fields.network_id = NetworkId.deserialize(r);
+          break;
+
+        case 16:
+          fields.collateral_return = TransactionOutput.deserialize(r);
+          break;
+
+        case 17:
+          fields.total_collateral = r.readInt();
+          break;
+
+        case 18:
+          fields.reference_inputs = TransactionInputs.deserialize(r);
+          break;
+
+        case 19:
+          fields.voting_procedures = $$CANT_READ("VotingProcedures");
+          break;
+
+        case 20:
+          fields.voting_proposals = VotingProposals.deserialize(r);
+          break;
+
+        case 21:
+          fields.current_treasury_value = r.readInt();
+          break;
+
+        case 22:
+          fields.donation = r.readInt();
+          break;
+      }
+    });
+
+    if (fields.inputs === undefined)
+      throw new Error("Value not provided for field 0 (inputs)");
+    let inputs = fields.inputs;
+    if (fields.outputs === undefined)
+      throw new Error("Value not provided for field 1 (outputs)");
+    let outputs = fields.outputs;
+    if (fields.fee === undefined)
+      throw new Error("Value not provided for field 2 (fee)");
+    let fee = fields.fee;
+
+    let ttl = fields.ttl;
+
+    let certs = fields.certs;
+
+    let withdrawals = fields.withdrawals;
+
+    let auxiliary_data_hash = fields.auxiliary_data_hash;
+
+    let validity_start_interval = fields.validity_start_interval;
+
+    let mint = fields.mint;
+
+    let script_data_hash = fields.script_data_hash;
+
+    let collateral = fields.collateral;
+
+    let required_signers = fields.required_signers;
+
+    let network_id = fields.network_id;
+
+    let collateral_return = fields.collateral_return;
+
+    let total_collateral = fields.total_collateral;
+
+    let reference_inputs = fields.reference_inputs;
+
+    let voting_procedures = fields.voting_procedures;
+
+    let voting_proposals = fields.voting_proposals;
+
+    let current_treasury_value = fields.current_treasury_value;
+
+    let donation = fields.donation;
 
     return new TransactionBody(
       inputs,
-      transaction_outputs,
+      outputs,
       fee,
-      time_to_live,
-      certificates,
+      ttl,
+      certs,
       withdrawals,
       auxiliary_data_hash,
-      validity_interval_start,
+      validity_start_interval,
       mint,
       script_data_hash,
-      collateral_inputs,
+      collateral,
       required_signers,
       network_id,
       collateral_return,
       total_collateral,
       reference_inputs,
       voting_procedures,
-      proposal_procedures,
+      voting_proposals,
       current_treasury_value,
       donation,
     );
   }
 
-  toCBOR(writer: CBORWriter) {
-    let entries = [];
-    entries.push([0, this.inputs]);
-    entries.push([1, this.transaction_outputs]);
-    entries.push([2, this.fee]);
-    if (this.time_to_live !== undefined) entries.push([3, this.time_to_live]);
-    if (this.certificates !== undefined) entries.push([4, this.certificates]);
-    if (this.withdrawals !== undefined) entries.push([5, this.withdrawals]);
-    if (this.auxiliary_data_hash !== undefined)
-      entries.push([7, this.auxiliary_data_hash]);
-    if (this.validity_interval_start !== undefined)
-      entries.push([8, this.validity_interval_start]);
-    if (this.mint !== undefined) entries.push([9, this.mint]);
-    if (this.script_data_hash !== undefined)
-      entries.push([11, this.script_data_hash]);
-    if (this.collateral_inputs !== undefined)
-      entries.push([13, this.collateral_inputs]);
-    if (this.required_signers !== undefined)
-      entries.push([14, this.required_signers]);
-    if (this.network_id !== undefined) entries.push([15, this.network_id]);
-    if (this.collateral_return !== undefined)
-      entries.push([16, this.collateral_return]);
-    if (this.total_collateral !== undefined)
-      entries.push([17, this.total_collateral]);
-    if (this.reference_inputs !== undefined)
-      entries.push([18, this.reference_inputs]);
-    if (this.voting_procedures !== undefined)
-      entries.push([19, this.voting_procedures]);
-    if (this.proposal_procedures !== undefined)
-      entries.push([20, this.proposal_procedures]);
-    if (this.current_treasury_value !== undefined)
-      entries.push([21, this.current_treasury_value]);
-    if (this.donation !== undefined) entries.push([22, this.donation]);
-    writer.writeMap(entries);
+  serialize(writer: CBORWriter) {
+    let len = 20;
+    if (this.ttl === undefined) len -= 1;
+    if (this.certs === undefined) len -= 1;
+    if (this.withdrawals === undefined) len -= 1;
+    if (this.auxiliary_data_hash === undefined) len -= 1;
+    if (this.validity_start_interval === undefined) len -= 1;
+    if (this.mint === undefined) len -= 1;
+    if (this.script_data_hash === undefined) len -= 1;
+    if (this.collateral === undefined) len -= 1;
+    if (this.required_signers === undefined) len -= 1;
+    if (this.network_id === undefined) len -= 1;
+    if (this.collateral_return === undefined) len -= 1;
+    if (this.total_collateral === undefined) len -= 1;
+    if (this.reference_inputs === undefined) len -= 1;
+    if (this.voting_procedures === undefined) len -= 1;
+    if (this.voting_proposals === undefined) len -= 1;
+    if (this.current_treasury_value === undefined) len -= 1;
+    if (this.donation === undefined) len -= 1;
+    writer.writeMapTag(len);
+
+    writer.writeInt(0n);
+    this.inputs.serialize(writer);
+
+    writer.writeInt(1n);
+    this.outputs.serialize(writer);
+
+    writer.writeInt(2n);
+    writer.writeInt(this.fee);
+
+    if (this.ttl !== undefined) {
+      writer.writeInt(3n);
+      writer.writeInt(this.ttl);
+    }
+    if (this.certs !== undefined) {
+      writer.writeInt(4n);
+      $$CANT_WRITE("Certificates");
+    }
+    if (this.withdrawals !== undefined) {
+      writer.writeInt(5n);
+      this.withdrawals.serialize(writer);
+    }
+    if (this.auxiliary_data_hash !== undefined) {
+      writer.writeInt(7n);
+      $$CANT_WRITE("AuxiliaryDataHash");
+    }
+    if (this.validity_start_interval !== undefined) {
+      writer.writeInt(8n);
+      writer.writeInt(this.validity_start_interval);
+    }
+    if (this.mint !== undefined) {
+      writer.writeInt(9n);
+      $$CANT_WRITE("Mint");
+    }
+    if (this.script_data_hash !== undefined) {
+      writer.writeInt(11n);
+      $$CANT_WRITE("ScriptDataHash");
+    }
+    if (this.collateral !== undefined) {
+      writer.writeInt(13n);
+      this.collateral.serialize(writer);
+    }
+    if (this.required_signers !== undefined) {
+      writer.writeInt(14n);
+      this.required_signers.serialize(writer);
+    }
+    if (this.network_id !== undefined) {
+      writer.writeInt(15n);
+      this.network_id.serialize(writer);
+    }
+    if (this.collateral_return !== undefined) {
+      writer.writeInt(16n);
+      this.collateral_return.serialize(writer);
+    }
+    if (this.total_collateral !== undefined) {
+      writer.writeInt(17n);
+      writer.writeInt(this.total_collateral);
+    }
+    if (this.reference_inputs !== undefined) {
+      writer.writeInt(18n);
+      this.reference_inputs.serialize(writer);
+    }
+    if (this.voting_procedures !== undefined) {
+      writer.writeInt(19n);
+      $$CANT_WRITE("VotingProcedures");
+    }
+    if (this.voting_proposals !== undefined) {
+      writer.writeInt(20n);
+      this.voting_proposals.serialize(writer);
+    }
+    if (this.current_treasury_value !== undefined) {
+      writer.writeInt(21n);
+      writer.writeInt(this.current_treasury_value);
+    }
+    if (this.donation !== undefined) {
+      writer.writeInt(22n);
+      writer.writeInt(this.donation);
+    }
   }
 }
 
-export class VotingProceduresByVoter extends CBORMap<
-  Voter,
-  VotingProceduresByGovActionId
-> {
-  static fromCBOR(value: CBORReaderValue): VotingProceduresByVoter {
-    let map = value.get("map");
-    return new VotingProceduresByVoter(
-      map.map({
-        key: (x) => Voter.fromCBOR(x),
-        value: (x) => Voter.fromCBOR(x),
-      }),
+export class TransactionInputs {
+  private items: TransactionInput[];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TransactionInputs {
+    let reader = new CBORReader(data);
+    return TransactionInputs.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TransactionInputs {
+    return TransactionInputs.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor() {
+    this.items = [];
+  }
+
+  static new(): TransactionInputs {
+    return new TransactionInputs();
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): TransactionInput {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: TransactionInput): boolean {
+    if (this.contains(elem)) return true;
+    this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: TransactionInput): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static deserialize(reader: CBORReader): TransactionInputs {
+    let ret = new TransactionInputs();
+    if (reader.peekType() == "tagged") {
+      let tag = reader.readTaggedTag();
+      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+    }
+    reader.readArray((reader) => ret.add(TransactionInput.deserialize(reader)));
+    return ret;
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeTaggedTag(258);
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+}
+
+export class TransactionOutputs {
+  private items: TransactionOutput[];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TransactionOutputs {
+    let reader = new CBORReader(data);
+    return TransactionOutputs.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TransactionOutputs {
+    return TransactionOutputs.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(items: TransactionOutput[]) {
+    this.items = items;
+  }
+
+  static new(): TransactionOutputs {
+    return new TransactionOutputs([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): TransactionOutput {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: TransactionOutput): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): TransactionOutputs {
+    return new TransactionOutputs(
+      reader.readArray((reader) => TransactionOutput.deserialize(reader)),
     );
   }
+
+  serialize(writer: CBORWriter) {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
 }
 
-export class VotingProceduresByGovActionId extends CBORMap<
-  GovActionId,
-  VotingProcedure
-> {
-  static fromCBOR(value: CBORReaderValue): VotingProceduresByGovActionId {
-    let map = value.get("map");
-    return new VotingProceduresByGovActionId(
-      map.map({
-        key: (x) => GovActionId.fromCBOR(x),
-        value: (x) => GovActionId.fromCBOR(x),
-      }),
+export class Ed25519KeyHashes {
+  private items: unknown[];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Ed25519KeyHashes {
+    let reader = new CBORReader(data);
+    return Ed25519KeyHashes.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Ed25519KeyHashes {
+    return Ed25519KeyHashes.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor() {
+    this.items = [];
+  }
+
+  static new(): Ed25519KeyHashes {
+    return new Ed25519KeyHashes();
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): unknown {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: unknown): boolean {
+    if (this.contains(elem)) return true;
+    this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: unknown): boolean {
+    for (let item of this.items) {
+      if ($$CANT_EQ("Ed25519KeyHash")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static deserialize(reader: CBORReader): Ed25519KeyHashes {
+    let ret = new Ed25519KeyHashes();
+    if (reader.peekType() == "tagged") {
+      let tag = reader.readTaggedTag();
+      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+    }
+    reader.readArray((reader) => ret.add($$CANT_READ("Ed25519KeyHash")));
+    return ret;
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeTaggedTag(258);
+    writer.writeArray(this.items, (writer, x) =>
+      $$CANT_WRITE("Ed25519KeyHash"),
     );
   }
 }
 
 export class VotingProcedure {
-  private vote: Vote;
+  private vote: VoteKind;
   private anchor: Anchor | undefined;
 
-  constructor(vote: Vote, anchor: Anchor | undefined) {
+  constructor(vote: VoteKind, anchor: Anchor | undefined) {
     this.vote = vote;
     this.anchor = anchor;
   }
 
-  get_vote(): Vote {
+  get_vote(): VoteKind {
     return this.vote;
   }
 
-  set_vote(vote: Vote): void {
+  set_vote(vote: VoteKind): void {
     this.vote = vote;
   }
 
@@ -1099,77 +1596,100 @@ export class VotingProcedure {
     return this.anchor;
   }
 
-  set_anchor(anchor: Anchor): void {
+  set_anchor(anchor: Anchor | undefined): void {
     this.anchor = anchor;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): VotingProcedure {
-    let vote_ = array.shiftRequired();
-    let vote = Vote.fromCBOR(vote_);
-    let anchor_ = array.shiftRequired();
-    let anchor__ = anchor_.withNullable((x) => Anchor.fromCBOR(x));
-    let anchor = anchor__ == null ? undefined : anchor__;
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): VotingProcedure {
+    let reader = new CBORReader(data);
+    return VotingProcedure.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): VotingProcedure {
+    return VotingProcedure.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): VotingProcedure {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let vote = VoteKind.deserialize(reader);
+
+    let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
 
     return new VotingProcedure(vote, anchor);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.vote);
-    entries.push(this.anchor);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
 
-  static fromCBOR(value: CBORReaderValue): VotingProcedure {
-    let array = value.get("array");
-    return VotingProcedure.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    this.vote.serialize(writer);
+    if (this.anchor == null) {
+      writer.writeNull();
+    } else {
+      this.anchor.serialize(writer);
+    }
   }
 }
 
-export class ProposalProcedure {
-  private deposit: Coin;
-  private reward_account: RewardAccount;
-  private gov_action: GovAction;
+export class VotingProposal {
+  private deposit: bigint;
+  private reward_account: unknown;
+  private governance_action: GovernanceAction;
   private anchor: Anchor;
 
   constructor(
-    deposit: Coin,
-    reward_account: RewardAccount,
-    gov_action: GovAction,
+    deposit: bigint,
+    reward_account: unknown,
+    governance_action: GovernanceAction,
     anchor: Anchor,
   ) {
     this.deposit = deposit;
     this.reward_account = reward_account;
-    this.gov_action = gov_action;
+    this.governance_action = governance_action;
     this.anchor = anchor;
   }
 
-  get_deposit(): Coin {
+  get_deposit(): bigint {
     return this.deposit;
   }
 
-  set_deposit(deposit: Coin): void {
+  set_deposit(deposit: bigint): void {
     this.deposit = deposit;
   }
 
-  get_reward_account(): RewardAccount {
+  get_reward_account(): unknown {
     return this.reward_account;
   }
 
-  set_reward_account(reward_account: RewardAccount): void {
+  set_reward_account(reward_account: unknown): void {
     this.reward_account = reward_account;
   }
 
-  get_gov_action(): GovAction {
-    return this.gov_action;
+  get_governance_action(): GovernanceAction {
+    return this.governance_action;
   }
 
-  set_gov_action(gov_action: GovAction): void {
-    this.gov_action = gov_action;
+  set_governance_action(governance_action: GovernanceAction): void {
+    this.governance_action = governance_action;
   }
 
   get_anchor(): Anchor {
@@ -1180,462 +1700,206 @@ export class ProposalProcedure {
     this.anchor = anchor;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): ProposalProcedure {
-    let deposit_ = array.shiftRequired();
-    let deposit = Coin.fromCBOR(deposit_);
-    let reward_account_ = array.shiftRequired();
-    let reward_account = RewardAccount.fromCBOR(reward_account_);
-    let gov_action_ = array.shiftRequired();
-    let gov_action = GovAction.fromCBOR(gov_action_);
-    let anchor_ = array.shiftRequired();
-    let anchor = Anchor.fromCBOR(anchor_);
+  // no-op
+  free(): void {}
 
-    return new ProposalProcedure(deposit, reward_account, gov_action, anchor);
+  static from_bytes(data: Uint8Array): VotingProposal {
+    let reader = new CBORReader(data);
+    return VotingProposal.deserialize(reader);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.deposit);
-    entries.push(this.reward_account);
-    entries.push(this.gov_action);
-    entries.push(this.anchor);
-    return entries;
+  static from_hex(hex_str: string): VotingProposal {
+    return VotingProposal.from_bytes(hexToBytes(hex_str));
   }
 
-  static fromCBOR(value: CBORReaderValue): ProposalProcedure {
-    let array = value.get("array");
-    return ProposalProcedure.fromArray(array);
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
   }
 
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): VotingProposal {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 4) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 4. Received " + len,
+      );
+    }
+
+    let deposit = reader.readInt();
+
+    let reward_account = $$CANT_READ("RewardAddress");
+
+    let governance_action = GovernanceAction.deserialize(reader);
+
+    let anchor = Anchor.deserialize(reader);
+
+    return new VotingProposal(
+      deposit,
+      reward_account,
+      governance_action,
+      anchor,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(4);
+
+    writer.writeInt(this.deposit);
+    $$CANT_WRITE("RewardAddress");
+    this.governance_action.serialize(writer);
+    this.anchor.serialize(writer);
   }
 }
 
-export class ProposalProcedures extends Array<ProposalProcedure> {
-  static fromCBOR(value: CBORReaderValue): ProposalProcedures {
-    let tagged = value.get("tagged");
-    let array = tagged.getTagged(258n).get("array");
-    return new ProposalProcedures(
-      ...array.map((x) => ProposalProcedure.fromCBOR(x)),
-    );
+export class VotingProposals {
+  private items: VotingProposal[];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): VotingProposals {
+    let reader = new CBORReader(data);
+    return VotingProposals.deserialize(reader);
   }
 
-  toCBOR(writer: CBORWriter) {
-    return writer.writeTagged(258n, [...this]);
-  }
-}
-
-export class Certificates extends Array<Certificate> {
-  static fromCBOR(value: CBORReaderValue): Certificates {
-    let tagged = value.get("tagged");
-    let array = tagged.getTagged(258n).get("array");
-    return new Certificates(...array.map((x) => Certificate.fromCBOR(x)));
+  static from_hex(hex_str: string): VotingProposals {
+    return VotingProposals.from_bytes(hexToBytes(hex_str));
   }
 
-  toCBOR(writer: CBORWriter) {
-    return writer.writeTagged(258n, [...this]);
-  }
-}
-
-export type PolicyHash = Uint8Array;
-
-export class ParameterChangeAction {
-  private gov_action_id: GovernanceActionId | undefined;
-  private protocol_param_update: ProtocolParamUpdate;
-  private policy_hash: PolicyHash | undefined;
-
-  constructor(
-    gov_action_id: GovernanceActionId | undefined,
-    protocol_param_update: ProtocolParamUpdate,
-    policy_hash: PolicyHash | undefined,
-  ) {
-    this.gov_action_id = gov_action_id;
-    this.protocol_param_update = protocol_param_update;
-    this.policy_hash = policy_hash;
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
   }
 
-  get_gov_action_id(): GovernanceActionId | undefined {
-    return this.gov_action_id;
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 
-  set_gov_action_id(gov_action_id: GovernanceActionId): void {
-    this.gov_action_id = gov_action_id;
+  constructor() {
+    this.items = [];
   }
 
-  get_protocol_param_update(): ProtocolParamUpdate {
-    return this.protocol_param_update;
+  static new(): VotingProposals {
+    return new VotingProposals();
   }
 
-  set_protocol_param_update(protocol_param_update: ProtocolParamUpdate): void {
-    this.protocol_param_update = protocol_param_update;
+  len(): number {
+    return this.items.length;
   }
 
-  get_policy_hash(): PolicyHash | undefined {
-    return this.policy_hash;
+  get(index: number): VotingProposal {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
   }
 
-  set_policy_hash(policy_hash: PolicyHash): void {
-    this.policy_hash = policy_hash;
+  add(elem: VotingProposal): boolean {
+    if (this.contains(elem)) return true;
+    this.items.push(elem);
+    return false;
   }
 
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): ParameterChangeAction {
-    let gov_action_id_ = array.shiftRequired();
-    let gov_action_id__ = gov_action_id_.withNullable((x) =>
-      GovernanceActionId.fromCBOR(x),
-    );
-    let gov_action_id = gov_action_id__ == null ? undefined : gov_action_id__;
-    let protocol_param_update_ = array.shiftRequired();
-    let protocol_param_update = ProtocolParamUpdate.fromCBOR(
-      protocol_param_update_,
-    );
-    let policy_hash_ = array.shiftRequired();
-    let policy_hash__ = policy_hash_.withNullable((x) =>
-      PolicyHash.fromCBOR(x),
-    );
-    let policy_hash = policy_hash__ == null ? undefined : policy_hash__;
-
-    return new ParameterChangeAction(
-      gov_action_id,
-      protocol_param_update,
-      policy_hash,
-    );
+  contains(elem: VotingProposal): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.gov_action_id);
-    entries.push(this.protocol_param_update);
-    entries.push(this.policy_hash);
-    return entries;
+  static deserialize(reader: CBORReader): VotingProposals {
+    let ret = new VotingProposals();
+    if (reader.peekType() == "tagged") {
+      let tag = reader.readTaggedTag();
+      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+    }
+    reader.readArray((reader) => ret.add(VotingProposal.deserialize(reader)));
+    return ret;
   }
 
-  static fromCBOR(value: CBORReaderValue): ParameterChangeAction {
-    let array = value.get("array");
-    return ParameterChangeAction.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+  serialize(writer: CBORWriter) {
+    writer.writeTaggedTag(258);
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 }
 
-export class HardForkInitiationAction {
-  private gov_action_id: GovernanceActionId | undefined;
-  private protocol_version: ProtocolVersion;
+export class certificates {
+  private items: Certificate[];
 
-  constructor(
-    gov_action_id: GovernanceActionId | undefined,
-    protocol_version: ProtocolVersion,
-  ) {
-    this.gov_action_id = gov_action_id;
-    this.protocol_version = protocol_version;
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): certificates {
+    let reader = new CBORReader(data);
+    return certificates.deserialize(reader);
   }
 
-  get_gov_action_id(): GovernanceActionId | undefined {
-    return this.gov_action_id;
+  static from_hex(hex_str: string): certificates {
+    return certificates.from_bytes(hexToBytes(hex_str));
   }
 
-  set_gov_action_id(gov_action_id: GovernanceActionId): void {
-    this.gov_action_id = gov_action_id;
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
   }
 
-  get_protocol_version(): ProtocolVersion {
-    return this.protocol_version;
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 
-  set_protocol_version(protocol_version: ProtocolVersion): void {
-    this.protocol_version = protocol_version;
+  constructor() {
+    this.items = [];
   }
 
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): HardForkInitiationAction {
-    let gov_action_id_ = array.shiftRequired();
-    let gov_action_id__ = gov_action_id_.withNullable((x) =>
-      GovernanceActionId.fromCBOR(x),
-    );
-    let gov_action_id = gov_action_id__ == null ? undefined : gov_action_id__;
-    let protocol_version_ = array.shiftRequired();
-    let protocol_version = ProtocolVersion.fromCBOR(protocol_version_);
-
-    return new HardForkInitiationAction(gov_action_id, protocol_version);
+  static new(): certificates {
+    return new certificates();
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.gov_action_id);
-    entries.push(this.protocol_version);
-    return entries;
+  len(): number {
+    return this.items.length;
   }
 
-  static fromCBOR(value: CBORReaderValue): HardForkInitiationAction {
-    let array = value.get("array");
-    return HardForkInitiationAction.fromArray(array);
+  get(index: number): Certificate {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
   }
 
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class TreasuryWithdrawalsAction {
-  private withdrawals: Withdrawals;
-  private policy_hash: PolicyHash | undefined;
-
-  constructor(withdrawals: Withdrawals, policy_hash: PolicyHash | undefined) {
-    this.withdrawals = withdrawals;
-    this.policy_hash = policy_hash;
+  add(elem: Certificate): boolean {
+    if (this.contains(elem)) return true;
+    this.items.push(elem);
+    return false;
   }
 
-  get_withdrawals(): Withdrawals {
-    return this.withdrawals;
+  contains(elem: Certificate): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
   }
 
-  set_withdrawals(withdrawals: Withdrawals): void {
-    this.withdrawals = withdrawals;
+  static deserialize(reader: CBORReader): certificates {
+    let ret = new certificates();
+    if (reader.peekType() == "tagged") {
+      let tag = reader.readTaggedTag();
+      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+    }
+    reader.readArray((reader) => ret.add(Certificate.deserialize(reader)));
+    return ret;
   }
 
-  get_policy_hash(): PolicyHash | undefined {
-    return this.policy_hash;
-  }
-
-  set_policy_hash(policy_hash: PolicyHash): void {
-    this.policy_hash = policy_hash;
-  }
-
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): TreasuryWithdrawalsAction {
-    let withdrawals_ = array.shiftRequired();
-    let withdrawals = Withdrawals.fromCBOR(withdrawals_);
-    let policy_hash_ = array.shiftRequired();
-    let policy_hash__ = policy_hash_.withNullable((x) =>
-      PolicyHash.fromCBOR(x),
-    );
-    let policy_hash = policy_hash__ == null ? undefined : policy_hash__;
-
-    return new TreasuryWithdrawalsAction(withdrawals, policy_hash);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.withdrawals);
-    entries.push(this.policy_hash);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): TreasuryWithdrawalsAction {
-    let array = value.get("array");
-    return TreasuryWithdrawalsAction.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class CommitteeColdCredentials extends Array<CommitteeColdCredential> {
-  static fromCBOR(value: CBORReaderValue): CommitteeColdCredentials {
-    let tagged = value.get("tagged");
-    let array = tagged.getTagged(258n).get("array");
-    return new CommitteeColdCredentials(
-      ...array.map((x) => CommitteeColdCredential.fromCBOR(x)),
-    );
-  }
-
-  toCBOR(writer: CBORWriter) {
-    return writer.writeTagged(258n, [...this]);
-  }
-}
-
-export class Epochs extends CBORMap<CommitteeColdCredential, Epoch> {
-  static fromCBOR(value: CBORReaderValue): Epochs {
-    let map = value.get("map");
-    return new Epochs(
-      map.map({
-        key: (x) => CommitteeColdCredential.fromCBOR(x),
-        value: (x) => CommitteeColdCredential.fromCBOR(x),
-      }),
-    );
-  }
-}
-
-export class UpdateCommittee {
-  private gov_action_id: GovernanceActionId | undefined;
-  private committee_cold_credentials: CommitteeColdCredentials;
-  private epochs: Epochs;
-  private unit_interval: UnitInterval;
-
-  constructor(
-    gov_action_id: GovernanceActionId | undefined,
-    committee_cold_credentials: CommitteeColdCredentials,
-    epochs: Epochs,
-    unit_interval: UnitInterval,
-  ) {
-    this.gov_action_id = gov_action_id;
-    this.committee_cold_credentials = committee_cold_credentials;
-    this.epochs = epochs;
-    this.unit_interval = unit_interval;
-  }
-
-  get_gov_action_id(): GovernanceActionId | undefined {
-    return this.gov_action_id;
-  }
-
-  set_gov_action_id(gov_action_id: GovernanceActionId): void {
-    this.gov_action_id = gov_action_id;
-  }
-
-  get_committee_cold_credentials(): CommitteeColdCredentials {
-    return this.committee_cold_credentials;
-  }
-
-  set_committee_cold_credentials(
-    committee_cold_credentials: CommitteeColdCredentials,
-  ): void {
-    this.committee_cold_credentials = committee_cold_credentials;
-  }
-
-  get_epochs(): Epochs {
-    return this.epochs;
-  }
-
-  set_epochs(epochs: Epochs): void {
-    this.epochs = epochs;
-  }
-
-  get_unit_interval(): UnitInterval {
-    return this.unit_interval;
-  }
-
-  set_unit_interval(unit_interval: UnitInterval): void {
-    this.unit_interval = unit_interval;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): UpdateCommittee {
-    let gov_action_id_ = array.shiftRequired();
-    let gov_action_id__ = gov_action_id_.withNullable((x) =>
-      GovernanceActionId.fromCBOR(x),
-    );
-    let gov_action_id = gov_action_id__ == null ? undefined : gov_action_id__;
-    let committee_cold_credentials_ = array.shiftRequired();
-    let committee_cold_credentials = CommitteeColdCredentials.fromCBOR(
-      committee_cold_credentials_,
-    );
-    let epochs_ = array.shiftRequired();
-    let epochs = Epochs.fromCBOR(epochs_);
-    let unit_interval_ = array.shiftRequired();
-    let unit_interval = UnitInterval.fromCBOR(unit_interval_);
-
-    return new UpdateCommittee(
-      gov_action_id,
-      committee_cold_credentials,
-      epochs,
-      unit_interval,
-    );
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.gov_action_id);
-    entries.push(this.committee_cold_credentials);
-    entries.push(this.epochs);
-    entries.push(this.unit_interval);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): UpdateCommittee {
-    let array = value.get("array");
-    return UpdateCommittee.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class NewConstitutionAction {
-  private gov_action_id: GovernanceActionId | undefined;
-  private constitution: Constitution;
-
-  constructor(
-    gov_action_id: GovernanceActionId | undefined,
-    constitution: Constitution,
-  ) {
-    this.gov_action_id = gov_action_id;
-    this.constitution = constitution;
-  }
-
-  get_gov_action_id(): GovernanceActionId | undefined {
-    return this.gov_action_id;
-  }
-
-  set_gov_action_id(gov_action_id: GovernanceActionId): void {
-    this.gov_action_id = gov_action_id;
-  }
-
-  get_constitution(): Constitution {
-    return this.constitution;
-  }
-
-  set_constitution(constitution: Constitution): void {
-    this.constitution = constitution;
-  }
-
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): NewConstitutionAction {
-    let gov_action_id_ = array.shiftRequired();
-    let gov_action_id__ = gov_action_id_.withNullable((x) =>
-      GovernanceActionId.fromCBOR(x),
-    );
-    let gov_action_id = gov_action_id__ == null ? undefined : gov_action_id__;
-    let constitution_ = array.shiftRequired();
-    let constitution = Constitution.fromCBOR(constitution_);
-
-    return new NewConstitutionAction(gov_action_id, constitution);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.gov_action_id);
-    entries.push(this.constitution);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): NewConstitutionAction {
-    let array = value.get("array");
-    return NewConstitutionAction.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class InfoAction {
-  constructor() {}
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): InfoAction {
-    return new InfoAction();
-  }
-
-  toArray() {
-    let entries = [];
-
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): InfoAction {
-    let array = value.get("array");
-    return InfoAction.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+  serialize(writer: CBORWriter) {
+    writer.writeTaggedTag(258);
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 }
 
@@ -1643,8 +1907,8 @@ export enum GovernanceActionKind {
   ParameterChangeAction = 0,
   HardForkInitiationAction = 1,
   TreasuryWithdrawalsAction = 2,
-  GovernanceActionId = 3,
-  UpdateCommittee = 4,
+  NoConfidenceAction = 3,
+  UpdateCommitteeAction = 4,
   NewConstitutionAction = 5,
   InfoAction = 6,
 }
@@ -1653,13 +1917,35 @@ export type GovernanceActionVariant =
   | { kind: 0; value: ParameterChangeAction }
   | { kind: 1; value: HardForkInitiationAction }
   | { kind: 2; value: TreasuryWithdrawalsAction }
-  | { kind: 3; value: GovernanceActionId }
-  | { kind: 4; value: UpdateCommittee }
+  | { kind: 3; value: NoConfidenceAction }
+  | { kind: 4; value: UpdateCommitteeAction }
   | { kind: 5; value: NewConstitutionAction }
   | { kind: 6; value: InfoAction };
 
 export class GovernanceAction {
   private variant: GovernanceActionVariant;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): GovernanceAction {
+    let reader = new CBORReader(data);
+    return GovernanceAction.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): GovernanceAction {
+    return GovernanceAction.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 
   constructor(variant: GovernanceActionVariant) {
     this.variant = variant;
@@ -1690,15 +1976,15 @@ export class GovernanceAction {
   }
 
   static new_no_confidence_action(
-    no_confidence_action: GovernanceActionId,
+    no_confidence_action: NoConfidenceAction,
   ): GovernanceAction {
     return new GovernanceAction({ kind: 3, value: no_confidence_action });
   }
 
-  static new_update_committee(
-    update_committee: UpdateCommittee,
+  static new_new_committee_action(
+    new_committee_action: UpdateCommitteeAction,
   ): GovernanceAction {
-    return new GovernanceAction({ kind: 4, value: update_committee });
+    return new GovernanceAction({ kind: 4, value: new_committee_action });
   }
 
   static new_new_constitution_action(
@@ -1723,11 +2009,11 @@ export class GovernanceAction {
     if (this.variant.kind == 2) return this.variant.value;
   }
 
-  as_no_confidence_action(): GovernanceActionId | undefined {
+  as_no_confidence_action(): NoConfidenceAction | undefined {
     if (this.variant.kind == 3) return this.variant.value;
   }
 
-  as_update_committee(): UpdateCommittee | undefined {
+  as_new_committee_action(): UpdateCommitteeAction | undefined {
     if (this.variant.kind == 4) return this.variant.value;
   }
 
@@ -1739,59 +2025,712 @@ export class GovernanceAction {
     if (this.variant.kind == 6) return this.variant.value;
   }
 
-  static fromCBOR(value: CBORReaderValue): GovernanceAction {
-    let array = value.get("array");
-    let [tag, variant] = array.shiftRequired().with((tag_) => {
-      let tag = Number(tag_.get("uint"));
+  static deserialize(reader: CBORReader): GovernanceAction {
+    let len = reader.readArrayTag();
+    let tag = Number(reader.readUint());
 
-      if (tag == 0) {
-        return [tag, ParameterChangeAction.fromArray(array)];
-      }
+    let fragmentLen = len != null ? len - 1 : null;
 
-      if (tag == 1) {
-        return [tag, HardForkInitiationAction.fromArray(array)];
-      }
+    switch (tag) {
+      case 0:
+        if (ParameterChangeAction.FRAGMENT_FIELDS_LEN != null) {
+          return new GovernanceAction({
+            kind: 0,
+            value: ParameterChangeAction.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant parameter_change_action",
+            );
+          return new GovernanceAction({
+            kind: 0,
+            value: ParameterChangeAction.deserialize(reader),
+          });
+        }
 
-      if (tag == 2) {
-        return [tag, TreasuryWithdrawalsAction.fromArray(array)];
-      }
+      case 1:
+        if (HardForkInitiationAction.FRAGMENT_FIELDS_LEN != null) {
+          return new GovernanceAction({
+            kind: 1,
+            value: HardForkInitiationAction.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant hard_fork_initiation_action",
+            );
+          return new GovernanceAction({
+            kind: 1,
+            value: HardForkInitiationAction.deserialize(reader),
+          });
+        }
 
-      if (tag == 3) {
-        return [tag, GovernanceActionId.fromCBOR(array.shiftRequired())];
-      }
+      case 2:
+        if (TreasuryWithdrawalsAction.FRAGMENT_FIELDS_LEN != null) {
+          return new GovernanceAction({
+            kind: 2,
+            value: TreasuryWithdrawalsAction.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant treasury_withdrawals_action",
+            );
+          return new GovernanceAction({
+            kind: 2,
+            value: TreasuryWithdrawalsAction.deserialize(reader),
+          });
+        }
 
-      if (tag == 4) {
-        return [tag, UpdateCommittee.fromArray(array)];
-      }
+      case 3:
+        if (NoConfidenceAction.FRAGMENT_FIELDS_LEN != null) {
+          return new GovernanceAction({
+            kind: 3,
+            value: NoConfidenceAction.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant no_confidence_action",
+            );
+          return new GovernanceAction({
+            kind: 3,
+            value: NoConfidenceAction.deserialize(reader),
+          });
+        }
 
-      if (tag == 5) {
-        return [tag, NewConstitutionAction.fromArray(array)];
-      }
+      case 4:
+        if (UpdateCommitteeAction.FRAGMENT_FIELDS_LEN != null) {
+          return new GovernanceAction({
+            kind: 4,
+            value: UpdateCommitteeAction.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant new_committee_action",
+            );
+          return new GovernanceAction({
+            kind: 4,
+            value: UpdateCommitteeAction.deserialize(reader),
+          });
+        }
 
-      if (tag == 6) {
-        return [tag, InfoAction.fromArray(array)];
-      }
+      case 5:
+        if (NewConstitutionAction.FRAGMENT_FIELDS_LEN != null) {
+          return new GovernanceAction({
+            kind: 5,
+            value: NewConstitutionAction.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant new_constitution_action",
+            );
+          return new GovernanceAction({
+            kind: 5,
+            value: NewConstitutionAction.deserialize(reader),
+          });
+        }
 
-      throw "Unrecognized tag: " + tag + " for GovernanceAction";
-    });
+      case 6:
+        if (InfoAction.FRAGMENT_FIELDS_LEN != null) {
+          return new GovernanceAction({
+            kind: 6,
+            value: InfoAction.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant info_action");
+          return new GovernanceAction({
+            kind: 6,
+            value: InfoAction.deserialize(reader),
+          });
+        }
+    }
 
-    return new GovernanceAction({ kind: tag, value: variant });
+    throw new Error("Unexpected tag for GovernanceAction: " + tag);
   }
 
-  toCBOR(writer: CBORWriter) {
-    let entries =
-      this.variant.value.toArray != null
-        ? [this.variant.kind, ...this.variant.value.toArray()]
-        : [this.variant.kind, this.variant.value];
-    writer.writeArray(entries);
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        let fragmentLen = ParameterChangeAction.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(0n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(0n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 1:
+        let fragmentLen = HardForkInitiationAction.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(1n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(1n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 2:
+        let fragmentLen = TreasuryWithdrawalsAction.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(2n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(2n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 3:
+        let fragmentLen = NoConfidenceAction.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(3n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(3n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 4:
+        let fragmentLen = UpdateCommitteeAction.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(4n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(4n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 5:
+        let fragmentLen = NewConstitutionAction.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(5n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(5n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 6:
+        let fragmentLen = InfoAction.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(6n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(6n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+    }
+  }
+}
+
+export class ParameterChangeAction {
+  static FRAGMENT_FIELDS_LEN: number = 3;
+
+  private gov_action_id: GovernanceActionId | undefined;
+  private protocol_param_updates: ProtocolParamUpdate;
+  private policy_hash: unknown | undefined;
+
+  constructor(
+    gov_action_id: GovernanceActionId | undefined,
+    protocol_param_updates: ProtocolParamUpdate,
+    policy_hash: unknown | undefined,
+  ) {
+    this.gov_action_id = gov_action_id;
+    this.protocol_param_updates = protocol_param_updates;
+    this.policy_hash = policy_hash;
+  }
+
+  get_gov_action_id(): GovernanceActionId | undefined {
+    return this.gov_action_id;
+  }
+
+  set_gov_action_id(gov_action_id: GovernanceActionId | undefined): void {
+    this.gov_action_id = gov_action_id;
+  }
+
+  get_protocol_param_updates(): ProtocolParamUpdate {
+    return this.protocol_param_updates;
+  }
+
+  set_protocol_param_updates(
+    protocol_param_updates: ProtocolParamUpdate,
+  ): void {
+    this.protocol_param_updates = protocol_param_updates;
+  }
+
+  get_policy_hash(): unknown | undefined {
+    return this.policy_hash;
+  }
+
+  set_policy_hash(policy_hash: unknown | undefined): void {
+    this.policy_hash = policy_hash;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): ParameterChangeAction {
+    if (len != null && len < 3) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 3. Received " + len,
+      );
+    }
+
+    let gov_action_id =
+      reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
+      undefined;
+
+    let protocol_param_updates = ProtocolParamUpdate.deserialize(reader);
+
+    let policy_hash =
+      reader.readNullable((r) => $$CANT_READ("ScriptHash")) ?? undefined;
+
+    return new ParameterChangeAction(
+      gov_action_id,
+      protocol_param_updates,
+      policy_hash,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    if (this.gov_action_id == null) {
+      writer.writeNull();
+    } else {
+      this.gov_action_id.serialize(writer);
+    }
+    this.protocol_param_updates.serialize(writer);
+    if (this.policy_hash == null) {
+      writer.writeNull();
+    } else {
+      $$CANT_WRITE("ScriptHash");
+    }
+  }
+}
+
+export class HardForkInitiationAction {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private gov_action_id: GovernanceActionId | undefined;
+  private protocol_version: ProtocolVersion;
+
+  constructor(
+    gov_action_id: GovernanceActionId | undefined,
+    protocol_version: ProtocolVersion,
+  ) {
+    this.gov_action_id = gov_action_id;
+    this.protocol_version = protocol_version;
+  }
+
+  get_gov_action_id(): GovernanceActionId | undefined {
+    return this.gov_action_id;
+  }
+
+  set_gov_action_id(gov_action_id: GovernanceActionId | undefined): void {
+    this.gov_action_id = gov_action_id;
+  }
+
+  get_protocol_version(): ProtocolVersion {
+    return this.protocol_version;
+  }
+
+  set_protocol_version(protocol_version: ProtocolVersion): void {
+    this.protocol_version = protocol_version;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): HardForkInitiationAction {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let gov_action_id =
+      reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
+      undefined;
+
+    let protocol_version = ProtocolVersion.deserialize(reader);
+
+    return new HardForkInitiationAction(gov_action_id, protocol_version);
+  }
+
+  serialize(writer: CBORWriter): void {
+    if (this.gov_action_id == null) {
+      writer.writeNull();
+    } else {
+      this.gov_action_id.serialize(writer);
+    }
+    this.protocol_version.serialize(writer);
+  }
+}
+
+export class TreasuryWithdrawalsAction {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private withdrawals: unknown;
+  private policy_hash: unknown | undefined;
+
+  constructor(withdrawals: unknown, policy_hash: unknown | undefined) {
+    this.withdrawals = withdrawals;
+    this.policy_hash = policy_hash;
+  }
+
+  get_withdrawals(): unknown {
+    return this.withdrawals;
+  }
+
+  set_withdrawals(withdrawals: unknown): void {
+    this.withdrawals = withdrawals;
+  }
+
+  get_policy_hash(): unknown | undefined {
+    return this.policy_hash;
+  }
+
+  set_policy_hash(policy_hash: unknown | undefined): void {
+    this.policy_hash = policy_hash;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): TreasuryWithdrawalsAction {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let withdrawals = $$CANT_READ("TreasuryWithdrawals");
+
+    let policy_hash =
+      reader.readNullable((r) => $$CANT_READ("ScriptHash")) ?? undefined;
+
+    return new TreasuryWithdrawalsAction(withdrawals, policy_hash);
+  }
+
+  serialize(writer: CBORWriter): void {
+    $$CANT_WRITE("TreasuryWithdrawals");
+    if (this.policy_hash == null) {
+      writer.writeNull();
+    } else {
+      $$CANT_WRITE("ScriptHash");
+    }
+  }
+}
+
+export class NoConfidenceAction {
+  static FRAGMENT_FIELDS_LEN: number = 1;
+
+  private gov_action_id: GovernanceActionId | undefined;
+
+  constructor(gov_action_id: GovernanceActionId | undefined) {
+    this.gov_action_id = gov_action_id;
+  }
+
+  get_gov_action_id(): GovernanceActionId | undefined {
+    return this.gov_action_id;
+  }
+
+  set_gov_action_id(gov_action_id: GovernanceActionId | undefined): void {
+    this.gov_action_id = gov_action_id;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): NoConfidenceAction {
+    if (len != null && len < 1) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 1. Received " + len,
+      );
+    }
+
+    let gov_action_id =
+      reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
+      undefined;
+
+    return new NoConfidenceAction(gov_action_id);
+  }
+
+  serialize(writer: CBORWriter): void {
+    if (this.gov_action_id == null) {
+      writer.writeNull();
+    } else {
+      this.gov_action_id.serialize(writer);
+    }
+  }
+}
+
+export class UpdateCommitteeAction {
+  static FRAGMENT_FIELDS_LEN: number = 4;
+
+  private gov_action_id: GovernanceActionId | undefined;
+  private members_to_remove: Credentials;
+  private committee: unknown;
+  private quorom_threshold: unknown;
+
+  constructor(
+    gov_action_id: GovernanceActionId | undefined,
+    members_to_remove: Credentials,
+    committee: unknown,
+    quorom_threshold: unknown,
+  ) {
+    this.gov_action_id = gov_action_id;
+    this.members_to_remove = members_to_remove;
+    this.committee = committee;
+    this.quorom_threshold = quorom_threshold;
+  }
+
+  get_gov_action_id(): GovernanceActionId | undefined {
+    return this.gov_action_id;
+  }
+
+  set_gov_action_id(gov_action_id: GovernanceActionId | undefined): void {
+    this.gov_action_id = gov_action_id;
+  }
+
+  get_members_to_remove(): Credentials {
+    return this.members_to_remove;
+  }
+
+  set_members_to_remove(members_to_remove: Credentials): void {
+    this.members_to_remove = members_to_remove;
+  }
+
+  get_committee(): unknown {
+    return this.committee;
+  }
+
+  set_committee(committee: unknown): void {
+    this.committee = committee;
+  }
+
+  get_quorom_threshold(): unknown {
+    return this.quorom_threshold;
+  }
+
+  set_quorom_threshold(quorom_threshold: unknown): void {
+    this.quorom_threshold = quorom_threshold;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): UpdateCommitteeAction {
+    if (len != null && len < 4) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 4. Received " + len,
+      );
+    }
+
+    let gov_action_id =
+      reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
+      undefined;
+
+    let members_to_remove = Credentials.deserialize(reader);
+
+    let committee = $$CANT_READ("Committee");
+
+    let quorom_threshold = $$CANT_READ("UnitInterval");
+
+    return new UpdateCommitteeAction(
+      gov_action_id,
+      members_to_remove,
+      committee,
+      quorom_threshold,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    if (this.gov_action_id == null) {
+      writer.writeNull();
+    } else {
+      this.gov_action_id.serialize(writer);
+    }
+    this.members_to_remove.serialize(writer);
+    $$CANT_WRITE("Committee");
+    $$CANT_WRITE("UnitInterval");
+  }
+}
+
+export class NewConstitutionAction {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private gov_action_id: GovernanceActionId | undefined;
+  private constitution: Constitution;
+
+  constructor(
+    gov_action_id: GovernanceActionId | undefined,
+    constitution: Constitution,
+  ) {
+    this.gov_action_id = gov_action_id;
+    this.constitution = constitution;
+  }
+
+  get_gov_action_id(): GovernanceActionId | undefined {
+    return this.gov_action_id;
+  }
+
+  set_gov_action_id(gov_action_id: GovernanceActionId | undefined): void {
+    this.gov_action_id = gov_action_id;
+  }
+
+  get_constitution(): Constitution {
+    return this.constitution;
+  }
+
+  set_constitution(constitution: Constitution): void {
+    this.constitution = constitution;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): NewConstitutionAction {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let gov_action_id =
+      reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
+      undefined;
+
+    let constitution = Constitution.deserialize(reader);
+
+    return new NewConstitutionAction(gov_action_id, constitution);
+  }
+
+  serialize(writer: CBORWriter): void {
+    if (this.gov_action_id == null) {
+      writer.writeNull();
+    } else {
+      this.gov_action_id.serialize(writer);
+    }
+    this.constitution.serialize(writer);
+  }
+}
+
+export class InfoAction {
+  static FRAGMENT_FIELDS_LEN: number = 0;
+
+  constructor() {}
+
+  static deserialize(reader: CBORReader, len: number | null): InfoAction {
+    if (len != null && len < 0) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 0. Received " + len,
+      );
+    }
+
+    return new InfoAction();
+  }
+
+  serialize(writer: CBORWriter): void {}
+}
+
+export class Credentials {
+  private items: Credential[];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Credentials {
+    let reader = new CBORReader(data);
+    return Credentials.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Credentials {
+    return Credentials.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor() {
+    this.items = [];
+  }
+
+  static new(): Credentials {
+    return new Credentials();
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): Credential {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: Credential): boolean {
+    if (this.contains(elem)) return true;
+    this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: Credential): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static deserialize(reader: CBORReader): Credentials {
+    let ret = new Credentials();
+    if (reader.peekType() == "tagged") {
+      let tag = reader.readTaggedTag();
+      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+    }
+    reader.readArray((reader) => ret.add(Credential.deserialize(reader)));
+    return ret;
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeTaggedTag(258);
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 }
 
 export class Constitution {
   private anchor: Anchor;
-  private scripthash: Scripthash | undefined;
+  private scripthash: unknown | undefined;
 
-  constructor(anchor: Anchor, scripthash: Scripthash | undefined) {
+  constructor(anchor: Anchor, scripthash: unknown | undefined) {
     this.anchor = anchor;
     this.scripthash = scripthash;
   }
@@ -1804,259 +2743,246 @@ export class Constitution {
     this.anchor = anchor;
   }
 
-  get_scripthash(): Scripthash | undefined {
+  get_scripthash(): unknown | undefined {
     return this.scripthash;
   }
 
-  set_scripthash(scripthash: Scripthash): void {
+  set_scripthash(scripthash: unknown | undefined): void {
     this.scripthash = scripthash;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): Constitution {
-    let anchor_ = array.shiftRequired();
-    let anchor = Anchor.fromCBOR(anchor_);
-    let scripthash_ = array.shiftRequired();
-    let scripthash__ = scripthash_.withNullable((x) => Scripthash.fromCBOR(x));
-    let scripthash = scripthash__ == null ? undefined : scripthash__;
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Constitution {
+    let reader = new CBORReader(data);
+    return Constitution.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Constitution {
+    return Constitution.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): Constitution {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let anchor = Anchor.deserialize(reader);
+
+    let scripthash =
+      reader.readNullable((r) => $$CANT_READ("ScriptHash")) ?? undefined;
 
     return new Constitution(anchor, scripthash);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.anchor);
-    entries.push(this.scripthash);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
 
-  static fromCBOR(value: CBORReaderValue): Constitution {
-    let array = value.get("array");
-    return Constitution.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    this.anchor.serialize(writer);
+    if (this.scripthash == null) {
+      writer.writeNull();
+    } else {
+      $$CANT_WRITE("ScriptHash");
+    }
   }
 }
-
-export enum VoterKind {
-  AddrKeyhash = 0,
-  Scripthash = 1,
-  AddrKeyhash = 2,
-  Scripthash = 3,
-  AddrKeyhash = 4,
-}
-
-export type VoterVariant =
-  | { kind: 0; value: AddrKeyhash }
-  | { kind: 1; value: Scripthash }
-  | { kind: 2; value: AddrKeyhash }
-  | { kind: 3; value: Scripthash }
-  | { kind: 4; value: AddrKeyhash };
 
 export class Voter {
-  private variant: VoterVariant;
+  private constitutional_committee_hot_key: Credential;
+  private drep: Credential;
+  private staking_pool: unknown;
 
-  constructor(variant: VoterVariant) {
-    this.variant = variant;
+  constructor(
+    constitutional_committee_hot_key: Credential,
+    drep: Credential,
+    staking_pool: unknown,
+  ) {
+    this.constitutional_committee_hot_key = constitutional_committee_hot_key;
+    this.drep = drep;
+    this.staking_pool = staking_pool;
   }
 
-  static new_constitutional_committee_hot_keyhash(
-    constitutional_committee_hot_keyhash: AddrKeyhash,
-  ): Voter {
-    return new Voter({ kind: 0, value: constitutional_committee_hot_keyhash });
+  get_constitutional_committee_hot_key(): Credential {
+    return this.constitutional_committee_hot_key;
   }
 
-  static new_constitutional_committee_hot_scripthash(
-    constitutional_committee_hot_scripthash: Scripthash,
-  ): Voter {
-    return new Voter({
-      kind: 1,
-      value: constitutional_committee_hot_scripthash,
-    });
+  set_constitutional_committee_hot_key(
+    constitutional_committee_hot_key: Credential,
+  ): void {
+    this.constitutional_committee_hot_key = constitutional_committee_hot_key;
   }
 
-  static new_drep_keyhash(drep_keyhash: AddrKeyhash): Voter {
-    return new Voter({ kind: 2, value: drep_keyhash });
+  get_drep(): Credential {
+    return this.drep;
   }
 
-  static new_drep_scripthash(drep_scripthash: Scripthash): Voter {
-    return new Voter({ kind: 3, value: drep_scripthash });
+  set_drep(drep: Credential): void {
+    this.drep = drep;
   }
 
-  static new_staking_pool_keyhash(staking_pool_keyhash: AddrKeyhash): Voter {
-    return new Voter({ kind: 4, value: staking_pool_keyhash });
+  get_staking_pool(): unknown {
+    return this.staking_pool;
   }
 
-  as_constitutional_committee_hot_keyhash(): AddrKeyhash | undefined {
-    if (this.variant.kind == 0) return this.variant.value;
+  set_staking_pool(staking_pool: unknown): void {
+    this.staking_pool = staking_pool;
   }
 
-  as_constitutional_committee_hot_scripthash(): Scripthash | undefined {
-    if (this.variant.kind == 1) return this.variant.value;
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Voter {
+    let reader = new CBORReader(data);
+    return Voter.deserialize(reader);
   }
 
-  as_drep_keyhash(): AddrKeyhash | undefined {
-    if (this.variant.kind == 2) return this.variant.value;
+  static from_hex(hex_str: string): Voter {
+    return Voter.from_bytes(hexToBytes(hex_str));
   }
 
-  as_drep_scripthash(): Scripthash | undefined {
-    if (this.variant.kind == 3) return this.variant.value;
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
   }
 
-  as_staking_pool_keyhash(): AddrKeyhash | undefined {
-    if (this.variant.kind == 4) return this.variant.value;
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 
-  static fromCBOR(value: CBORReaderValue): Voter {
-    let array = value.get("array");
-    let [tag, variant] = array.shiftRequired().with((tag_) => {
-      let tag = Number(tag_.get("uint"));
+  static deserialize(reader: CBORReader): Voter {
+    let len = reader.readArrayTag();
 
-      if (tag == 0) {
-        return [tag, AddrKeyhash.fromCBOR(array.shiftRequired())];
-      }
+    if (len != null && len < 3) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 3. Received " + len,
+      );
+    }
 
-      if (tag == 1) {
-        return [tag, Scripthash.fromCBOR(array.shiftRequired())];
-      }
+    let constitutional_committee_hot_key = Credential.deserialize(reader);
 
-      if (tag == 2) {
-        return [tag, AddrKeyhash.fromCBOR(array.shiftRequired())];
-      }
+    let drep = Credential.deserialize(reader);
 
-      if (tag == 3) {
-        return [tag, Scripthash.fromCBOR(array.shiftRequired())];
-      }
+    let staking_pool = $$CANT_READ("Ed25519KeyHash");
 
-      if (tag == 4) {
-        return [tag, AddrKeyhash.fromCBOR(array.shiftRequired())];
-      }
-
-      throw "Unrecognized tag: " + tag + " for Voter";
-    });
-
-    return new Voter({ kind: tag, value: variant });
+    return new Voter(constitutional_committee_hot_key, drep, staking_pool);
   }
 
-  toCBOR(writer: CBORWriter) {
-    let entries =
-      this.variant.value.toArray != null
-        ? [this.variant.kind, ...this.variant.value.toArray()]
-        : [this.variant.kind, this.variant.value];
-    writer.writeArray(entries);
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(3);
+
+    this.constitutional_committee_hot_key.serialize(writer);
+    this.drep.serialize(writer);
+    $$CANT_WRITE("Ed25519KeyHash");
   }
 }
 
 export class Anchor {
-  private anchor_url: Url;
-  private anchor_data_hash: Hash32;
+  private url: URL;
+  private anchor_data_hash: unknown;
 
-  constructor(anchor_url: Url, anchor_data_hash: Hash32) {
-    this.anchor_url = anchor_url;
+  constructor(url: URL, anchor_data_hash: unknown) {
+    this.url = url;
     this.anchor_data_hash = anchor_data_hash;
   }
 
-  get_anchor_url(): Url {
-    return this.anchor_url;
+  get_url(): URL {
+    return this.url;
   }
 
-  set_anchor_url(anchor_url: Url): void {
-    this.anchor_url = anchor_url;
+  set_url(url: URL): void {
+    this.url = url;
   }
 
-  get_anchor_data_hash(): Hash32 {
+  get_anchor_data_hash(): unknown {
     return this.anchor_data_hash;
   }
 
-  set_anchor_data_hash(anchor_data_hash: Hash32): void {
+  set_anchor_data_hash(anchor_data_hash: unknown): void {
     this.anchor_data_hash = anchor_data_hash;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): Anchor {
-    let anchor_url_ = array.shiftRequired();
-    let anchor_url = Url.fromCBOR(anchor_url_);
-    let anchor_data_hash_ = array.shiftRequired();
-    let anchor_data_hash = Hash32.fromCBOR(anchor_data_hash_);
+  // no-op
+  free(): void {}
 
-    return new Anchor(anchor_url, anchor_data_hash);
+  static from_bytes(data: Uint8Array): Anchor {
+    let reader = new CBORReader(data);
+    return Anchor.deserialize(reader);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.anchor_url);
-    entries.push(this.anchor_data_hash);
-    return entries;
+  static from_hex(hex_str: string): Anchor {
+    return Anchor.from_bytes(hexToBytes(hex_str));
   }
 
-  static fromCBOR(value: CBORReaderValue): Anchor {
-    let array = value.get("array");
-    return Anchor.fromArray(array);
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
   }
 
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): Anchor {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let url = URL.deserialize(reader);
+
+    let anchor_data_hash = $$CANT_READ("AnchorDataHash");
+
+    return new Anchor(url, anchor_data_hash);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
+
+    this.url.serialize(writer);
+    $$CANT_WRITE("AnchorDataHash");
   }
 }
 
 export enum VoteKind {
-  No = 0,
-  Yes = 1,
-  Abstain = 2,
-}
-
-export class Vote {
-  private kind_: VoteKind;
-
-  constructor(kind: VoteKind) {
-    this.kind_ = kind;
-  }
-
-  static new_no(): Vote {
-    return new Vote(0);
-  }
-
-  static new_yes(): Vote {
-    return new Vote(1);
-  }
-
-  static new_abstain(): Vote {
-    return new Vote(2);
-  }
-
-  static fromCBOR(value: CBORReaderValue): Vote {
-    return value.with((value) => {
-      let kind = Number(value.getInt());
-
-      if (kind == 0) return new Vote(0);
-
-      if (kind == 1) return new Vote(1);
-
-      if (kind == 2) return new Vote(2);
-
-      throw "Unrecognized enum value: " + kind + " for " + Vote;
-    });
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.write(this.kind_);
-  }
+  no = 0,
+  yes = 1,
+  abstain = 2,
 }
 
 export class GovernanceActionId {
-  private transaction_id: Hash32;
+  private transaction_id: unknown;
   private index: number;
 
-  constructor(transaction_id: Hash32, index: number) {
+  constructor(transaction_id: unknown, index: number) {
     this.transaction_id = transaction_id;
     this.index = index;
   }
 
-  get_transaction_id(): Hash32 {
+  get_transaction_id(): unknown {
     return this.transaction_id;
   }
 
-  set_transaction_id(transaction_id: Hash32): void {
+  set_transaction_id(transaction_id: unknown): void {
     this.transaction_id = transaction_id;
   }
 
@@ -2068,48 +2994,66 @@ export class GovernanceActionId {
     this.index = index;
   }
 
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): GovernanceActionId {
-    let transaction_id_ = array.shiftRequired();
-    let transaction_id = Hash32.fromCBOR(transaction_id_);
-    let index_ = array.shiftRequired();
-    let index = index_.get("uint");
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): GovernanceActionId {
+    let reader = new CBORReader(data);
+    return GovernanceActionId.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): GovernanceActionId {
+    return GovernanceActionId.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): GovernanceActionId {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let transaction_id = $$CANT_READ("TransactionHash");
+
+    let index = Number(reader.readInt());
 
     return new GovernanceActionId(transaction_id, index);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.transaction_id);
-    entries.push(this.index);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
 
-  static fromCBOR(value: CBORReaderValue): GovernanceActionId {
-    let array = value.get("array");
-    return GovernanceActionId.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    $$CANT_WRITE("TransactionHash");
+    writer.writeInt(BigInt(this.index));
   }
 }
 
 export class TransactionInput {
-  private transaction_id: Hash32;
+  private transaction_id: unknown;
   private index: number;
 
-  constructor(transaction_id: Hash32, index: number) {
+  constructor(transaction_id: unknown, index: number) {
     this.transaction_id = transaction_id;
     this.index = index;
   }
 
-  get_transaction_id(): Hash32 {
+  get_transaction_id(): unknown {
     return this.transaction_id;
   }
 
-  set_transaction_id(transaction_id: Hash32): void {
+  set_transaction_id(transaction_id: unknown): void {
     this.transaction_id = transaction_id;
   }
 
@@ -2121,1147 +3065,260 @@ export class TransactionInput {
     this.index = index;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): TransactionInput {
-    let transaction_id_ = array.shiftRequired();
-    let transaction_id = Hash32.fromCBOR(transaction_id_);
-    let index_ = array.shiftRequired();
-    let index = index_.get("uint");
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TransactionInput {
+    let reader = new CBORReader(data);
+    return TransactionInput.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TransactionInput {
+    return TransactionInput.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): TransactionInput {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let transaction_id = $$CANT_READ("TransactionHash");
+
+    let index = Number(reader.readInt());
 
     return new TransactionInput(transaction_id, index);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.transaction_id);
-    entries.push(this.index);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
 
-  static fromCBOR(value: CBORReaderValue): TransactionInput {
-    let array = value.get("array");
-    return TransactionInput.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    $$CANT_WRITE("TransactionHash");
+    writer.writeInt(BigInt(this.index));
   }
 }
 
-export class PreBabbageTransactionOutput {
-  private address: Address;
-  private amount: Value;
-  private datum_hash: Hash32 | undefined;
-
-  constructor(address: Address, amount: Value, datum_hash: Hash32 | undefined) {
-    this.address = address;
-    this.amount = amount;
-    this.datum_hash = datum_hash;
-  }
-
-  get_address(): Address {
-    return this.address;
-  }
-
-  set_address(address: Address): void {
-    this.address = address;
-  }
-
-  get_amount(): Value {
-    return this.amount;
-  }
-
-  set_amount(amount: Value): void {
-    this.amount = amount;
-  }
-
-  get_datum_hash(): Hash32 | undefined {
-    return this.datum_hash;
-  }
-
-  set_datum_hash(datum_hash: Hash32): void {
-    this.datum_hash = datum_hash;
-  }
-
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): PreBabbageTransactionOutput {
-    let address_ = array.shiftRequired();
-    let address = Address.fromCBOR(address_);
-    let amount_ = array.shiftRequired();
-    let amount = Value.fromCBOR(amount_);
-    let datum_hash_ = array.shift();
-    let datum_hash = Hash32.fromCBOR(datum_hash_);
-
-    return new PreBabbageTransactionOutput(address, amount, datum_hash);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.address);
-    entries.push(this.amount);
-    if (this.datum_hash !== undefined) entries.push(this.datum_hash);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): PreBabbageTransactionOutput {
-    let array = value.get("array");
-    return PreBabbageTransactionOutput.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class PostAlonzoTransactionOutput {
-  private address: Address;
-  private value: Value;
-  private datum_option: DatumOption | undefined;
+export class TransactionOutput {
+  private address: unknown;
+  private amount: unknown;
+  private plutus_data: DataOption | undefined;
   private script_ref: ScriptRef | undefined;
 
   constructor(
-    address: Address,
-    value: Value,
-    datum_option: DatumOption | undefined,
+    address: unknown,
+    amount: unknown,
+    plutus_data: DataOption | undefined,
     script_ref: ScriptRef | undefined,
   ) {
     this.address = address;
-    this.value = value;
-    this.datum_option = datum_option;
+    this.amount = amount;
+    this.plutus_data = plutus_data;
     this.script_ref = script_ref;
   }
 
-  get_address(): Address {
+  get_address(): unknown {
     return this.address;
   }
 
-  set_address(address: Address): void {
+  set_address(address: unknown): void {
     this.address = address;
   }
 
-  get_value(): Value {
-    return this.value;
+  get_amount(): unknown {
+    return this.amount;
   }
 
-  set_value(value: Value): void {
-    this.value = value;
+  set_amount(amount: unknown): void {
+    this.amount = amount;
   }
 
-  get_datum_option(): DatumOption | undefined {
-    return this.datum_option;
+  get_plutus_data(): DataOption | undefined {
+    return this.plutus_data;
   }
 
-  set_datum_option(datum_option: DatumOption): void {
-    this.datum_option = datum_option;
+  set_plutus_data(plutus_data: DataOption | undefined): void {
+    this.plutus_data = plutus_data;
   }
 
   get_script_ref(): ScriptRef | undefined {
     return this.script_ref;
   }
 
-  set_script_ref(script_ref: ScriptRef): void {
+  set_script_ref(script_ref: ScriptRef | undefined): void {
     this.script_ref = script_ref;
   }
 
-  static fromCBOR(value: CBORReaderValue): PostAlonzoTransactionOutput {
-    let map = value
-      .get("map")
-      .toMap()
-      .map({ key: (x) => Number(x.getInt()), value: (x) => x });
-    let address_ = map.getRequired(0);
-    let address =
-      address_ != undefined ? Address.fromCBOR(address_) : undefined;
-    let value_ = map.getRequired(1);
-    let value = value_ != undefined ? Value.fromCBOR(value_) : undefined;
-    let datum_option_ = map.get(2);
-    let datum_option =
-      datum_option_ != undefined
-        ? DatumOption.fromCBOR(datum_option_)
-        : undefined;
-    let script_ref_ = map.get(3);
-    let script_ref =
-      script_ref_ != undefined ? ScriptRef.fromCBOR(script_ref_) : undefined;
+  // no-op
+  free(): void {}
 
-    return new PostAlonzoTransactionOutput(
-      address,
-      value,
-      datum_option,
-      script_ref,
-    );
+  static from_bytes(data: Uint8Array): TransactionOutput {
+    let reader = new CBORReader(data);
+    return TransactionOutput.deserialize(reader);
   }
 
-  toCBOR(writer: CBORWriter) {
-    let entries = [];
-    entries.push([0, this.address]);
-    entries.push([1, this.value]);
-    if (this.datum_option !== undefined) entries.push([2, this.datum_option]);
-    if (this.script_ref !== undefined) entries.push([3, this.script_ref]);
-    writer.writeMap(entries);
-  }
-}
-
-export enum TransactionOutputKind {
-  PreBabbageTransactionOutput = 0,
-  PostAlonzoTransactionOutput = 1,
-}
-
-export type TransactionOutputVariant =
-  | { kind: 0; value: PreBabbageTransactionOutput }
-  | { kind: 1; value: PostAlonzoTransactionOutput };
-
-export class TransactionOutput {
-  private variant: TransactionOutputVariant;
-
-  constructor(variant: TransactionOutputVariant) {
-    this.variant = variant;
+  static from_hex(hex_str: string): TransactionOutput {
+    return TransactionOutput.from_bytes(hexToBytes(hex_str));
   }
 
-  static new_pre_babbage_transaction_output(
-    pre_babbage_transaction_output: PreBabbageTransactionOutput,
-  ): TransactionOutput {
-    return new TransactionOutput({
-      kind: 0,
-      value: pre_babbage_transaction_output,
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): TransactionOutput {
+    let fields: any = {};
+    reader.readMap((r) => {
+      let key = Number(r.readUint());
+      switch (key) {
+        case 0:
+          fields.address = $$CANT_READ("Address");
+          break;
+
+        case 1:
+          fields.amount = $$CANT_READ("Value");
+          break;
+
+        case 2:
+          fields.plutus_data = DataOption.deserialize(r);
+          break;
+
+        case 3:
+          fields.script_ref = ScriptRef.deserialize(r);
+          break;
+      }
     });
-  }
-
-  static new_post_alonzo_transaction_output(
-    post_alonzo_transaction_output: PostAlonzoTransactionOutput,
-  ): TransactionOutput {
-    return new TransactionOutput({
-      kind: 1,
-      value: post_alonzo_transaction_output,
-    });
-  }
-
-  as_pre_babbage_transaction_output(): PreBabbageTransactionOutput | undefined {
-    if (this.variant.kind == 0) return this.variant.value;
-  }
-
-  as_post_alonzo_transaction_output(): PostAlonzoTransactionOutput | undefined {
-    if (this.variant.kind == 1) return this.variant.value;
-  }
-
-  static fromCBOR(value: CBORReaderValue): TransactionOutput {
-    return value.getChoice({
-      "": (v) =>
-        new TransactionOutput({
-          kind: 0,
-          value: PreBabbageTransactionOutput.fromCBOR(v),
-        }),
-      "": (v) =>
-        new TransactionOutput({
-          kind: 1,
-          value: PostAlonzoTransactionOutput.fromCBOR(v),
-        }),
-    });
-  }
-
-  toCBOR(writer: CBORWriter) {
-    this.variant.value.toCBOR(writer);
-  }
-}
-
-export class StakeDelegation {
-  private stake_credential: StakeCredential;
-  private pool_keyhash: PoolKeyhash;
-
-  constructor(stake_credential: StakeCredential, pool_keyhash: PoolKeyhash) {
-    this.stake_credential = stake_credential;
-    this.pool_keyhash = pool_keyhash;
-  }
-
-  get_stake_credential(): StakeCredential {
-    return this.stake_credential;
-  }
-
-  set_stake_credential(stake_credential: StakeCredential): void {
-    this.stake_credential = stake_credential;
-  }
-
-  get_pool_keyhash(): PoolKeyhash {
-    return this.pool_keyhash;
-  }
-
-  set_pool_keyhash(pool_keyhash: PoolKeyhash): void {
-    this.pool_keyhash = pool_keyhash;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): StakeDelegation {
-    let stake_credential_ = array.shiftRequired();
-    let stake_credential = StakeCredential.fromCBOR(stake_credential_);
-    let pool_keyhash_ = array.shiftRequired();
-    let pool_keyhash = PoolKeyhash.fromCBOR(pool_keyhash_);
-
-    return new StakeDelegation(stake_credential, pool_keyhash);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.stake_credential);
-    entries.push(this.pool_keyhash);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): StakeDelegation {
-    let array = value.get("array");
-    return StakeDelegation.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class PoolRetirement {
-  private pool_keyhash: PoolKeyhash;
-  private epoch: Epoch;
-
-  constructor(pool_keyhash: PoolKeyhash, epoch: Epoch) {
-    this.pool_keyhash = pool_keyhash;
-    this.epoch = epoch;
-  }
-
-  get_pool_keyhash(): PoolKeyhash {
-    return this.pool_keyhash;
-  }
-
-  set_pool_keyhash(pool_keyhash: PoolKeyhash): void {
-    this.pool_keyhash = pool_keyhash;
-  }
-
-  get_epoch(): Epoch {
-    return this.epoch;
-  }
-
-  set_epoch(epoch: Epoch): void {
-    this.epoch = epoch;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): PoolRetirement {
-    let pool_keyhash_ = array.shiftRequired();
-    let pool_keyhash = PoolKeyhash.fromCBOR(pool_keyhash_);
-    let epoch_ = array.shiftRequired();
-    let epoch = Epoch.fromCBOR(epoch_);
-
-    return new PoolRetirement(pool_keyhash, epoch);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.pool_keyhash);
-    entries.push(this.epoch);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): PoolRetirement {
-    let array = value.get("array");
-    return PoolRetirement.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class RegCert {
-  private stake_credential: StakeCredential;
-  private coin: Coin;
-
-  constructor(stake_credential: StakeCredential, coin: Coin) {
-    this.stake_credential = stake_credential;
-    this.coin = coin;
-  }
-
-  get_stake_credential(): StakeCredential {
-    return this.stake_credential;
-  }
-
-  set_stake_credential(stake_credential: StakeCredential): void {
-    this.stake_credential = stake_credential;
-  }
-
-  get_coin(): Coin {
-    return this.coin;
-  }
-
-  set_coin(coin: Coin): void {
-    this.coin = coin;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): RegCert {
-    let stake_credential_ = array.shiftRequired();
-    let stake_credential = StakeCredential.fromCBOR(stake_credential_);
-    let coin_ = array.shiftRequired();
-    let coin = Coin.fromCBOR(coin_);
-
-    return new RegCert(stake_credential, coin);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.stake_credential);
-    entries.push(this.coin);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): RegCert {
-    let array = value.get("array");
-    return RegCert.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class UnregCert {
-  private stake_credential: StakeCredential;
-  private coin: Coin;
-
-  constructor(stake_credential: StakeCredential, coin: Coin) {
-    this.stake_credential = stake_credential;
-    this.coin = coin;
-  }
-
-  get_stake_credential(): StakeCredential {
-    return this.stake_credential;
-  }
-
-  set_stake_credential(stake_credential: StakeCredential): void {
-    this.stake_credential = stake_credential;
-  }
-
-  get_coin(): Coin {
-    return this.coin;
-  }
-
-  set_coin(coin: Coin): void {
-    this.coin = coin;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): UnregCert {
-    let stake_credential_ = array.shiftRequired();
-    let stake_credential = StakeCredential.fromCBOR(stake_credential_);
-    let coin_ = array.shiftRequired();
-    let coin = Coin.fromCBOR(coin_);
-
-    return new UnregCert(stake_credential, coin);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.stake_credential);
-    entries.push(this.coin);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): UnregCert {
-    let array = value.get("array");
-    return UnregCert.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class VoteDelegCert {
-  private stake_credential: StakeCredential;
-  private drep: Drep;
-
-  constructor(stake_credential: StakeCredential, drep: Drep) {
-    this.stake_credential = stake_credential;
-    this.drep = drep;
-  }
-
-  get_stake_credential(): StakeCredential {
-    return this.stake_credential;
-  }
-
-  set_stake_credential(stake_credential: StakeCredential): void {
-    this.stake_credential = stake_credential;
-  }
-
-  get_drep(): Drep {
-    return this.drep;
-  }
-
-  set_drep(drep: Drep): void {
-    this.drep = drep;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): VoteDelegCert {
-    let stake_credential_ = array.shiftRequired();
-    let stake_credential = StakeCredential.fromCBOR(stake_credential_);
-    let drep_ = array.shiftRequired();
-    let drep = Drep.fromCBOR(drep_);
-
-    return new VoteDelegCert(stake_credential, drep);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.stake_credential);
-    entries.push(this.drep);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): VoteDelegCert {
-    let array = value.get("array");
-    return VoteDelegCert.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class StakeVoteDelegCert {
-  private stake_credential: StakeCredential;
-  private pool_keyhash: PoolKeyhash;
-  private drep: Drep;
-
-  constructor(
-    stake_credential: StakeCredential,
-    pool_keyhash: PoolKeyhash,
-    drep: Drep,
-  ) {
-    this.stake_credential = stake_credential;
-    this.pool_keyhash = pool_keyhash;
-    this.drep = drep;
-  }
-
-  get_stake_credential(): StakeCredential {
-    return this.stake_credential;
-  }
-
-  set_stake_credential(stake_credential: StakeCredential): void {
-    this.stake_credential = stake_credential;
-  }
-
-  get_pool_keyhash(): PoolKeyhash {
-    return this.pool_keyhash;
-  }
-
-  set_pool_keyhash(pool_keyhash: PoolKeyhash): void {
-    this.pool_keyhash = pool_keyhash;
-  }
-
-  get_drep(): Drep {
-    return this.drep;
-  }
-
-  set_drep(drep: Drep): void {
-    this.drep = drep;
-  }
-
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): StakeVoteDelegCert {
-    let stake_credential_ = array.shiftRequired();
-    let stake_credential = StakeCredential.fromCBOR(stake_credential_);
-    let pool_keyhash_ = array.shiftRequired();
-    let pool_keyhash = PoolKeyhash.fromCBOR(pool_keyhash_);
-    let drep_ = array.shiftRequired();
-    let drep = Drep.fromCBOR(drep_);
-
-    return new StakeVoteDelegCert(stake_credential, pool_keyhash, drep);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.stake_credential);
-    entries.push(this.pool_keyhash);
-    entries.push(this.drep);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): StakeVoteDelegCert {
-    let array = value.get("array");
-    return StakeVoteDelegCert.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class StakeRegDelegCert {
-  private stake_credential: StakeCredential;
-  private pool_keyhash: PoolKeyhash;
-  private coin: Coin;
-
-  constructor(
-    stake_credential: StakeCredential,
-    pool_keyhash: PoolKeyhash,
-    coin: Coin,
-  ) {
-    this.stake_credential = stake_credential;
-    this.pool_keyhash = pool_keyhash;
-    this.coin = coin;
-  }
-
-  get_stake_credential(): StakeCredential {
-    return this.stake_credential;
-  }
-
-  set_stake_credential(stake_credential: StakeCredential): void {
-    this.stake_credential = stake_credential;
-  }
-
-  get_pool_keyhash(): PoolKeyhash {
-    return this.pool_keyhash;
-  }
-
-  set_pool_keyhash(pool_keyhash: PoolKeyhash): void {
-    this.pool_keyhash = pool_keyhash;
-  }
-
-  get_coin(): Coin {
-    return this.coin;
-  }
-
-  set_coin(coin: Coin): void {
-    this.coin = coin;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): StakeRegDelegCert {
-    let stake_credential_ = array.shiftRequired();
-    let stake_credential = StakeCredential.fromCBOR(stake_credential_);
-    let pool_keyhash_ = array.shiftRequired();
-    let pool_keyhash = PoolKeyhash.fromCBOR(pool_keyhash_);
-    let coin_ = array.shiftRequired();
-    let coin = Coin.fromCBOR(coin_);
-
-    return new StakeRegDelegCert(stake_credential, pool_keyhash, coin);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.stake_credential);
-    entries.push(this.pool_keyhash);
-    entries.push(this.coin);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): StakeRegDelegCert {
-    let array = value.get("array");
-    return StakeRegDelegCert.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class VoteRegDelegCert {
-  private stake_credential: StakeCredential;
-  private drep: Drep;
-  private coin: Coin;
-
-  constructor(stake_credential: StakeCredential, drep: Drep, coin: Coin) {
-    this.stake_credential = stake_credential;
-    this.drep = drep;
-    this.coin = coin;
-  }
-
-  get_stake_credential(): StakeCredential {
-    return this.stake_credential;
-  }
-
-  set_stake_credential(stake_credential: StakeCredential): void {
-    this.stake_credential = stake_credential;
-  }
-
-  get_drep(): Drep {
-    return this.drep;
-  }
-
-  set_drep(drep: Drep): void {
-    this.drep = drep;
-  }
-
-  get_coin(): Coin {
-    return this.coin;
-  }
-
-  set_coin(coin: Coin): void {
-    this.coin = coin;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): VoteRegDelegCert {
-    let stake_credential_ = array.shiftRequired();
-    let stake_credential = StakeCredential.fromCBOR(stake_credential_);
-    let drep_ = array.shiftRequired();
-    let drep = Drep.fromCBOR(drep_);
-    let coin_ = array.shiftRequired();
-    let coin = Coin.fromCBOR(coin_);
-
-    return new VoteRegDelegCert(stake_credential, drep, coin);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.stake_credential);
-    entries.push(this.drep);
-    entries.push(this.coin);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): VoteRegDelegCert {
-    let array = value.get("array");
-    return VoteRegDelegCert.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class StakeVoteRegDelegCert {
-  private stake_credential: StakeCredential;
-  private pool_keyhash: PoolKeyhash;
-  private drep: Drep;
-  private coin: Coin;
-
-  constructor(
-    stake_credential: StakeCredential,
-    pool_keyhash: PoolKeyhash,
-    drep: Drep,
-    coin: Coin,
-  ) {
-    this.stake_credential = stake_credential;
-    this.pool_keyhash = pool_keyhash;
-    this.drep = drep;
-    this.coin = coin;
-  }
-
-  get_stake_credential(): StakeCredential {
-    return this.stake_credential;
-  }
-
-  set_stake_credential(stake_credential: StakeCredential): void {
-    this.stake_credential = stake_credential;
-  }
-
-  get_pool_keyhash(): PoolKeyhash {
-    return this.pool_keyhash;
-  }
-
-  set_pool_keyhash(pool_keyhash: PoolKeyhash): void {
-    this.pool_keyhash = pool_keyhash;
-  }
-
-  get_drep(): Drep {
-    return this.drep;
-  }
-
-  set_drep(drep: Drep): void {
-    this.drep = drep;
-  }
-
-  get_coin(): Coin {
-    return this.coin;
-  }
-
-  set_coin(coin: Coin): void {
-    this.coin = coin;
-  }
-
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): StakeVoteRegDelegCert {
-    let stake_credential_ = array.shiftRequired();
-    let stake_credential = StakeCredential.fromCBOR(stake_credential_);
-    let pool_keyhash_ = array.shiftRequired();
-    let pool_keyhash = PoolKeyhash.fromCBOR(pool_keyhash_);
-    let drep_ = array.shiftRequired();
-    let drep = Drep.fromCBOR(drep_);
-    let coin_ = array.shiftRequired();
-    let coin = Coin.fromCBOR(coin_);
-
-    return new StakeVoteRegDelegCert(
-      stake_credential,
-      pool_keyhash,
-      drep,
-      coin,
-    );
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.stake_credential);
-    entries.push(this.pool_keyhash);
-    entries.push(this.drep);
-    entries.push(this.coin);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): StakeVoteRegDelegCert {
-    let array = value.get("array");
-    return StakeVoteRegDelegCert.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class AuthCommitteeHotCert {
-  private committee_cold_credential: CommitteeColdCredential;
-  private committee_hot_credential: CommitteeHotCredential;
-
-  constructor(
-    committee_cold_credential: CommitteeColdCredential,
-    committee_hot_credential: CommitteeHotCredential,
-  ) {
-    this.committee_cold_credential = committee_cold_credential;
-    this.committee_hot_credential = committee_hot_credential;
-  }
-
-  get_committee_cold_credential(): CommitteeColdCredential {
-    return this.committee_cold_credential;
-  }
-
-  set_committee_cold_credential(
-    committee_cold_credential: CommitteeColdCredential,
-  ): void {
-    this.committee_cold_credential = committee_cold_credential;
-  }
-
-  get_committee_hot_credential(): CommitteeHotCredential {
-    return this.committee_hot_credential;
-  }
-
-  set_committee_hot_credential(
-    committee_hot_credential: CommitteeHotCredential,
-  ): void {
-    this.committee_hot_credential = committee_hot_credential;
-  }
-
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): AuthCommitteeHotCert {
-    let committee_cold_credential_ = array.shiftRequired();
-    let committee_cold_credential = CommitteeColdCredential.fromCBOR(
-      committee_cold_credential_,
-    );
-    let committee_hot_credential_ = array.shiftRequired();
-    let committee_hot_credential = CommitteeHotCredential.fromCBOR(
-      committee_hot_credential_,
-    );
-
-    return new AuthCommitteeHotCert(
-      committee_cold_credential,
-      committee_hot_credential,
-    );
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.committee_cold_credential);
-    entries.push(this.committee_hot_credential);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): AuthCommitteeHotCert {
-    let array = value.get("array");
-    return AuthCommitteeHotCert.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class ResignCommitteeColdCert {
-  private committee_cold_credential: CommitteeColdCredential;
-  private anchor: Anchor | undefined;
-
-  constructor(
-    committee_cold_credential: CommitteeColdCredential,
-    anchor: Anchor | undefined,
-  ) {
-    this.committee_cold_credential = committee_cold_credential;
-    this.anchor = anchor;
-  }
-
-  get_committee_cold_credential(): CommitteeColdCredential {
-    return this.committee_cold_credential;
-  }
-
-  set_committee_cold_credential(
-    committee_cold_credential: CommitteeColdCredential,
-  ): void {
-    this.committee_cold_credential = committee_cold_credential;
-  }
-
-  get_anchor(): Anchor | undefined {
-    return this.anchor;
-  }
-
-  set_anchor(anchor: Anchor): void {
-    this.anchor = anchor;
-  }
-
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): ResignCommitteeColdCert {
-    let committee_cold_credential_ = array.shiftRequired();
-    let committee_cold_credential = CommitteeColdCredential.fromCBOR(
-      committee_cold_credential_,
-    );
-    let anchor_ = array.shiftRequired();
-    let anchor__ = anchor_.withNullable((x) => Anchor.fromCBOR(x));
-    let anchor = anchor__ == null ? undefined : anchor__;
-
-    return new ResignCommitteeColdCert(committee_cold_credential, anchor);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.committee_cold_credential);
-    entries.push(this.anchor);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): ResignCommitteeColdCert {
-    let array = value.get("array");
-    return ResignCommitteeColdCert.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class RegDrepCert {
-  private drep_credential: DrepCredential;
-  private coin: Coin;
-  private anchor: Anchor | undefined;
-
-  constructor(
-    drep_credential: DrepCredential,
-    coin: Coin,
-    anchor: Anchor | undefined,
-  ) {
-    this.drep_credential = drep_credential;
-    this.coin = coin;
-    this.anchor = anchor;
-  }
-
-  get_drep_credential(): DrepCredential {
-    return this.drep_credential;
-  }
-
-  set_drep_credential(drep_credential: DrepCredential): void {
-    this.drep_credential = drep_credential;
-  }
-
-  get_coin(): Coin {
-    return this.coin;
-  }
-
-  set_coin(coin: Coin): void {
-    this.coin = coin;
-  }
-
-  get_anchor(): Anchor | undefined {
-    return this.anchor;
-  }
-
-  set_anchor(anchor: Anchor): void {
-    this.anchor = anchor;
-  }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): RegDrepCert {
-    let drep_credential_ = array.shiftRequired();
-    let drep_credential = DrepCredential.fromCBOR(drep_credential_);
-    let coin_ = array.shiftRequired();
-    let coin = Coin.fromCBOR(coin_);
-    let anchor_ = array.shiftRequired();
-    let anchor__ = anchor_.withNullable((x) => Anchor.fromCBOR(x));
-    let anchor = anchor__ == null ? undefined : anchor__;
+    if (fields.address === undefined)
+      throw new Error("Value not provided for field 0 (address)");
+    let address = fields.address;
+    if (fields.amount === undefined)
+      throw new Error("Value not provided for field 1 (amount)");
+    let amount = fields.amount;
 
-    return new RegDrepCert(drep_credential, coin, anchor);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.drep_credential);
-    entries.push(this.coin);
-    entries.push(this.anchor);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): RegDrepCert {
-    let array = value.get("array");
-    return RegDrepCert.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class UnregDrepCert {
-  private drep_credential: DrepCredential;
-  private coin: Coin;
-
-  constructor(drep_credential: DrepCredential, coin: Coin) {
-    this.drep_credential = drep_credential;
-    this.coin = coin;
-  }
-
-  get_drep_credential(): DrepCredential {
-    return this.drep_credential;
-  }
-
-  set_drep_credential(drep_credential: DrepCredential): void {
-    this.drep_credential = drep_credential;
-  }
-
-  get_coin(): Coin {
-    return this.coin;
-  }
-
-  set_coin(coin: Coin): void {
-    this.coin = coin;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): UnregDrepCert {
-    let drep_credential_ = array.shiftRequired();
-    let drep_credential = DrepCredential.fromCBOR(drep_credential_);
-    let coin_ = array.shiftRequired();
-    let coin = Coin.fromCBOR(coin_);
+    let plutus_data = fields.plutus_data;
 
-    return new UnregDrepCert(drep_credential, coin);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.drep_credential);
-    entries.push(this.coin);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): UnregDrepCert {
-    let array = value.get("array");
-    return UnregDrepCert.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class UpdateDrepCert {
-  private drep_credential: DrepCredential;
-  private anchor: Anchor | undefined;
-
-  constructor(drep_credential: DrepCredential, anchor: Anchor | undefined) {
-    this.drep_credential = drep_credential;
-    this.anchor = anchor;
-  }
+    let script_ref = fields.script_ref;
 
-  get_drep_credential(): DrepCredential {
-    return this.drep_credential;
+    return new TransactionOutput(address, amount, plutus_data, script_ref);
   }
 
-  set_drep_credential(drep_credential: DrepCredential): void {
-    this.drep_credential = drep_credential;
-  }
-
-  get_anchor(): Anchor | undefined {
-    return this.anchor;
-  }
-
-  set_anchor(anchor: Anchor): void {
-    this.anchor = anchor;
-  }
+  serialize(writer: CBORWriter) {
+    let len = 4;
+    if (this.plutus_data === undefined) len -= 1;
+    if (this.script_ref === undefined) len -= 1;
+    writer.writeMapTag(len);
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): UpdateDrepCert {
-    let drep_credential_ = array.shiftRequired();
-    let drep_credential = DrepCredential.fromCBOR(drep_credential_);
-    let anchor_ = array.shiftRequired();
-    let anchor__ = anchor_.withNullable((x) => Anchor.fromCBOR(x));
-    let anchor = anchor__ == null ? undefined : anchor__;
+    writer.writeInt(0n);
+    $$CANT_WRITE("Address");
 
-    return new UpdateDrepCert(drep_credential, anchor);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.drep_credential);
-    entries.push(this.anchor);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): UpdateDrepCert {
-    let array = value.get("array");
-    return UpdateDrepCert.fromArray(array);
-  }
+    writer.writeInt(1n);
+    $$CANT_WRITE("Value");
 
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    if (this.plutus_data !== undefined) {
+      writer.writeInt(2n);
+      this.plutus_data.serialize(writer);
+    }
+    if (this.script_ref !== undefined) {
+      writer.writeInt(3n);
+      this.script_ref.serialize(writer);
+    }
   }
 }
 
 export enum CertificateKind {
-  StakeCredential = 0,
-  StakeCredential = 1,
+  StakeRegistration = 0,
+  StakeDeregistration = 1,
   StakeDelegation = 2,
-  PoolParams = 3,
+  PoolRegistration = 3,
   PoolRetirement = 4,
   RegCert = 7,
   UnregCert = 8,
-  VoteDelegCert = 9,
-  StakeVoteDelegCert = 10,
-  StakeRegDelegCert = 11,
-  VoteRegDelegCert = 12,
-  StakeVoteRegDelegCert = 13,
-  AuthCommitteeHotCert = 14,
-  ResignCommitteeColdCert = 15,
-  RegDrepCert = 16,
-  UnregDrepCert = 17,
-  UpdateDrepCert = 18,
+  VoteDelegation = 9,
+  StakeAndVoteDelegation = 10,
+  StakeRegistrationAndDelegation = 11,
+  VoteRegistrationAndDelegation = 12,
+  StakeVoteRegistrationAndDelegation = 13,
+  CommitteeHotAuth = 14,
+  CommitteeColdResign = 15,
+  DrepRegistration = 16,
+  DrepDeregistration = 17,
+  DrepUpdate = 18,
 }
 
 export type CertificateVariant =
-  | { kind: 0; value: StakeCredential }
-  | { kind: 1; value: StakeCredential }
+  | { kind: 0; value: StakeRegistration }
+  | { kind: 1; value: StakeDeregistration }
   | { kind: 2; value: StakeDelegation }
-  | { kind: 3; value: PoolParams }
+  | { kind: 3; value: PoolRegistration }
   | { kind: 4; value: PoolRetirement }
   | { kind: 7; value: RegCert }
   | { kind: 8; value: UnregCert }
-  | { kind: 9; value: VoteDelegCert }
-  | { kind: 10; value: StakeVoteDelegCert }
-  | { kind: 11; value: StakeRegDelegCert }
-  | { kind: 12; value: VoteRegDelegCert }
-  | { kind: 13; value: StakeVoteRegDelegCert }
-  | { kind: 14; value: AuthCommitteeHotCert }
-  | { kind: 15; value: ResignCommitteeColdCert }
-  | { kind: 16; value: RegDrepCert }
-  | { kind: 17; value: UnregDrepCert }
-  | { kind: 18; value: UpdateDrepCert };
+  | { kind: 9; value: VoteDelegation }
+  | { kind: 10; value: StakeAndVoteDelegation }
+  | { kind: 11; value: StakeRegistrationAndDelegation }
+  | { kind: 12; value: VoteRegistrationAndDelegation }
+  | { kind: 13; value: StakeVoteRegistrationAndDelegation }
+  | { kind: 14; value: CommitteeHotAuth }
+  | { kind: 15; value: CommitteeColdResign }
+  | { kind: 16; value: DrepRegistration }
+  | { kind: 17; value: DrepDeregistration }
+  | { kind: 18; value: DrepUpdate };
 
 export class Certificate {
   private variant: CertificateVariant;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Certificate {
+    let reader = new CBORReader(data);
+    return Certificate.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Certificate {
+    return Certificate.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 
   constructor(variant: CertificateVariant) {
     this.variant = variant;
   }
 
   static new_stake_registration(
-    stake_registration: StakeCredential,
+    stake_registration: StakeRegistration,
   ): Certificate {
     return new Certificate({ kind: 0, value: stake_registration });
   }
 
   static new_stake_deregistration(
-    stake_deregistration: StakeCredential,
+    stake_deregistration: StakeDeregistration,
   ): Certificate {
     return new Certificate({ kind: 1, value: stake_deregistration });
   }
@@ -3270,7 +3327,9 @@ export class Certificate {
     return new Certificate({ kind: 2, value: stake_delegation });
   }
 
-  static new_pool_registration(pool_registration: PoolParams): Certificate {
+  static new_pool_registration(
+    pool_registration: PoolRegistration,
+  ): Certificate {
     return new Certificate({ kind: 3, value: pool_registration });
   }
 
@@ -3286,63 +3345,76 @@ export class Certificate {
     return new Certificate({ kind: 8, value: unreg_cert });
   }
 
-  static new_vote_deleg_cert(vote_deleg_cert: VoteDelegCert): Certificate {
-    return new Certificate({ kind: 9, value: vote_deleg_cert });
+  static new_vote_delegation(vote_delegation: VoteDelegation): Certificate {
+    return new Certificate({ kind: 9, value: vote_delegation });
   }
 
-  static new_stake_vote_deleg_cert(
-    stake_vote_deleg_cert: StakeVoteDelegCert,
+  static new_stake_and_vote_delegation(
+    stake_and_vote_delegation: StakeAndVoteDelegation,
   ): Certificate {
-    return new Certificate({ kind: 10, value: stake_vote_deleg_cert });
+    return new Certificate({ kind: 10, value: stake_and_vote_delegation });
   }
 
-  static new_stake_reg_deleg_cert(
-    stake_reg_deleg_cert: StakeRegDelegCert,
+  static new_stake_registration_and_delegation(
+    stake_registration_and_delegation: StakeRegistrationAndDelegation,
   ): Certificate {
-    return new Certificate({ kind: 11, value: stake_reg_deleg_cert });
+    return new Certificate({
+      kind: 11,
+      value: stake_registration_and_delegation,
+    });
   }
 
-  static new_vote_reg_deleg_cert(
-    vote_reg_deleg_cert: VoteRegDelegCert,
+  static new_vote_registration_and_delegation(
+    vote_registration_and_delegation: VoteRegistrationAndDelegation,
   ): Certificate {
-    return new Certificate({ kind: 12, value: vote_reg_deleg_cert });
+    return new Certificate({
+      kind: 12,
+      value: vote_registration_and_delegation,
+    });
   }
 
-  static new_stake_vote_reg_deleg_cert(
-    stake_vote_reg_deleg_cert: StakeVoteRegDelegCert,
+  static new_stake_vote_registration_and_delegation(
+    stake_vote_registration_and_delegation: StakeVoteRegistrationAndDelegation,
   ): Certificate {
-    return new Certificate({ kind: 13, value: stake_vote_reg_deleg_cert });
+    return new Certificate({
+      kind: 13,
+      value: stake_vote_registration_and_delegation,
+    });
   }
 
-  static new_auth_committee_hot_cert(
-    auth_committee_hot_cert: AuthCommitteeHotCert,
+  static new_committee_hot_auth(
+    committee_hot_auth: CommitteeHotAuth,
   ): Certificate {
-    return new Certificate({ kind: 14, value: auth_committee_hot_cert });
+    return new Certificate({ kind: 14, value: committee_hot_auth });
   }
 
-  static new_resign_committee_cold_cert(
-    resign_committee_cold_cert: ResignCommitteeColdCert,
+  static new_committee_cold_resign(
+    committee_cold_resign: CommitteeColdResign,
   ): Certificate {
-    return new Certificate({ kind: 15, value: resign_committee_cold_cert });
+    return new Certificate({ kind: 15, value: committee_cold_resign });
   }
 
-  static new_reg_drep_cert(reg_drep_cert: RegDrepCert): Certificate {
-    return new Certificate({ kind: 16, value: reg_drep_cert });
+  static new_drep_registration(
+    drep_registration: DrepRegistration,
+  ): Certificate {
+    return new Certificate({ kind: 16, value: drep_registration });
   }
 
-  static new_unreg_drep_cert(unreg_drep_cert: UnregDrepCert): Certificate {
-    return new Certificate({ kind: 17, value: unreg_drep_cert });
+  static new_drep_deregistration(
+    drep_deregistration: DrepDeregistration,
+  ): Certificate {
+    return new Certificate({ kind: 17, value: drep_deregistration });
   }
 
-  static new_update_drep_cert(update_drep_cert: UpdateDrepCert): Certificate {
-    return new Certificate({ kind: 18, value: update_drep_cert });
+  static new_drep_update(drep_update: DrepUpdate): Certificate {
+    return new Certificate({ kind: 18, value: drep_update });
   }
 
-  as_stake_registration(): StakeCredential | undefined {
+  as_stake_registration(): StakeRegistration | undefined {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
-  as_stake_deregistration(): StakeCredential | undefined {
+  as_stake_deregistration(): StakeDeregistration | undefined {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
@@ -3350,7 +3422,7 @@ export class Certificate {
     if (this.variant.kind == 2) return this.variant.value;
   }
 
-  as_pool_registration(): PoolParams | undefined {
+  as_pool_registration(): PoolRegistration | undefined {
     if (this.variant.kind == 3) return this.variant.value;
   }
 
@@ -3366,486 +3438,2119 @@ export class Certificate {
     if (this.variant.kind == 8) return this.variant.value;
   }
 
-  as_vote_deleg_cert(): VoteDelegCert | undefined {
+  as_vote_delegation(): VoteDelegation | undefined {
     if (this.variant.kind == 9) return this.variant.value;
   }
 
-  as_stake_vote_deleg_cert(): StakeVoteDelegCert | undefined {
+  as_stake_and_vote_delegation(): StakeAndVoteDelegation | undefined {
     if (this.variant.kind == 10) return this.variant.value;
   }
 
-  as_stake_reg_deleg_cert(): StakeRegDelegCert | undefined {
+  as_stake_registration_and_delegation():
+    | StakeRegistrationAndDelegation
+    | undefined {
     if (this.variant.kind == 11) return this.variant.value;
   }
 
-  as_vote_reg_deleg_cert(): VoteRegDelegCert | undefined {
+  as_vote_registration_and_delegation():
+    | VoteRegistrationAndDelegation
+    | undefined {
     if (this.variant.kind == 12) return this.variant.value;
   }
 
-  as_stake_vote_reg_deleg_cert(): StakeVoteRegDelegCert | undefined {
+  as_stake_vote_registration_and_delegation():
+    | StakeVoteRegistrationAndDelegation
+    | undefined {
     if (this.variant.kind == 13) return this.variant.value;
   }
 
-  as_auth_committee_hot_cert(): AuthCommitteeHotCert | undefined {
+  as_committee_hot_auth(): CommitteeHotAuth | undefined {
     if (this.variant.kind == 14) return this.variant.value;
   }
 
-  as_resign_committee_cold_cert(): ResignCommitteeColdCert | undefined {
+  as_committee_cold_resign(): CommitteeColdResign | undefined {
     if (this.variant.kind == 15) return this.variant.value;
   }
 
-  as_reg_drep_cert(): RegDrepCert | undefined {
+  as_drep_registration(): DrepRegistration | undefined {
     if (this.variant.kind == 16) return this.variant.value;
   }
 
-  as_unreg_drep_cert(): UnregDrepCert | undefined {
+  as_drep_deregistration(): DrepDeregistration | undefined {
     if (this.variant.kind == 17) return this.variant.value;
   }
 
-  as_update_drep_cert(): UpdateDrepCert | undefined {
+  as_drep_update(): DrepUpdate | undefined {
     if (this.variant.kind == 18) return this.variant.value;
   }
 
-  static fromCBOR(value: CBORReaderValue): Certificate {
-    let array = value.get("array");
-    let [tag, variant] = array.shiftRequired().with((tag_) => {
-      let tag = Number(tag_.get("uint"));
+  static deserialize(reader: CBORReader): Certificate {
+    let len = reader.readArrayTag();
+    let tag = Number(reader.readUint());
 
-      if (tag == 0) {
-        return [tag, StakeCredential.fromCBOR(array.shiftRequired())];
-      }
+    let fragmentLen = len != null ? len - 1 : null;
 
-      if (tag == 1) {
-        return [tag, StakeCredential.fromCBOR(array.shiftRequired())];
-      }
+    switch (tag) {
+      case 0:
+        if (StakeRegistration.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 0,
+            value: StakeRegistration.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant stake_registration",
+            );
+          return new Certificate({
+            kind: 0,
+            value: StakeRegistration.deserialize(reader),
+          });
+        }
 
-      if (tag == 2) {
-        return [tag, StakeDelegation.fromArray(array)];
-      }
+      case 1:
+        if (StakeDeregistration.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 1,
+            value: StakeDeregistration.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant stake_deregistration",
+            );
+          return new Certificate({
+            kind: 1,
+            value: StakeDeregistration.deserialize(reader),
+          });
+        }
 
-      if (tag == 3) {
-        return [tag, PoolParams.fromCBOR(array.shiftRequired())];
-      }
+      case 2:
+        if (StakeDelegation.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 2,
+            value: StakeDelegation.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant stake_delegation",
+            );
+          return new Certificate({
+            kind: 2,
+            value: StakeDelegation.deserialize(reader),
+          });
+        }
 
-      if (tag == 4) {
-        return [tag, PoolRetirement.fromArray(array)];
-      }
+      case 3:
+        if (PoolRegistration.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 3,
+            value: PoolRegistration.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant pool_registration",
+            );
+          return new Certificate({
+            kind: 3,
+            value: PoolRegistration.deserialize(reader),
+          });
+        }
 
-      if (tag == 7) {
-        return [tag, RegCert.fromArray(array)];
-      }
+      case 4:
+        if (PoolRetirement.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 4,
+            value: PoolRetirement.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant pool_retirement");
+          return new Certificate({
+            kind: 4,
+            value: PoolRetirement.deserialize(reader),
+          });
+        }
 
-      if (tag == 8) {
-        return [tag, UnregCert.fromArray(array)];
-      }
+      case 7:
+        if (RegCert.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 7,
+            value: RegCert.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant reg_cert");
+          return new Certificate({
+            kind: 7,
+            value: RegCert.deserialize(reader),
+          });
+        }
 
-      if (tag == 9) {
-        return [tag, VoteDelegCert.fromArray(array)];
-      }
+      case 8:
+        if (UnregCert.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 8,
+            value: UnregCert.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant unreg_cert");
+          return new Certificate({
+            kind: 8,
+            value: UnregCert.deserialize(reader),
+          });
+        }
 
-      if (tag == 10) {
-        return [tag, StakeVoteDelegCert.fromArray(array)];
-      }
+      case 9:
+        if (VoteDelegation.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 9,
+            value: VoteDelegation.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant vote_delegation");
+          return new Certificate({
+            kind: 9,
+            value: VoteDelegation.deserialize(reader),
+          });
+        }
 
-      if (tag == 11) {
-        return [tag, StakeRegDelegCert.fromArray(array)];
-      }
+      case 10:
+        if (StakeAndVoteDelegation.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 10,
+            value: StakeAndVoteDelegation.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant stake_and_vote_delegation",
+            );
+          return new Certificate({
+            kind: 10,
+            value: StakeAndVoteDelegation.deserialize(reader),
+          });
+        }
 
-      if (tag == 12) {
-        return [tag, VoteRegDelegCert.fromArray(array)];
-      }
+      case 11:
+        if (StakeRegistrationAndDelegation.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 11,
+            value: StakeRegistrationAndDelegation.deserialize(
+              reader,
+              fragmentLen,
+            ),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant stake_registration_and_delegation",
+            );
+          return new Certificate({
+            kind: 11,
+            value: StakeRegistrationAndDelegation.deserialize(reader),
+          });
+        }
 
-      if (tag == 13) {
-        return [tag, StakeVoteRegDelegCert.fromArray(array)];
-      }
+      case 12:
+        if (VoteRegistrationAndDelegation.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 12,
+            value: VoteRegistrationAndDelegation.deserialize(
+              reader,
+              fragmentLen,
+            ),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant vote_registration_and_delegation",
+            );
+          return new Certificate({
+            kind: 12,
+            value: VoteRegistrationAndDelegation.deserialize(reader),
+          });
+        }
 
-      if (tag == 14) {
-        return [tag, AuthCommitteeHotCert.fromArray(array)];
-      }
+      case 13:
+        if (StakeVoteRegistrationAndDelegation.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 13,
+            value: StakeVoteRegistrationAndDelegation.deserialize(
+              reader,
+              fragmentLen,
+            ),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant stake_vote_registration_and_delegation",
+            );
+          return new Certificate({
+            kind: 13,
+            value: StakeVoteRegistrationAndDelegation.deserialize(reader),
+          });
+        }
 
-      if (tag == 15) {
-        return [tag, ResignCommitteeColdCert.fromArray(array)];
-      }
+      case 14:
+        if (CommitteeHotAuth.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 14,
+            value: CommitteeHotAuth.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant committee_hot_auth",
+            );
+          return new Certificate({
+            kind: 14,
+            value: CommitteeHotAuth.deserialize(reader),
+          });
+        }
 
-      if (tag == 16) {
-        return [tag, RegDrepCert.fromArray(array)];
-      }
+      case 15:
+        if (CommitteeColdResign.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 15,
+            value: CommitteeColdResign.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant committee_cold_resign",
+            );
+          return new Certificate({
+            kind: 15,
+            value: CommitteeColdResign.deserialize(reader),
+          });
+        }
 
-      if (tag == 17) {
-        return [tag, UnregDrepCert.fromArray(array)];
-      }
+      case 16:
+        if (DrepRegistration.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 16,
+            value: DrepRegistration.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant drep_registration",
+            );
+          return new Certificate({
+            kind: 16,
+            value: DrepRegistration.deserialize(reader),
+          });
+        }
 
-      if (tag == 18) {
-        return [tag, UpdateDrepCert.fromArray(array)];
-      }
+      case 17:
+        if (DrepDeregistration.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 17,
+            value: DrepDeregistration.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant drep_deregistration",
+            );
+          return new Certificate({
+            kind: 17,
+            value: DrepDeregistration.deserialize(reader),
+          });
+        }
 
-      throw "Unrecognized tag: " + tag + " for Certificate";
-    });
+      case 18:
+        if (DrepUpdate.FRAGMENT_FIELDS_LEN != null) {
+          return new Certificate({
+            kind: 18,
+            value: DrepUpdate.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant drep_update");
+          return new Certificate({
+            kind: 18,
+            value: DrepUpdate.deserialize(reader),
+          });
+        }
+    }
 
-    return new Certificate({ kind: tag, value: variant });
+    throw new Error("Unexpected tag for Certificate: " + tag);
   }
 
-  toCBOR(writer: CBORWriter) {
-    let entries =
-      this.variant.value.toArray != null
-        ? [this.variant.kind, ...this.variant.value.toArray()]
-        : [this.variant.kind, this.variant.value];
-    writer.writeArray(entries);
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        let fragmentLen = StakeRegistration.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(0n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(0n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 1:
+        let fragmentLen = StakeDeregistration.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(1n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(1n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 2:
+        let fragmentLen = StakeDelegation.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(2n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(2n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 3:
+        let fragmentLen = PoolRegistration.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(3n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(3n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 4:
+        let fragmentLen = PoolRetirement.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(4n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(4n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 7:
+        let fragmentLen = RegCert.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(7n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(7n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 8:
+        let fragmentLen = UnregCert.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(8n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(8n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 9:
+        let fragmentLen = VoteDelegation.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(9n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(9n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 10:
+        let fragmentLen = StakeAndVoteDelegation.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(10n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(10n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 11:
+        let fragmentLen = StakeRegistrationAndDelegation.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(11n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(11n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 12:
+        let fragmentLen = VoteRegistrationAndDelegation.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(12n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(12n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 13:
+        let fragmentLen =
+          StakeVoteRegistrationAndDelegation.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(13n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(13n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 14:
+        let fragmentLen = CommitteeHotAuth.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(14n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(14n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 15:
+        let fragmentLen = CommitteeColdResign.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(15n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(15n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 16:
+        let fragmentLen = DrepRegistration.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(16n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(16n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 17:
+        let fragmentLen = DrepDeregistration.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(17n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(17n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 18:
+        let fragmentLen = DrepUpdate.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(18n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(18n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+    }
   }
 }
 
-export type DeltaCoin = number;
+export class StakeRegistration {
+  static FRAGMENT_FIELDS_LEN: number = 1;
+
+  private stake_credential: Credential;
+
+  constructor(stake_credential: Credential) {
+    this.stake_credential = stake_credential;
+  }
+
+  get_stake_credential(): Credential {
+    return this.stake_credential;
+  }
+
+  set_stake_credential(stake_credential: Credential): void {
+    this.stake_credential = stake_credential;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): StakeRegistration {
+    if (len != null && len < 1) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 1. Received " + len,
+      );
+    }
+
+    let stake_credential = Credential.deserialize(reader);
+
+    return new StakeRegistration(stake_credential);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.stake_credential.serialize(writer);
+  }
+}
+
+export class StakeDeregistration {
+  static FRAGMENT_FIELDS_LEN: number = 1;
+
+  private stake_credential: Credential;
+
+  constructor(stake_credential: Credential) {
+    this.stake_credential = stake_credential;
+  }
+
+  get_stake_credential(): Credential {
+    return this.stake_credential;
+  }
+
+  set_stake_credential(stake_credential: Credential): void {
+    this.stake_credential = stake_credential;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): StakeDeregistration {
+    if (len != null && len < 1) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 1. Received " + len,
+      );
+    }
+
+    let stake_credential = Credential.deserialize(reader);
+
+    return new StakeDeregistration(stake_credential);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.stake_credential.serialize(writer);
+  }
+}
+
+export class StakeDelegation {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private stake_credential: Credential;
+  private pool_keyhash: unknown;
+
+  constructor(stake_credential: Credential, pool_keyhash: unknown) {
+    this.stake_credential = stake_credential;
+    this.pool_keyhash = pool_keyhash;
+  }
+
+  get_stake_credential(): Credential {
+    return this.stake_credential;
+  }
+
+  set_stake_credential(stake_credential: Credential): void {
+    this.stake_credential = stake_credential;
+  }
+
+  get_pool_keyhash(): unknown {
+    return this.pool_keyhash;
+  }
+
+  set_pool_keyhash(pool_keyhash: unknown): void {
+    this.pool_keyhash = pool_keyhash;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): StakeDelegation {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let stake_credential = Credential.deserialize(reader);
+
+    let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
+
+    return new StakeDelegation(stake_credential, pool_keyhash);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.stake_credential.serialize(writer);
+    $$CANT_WRITE("Ed25519KeyHash");
+  }
+}
+
+export class PoolRegistration {
+  static FRAGMENT_FIELDS_LEN: number = PoolParams.FRAGMENT_FIELDS_LEN;
+
+  private pool_params: PoolParams;
+
+  constructor(pool_params: PoolParams) {
+    this.pool_params = pool_params;
+  }
+
+  get_pool_params(): PoolParams {
+    return this.pool_params;
+  }
+
+  set_pool_params(pool_params: PoolParams): void {
+    this.pool_params = pool_params;
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PoolRegistration {
+    let reader = new CBORReader(data);
+    return PoolRegistration.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PoolRegistration {
+    return PoolRegistration.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): PoolRegistration {
+    let pool_params = PoolParams.deserialize(reader, len);
+    return new PoolRegistration(pool_params);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.pool_params.serialize(writer);
+  }
+}
+
+export class PoolRetirement {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private pool_keyhash: unknown;
+  private epoch: number;
+
+  constructor(pool_keyhash: unknown, epoch: number) {
+    this.pool_keyhash = pool_keyhash;
+    this.epoch = epoch;
+  }
+
+  get_pool_keyhash(): unknown {
+    return this.pool_keyhash;
+  }
+
+  set_pool_keyhash(pool_keyhash: unknown): void {
+    this.pool_keyhash = pool_keyhash;
+  }
+
+  get_epoch(): number {
+    return this.epoch;
+  }
+
+  set_epoch(epoch: number): void {
+    this.epoch = epoch;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): PoolRetirement {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
+
+    let epoch = Number(reader.readInt());
+
+    return new PoolRetirement(pool_keyhash, epoch);
+  }
+
+  serialize(writer: CBORWriter): void {
+    $$CANT_WRITE("Ed25519KeyHash");
+    writer.writeInt(BigInt(this.epoch));
+  }
+}
+
+export class RegCert {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private stake_credential: Credential;
+  private coin: bigint;
+
+  constructor(stake_credential: Credential, coin: bigint) {
+    this.stake_credential = stake_credential;
+    this.coin = coin;
+  }
+
+  get_stake_credential(): Credential {
+    return this.stake_credential;
+  }
+
+  set_stake_credential(stake_credential: Credential): void {
+    this.stake_credential = stake_credential;
+  }
+
+  get_coin(): bigint {
+    return this.coin;
+  }
+
+  set_coin(coin: bigint): void {
+    this.coin = coin;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): RegCert {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let stake_credential = Credential.deserialize(reader);
+
+    let coin = reader.readInt();
+
+    return new RegCert(stake_credential, coin);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.stake_credential.serialize(writer);
+    writer.writeInt(this.coin);
+  }
+}
+
+export class UnregCert {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private stake_credential: Credential;
+  private coin: bigint;
+
+  constructor(stake_credential: Credential, coin: bigint) {
+    this.stake_credential = stake_credential;
+    this.coin = coin;
+  }
+
+  get_stake_credential(): Credential {
+    return this.stake_credential;
+  }
+
+  set_stake_credential(stake_credential: Credential): void {
+    this.stake_credential = stake_credential;
+  }
+
+  get_coin(): bigint {
+    return this.coin;
+  }
+
+  set_coin(coin: bigint): void {
+    this.coin = coin;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): UnregCert {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let stake_credential = Credential.deserialize(reader);
+
+    let coin = reader.readInt();
+
+    return new UnregCert(stake_credential, coin);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.stake_credential.serialize(writer);
+    writer.writeInt(this.coin);
+  }
+}
+
+export class VoteDelegation {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private stake_credential: Credential;
+  private drep: DRep;
+
+  constructor(stake_credential: Credential, drep: DRep) {
+    this.stake_credential = stake_credential;
+    this.drep = drep;
+  }
+
+  get_stake_credential(): Credential {
+    return this.stake_credential;
+  }
+
+  set_stake_credential(stake_credential: Credential): void {
+    this.stake_credential = stake_credential;
+  }
+
+  get_drep(): DRep {
+    return this.drep;
+  }
+
+  set_drep(drep: DRep): void {
+    this.drep = drep;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): VoteDelegation {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let stake_credential = Credential.deserialize(reader);
+
+    let drep = DRep.deserialize(reader);
+
+    return new VoteDelegation(stake_credential, drep);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.stake_credential.serialize(writer);
+    this.drep.serialize(writer);
+  }
+}
+
+export class StakeAndVoteDelegation {
+  static FRAGMENT_FIELDS_LEN: number = 3;
+
+  private stake_credential: Credential;
+  private pool_keyhash: unknown;
+  private drep: DRep;
+
+  constructor(stake_credential: Credential, pool_keyhash: unknown, drep: DRep) {
+    this.stake_credential = stake_credential;
+    this.pool_keyhash = pool_keyhash;
+    this.drep = drep;
+  }
+
+  get_stake_credential(): Credential {
+    return this.stake_credential;
+  }
+
+  set_stake_credential(stake_credential: Credential): void {
+    this.stake_credential = stake_credential;
+  }
+
+  get_pool_keyhash(): unknown {
+    return this.pool_keyhash;
+  }
+
+  set_pool_keyhash(pool_keyhash: unknown): void {
+    this.pool_keyhash = pool_keyhash;
+  }
+
+  get_drep(): DRep {
+    return this.drep;
+  }
+
+  set_drep(drep: DRep): void {
+    this.drep = drep;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): StakeAndVoteDelegation {
+    if (len != null && len < 3) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 3. Received " + len,
+      );
+    }
+
+    let stake_credential = Credential.deserialize(reader);
+
+    let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
+
+    let drep = DRep.deserialize(reader);
+
+    return new StakeAndVoteDelegation(stake_credential, pool_keyhash, drep);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.stake_credential.serialize(writer);
+    $$CANT_WRITE("Ed25519KeyHash");
+    this.drep.serialize(writer);
+  }
+}
+
+export class StakeRegistrationAndDelegation {
+  static FRAGMENT_FIELDS_LEN: number = 3;
+
+  private stake_credential: Credential;
+  private pool_keyhash: unknown;
+  private coin: bigint;
+
+  constructor(
+    stake_credential: Credential,
+    pool_keyhash: unknown,
+    coin: bigint,
+  ) {
+    this.stake_credential = stake_credential;
+    this.pool_keyhash = pool_keyhash;
+    this.coin = coin;
+  }
+
+  get_stake_credential(): Credential {
+    return this.stake_credential;
+  }
+
+  set_stake_credential(stake_credential: Credential): void {
+    this.stake_credential = stake_credential;
+  }
+
+  get_pool_keyhash(): unknown {
+    return this.pool_keyhash;
+  }
+
+  set_pool_keyhash(pool_keyhash: unknown): void {
+    this.pool_keyhash = pool_keyhash;
+  }
+
+  get_coin(): bigint {
+    return this.coin;
+  }
+
+  set_coin(coin: bigint): void {
+    this.coin = coin;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): StakeRegistrationAndDelegation {
+    if (len != null && len < 3) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 3. Received " + len,
+      );
+    }
+
+    let stake_credential = Credential.deserialize(reader);
+
+    let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
+
+    let coin = reader.readInt();
+
+    return new StakeRegistrationAndDelegation(
+      stake_credential,
+      pool_keyhash,
+      coin,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.stake_credential.serialize(writer);
+    $$CANT_WRITE("Ed25519KeyHash");
+    writer.writeInt(this.coin);
+  }
+}
+
+export class VoteRegistrationAndDelegation {
+  static FRAGMENT_FIELDS_LEN: number = 3;
+
+  private stake_credential: Credential;
+  private drep: DRep;
+  private coin: bigint;
+
+  constructor(stake_credential: Credential, drep: DRep, coin: bigint) {
+    this.stake_credential = stake_credential;
+    this.drep = drep;
+    this.coin = coin;
+  }
+
+  get_stake_credential(): Credential {
+    return this.stake_credential;
+  }
+
+  set_stake_credential(stake_credential: Credential): void {
+    this.stake_credential = stake_credential;
+  }
+
+  get_drep(): DRep {
+    return this.drep;
+  }
+
+  set_drep(drep: DRep): void {
+    this.drep = drep;
+  }
+
+  get_coin(): bigint {
+    return this.coin;
+  }
+
+  set_coin(coin: bigint): void {
+    this.coin = coin;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): VoteRegistrationAndDelegation {
+    if (len != null && len < 3) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 3. Received " + len,
+      );
+    }
+
+    let stake_credential = Credential.deserialize(reader);
+
+    let drep = DRep.deserialize(reader);
+
+    let coin = reader.readInt();
+
+    return new VoteRegistrationAndDelegation(stake_credential, drep, coin);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.stake_credential.serialize(writer);
+    this.drep.serialize(writer);
+    writer.writeInt(this.coin);
+  }
+}
+
+export class StakeVoteRegistrationAndDelegation {
+  static FRAGMENT_FIELDS_LEN: number = 4;
+
+  private stake_credential: Credential;
+  private pool_keyhash: unknown;
+  private drep: DRep;
+  private coin: bigint;
+
+  constructor(
+    stake_credential: Credential,
+    pool_keyhash: unknown,
+    drep: DRep,
+    coin: bigint,
+  ) {
+    this.stake_credential = stake_credential;
+    this.pool_keyhash = pool_keyhash;
+    this.drep = drep;
+    this.coin = coin;
+  }
+
+  get_stake_credential(): Credential {
+    return this.stake_credential;
+  }
+
+  set_stake_credential(stake_credential: Credential): void {
+    this.stake_credential = stake_credential;
+  }
+
+  get_pool_keyhash(): unknown {
+    return this.pool_keyhash;
+  }
+
+  set_pool_keyhash(pool_keyhash: unknown): void {
+    this.pool_keyhash = pool_keyhash;
+  }
+
+  get_drep(): DRep {
+    return this.drep;
+  }
+
+  set_drep(drep: DRep): void {
+    this.drep = drep;
+  }
+
+  get_coin(): bigint {
+    return this.coin;
+  }
+
+  set_coin(coin: bigint): void {
+    this.coin = coin;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): StakeVoteRegistrationAndDelegation {
+    if (len != null && len < 4) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 4. Received " + len,
+      );
+    }
+
+    let stake_credential = Credential.deserialize(reader);
+
+    let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
+
+    let drep = DRep.deserialize(reader);
+
+    let coin = reader.readInt();
+
+    return new StakeVoteRegistrationAndDelegation(
+      stake_credential,
+      pool_keyhash,
+      drep,
+      coin,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.stake_credential.serialize(writer);
+    $$CANT_WRITE("Ed25519KeyHash");
+    this.drep.serialize(writer);
+    writer.writeInt(this.coin);
+  }
+}
+
+export class CommitteeHotAuth {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private committee_cold_key: Credential;
+  private committee_hot_key: Credential;
+
+  constructor(committee_cold_key: Credential, committee_hot_key: Credential) {
+    this.committee_cold_key = committee_cold_key;
+    this.committee_hot_key = committee_hot_key;
+  }
+
+  get_committee_cold_key(): Credential {
+    return this.committee_cold_key;
+  }
+
+  set_committee_cold_key(committee_cold_key: Credential): void {
+    this.committee_cold_key = committee_cold_key;
+  }
+
+  get_committee_hot_key(): Credential {
+    return this.committee_hot_key;
+  }
+
+  set_committee_hot_key(committee_hot_key: Credential): void {
+    this.committee_hot_key = committee_hot_key;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): CommitteeHotAuth {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let committee_cold_key = Credential.deserialize(reader);
+
+    let committee_hot_key = Credential.deserialize(reader);
+
+    return new CommitteeHotAuth(committee_cold_key, committee_hot_key);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.committee_cold_key.serialize(writer);
+    this.committee_hot_key.serialize(writer);
+  }
+}
+
+export class CommitteeColdResign {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private committee_cold_key: Credential;
+  private anchor: Anchor | undefined;
+
+  constructor(committee_cold_key: Credential, anchor: Anchor | undefined) {
+    this.committee_cold_key = committee_cold_key;
+    this.anchor = anchor;
+  }
+
+  get_committee_cold_key(): Credential {
+    return this.committee_cold_key;
+  }
+
+  set_committee_cold_key(committee_cold_key: Credential): void {
+    this.committee_cold_key = committee_cold_key;
+  }
+
+  get_anchor(): Anchor | undefined {
+    return this.anchor;
+  }
+
+  set_anchor(anchor: Anchor | undefined): void {
+    this.anchor = anchor;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): CommitteeColdResign {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let committee_cold_key = Credential.deserialize(reader);
+
+    let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
+
+    return new CommitteeColdResign(committee_cold_key, anchor);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.committee_cold_key.serialize(writer);
+    if (this.anchor == null) {
+      writer.writeNull();
+    } else {
+      this.anchor.serialize(writer);
+    }
+  }
+}
+
+export class DrepRegistration {
+  static FRAGMENT_FIELDS_LEN: number = 3;
+
+  private voting_credential: Credential;
+  private coin: bigint;
+  private anchor: Anchor | undefined;
+
+  constructor(
+    voting_credential: Credential,
+    coin: bigint,
+    anchor: Anchor | undefined,
+  ) {
+    this.voting_credential = voting_credential;
+    this.coin = coin;
+    this.anchor = anchor;
+  }
+
+  get_voting_credential(): Credential {
+    return this.voting_credential;
+  }
+
+  set_voting_credential(voting_credential: Credential): void {
+    this.voting_credential = voting_credential;
+  }
+
+  get_coin(): bigint {
+    return this.coin;
+  }
+
+  set_coin(coin: bigint): void {
+    this.coin = coin;
+  }
+
+  get_anchor(): Anchor | undefined {
+    return this.anchor;
+  }
+
+  set_anchor(anchor: Anchor | undefined): void {
+    this.anchor = anchor;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): DrepRegistration {
+    if (len != null && len < 3) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 3. Received " + len,
+      );
+    }
+
+    let voting_credential = Credential.deserialize(reader);
+
+    let coin = reader.readInt();
+
+    let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
+
+    return new DrepRegistration(voting_credential, coin, anchor);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.voting_credential.serialize(writer);
+    writer.writeInt(this.coin);
+    if (this.anchor == null) {
+      writer.writeNull();
+    } else {
+      this.anchor.serialize(writer);
+    }
+  }
+}
+
+export class DrepDeregistration {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private drep_credential: Credential;
+  private coin: bigint;
+
+  constructor(drep_credential: Credential, coin: bigint) {
+    this.drep_credential = drep_credential;
+    this.coin = coin;
+  }
+
+  get_drep_credential(): Credential {
+    return this.drep_credential;
+  }
+
+  set_drep_credential(drep_credential: Credential): void {
+    this.drep_credential = drep_credential;
+  }
+
+  get_coin(): bigint {
+    return this.coin;
+  }
+
+  set_coin(coin: bigint): void {
+    this.coin = coin;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    len: number | null,
+  ): DrepDeregistration {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let drep_credential = Credential.deserialize(reader);
+
+    let coin = reader.readInt();
+
+    return new DrepDeregistration(drep_credential, coin);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.drep_credential.serialize(writer);
+    writer.writeInt(this.coin);
+  }
+}
+
+export class DrepUpdate {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private drep_credential: Credential;
+  private anchor: Anchor | undefined;
+
+  constructor(drep_credential: Credential, anchor: Anchor | undefined) {
+    this.drep_credential = drep_credential;
+    this.anchor = anchor;
+  }
+
+  get_drep_credential(): Credential {
+    return this.drep_credential;
+  }
+
+  set_drep_credential(drep_credential: Credential): void {
+    this.drep_credential = drep_credential;
+  }
+
+  get_anchor(): Anchor | undefined {
+    return this.anchor;
+  }
+
+  set_anchor(anchor: Anchor | undefined): void {
+    this.anchor = anchor;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): DrepUpdate {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let drep_credential = Credential.deserialize(reader);
+
+    let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
+
+    return new DrepUpdate(drep_credential, anchor);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.drep_credential.serialize(writer);
+    if (this.anchor == null) {
+      writer.writeNull();
+    } else {
+      this.anchor.serialize(writer);
+    }
+  }
+}
 
 export enum CredentialKind {
-  AddrKeyhash = 0,
-  Scripthash = 1,
+  Ed25519KeyHash = 0,
+  ScriptHash = 1,
 }
 
 export type CredentialVariant =
-  | { kind: 0; value: AddrKeyhash }
-  | { kind: 1; value: Scripthash };
+  | { kind: 0; value: unknown }
+  | { kind: 1; value: unknown };
 
 export class Credential {
   private variant: CredentialVariant;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Credential {
+    let reader = new CBORReader(data);
+    return Credential.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Credential {
+    return Credential.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 
   constructor(variant: CredentialVariant) {
     this.variant = variant;
   }
 
-  static new_addr_keyhash(addr_keyhash: AddrKeyhash): Credential {
-    return new Credential({ kind: 0, value: addr_keyhash });
+  static new_keyhash(keyhash: unknown): Credential {
+    return new Credential({ kind: 0, value: keyhash });
   }
 
-  static new_scripthash(scripthash: Scripthash): Credential {
+  static new_scripthash(scripthash: unknown): Credential {
     return new Credential({ kind: 1, value: scripthash });
   }
 
-  as_addr_keyhash(): AddrKeyhash | undefined {
+  as_keyhash(): unknown | undefined {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
-  as_scripthash(): Scripthash | undefined {
+  as_scripthash(): unknown | undefined {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
-  static fromCBOR(value: CBORReaderValue): Credential {
-    let array = value.get("array");
-    let [tag, variant] = array.shiftRequired().with((tag_) => {
-      let tag = Number(tag_.get("uint"));
+  static deserialize(reader: CBORReader): Credential {
+    let len = reader.readArrayTag();
+    let tag = Number(reader.readUint());
 
-      if (tag == 0) {
-        return [tag, AddrKeyhash.fromCBOR(array.shiftRequired())];
-      }
+    let fragmentLen = len != null ? len - 1 : null;
 
-      if (tag == 1) {
-        return [tag, Scripthash.fromCBOR(array.shiftRequired())];
-      }
+    switch (tag) {
+      case 0:
+        return new Credential({
+          kind: 0,
+          value: $$CANT_READ("Ed25519KeyHash"),
+        });
 
-      throw "Unrecognized tag: " + tag + " for Credential";
-    });
+      case 1:
+        return new Credential({ kind: 1, value: $$CANT_READ("ScriptHash") });
+    }
 
-    return new Credential({ kind: tag, value: variant });
+    throw new Error("Unexpected tag for Credential: " + tag);
   }
 
-  toCBOR(writer: CBORWriter) {
-    let entries =
-      this.variant.value.toArray != null
-        ? [this.variant.kind, ...this.variant.value.toArray()]
-        : [this.variant.kind, this.variant.value];
-    writer.writeArray(entries);
-  }
-}
-
-export class AlwaysAbstain {
-  constructor() {}
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): AlwaysAbstain {
-    return new AlwaysAbstain();
-  }
-
-  toArray() {
-    let entries = [];
-
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): AlwaysAbstain {
-    let array = value.get("array");
-    return AlwaysAbstain.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        writer.writeArrayTag(2);
+        writer.writeInt(0n);
+        $$CANT_WRITE("Ed25519KeyHash");
+        break;
+      case 1:
+        writer.writeArrayTag(2);
+        writer.writeInt(1n);
+        $$CANT_WRITE("ScriptHash");
+        break;
+    }
   }
 }
 
-export class AlwaysNoConfidence {
-  constructor() {}
-
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): AlwaysNoConfidence {
-    return new AlwaysNoConfidence();
-  }
-
-  toArray() {
-    let entries = [];
-
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): AlwaysNoConfidence {
-    let array = value.get("array");
-    return AlwaysNoConfidence.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export enum DrepKind {
-  AddrKeyhash = 0,
-  Scripthash = 1,
+export enum DRepKind {
+  Ed25519KeyHash = 0,
+  ScriptHash = 1,
   AlwaysAbstain = 2,
   AlwaysNoConfidence = 3,
 }
 
-export type DrepVariant =
-  | { kind: 0; value: AddrKeyhash }
-  | { kind: 1; value: Scripthash }
-  | { kind: 2; value: AlwaysAbstain }
-  | { kind: 3; value: AlwaysNoConfidence };
+export type DRepVariant =
+  | { kind: 0; value: unknown }
+  | { kind: 1; value: unknown }
+  | { kind: 2 }
+  | { kind: 3 };
 
-export class Drep {
-  private variant: DrepVariant;
+export class DRep {
+  private variant: DRepVariant;
 
-  constructor(variant: DrepVariant) {
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DRep {
+    let reader = new CBORReader(data);
+    return DRep.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DRep {
+    return DRep.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(variant: DRepVariant) {
     this.variant = variant;
   }
 
-  static new_addr_keyhash(addr_keyhash: AddrKeyhash): Drep {
-    return new Drep({ kind: 0, value: addr_keyhash });
+  static new_key_hash(key_hash: unknown): DRep {
+    return new DRep({ kind: 0, value: key_hash });
   }
 
-  static new_scripthash(scripthash: Scripthash): Drep {
-    return new Drep({ kind: 1, value: scripthash });
+  static new_script_hash(script_hash: unknown): DRep {
+    return new DRep({ kind: 1, value: script_hash });
   }
 
-  static new_always_abstain(always_abstain: AlwaysAbstain): Drep {
-    return new Drep({ kind: 2, value: always_abstain });
+  static new_always_abstain(): DRep {
+    return new DRep({ kind: 2 });
   }
 
-  static new_always_no_confidence(
-    always_no_confidence: AlwaysNoConfidence,
-  ): Drep {
-    return new Drep({ kind: 3, value: always_no_confidence });
+  static new_always_no_confidence(): DRep {
+    return new DRep({ kind: 3 });
   }
 
-  as_addr_keyhash(): AddrKeyhash | undefined {
+  as_key_hash(): unknown | undefined {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
-  as_scripthash(): Scripthash | undefined {
+  as_script_hash(): unknown | undefined {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
-  as_always_abstain(): AlwaysAbstain | undefined {
-    if (this.variant.kind == 2) return this.variant.value;
+  static deserialize(reader: CBORReader): DRep {
+    let len = reader.readArrayTag();
+    let tag = Number(reader.readUint());
+
+    let fragmentLen = len != null ? len - 1 : null;
+
+    switch (tag) {
+      case 0:
+        return new DRep({ kind: 0, value: $$CANT_READ("Ed25519KeyHash") });
+
+      case 1:
+        return new DRep({ kind: 1, value: $$CANT_READ("ScriptHash") });
+
+      case 2:
+        return new DRep({ kind: 2 });
+
+      case 3:
+        return new DRep({ kind: 3 });
+    }
+
+    throw new Error("Unexpected tag for DRep: " + tag);
   }
 
-  as_always_no_confidence(): AlwaysNoConfidence | undefined {
-    if (this.variant.kind == 3) return this.variant.value;
-  }
-
-  static fromCBOR(value: CBORReaderValue): Drep {
-    let array = value.get("array");
-    let [tag, variant] = array.shiftRequired().with((tag_) => {
-      let tag = Number(tag_.get("uint"));
-
-      if (tag == 0) {
-        return [tag, AddrKeyhash.fromCBOR(array.shiftRequired())];
-      }
-
-      if (tag == 1) {
-        return [tag, Scripthash.fromCBOR(array.shiftRequired())];
-      }
-
-      if (tag == 2) {
-        return [tag, AlwaysAbstain.fromArray(array)];
-      }
-
-      if (tag == 3) {
-        return [tag, AlwaysNoConfidence.fromArray(array)];
-      }
-
-      throw "Unrecognized tag: " + tag + " for Drep";
-    });
-
-    return new Drep({ kind: tag, value: variant });
-  }
-
-  toCBOR(writer: CBORWriter) {
-    let entries =
-      this.variant.value.toArray != null
-        ? [this.variant.kind, ...this.variant.value.toArray()]
-        : [this.variant.kind, this.variant.value];
-    writer.writeArray(entries);
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        writer.writeArrayTag(2);
+        writer.writeInt(0n);
+        $$CANT_WRITE("Ed25519KeyHash");
+        break;
+      case 1:
+        writer.writeArrayTag(2);
+        writer.writeInt(1n);
+        $$CANT_WRITE("ScriptHash");
+        break;
+      case 2:
+        writer.writeArrayTag(1);
+        writer.writeInt(2n);
+        break;
+      case 3:
+        writer.writeArrayTag(1);
+        writer.writeInt(3n);
+        break;
+    }
   }
 }
 
-export type StakeCredential = Credential;
+export class PoolParams {
+  static FRAGMENT_FIELDS_LEN: number = 9;
 
-export type DrepCredential = Credential;
-
-export type CommitteeColdCredential = Credential;
-
-export type CommitteeHotCredential = Credential;
-
-export type Port = number;
-
-export type Ipv4 = Uint8Array;
-
-export type Ipv6 = Uint8Array;
-
-export type DnsName = string;
-
-export class SingleHostAddr {
-  private port: Port | undefined;
-  private ipv4: Ipv4 | undefined;
-  private ipv6: Ipv6 | undefined;
+  private operator: unknown;
+  private vrf_keyhash: unknown;
+  private pledge: bigint;
+  private cost: bigint;
+  private margin: unknown;
+  private reward_account: unknown;
+  private pool_owners: Ed25519KeyHashes;
+  private relays: Relays;
+  private pool_metadata: PoolMetadata | undefined;
 
   constructor(
-    port: Port | undefined,
-    ipv4: Ipv4 | undefined,
-    ipv6: Ipv6 | undefined,
+    operator: unknown,
+    vrf_keyhash: unknown,
+    pledge: bigint,
+    cost: bigint,
+    margin: unknown,
+    reward_account: unknown,
+    pool_owners: Ed25519KeyHashes,
+    relays: Relays,
+    pool_metadata: PoolMetadata | undefined,
   ) {
-    this.port = port;
-    this.ipv4 = ipv4;
-    this.ipv6 = ipv6;
+    this.operator = operator;
+    this.vrf_keyhash = vrf_keyhash;
+    this.pledge = pledge;
+    this.cost = cost;
+    this.margin = margin;
+    this.reward_account = reward_account;
+    this.pool_owners = pool_owners;
+    this.relays = relays;
+    this.pool_metadata = pool_metadata;
   }
 
-  get_port(): Port | undefined {
-    return this.port;
+  get_operator(): unknown {
+    return this.operator;
   }
 
-  set_port(port: Port): void {
-    this.port = port;
+  set_operator(operator: unknown): void {
+    this.operator = operator;
   }
 
-  get_ipv4(): Ipv4 | undefined {
-    return this.ipv4;
+  get_vrf_keyhash(): unknown {
+    return this.vrf_keyhash;
   }
 
-  set_ipv4(ipv4: Ipv4): void {
-    this.ipv4 = ipv4;
+  set_vrf_keyhash(vrf_keyhash: unknown): void {
+    this.vrf_keyhash = vrf_keyhash;
   }
 
-  get_ipv6(): Ipv6 | undefined {
-    return this.ipv6;
+  get_pledge(): bigint {
+    return this.pledge;
   }
 
-  set_ipv6(ipv6: Ipv6): void {
-    this.ipv6 = ipv6;
+  set_pledge(pledge: bigint): void {
+    this.pledge = pledge;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): SingleHostAddr {
-    let port_ = array.shiftRequired();
-    let port__ = port_.withNullable((x) => Port.fromCBOR(x));
-    let port = port__ == null ? undefined : port__;
-    let ipv4_ = array.shiftRequired();
-    let ipv4__ = ipv4_.withNullable((x) => Ipv4.fromCBOR(x));
-    let ipv4 = ipv4__ == null ? undefined : ipv4__;
-    let ipv6_ = array.shiftRequired();
-    let ipv6__ = ipv6_.withNullable((x) => Ipv6.fromCBOR(x));
-    let ipv6 = ipv6__ == null ? undefined : ipv6__;
-
-    return new SingleHostAddr(port, ipv4, ipv6);
+  get_cost(): bigint {
+    return this.cost;
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.port);
-    entries.push(this.ipv4);
-    entries.push(this.ipv6);
-    return entries;
+  set_cost(cost: bigint): void {
+    this.cost = cost;
   }
 
-  static fromCBOR(value: CBORReaderValue): SingleHostAddr {
-    let array = value.get("array");
-    return SingleHostAddr.fromArray(array);
+  get_margin(): unknown {
+    return this.margin;
   }
 
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+  set_margin(margin: unknown): void {
+    this.margin = margin;
+  }
+
+  get_reward_account(): unknown {
+    return this.reward_account;
+  }
+
+  set_reward_account(reward_account: unknown): void {
+    this.reward_account = reward_account;
+  }
+
+  get_pool_owners(): Ed25519KeyHashes {
+    return this.pool_owners;
+  }
+
+  set_pool_owners(pool_owners: Ed25519KeyHashes): void {
+    this.pool_owners = pool_owners;
+  }
+
+  get_relays(): Relays {
+    return this.relays;
+  }
+
+  set_relays(relays: Relays): void {
+    this.relays = relays;
+  }
+
+  get_pool_metadata(): PoolMetadata | undefined {
+    return this.pool_metadata;
+  }
+
+  set_pool_metadata(pool_metadata: PoolMetadata | undefined): void {
+    this.pool_metadata = pool_metadata;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): PoolParams {
+    if (len != null && len < 9) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 9. Received " + len,
+      );
+    }
+
+    let operator = $$CANT_READ("Ed25519KeyHash");
+
+    let vrf_keyhash = $$CANT_READ("VRFKeyHash");
+
+    let pledge = reader.readInt();
+
+    let cost = reader.readInt();
+
+    let margin = $$CANT_READ("UnitInterval");
+
+    let reward_account = $$CANT_READ("RewardAddress");
+
+    let pool_owners = Ed25519KeyHashes.deserialize(reader);
+
+    let relays = Relays.deserialize(reader);
+
+    let pool_metadata =
+      reader.readNullable((r) => PoolMetadata.deserialize(r)) ?? undefined;
+
+    return new PoolParams(
+      operator,
+      vrf_keyhash,
+      pledge,
+      cost,
+      margin,
+      reward_account,
+      pool_owners,
+      relays,
+      pool_metadata,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    $$CANT_WRITE("Ed25519KeyHash");
+    $$CANT_WRITE("VRFKeyHash");
+    writer.writeInt(this.pledge);
+    writer.writeInt(this.cost);
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("RewardAddress");
+    this.pool_owners.serialize(writer);
+    this.relays.serialize(writer);
+    if (this.pool_metadata == null) {
+      writer.writeNull();
+    } else {
+      this.pool_metadata.serialize(writer);
+    }
   }
 }
 
-export class SingleHostName {
-  private port: Port | undefined;
-  private dns_name: DnsName;
+export class Relays {
+  private items: Relay[];
 
-  constructor(port: Port | undefined, dns_name: DnsName) {
-    this.port = port;
-    this.dns_name = dns_name;
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Relays {
+    let reader = new CBORReader(data);
+    return Relays.deserialize(reader);
   }
 
-  get_port(): Port | undefined {
-    return this.port;
+  static from_hex(hex_str: string): Relays {
+    return Relays.from_bytes(hexToBytes(hex_str));
   }
 
-  set_port(port: Port): void {
-    this.port = port;
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
   }
 
-  get_dns_name(): DnsName {
-    return this.dns_name;
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 
-  set_dns_name(dns_name: DnsName): void {
-    this.dns_name = dns_name;
+  constructor(items: Relay[]) {
+    this.items = items;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): SingleHostName {
-    let port_ = array.shiftRequired();
-    let port__ = port_.withNullable((x) => Port.fromCBOR(x));
-    let port = port__ == null ? undefined : port__;
-    let dns_name_ = array.shiftRequired();
-    let dns_name = DnsName.fromCBOR(dns_name_);
-
-    return new SingleHostName(port, dns_name);
+  static new(): Relays {
+    return new Relays([]);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.port);
-    entries.push(this.dns_name);
-    return entries;
+  len(): number {
+    return this.items.length;
   }
 
-  static fromCBOR(value: CBORReaderValue): SingleHostName {
-    let array = value.get("array");
-    return SingleHostName.fromArray(array);
+  get(index: number): Relay {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
   }
 
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+  add(elem: Relay): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): Relays {
+    return new Relays(reader.readArray((reader) => Relay.deserialize(reader)));
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+}
+
+export class Ipv4 {
+  private inner: Uint8Array;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Ipv4 {
+    let reader = new CBORReader(data);
+    return Ipv4.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Ipv4 {
+    return Ipv4.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 4) throw new Error("Expected length to be 4");
+
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): Ipv4 {
+    return new Ipv4(inner);
+  }
+
+  ip(): Uint8Array {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader): Ipv4 {
+    return new Ipv4(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeBytes(this.inner);
+  }
+}
+
+export class Ipv6 {
+  private inner: Uint8Array;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Ipv6 {
+    let reader = new CBORReader(data);
+    return Ipv6.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Ipv6 {
+    return Ipv6.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 16) throw new Error("Expected length to be 16");
+
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): Ipv6 {
+    return new Ipv6(inner);
+  }
+
+  ip(): Uint8Array {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader): Ipv6 {
+    return new Ipv6(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeBytes(this.inner);
+  }
+}
+
+export class DNSRecordAorAAAA {
+  private inner: string;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DNSRecordAorAAAA {
+    let reader = new CBORReader(data);
+    return DNSRecordAorAAAA.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DNSRecordAorAAAA {
+    return DNSRecordAorAAAA.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(inner: string) {
+    if (inner.length > 64) throw new Error("Expected length to be atmost 64");
+    this.inner = inner;
+  }
+
+  static new(inner: string): DNSRecordAorAAAA {
+    return new DNSRecordAorAAAA(inner);
+  }
+
+  record(): string {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader): DNSRecordAorAAAA {
+    return new DNSRecordAorAAAA(reader.readString());
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeString(this.inner);
+  }
+}
+
+export class DNSRecordSRV {
+  private inner: string;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DNSRecordSRV {
+    let reader = new CBORReader(data);
+    return DNSRecordSRV.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DNSRecordSRV {
+    return DNSRecordSRV.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(inner: string) {
+    if (inner.length > 64) throw new Error("Expected length to be atmost 64");
+    this.inner = inner;
+  }
+
+  static new(inner: string): DNSRecordSRV {
+    return new DNSRecordSRV(inner);
+  }
+
+  record(): string {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader): DNSRecordSRV {
+    return new DNSRecordSRV(reader.readString());
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeString(this.inner);
   }
 }
 
 export enum RelayKind {
   SingleHostAddr = 0,
   SingleHostName = 1,
-  DnsName = 2,
+  MultiHostName = 2,
 }
 
 export type RelayVariant =
   | { kind: 0; value: SingleHostAddr }
   | { kind: 1; value: SingleHostName }
-  | { kind: 2; value: DnsName };
+  | { kind: 2; value: MultiHostName };
 
 export class Relay {
   private variant: RelayVariant;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Relay {
+    let reader = new CBORReader(data);
+    return Relay.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Relay {
+    return Relay.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 
   constructor(variant: RelayVariant) {
     this.variant = variant;
@@ -3859,7 +5564,7 @@ export class Relay {
     return new Relay({ kind: 1, value: single_host_name });
   }
 
-  static new_multi_host_name(multi_host_name: DnsName): Relay {
+  static new_multi_host_name(multi_host_name: MultiHostName): Relay {
     return new Relay({ kind: 2, value: multi_host_name });
   }
 
@@ -3871,124 +5576,474 @@ export class Relay {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
-  as_multi_host_name(): DnsName | undefined {
+  as_multi_host_name(): MultiHostName | undefined {
     if (this.variant.kind == 2) return this.variant.value;
   }
 
-  static fromCBOR(value: CBORReaderValue): Relay {
-    let array = value.get("array");
-    let [tag, variant] = array.shiftRequired().with((tag_) => {
-      let tag = Number(tag_.get("uint"));
+  static deserialize(reader: CBORReader): Relay {
+    let len = reader.readArrayTag();
+    let tag = Number(reader.readUint());
 
-      if (tag == 0) {
-        return [tag, SingleHostAddr.fromArray(array)];
-      }
+    let fragmentLen = len != null ? len - 1 : null;
 
-      if (tag == 1) {
-        return [tag, SingleHostName.fromArray(array)];
-      }
+    switch (tag) {
+      case 0:
+        if (SingleHostAddr.FRAGMENT_FIELDS_LEN != null) {
+          return new Relay({
+            kind: 0,
+            value: SingleHostAddr.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant single_host_addr",
+            );
+          return new Relay({
+            kind: 0,
+            value: SingleHostAddr.deserialize(reader),
+          });
+        }
 
-      if (tag == 2) {
-        return [tag, DnsName.fromCBOR(array.shiftRequired())];
-      }
+      case 1:
+        if (SingleHostName.FRAGMENT_FIELDS_LEN != null) {
+          return new Relay({
+            kind: 1,
+            value: SingleHostName.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error(
+              "Expected more values for variant single_host_name",
+            );
+          return new Relay({
+            kind: 1,
+            value: SingleHostName.deserialize(reader),
+          });
+        }
 
-      throw "Unrecognized tag: " + tag + " for Relay";
-    });
+      case 2:
+        if (MultiHostName.FRAGMENT_FIELDS_LEN != null) {
+          return new Relay({
+            kind: 2,
+            value: MultiHostName.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant multi_host_name");
+          return new Relay({
+            kind: 2,
+            value: MultiHostName.deserialize(reader),
+          });
+        }
+    }
 
-    return new Relay({ kind: tag, value: variant });
+    throw new Error("Unexpected tag for Relay: " + tag);
   }
 
-  toCBOR(writer: CBORWriter) {
-    let entries =
-      this.variant.value.toArray != null
-        ? [this.variant.kind, ...this.variant.value.toArray()]
-        : [this.variant.kind, this.variant.value];
-    writer.writeArray(entries);
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        let fragmentLen = SingleHostAddr.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(0n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(0n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 1:
+        let fragmentLen = SingleHostName.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(1n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(1n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 2:
+        let fragmentLen = MultiHostName.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(2n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(2n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+    }
+  }
+}
+
+export class SingleHostAddr {
+  static FRAGMENT_FIELDS_LEN: number = 3;
+
+  private port: number | undefined;
+  private ipv4: Ipv4 | undefined;
+  private ipv6: Ipv6 | undefined;
+
+  constructor(
+    port: number | undefined,
+    ipv4: Ipv4 | undefined,
+    ipv6: Ipv6 | undefined,
+  ) {
+    this.port = port;
+    this.ipv4 = ipv4;
+    this.ipv6 = ipv6;
+  }
+
+  get_port(): number | undefined {
+    return this.port;
+  }
+
+  set_port(port: number | undefined): void {
+    this.port = port;
+  }
+
+  get_ipv4(): Ipv4 | undefined {
+    return this.ipv4;
+  }
+
+  set_ipv4(ipv4: Ipv4 | undefined): void {
+    this.ipv4 = ipv4;
+  }
+
+  get_ipv6(): Ipv6 | undefined {
+    return this.ipv6;
+  }
+
+  set_ipv6(ipv6: Ipv6 | undefined): void {
+    this.ipv6 = ipv6;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): SingleHostAddr {
+    if (len != null && len < 3) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 3. Received " + len,
+      );
+    }
+
+    let port = reader.readNullable((r) => Number(r.readInt())) ?? undefined;
+
+    let ipv4 = reader.readNullable((r) => Ipv4.deserialize(r)) ?? undefined;
+
+    let ipv6 = reader.readNullable((r) => Ipv6.deserialize(r)) ?? undefined;
+
+    return new SingleHostAddr(port, ipv4, ipv6);
+  }
+
+  serialize(writer: CBORWriter): void {
+    if (this.port == null) {
+      writer.writeNull();
+    } else {
+      writer.writeInt(BigInt(this.port));
+    }
+    if (this.ipv4 == null) {
+      writer.writeNull();
+    } else {
+      this.ipv4.serialize(writer);
+    }
+    if (this.ipv6 == null) {
+      writer.writeNull();
+    } else {
+      this.ipv6.serialize(writer);
+    }
+  }
+}
+
+export class SingleHostName {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
+  private port: number | undefined;
+  private dns_name: DNSRecordAorAAAA;
+
+  constructor(port: number | undefined, dns_name: DNSRecordAorAAAA) {
+    this.port = port;
+    this.dns_name = dns_name;
+  }
+
+  get_port(): number | undefined {
+    return this.port;
+  }
+
+  set_port(port: number | undefined): void {
+    this.port = port;
+  }
+
+  get_dns_name(): DNSRecordAorAAAA {
+    return this.dns_name;
+  }
+
+  set_dns_name(dns_name: DNSRecordAorAAAA): void {
+    this.dns_name = dns_name;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): SingleHostName {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let port = reader.readNullable((r) => Number(r.readInt())) ?? undefined;
+
+    let dns_name = DNSRecordAorAAAA.deserialize(reader);
+
+    return new SingleHostName(port, dns_name);
+  }
+
+  serialize(writer: CBORWriter): void {
+    if (this.port == null) {
+      writer.writeNull();
+    } else {
+      writer.writeInt(BigInt(this.port));
+    }
+    this.dns_name.serialize(writer);
+  }
+}
+
+export class MultiHostName {
+  static FRAGMENT_FIELDS_LEN: number = 1;
+
+  private dns_name: DNSRecordSRV;
+
+  constructor(dns_name: DNSRecordSRV) {
+    this.dns_name = dns_name;
+  }
+
+  get_dns_name(): DNSRecordSRV {
+    return this.dns_name;
+  }
+
+  set_dns_name(dns_name: DNSRecordSRV): void {
+    this.dns_name = dns_name;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): MultiHostName {
+    if (len != null && len < 1) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 1. Received " + len,
+      );
+    }
+
+    let dns_name = DNSRecordSRV.deserialize(reader);
+
+    return new MultiHostName(dns_name);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.dns_name.serialize(writer);
   }
 }
 
 export class PoolMetadata {
-  private url: Url;
-  private pool_metadata_hash: PoolMetadataHash;
+  private url: URL;
+  private pool_metadata_hash: unknown;
 
-  constructor(url: Url, pool_metadata_hash: PoolMetadataHash) {
+  constructor(url: URL, pool_metadata_hash: unknown) {
     this.url = url;
     this.pool_metadata_hash = pool_metadata_hash;
   }
 
-  get_url(): Url {
+  get_url(): URL {
     return this.url;
   }
 
-  set_url(url: Url): void {
+  set_url(url: URL): void {
     this.url = url;
   }
 
-  get_pool_metadata_hash(): PoolMetadataHash {
+  get_pool_metadata_hash(): unknown {
     return this.pool_metadata_hash;
   }
 
-  set_pool_metadata_hash(pool_metadata_hash: PoolMetadataHash): void {
+  set_pool_metadata_hash(pool_metadata_hash: unknown): void {
     this.pool_metadata_hash = pool_metadata_hash;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): PoolMetadata {
-    let url_ = array.shiftRequired();
-    let url = Url.fromCBOR(url_);
-    let pool_metadata_hash_ = array.shiftRequired();
-    let pool_metadata_hash = PoolMetadataHash.fromCBOR(pool_metadata_hash_);
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PoolMetadata {
+    let reader = new CBORReader(data);
+    return PoolMetadata.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PoolMetadata {
+    return PoolMetadata.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): PoolMetadata {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let url = URL.deserialize(reader);
+
+    let pool_metadata_hash = $$CANT_READ("PoolMetadataHash");
 
     return new PoolMetadata(url, pool_metadata_hash);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.url);
-    entries.push(this.pool_metadata_hash);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
 
-  static fromCBOR(value: CBORReaderValue): PoolMetadata {
-    let array = value.get("array");
-    return PoolMetadata.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    this.url.serialize(writer);
+    $$CANT_WRITE("PoolMetadataHash");
   }
 }
 
-export type Url = string;
+export class URL {
+  private inner: string;
 
-export class Withdrawals extends CBORMap<RewardAccount, Coin> {
-  static fromCBOR(value: CBORReaderValue): Withdrawals {
-    let map = value.get("map");
-    return new Withdrawals(
-      map.map({
-        key: (x) => RewardAccount.fromCBOR(x),
-        value: (x) => RewardAccount.fromCBOR(x),
-      }),
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): URL {
+    let reader = new CBORReader(data);
+    return URL.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): URL {
+    return URL.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(inner: string) {
+    if (inner.length < 0) throw new Error("Expected length to be atleast 0");
+    if (inner.length > 128) throw new Error("Expected length to be atmost 128");
+    this.inner = inner;
+  }
+
+  static new(inner: string): URL {
+    return new URL(inner);
+  }
+
+  url(): string {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader): URL {
+    return new URL(reader.readString());
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeString(this.inner);
+  }
+}
+
+export class Withdrawals {
+  private items: [unknown, bigint][];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Withdrawals {
+    let reader = new CBORReader(data);
+    return Withdrawals.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Withdrawals {
+    return Withdrawals.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(items: [unknown, bigint][]) {
+    this.items = items;
+  }
+
+  static new(): Withdrawals {
+    return new Withdrawals([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(key: unknown, value: bigint): void {
+    let entry = this.items.find((x) => $$CANT_EQ("RewardAddress"));
+    if (entry != null) entry[1] = value;
+    else this.items.push([key, value]);
+  }
+
+  get(key: unknown): bigint | undefined {
+    let entry = this.items.find((x) => $$CANT_EQ("RewardAddress"));
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  static deserialize(reader: CBORReader): Withdrawals {
+    let ret = new Withdrawals([]);
+    reader.readMap((reader) =>
+      ret.insert($$CANT_READ("RewardAddress"), reader.readInt()),
     );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeMap(this.items, (writer, x) => {
+      $$CANT_WRITE("RewardAddress");
+      writer.writeInt(x[1]);
+    });
   }
 }
 
 export class ProtocolParamUpdate {
-  private minfee_a: Coin | undefined;
-  private minfee_b: Coin | undefined;
+  private minfee_a: bigint | undefined;
+  private minfee_b: bigint | undefined;
   private max_block_body_size: number | undefined;
   private max_tx_size: number | undefined;
   private max_block_header_size: number | undefined;
-  private key_deposit: Coin | undefined;
-  private pool_deposit: Coin | undefined;
-  private max_epoch: Epoch | undefined;
+  private key_deposit: bigint | undefined;
+  private pool_deposit: bigint | undefined;
+  private max_epoch: number | undefined;
   private n_opt: number | undefined;
-  private pool_pledge_influence: UnitInterval | undefined;
-  private expansion_rate: UnitInterval | undefined;
-  private treasury_growth_rate: UnitInterval | undefined;
-  private min_pool_cost: Coin | undefined;
-  private ada_per_utxo_byte: Coin | undefined;
-  private costmdls: Costmdls | undefined;
-  private ex_unit_prices: ExUnitPrices | undefined;
+  private pool_pledge_influence: unknown | undefined;
+  private expansion_rate: unknown | undefined;
+  private treasury_growth_rate: unknown | undefined;
+  private min_pool_cost: bigint | undefined;
+  private ada_per_utxo_byte: bigint | undefined;
+  private costmdls: unknown | undefined;
+  private execution_costs: ExUnitPrices | undefined;
   private max_tx_ex_units: ExUnits | undefined;
   private max_block_ex_units: ExUnits | undefined;
   private max_value_size: number | undefined;
@@ -3997,30 +6052,30 @@ export class ProtocolParamUpdate {
   private pool_voting_thresholds: PoolVotingThresholds | undefined;
   private drep_voting_thresholds: DrepVotingThresholds | undefined;
   private min_committee_size: number | undefined;
-  private committee_term_limit: Epoch | undefined;
-  private governance_action_validity_period: Epoch | undefined;
-  private governance_action_deposit: Coin | undefined;
-  private drep_deposit: Coin | undefined;
-  private drep_inactivity_period: Epoch | undefined;
-  private min_fee_ref_script_cost_per_byte: UnitInterval | undefined;
+  private committee_term_limit: number | undefined;
+  private governance_action_validity_period: number | undefined;
+  private governance_action_deposit: bigint | undefined;
+  private drep_deposit: bigint | undefined;
+  private drep_inactivity_period: number | undefined;
+  private script_cost_per_byte: unknown | undefined;
 
   constructor(
-    minfee_a: Coin | undefined,
-    minfee_b: Coin | undefined,
+    minfee_a: bigint | undefined,
+    minfee_b: bigint | undefined,
     max_block_body_size: number | undefined,
     max_tx_size: number | undefined,
     max_block_header_size: number | undefined,
-    key_deposit: Coin | undefined,
-    pool_deposit: Coin | undefined,
-    max_epoch: Epoch | undefined,
+    key_deposit: bigint | undefined,
+    pool_deposit: bigint | undefined,
+    max_epoch: number | undefined,
     n_opt: number | undefined,
-    pool_pledge_influence: UnitInterval | undefined,
-    expansion_rate: UnitInterval | undefined,
-    treasury_growth_rate: UnitInterval | undefined,
-    min_pool_cost: Coin | undefined,
-    ada_per_utxo_byte: Coin | undefined,
-    costmdls: Costmdls | undefined,
-    ex_unit_prices: ExUnitPrices | undefined,
+    pool_pledge_influence: unknown | undefined,
+    expansion_rate: unknown | undefined,
+    treasury_growth_rate: unknown | undefined,
+    min_pool_cost: bigint | undefined,
+    ada_per_utxo_byte: bigint | undefined,
+    costmdls: unknown | undefined,
+    execution_costs: ExUnitPrices | undefined,
     max_tx_ex_units: ExUnits | undefined,
     max_block_ex_units: ExUnits | undefined,
     max_value_size: number | undefined,
@@ -4029,12 +6084,12 @@ export class ProtocolParamUpdate {
     pool_voting_thresholds: PoolVotingThresholds | undefined,
     drep_voting_thresholds: DrepVotingThresholds | undefined,
     min_committee_size: number | undefined,
-    committee_term_limit: Epoch | undefined,
-    governance_action_validity_period: Epoch | undefined,
-    governance_action_deposit: Coin | undefined,
-    drep_deposit: Coin | undefined,
-    drep_inactivity_period: Epoch | undefined,
-    min_fee_ref_script_cost_per_byte: UnitInterval | undefined,
+    committee_term_limit: number | undefined,
+    governance_action_validity_period: number | undefined,
+    governance_action_deposit: bigint | undefined,
+    drep_deposit: bigint | undefined,
+    drep_inactivity_period: number | undefined,
+    script_cost_per_byte: unknown | undefined,
   ) {
     this.minfee_a = minfee_a;
     this.minfee_b = minfee_b;
@@ -4051,7 +6106,7 @@ export class ProtocolParamUpdate {
     this.min_pool_cost = min_pool_cost;
     this.ada_per_utxo_byte = ada_per_utxo_byte;
     this.costmdls = costmdls;
-    this.ex_unit_prices = ex_unit_prices;
+    this.execution_costs = execution_costs;
     this.max_tx_ex_units = max_tx_ex_units;
     this.max_block_ex_units = max_block_ex_units;
     this.max_value_size = max_value_size;
@@ -4065,22 +6120,22 @@ export class ProtocolParamUpdate {
     this.governance_action_deposit = governance_action_deposit;
     this.drep_deposit = drep_deposit;
     this.drep_inactivity_period = drep_inactivity_period;
-    this.min_fee_ref_script_cost_per_byte = min_fee_ref_script_cost_per_byte;
+    this.script_cost_per_byte = script_cost_per_byte;
   }
 
-  get_minfee_a(): Coin | undefined {
+  get_minfee_a(): bigint | undefined {
     return this.minfee_a;
   }
 
-  set_minfee_a(minfee_a: Coin): void {
+  set_minfee_a(minfee_a: bigint | undefined): void {
     this.minfee_a = minfee_a;
   }
 
-  get_minfee_b(): Coin | undefined {
+  get_minfee_b(): bigint | undefined {
     return this.minfee_b;
   }
 
-  set_minfee_b(minfee_b: Coin): void {
+  set_minfee_b(minfee_b: bigint | undefined): void {
     this.minfee_b = minfee_b;
   }
 
@@ -4088,7 +6143,7 @@ export class ProtocolParamUpdate {
     return this.max_block_body_size;
   }
 
-  set_max_block_body_size(max_block_body_size: number): void {
+  set_max_block_body_size(max_block_body_size: number | undefined): void {
     this.max_block_body_size = max_block_body_size;
   }
 
@@ -4096,7 +6151,7 @@ export class ProtocolParamUpdate {
     return this.max_tx_size;
   }
 
-  set_max_tx_size(max_tx_size: number): void {
+  set_max_tx_size(max_tx_size: number | undefined): void {
     this.max_tx_size = max_tx_size;
   }
 
@@ -4104,31 +6159,31 @@ export class ProtocolParamUpdate {
     return this.max_block_header_size;
   }
 
-  set_max_block_header_size(max_block_header_size: number): void {
+  set_max_block_header_size(max_block_header_size: number | undefined): void {
     this.max_block_header_size = max_block_header_size;
   }
 
-  get_key_deposit(): Coin | undefined {
+  get_key_deposit(): bigint | undefined {
     return this.key_deposit;
   }
 
-  set_key_deposit(key_deposit: Coin): void {
+  set_key_deposit(key_deposit: bigint | undefined): void {
     this.key_deposit = key_deposit;
   }
 
-  get_pool_deposit(): Coin | undefined {
+  get_pool_deposit(): bigint | undefined {
     return this.pool_deposit;
   }
 
-  set_pool_deposit(pool_deposit: Coin): void {
+  set_pool_deposit(pool_deposit: bigint | undefined): void {
     this.pool_deposit = pool_deposit;
   }
 
-  get_max_epoch(): Epoch | undefined {
+  get_max_epoch(): number | undefined {
     return this.max_epoch;
   }
 
-  set_max_epoch(max_epoch: Epoch): void {
+  set_max_epoch(max_epoch: number | undefined): void {
     this.max_epoch = max_epoch;
   }
 
@@ -4136,71 +6191,71 @@ export class ProtocolParamUpdate {
     return this.n_opt;
   }
 
-  set_n_opt(n_opt: number): void {
+  set_n_opt(n_opt: number | undefined): void {
     this.n_opt = n_opt;
   }
 
-  get_pool_pledge_influence(): UnitInterval | undefined {
+  get_pool_pledge_influence(): unknown | undefined {
     return this.pool_pledge_influence;
   }
 
-  set_pool_pledge_influence(pool_pledge_influence: UnitInterval): void {
+  set_pool_pledge_influence(pool_pledge_influence: unknown | undefined): void {
     this.pool_pledge_influence = pool_pledge_influence;
   }
 
-  get_expansion_rate(): UnitInterval | undefined {
+  get_expansion_rate(): unknown | undefined {
     return this.expansion_rate;
   }
 
-  set_expansion_rate(expansion_rate: UnitInterval): void {
+  set_expansion_rate(expansion_rate: unknown | undefined): void {
     this.expansion_rate = expansion_rate;
   }
 
-  get_treasury_growth_rate(): UnitInterval | undefined {
+  get_treasury_growth_rate(): unknown | undefined {
     return this.treasury_growth_rate;
   }
 
-  set_treasury_growth_rate(treasury_growth_rate: UnitInterval): void {
+  set_treasury_growth_rate(treasury_growth_rate: unknown | undefined): void {
     this.treasury_growth_rate = treasury_growth_rate;
   }
 
-  get_min_pool_cost(): Coin | undefined {
+  get_min_pool_cost(): bigint | undefined {
     return this.min_pool_cost;
   }
 
-  set_min_pool_cost(min_pool_cost: Coin): void {
+  set_min_pool_cost(min_pool_cost: bigint | undefined): void {
     this.min_pool_cost = min_pool_cost;
   }
 
-  get_ada_per_utxo_byte(): Coin | undefined {
+  get_ada_per_utxo_byte(): bigint | undefined {
     return this.ada_per_utxo_byte;
   }
 
-  set_ada_per_utxo_byte(ada_per_utxo_byte: Coin): void {
+  set_ada_per_utxo_byte(ada_per_utxo_byte: bigint | undefined): void {
     this.ada_per_utxo_byte = ada_per_utxo_byte;
   }
 
-  get_costmdls(): Costmdls | undefined {
+  get_costmdls(): unknown | undefined {
     return this.costmdls;
   }
 
-  set_costmdls(costmdls: Costmdls): void {
+  set_costmdls(costmdls: unknown | undefined): void {
     this.costmdls = costmdls;
   }
 
-  get_ex_unit_prices(): ExUnitPrices | undefined {
-    return this.ex_unit_prices;
+  get_execution_costs(): ExUnitPrices | undefined {
+    return this.execution_costs;
   }
 
-  set_ex_unit_prices(ex_unit_prices: ExUnitPrices): void {
-    this.ex_unit_prices = ex_unit_prices;
+  set_execution_costs(execution_costs: ExUnitPrices | undefined): void {
+    this.execution_costs = execution_costs;
   }
 
   get_max_tx_ex_units(): ExUnits | undefined {
     return this.max_tx_ex_units;
   }
 
-  set_max_tx_ex_units(max_tx_ex_units: ExUnits): void {
+  set_max_tx_ex_units(max_tx_ex_units: ExUnits | undefined): void {
     this.max_tx_ex_units = max_tx_ex_units;
   }
 
@@ -4208,7 +6263,7 @@ export class ProtocolParamUpdate {
     return this.max_block_ex_units;
   }
 
-  set_max_block_ex_units(max_block_ex_units: ExUnits): void {
+  set_max_block_ex_units(max_block_ex_units: ExUnits | undefined): void {
     this.max_block_ex_units = max_block_ex_units;
   }
 
@@ -4216,7 +6271,7 @@ export class ProtocolParamUpdate {
     return this.max_value_size;
   }
 
-  set_max_value_size(max_value_size: number): void {
+  set_max_value_size(max_value_size: number | undefined): void {
     this.max_value_size = max_value_size;
   }
 
@@ -4224,7 +6279,7 @@ export class ProtocolParamUpdate {
     return this.collateral_percentage;
   }
 
-  set_collateral_percentage(collateral_percentage: number): void {
+  set_collateral_percentage(collateral_percentage: number | undefined): void {
     this.collateral_percentage = collateral_percentage;
   }
 
@@ -4232,7 +6287,7 @@ export class ProtocolParamUpdate {
     return this.max_collateral_inputs;
   }
 
-  set_max_collateral_inputs(max_collateral_inputs: number): void {
+  set_max_collateral_inputs(max_collateral_inputs: number | undefined): void {
     this.max_collateral_inputs = max_collateral_inputs;
   }
 
@@ -4241,7 +6296,7 @@ export class ProtocolParamUpdate {
   }
 
   set_pool_voting_thresholds(
-    pool_voting_thresholds: PoolVotingThresholds,
+    pool_voting_thresholds: PoolVotingThresholds | undefined,
   ): void {
     this.pool_voting_thresholds = pool_voting_thresholds;
   }
@@ -4251,7 +6306,7 @@ export class ProtocolParamUpdate {
   }
 
   set_drep_voting_thresholds(
-    drep_voting_thresholds: DrepVotingThresholds,
+    drep_voting_thresholds: DrepVotingThresholds | undefined,
   ): void {
     this.drep_voting_thresholds = drep_voting_thresholds;
   }
@@ -4260,194 +6315,271 @@ export class ProtocolParamUpdate {
     return this.min_committee_size;
   }
 
-  set_min_committee_size(min_committee_size: number): void {
+  set_min_committee_size(min_committee_size: number | undefined): void {
     this.min_committee_size = min_committee_size;
   }
 
-  get_committee_term_limit(): Epoch | undefined {
+  get_committee_term_limit(): number | undefined {
     return this.committee_term_limit;
   }
 
-  set_committee_term_limit(committee_term_limit: Epoch): void {
+  set_committee_term_limit(committee_term_limit: number | undefined): void {
     this.committee_term_limit = committee_term_limit;
   }
 
-  get_governance_action_validity_period(): Epoch | undefined {
+  get_governance_action_validity_period(): number | undefined {
     return this.governance_action_validity_period;
   }
 
   set_governance_action_validity_period(
-    governance_action_validity_period: Epoch,
+    governance_action_validity_period: number | undefined,
   ): void {
     this.governance_action_validity_period = governance_action_validity_period;
   }
 
-  get_governance_action_deposit(): Coin | undefined {
+  get_governance_action_deposit(): bigint | undefined {
     return this.governance_action_deposit;
   }
 
-  set_governance_action_deposit(governance_action_deposit: Coin): void {
+  set_governance_action_deposit(
+    governance_action_deposit: bigint | undefined,
+  ): void {
     this.governance_action_deposit = governance_action_deposit;
   }
 
-  get_drep_deposit(): Coin | undefined {
+  get_drep_deposit(): bigint | undefined {
     return this.drep_deposit;
   }
 
-  set_drep_deposit(drep_deposit: Coin): void {
+  set_drep_deposit(drep_deposit: bigint | undefined): void {
     this.drep_deposit = drep_deposit;
   }
 
-  get_drep_inactivity_period(): Epoch | undefined {
+  get_drep_inactivity_period(): number | undefined {
     return this.drep_inactivity_period;
   }
 
-  set_drep_inactivity_period(drep_inactivity_period: Epoch): void {
+  set_drep_inactivity_period(drep_inactivity_period: number | undefined): void {
     this.drep_inactivity_period = drep_inactivity_period;
   }
 
-  get_min_fee_ref_script_cost_per_byte(): UnitInterval | undefined {
-    return this.min_fee_ref_script_cost_per_byte;
+  get_script_cost_per_byte(): unknown | undefined {
+    return this.script_cost_per_byte;
   }
 
-  set_min_fee_ref_script_cost_per_byte(
-    min_fee_ref_script_cost_per_byte: UnitInterval,
-  ): void {
-    this.min_fee_ref_script_cost_per_byte = min_fee_ref_script_cost_per_byte;
+  set_script_cost_per_byte(script_cost_per_byte: unknown | undefined): void {
+    this.script_cost_per_byte = script_cost_per_byte;
   }
 
-  static fromCBOR(value: CBORReaderValue): ProtocolParamUpdate {
-    let map = value
-      .get("map")
-      .toMap()
-      .map({ key: (x) => Number(x.getInt()), value: (x) => x });
-    let minfee_a_ = map.get(0);
-    let minfee_a =
-      minfee_a_ != undefined ? Coin.fromCBOR(minfee_a_) : undefined;
-    let minfee_b_ = map.get(1);
-    let minfee_b =
-      minfee_b_ != undefined ? Coin.fromCBOR(minfee_b_) : undefined;
-    let max_block_body_size_ = map.get(2);
-    let max_block_body_size =
-      max_block_body_size_ != undefined
-        ? max_block_body_size_.get("uint")
-        : undefined;
-    let max_tx_size_ = map.get(3);
-    let max_tx_size =
-      max_tx_size_ != undefined ? max_tx_size_.get("uint") : undefined;
-    let max_block_header_size_ = map.get(4);
-    let max_block_header_size =
-      max_block_header_size_ != undefined
-        ? max_block_header_size_.get("uint")
-        : undefined;
-    let key_deposit_ = map.get(5);
-    let key_deposit =
-      key_deposit_ != undefined ? Coin.fromCBOR(key_deposit_) : undefined;
-    let pool_deposit_ = map.get(6);
-    let pool_deposit =
-      pool_deposit_ != undefined ? Coin.fromCBOR(pool_deposit_) : undefined;
-    let max_epoch_ = map.get(7);
-    let max_epoch =
-      max_epoch_ != undefined ? Epoch.fromCBOR(max_epoch_) : undefined;
-    let n_opt_ = map.get(8);
-    let n_opt = n_opt_ != undefined ? n_opt_.get("uint") : undefined;
-    let pool_pledge_influence_ = map.get(9);
-    let pool_pledge_influence =
-      pool_pledge_influence_ != undefined
-        ? UnitInterval.fromCBOR(pool_pledge_influence_)
-        : undefined;
-    let expansion_rate_ = map.get(10);
-    let expansion_rate =
-      expansion_rate_ != undefined
-        ? UnitInterval.fromCBOR(expansion_rate_)
-        : undefined;
-    let treasury_growth_rate_ = map.get(11);
-    let treasury_growth_rate =
-      treasury_growth_rate_ != undefined
-        ? UnitInterval.fromCBOR(treasury_growth_rate_)
-        : undefined;
-    let min_pool_cost_ = map.get(16);
-    let min_pool_cost =
-      min_pool_cost_ != undefined ? Coin.fromCBOR(min_pool_cost_) : undefined;
-    let ada_per_utxo_byte_ = map.get(17);
-    let ada_per_utxo_byte =
-      ada_per_utxo_byte_ != undefined
-        ? Coin.fromCBOR(ada_per_utxo_byte_)
-        : undefined;
-    let costmdls_ = map.get(18);
-    let costmdls =
-      costmdls_ != undefined ? Costmdls.fromCBOR(costmdls_) : undefined;
-    let ex_unit_prices_ = map.get(19);
-    let ex_unit_prices =
-      ex_unit_prices_ != undefined
-        ? ExUnitPrices.fromCBOR(ex_unit_prices_)
-        : undefined;
-    let max_tx_ex_units_ = map.get(20);
-    let max_tx_ex_units =
-      max_tx_ex_units_ != undefined
-        ? ExUnits.fromCBOR(max_tx_ex_units_)
-        : undefined;
-    let max_block_ex_units_ = map.get(21);
-    let max_block_ex_units =
-      max_block_ex_units_ != undefined
-        ? ExUnits.fromCBOR(max_block_ex_units_)
-        : undefined;
-    let max_value_size_ = map.get(22);
-    let max_value_size =
-      max_value_size_ != undefined ? max_value_size_.get("uint") : undefined;
-    let collateral_percentage_ = map.get(23);
-    let collateral_percentage =
-      collateral_percentage_ != undefined
-        ? collateral_percentage_.get("uint")
-        : undefined;
-    let max_collateral_inputs_ = map.get(24);
-    let max_collateral_inputs =
-      max_collateral_inputs_ != undefined
-        ? max_collateral_inputs_.get("uint")
-        : undefined;
-    let pool_voting_thresholds_ = map.get(25);
-    let pool_voting_thresholds =
-      pool_voting_thresholds_ != undefined
-        ? PoolVotingThresholds.fromCBOR(pool_voting_thresholds_)
-        : undefined;
-    let drep_voting_thresholds_ = map.get(26);
-    let drep_voting_thresholds =
-      drep_voting_thresholds_ != undefined
-        ? DrepVotingThresholds.fromCBOR(drep_voting_thresholds_)
-        : undefined;
-    let min_committee_size_ = map.get(27);
-    let min_committee_size =
-      min_committee_size_ != undefined
-        ? min_committee_size_.get("uint")
-        : undefined;
-    let committee_term_limit_ = map.get(28);
-    let committee_term_limit =
-      committee_term_limit_ != undefined
-        ? Epoch.fromCBOR(committee_term_limit_)
-        : undefined;
-    let governance_action_validity_period_ = map.get(29);
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ProtocolParamUpdate {
+    let reader = new CBORReader(data);
+    return ProtocolParamUpdate.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ProtocolParamUpdate {
+    return ProtocolParamUpdate.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): ProtocolParamUpdate {
+    let fields: any = {};
+    reader.readMap((r) => {
+      let key = Number(r.readUint());
+      switch (key) {
+        case 0:
+          fields.minfee_a = r.readInt();
+          break;
+
+        case 1:
+          fields.minfee_b = r.readInt();
+          break;
+
+        case 2:
+          fields.max_block_body_size = Number(r.readInt());
+          break;
+
+        case 3:
+          fields.max_tx_size = Number(r.readInt());
+          break;
+
+        case 4:
+          fields.max_block_header_size = Number(r.readInt());
+          break;
+
+        case 5:
+          fields.key_deposit = r.readInt();
+          break;
+
+        case 6:
+          fields.pool_deposit = r.readInt();
+          break;
+
+        case 7:
+          fields.max_epoch = Number(r.readInt());
+          break;
+
+        case 8:
+          fields.n_opt = Number(r.readInt());
+          break;
+
+        case 9:
+          fields.pool_pledge_influence = $$CANT_READ("UnitInterval");
+          break;
+
+        case 10:
+          fields.expansion_rate = $$CANT_READ("UnitInterval");
+          break;
+
+        case 11:
+          fields.treasury_growth_rate = $$CANT_READ("UnitInterval");
+          break;
+
+        case 16:
+          fields.min_pool_cost = r.readInt();
+          break;
+
+        case 17:
+          fields.ada_per_utxo_byte = r.readInt();
+          break;
+
+        case 18:
+          fields.costmdls = $$CANT_READ("Costmdls");
+          break;
+
+        case 19:
+          fields.execution_costs = ExUnitPrices.deserialize(r);
+          break;
+
+        case 20:
+          fields.max_tx_ex_units = ExUnits.deserialize(r);
+          break;
+
+        case 21:
+          fields.max_block_ex_units = ExUnits.deserialize(r);
+          break;
+
+        case 22:
+          fields.max_value_size = Number(r.readInt());
+          break;
+
+        case 23:
+          fields.collateral_percentage = Number(r.readInt());
+          break;
+
+        case 24:
+          fields.max_collateral_inputs = Number(r.readInt());
+          break;
+
+        case 25:
+          fields.pool_voting_thresholds = PoolVotingThresholds.deserialize(r);
+          break;
+
+        case 26:
+          fields.drep_voting_thresholds = DrepVotingThresholds.deserialize(r);
+          break;
+
+        case 27:
+          fields.min_committee_size = Number(r.readInt());
+          break;
+
+        case 28:
+          fields.committee_term_limit = Number(r.readInt());
+          break;
+
+        case 29:
+          fields.governance_action_validity_period = Number(r.readInt());
+          break;
+
+        case 30:
+          fields.governance_action_deposit = r.readInt();
+          break;
+
+        case 31:
+          fields.drep_deposit = r.readInt();
+          break;
+
+        case 32:
+          fields.drep_inactivity_period = Number(r.readInt());
+          break;
+
+        case 33:
+          fields.script_cost_per_byte = $$CANT_READ("UnitInterval");
+          break;
+      }
+    });
+
+    let minfee_a = fields.minfee_a;
+
+    let minfee_b = fields.minfee_b;
+
+    let max_block_body_size = fields.max_block_body_size;
+
+    let max_tx_size = fields.max_tx_size;
+
+    let max_block_header_size = fields.max_block_header_size;
+
+    let key_deposit = fields.key_deposit;
+
+    let pool_deposit = fields.pool_deposit;
+
+    let max_epoch = fields.max_epoch;
+
+    let n_opt = fields.n_opt;
+
+    let pool_pledge_influence = fields.pool_pledge_influence;
+
+    let expansion_rate = fields.expansion_rate;
+
+    let treasury_growth_rate = fields.treasury_growth_rate;
+
+    let min_pool_cost = fields.min_pool_cost;
+
+    let ada_per_utxo_byte = fields.ada_per_utxo_byte;
+
+    let costmdls = fields.costmdls;
+
+    let execution_costs = fields.execution_costs;
+
+    let max_tx_ex_units = fields.max_tx_ex_units;
+
+    let max_block_ex_units = fields.max_block_ex_units;
+
+    let max_value_size = fields.max_value_size;
+
+    let collateral_percentage = fields.collateral_percentage;
+
+    let max_collateral_inputs = fields.max_collateral_inputs;
+
+    let pool_voting_thresholds = fields.pool_voting_thresholds;
+
+    let drep_voting_thresholds = fields.drep_voting_thresholds;
+
+    let min_committee_size = fields.min_committee_size;
+
+    let committee_term_limit = fields.committee_term_limit;
+
     let governance_action_validity_period =
-      governance_action_validity_period_ != undefined
-        ? Epoch.fromCBOR(governance_action_validity_period_)
-        : undefined;
-    let governance_action_deposit_ = map.get(30);
-    let governance_action_deposit =
-      governance_action_deposit_ != undefined
-        ? Coin.fromCBOR(governance_action_deposit_)
-        : undefined;
-    let drep_deposit_ = map.get(31);
-    let drep_deposit =
-      drep_deposit_ != undefined ? Coin.fromCBOR(drep_deposit_) : undefined;
-    let drep_inactivity_period_ = map.get(32);
-    let drep_inactivity_period =
-      drep_inactivity_period_ != undefined
-        ? Epoch.fromCBOR(drep_inactivity_period_)
-        : undefined;
-    let min_fee_ref_script_cost_per_byte_ = map.get(33);
-    let min_fee_ref_script_cost_per_byte =
-      min_fee_ref_script_cost_per_byte_ != undefined
-        ? UnitInterval.fromCBOR(min_fee_ref_script_cost_per_byte_)
-        : undefined;
+      fields.governance_action_validity_period;
+
+    let governance_action_deposit = fields.governance_action_deposit;
+
+    let drep_deposit = fields.drep_deposit;
+
+    let drep_inactivity_period = fields.drep_inactivity_period;
+
+    let script_cost_per_byte = fields.script_cost_per_byte;
 
     return new ProtocolParamUpdate(
       minfee_a,
@@ -4465,7 +6597,7 @@ export class ProtocolParamUpdate {
       min_pool_cost,
       ada_per_utxo_byte,
       costmdls,
-      ex_unit_prices,
+      execution_costs,
       max_tx_ex_units,
       max_block_ex_units,
       max_value_size,
@@ -4479,202 +6611,311 @@ export class ProtocolParamUpdate {
       governance_action_deposit,
       drep_deposit,
       drep_inactivity_period,
-      min_fee_ref_script_cost_per_byte,
+      script_cost_per_byte,
     );
   }
 
-  toCBOR(writer: CBORWriter) {
-    let entries = [];
-    if (this.minfee_a !== undefined) entries.push([0, this.minfee_a]);
-    if (this.minfee_b !== undefined) entries.push([1, this.minfee_b]);
-    if (this.max_block_body_size !== undefined)
-      entries.push([2, this.max_block_body_size]);
-    if (this.max_tx_size !== undefined) entries.push([3, this.max_tx_size]);
-    if (this.max_block_header_size !== undefined)
-      entries.push([4, this.max_block_header_size]);
-    if (this.key_deposit !== undefined) entries.push([5, this.key_deposit]);
-    if (this.pool_deposit !== undefined) entries.push([6, this.pool_deposit]);
-    if (this.max_epoch !== undefined) entries.push([7, this.max_epoch]);
-    if (this.n_opt !== undefined) entries.push([8, this.n_opt]);
-    if (this.pool_pledge_influence !== undefined)
-      entries.push([9, this.pool_pledge_influence]);
-    if (this.expansion_rate !== undefined)
-      entries.push([10, this.expansion_rate]);
-    if (this.treasury_growth_rate !== undefined)
-      entries.push([11, this.treasury_growth_rate]);
-    if (this.min_pool_cost !== undefined)
-      entries.push([16, this.min_pool_cost]);
-    if (this.ada_per_utxo_byte !== undefined)
-      entries.push([17, this.ada_per_utxo_byte]);
-    if (this.costmdls !== undefined) entries.push([18, this.costmdls]);
-    if (this.ex_unit_prices !== undefined)
-      entries.push([19, this.ex_unit_prices]);
-    if (this.max_tx_ex_units !== undefined)
-      entries.push([20, this.max_tx_ex_units]);
-    if (this.max_block_ex_units !== undefined)
-      entries.push([21, this.max_block_ex_units]);
-    if (this.max_value_size !== undefined)
-      entries.push([22, this.max_value_size]);
-    if (this.collateral_percentage !== undefined)
-      entries.push([23, this.collateral_percentage]);
-    if (this.max_collateral_inputs !== undefined)
-      entries.push([24, this.max_collateral_inputs]);
-    if (this.pool_voting_thresholds !== undefined)
-      entries.push([25, this.pool_voting_thresholds]);
-    if (this.drep_voting_thresholds !== undefined)
-      entries.push([26, this.drep_voting_thresholds]);
-    if (this.min_committee_size !== undefined)
-      entries.push([27, this.min_committee_size]);
-    if (this.committee_term_limit !== undefined)
-      entries.push([28, this.committee_term_limit]);
-    if (this.governance_action_validity_period !== undefined)
-      entries.push([29, this.governance_action_validity_period]);
-    if (this.governance_action_deposit !== undefined)
-      entries.push([30, this.governance_action_deposit]);
-    if (this.drep_deposit !== undefined) entries.push([31, this.drep_deposit]);
-    if (this.drep_inactivity_period !== undefined)
-      entries.push([32, this.drep_inactivity_period]);
-    if (this.min_fee_ref_script_cost_per_byte !== undefined)
-      entries.push([33, this.min_fee_ref_script_cost_per_byte]);
-    writer.writeMap(entries);
+  serialize(writer: CBORWriter) {
+    let len = 30;
+    if (this.minfee_a === undefined) len -= 1;
+    if (this.minfee_b === undefined) len -= 1;
+    if (this.max_block_body_size === undefined) len -= 1;
+    if (this.max_tx_size === undefined) len -= 1;
+    if (this.max_block_header_size === undefined) len -= 1;
+    if (this.key_deposit === undefined) len -= 1;
+    if (this.pool_deposit === undefined) len -= 1;
+    if (this.max_epoch === undefined) len -= 1;
+    if (this.n_opt === undefined) len -= 1;
+    if (this.pool_pledge_influence === undefined) len -= 1;
+    if (this.expansion_rate === undefined) len -= 1;
+    if (this.treasury_growth_rate === undefined) len -= 1;
+    if (this.min_pool_cost === undefined) len -= 1;
+    if (this.ada_per_utxo_byte === undefined) len -= 1;
+    if (this.costmdls === undefined) len -= 1;
+    if (this.execution_costs === undefined) len -= 1;
+    if (this.max_tx_ex_units === undefined) len -= 1;
+    if (this.max_block_ex_units === undefined) len -= 1;
+    if (this.max_value_size === undefined) len -= 1;
+    if (this.collateral_percentage === undefined) len -= 1;
+    if (this.max_collateral_inputs === undefined) len -= 1;
+    if (this.pool_voting_thresholds === undefined) len -= 1;
+    if (this.drep_voting_thresholds === undefined) len -= 1;
+    if (this.min_committee_size === undefined) len -= 1;
+    if (this.committee_term_limit === undefined) len -= 1;
+    if (this.governance_action_validity_period === undefined) len -= 1;
+    if (this.governance_action_deposit === undefined) len -= 1;
+    if (this.drep_deposit === undefined) len -= 1;
+    if (this.drep_inactivity_period === undefined) len -= 1;
+    if (this.script_cost_per_byte === undefined) len -= 1;
+    writer.writeMapTag(len);
+    if (this.minfee_a !== undefined) {
+      writer.writeInt(0n);
+      writer.writeInt(this.minfee_a);
+    }
+    if (this.minfee_b !== undefined) {
+      writer.writeInt(1n);
+      writer.writeInt(this.minfee_b);
+    }
+    if (this.max_block_body_size !== undefined) {
+      writer.writeInt(2n);
+      writer.writeInt(BigInt(this.max_block_body_size));
+    }
+    if (this.max_tx_size !== undefined) {
+      writer.writeInt(3n);
+      writer.writeInt(BigInt(this.max_tx_size));
+    }
+    if (this.max_block_header_size !== undefined) {
+      writer.writeInt(4n);
+      writer.writeInt(BigInt(this.max_block_header_size));
+    }
+    if (this.key_deposit !== undefined) {
+      writer.writeInt(5n);
+      writer.writeInt(this.key_deposit);
+    }
+    if (this.pool_deposit !== undefined) {
+      writer.writeInt(6n);
+      writer.writeInt(this.pool_deposit);
+    }
+    if (this.max_epoch !== undefined) {
+      writer.writeInt(7n);
+      writer.writeInt(BigInt(this.max_epoch));
+    }
+    if (this.n_opt !== undefined) {
+      writer.writeInt(8n);
+      writer.writeInt(BigInt(this.n_opt));
+    }
+    if (this.pool_pledge_influence !== undefined) {
+      writer.writeInt(9n);
+      $$CANT_WRITE("UnitInterval");
+    }
+    if (this.expansion_rate !== undefined) {
+      writer.writeInt(10n);
+      $$CANT_WRITE("UnitInterval");
+    }
+    if (this.treasury_growth_rate !== undefined) {
+      writer.writeInt(11n);
+      $$CANT_WRITE("UnitInterval");
+    }
+    if (this.min_pool_cost !== undefined) {
+      writer.writeInt(16n);
+      writer.writeInt(this.min_pool_cost);
+    }
+    if (this.ada_per_utxo_byte !== undefined) {
+      writer.writeInt(17n);
+      writer.writeInt(this.ada_per_utxo_byte);
+    }
+    if (this.costmdls !== undefined) {
+      writer.writeInt(18n);
+      $$CANT_WRITE("Costmdls");
+    }
+    if (this.execution_costs !== undefined) {
+      writer.writeInt(19n);
+      this.execution_costs.serialize(writer);
+    }
+    if (this.max_tx_ex_units !== undefined) {
+      writer.writeInt(20n);
+      this.max_tx_ex_units.serialize(writer);
+    }
+    if (this.max_block_ex_units !== undefined) {
+      writer.writeInt(21n);
+      this.max_block_ex_units.serialize(writer);
+    }
+    if (this.max_value_size !== undefined) {
+      writer.writeInt(22n);
+      writer.writeInt(BigInt(this.max_value_size));
+    }
+    if (this.collateral_percentage !== undefined) {
+      writer.writeInt(23n);
+      writer.writeInt(BigInt(this.collateral_percentage));
+    }
+    if (this.max_collateral_inputs !== undefined) {
+      writer.writeInt(24n);
+      writer.writeInt(BigInt(this.max_collateral_inputs));
+    }
+    if (this.pool_voting_thresholds !== undefined) {
+      writer.writeInt(25n);
+      this.pool_voting_thresholds.serialize(writer);
+    }
+    if (this.drep_voting_thresholds !== undefined) {
+      writer.writeInt(26n);
+      this.drep_voting_thresholds.serialize(writer);
+    }
+    if (this.min_committee_size !== undefined) {
+      writer.writeInt(27n);
+      writer.writeInt(BigInt(this.min_committee_size));
+    }
+    if (this.committee_term_limit !== undefined) {
+      writer.writeInt(28n);
+      writer.writeInt(BigInt(this.committee_term_limit));
+    }
+    if (this.governance_action_validity_period !== undefined) {
+      writer.writeInt(29n);
+      writer.writeInt(BigInt(this.governance_action_validity_period));
+    }
+    if (this.governance_action_deposit !== undefined) {
+      writer.writeInt(30n);
+      writer.writeInt(this.governance_action_deposit);
+    }
+    if (this.drep_deposit !== undefined) {
+      writer.writeInt(31n);
+      writer.writeInt(this.drep_deposit);
+    }
+    if (this.drep_inactivity_period !== undefined) {
+      writer.writeInt(32n);
+      writer.writeInt(BigInt(this.drep_inactivity_period));
+    }
+    if (this.script_cost_per_byte !== undefined) {
+      writer.writeInt(33n);
+      $$CANT_WRITE("UnitInterval");
+    }
   }
 }
 
 export class PoolVotingThresholds {
-  private motion_no_confidence: UnitInterval;
-  private committee_normal: UnitInterval;
-  private committee_no_confidence: UnitInterval;
-  private hard_fork_initiation: UnitInterval;
-  private security_relevant_parameter_voting_threshold: UnitInterval;
+  private motion_no_confidence: unknown;
+  private committee_normal: unknown;
+  private committee_no_confidence: unknown;
+  private hard_fork_initiation: unknown;
+  private security_relevant_threshold: unknown;
 
   constructor(
-    motion_no_confidence: UnitInterval,
-    committee_normal: UnitInterval,
-    committee_no_confidence: UnitInterval,
-    hard_fork_initiation: UnitInterval,
-    security_relevant_parameter_voting_threshold: UnitInterval,
+    motion_no_confidence: unknown,
+    committee_normal: unknown,
+    committee_no_confidence: unknown,
+    hard_fork_initiation: unknown,
+    security_relevant_threshold: unknown,
   ) {
     this.motion_no_confidence = motion_no_confidence;
     this.committee_normal = committee_normal;
     this.committee_no_confidence = committee_no_confidence;
     this.hard_fork_initiation = hard_fork_initiation;
-    this.security_relevant_parameter_voting_threshold =
-      security_relevant_parameter_voting_threshold;
+    this.security_relevant_threshold = security_relevant_threshold;
   }
 
-  get_motion_no_confidence(): UnitInterval {
+  get_motion_no_confidence(): unknown {
     return this.motion_no_confidence;
   }
 
-  set_motion_no_confidence(motion_no_confidence: UnitInterval): void {
+  set_motion_no_confidence(motion_no_confidence: unknown): void {
     this.motion_no_confidence = motion_no_confidence;
   }
 
-  get_committee_normal(): UnitInterval {
+  get_committee_normal(): unknown {
     return this.committee_normal;
   }
 
-  set_committee_normal(committee_normal: UnitInterval): void {
+  set_committee_normal(committee_normal: unknown): void {
     this.committee_normal = committee_normal;
   }
 
-  get_committee_no_confidence(): UnitInterval {
+  get_committee_no_confidence(): unknown {
     return this.committee_no_confidence;
   }
 
-  set_committee_no_confidence(committee_no_confidence: UnitInterval): void {
+  set_committee_no_confidence(committee_no_confidence: unknown): void {
     this.committee_no_confidence = committee_no_confidence;
   }
 
-  get_hard_fork_initiation(): UnitInterval {
+  get_hard_fork_initiation(): unknown {
     return this.hard_fork_initiation;
   }
 
-  set_hard_fork_initiation(hard_fork_initiation: UnitInterval): void {
+  set_hard_fork_initiation(hard_fork_initiation: unknown): void {
     this.hard_fork_initiation = hard_fork_initiation;
   }
 
-  get_security_relevant_parameter_voting_threshold(): UnitInterval {
-    return this.security_relevant_parameter_voting_threshold;
+  get_security_relevant_threshold(): unknown {
+    return this.security_relevant_threshold;
   }
 
-  set_security_relevant_parameter_voting_threshold(
-    security_relevant_parameter_voting_threshold: UnitInterval,
-  ): void {
-    this.security_relevant_parameter_voting_threshold =
-      security_relevant_parameter_voting_threshold;
+  set_security_relevant_threshold(security_relevant_threshold: unknown): void {
+    this.security_relevant_threshold = security_relevant_threshold;
   }
 
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): PoolVotingThresholds {
-    let motion_no_confidence_ = array.shiftRequired();
-    let motion_no_confidence = UnitInterval.fromCBOR(motion_no_confidence_);
-    let committee_normal_ = array.shiftRequired();
-    let committee_normal = UnitInterval.fromCBOR(committee_normal_);
-    let committee_no_confidence_ = array.shiftRequired();
-    let committee_no_confidence = UnitInterval.fromCBOR(
-      committee_no_confidence_,
-    );
-    let hard_fork_initiation_ = array.shiftRequired();
-    let hard_fork_initiation = UnitInterval.fromCBOR(hard_fork_initiation_);
-    let security_relevant_parameter_voting_threshold_ = array.shiftRequired();
-    let security_relevant_parameter_voting_threshold = UnitInterval.fromCBOR(
-      security_relevant_parameter_voting_threshold_,
-    );
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PoolVotingThresholds {
+    let reader = new CBORReader(data);
+    return PoolVotingThresholds.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PoolVotingThresholds {
+    return PoolVotingThresholds.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): PoolVotingThresholds {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 5) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 5. Received " + len,
+      );
+    }
+
+    let motion_no_confidence = $$CANT_READ("UnitInterval");
+
+    let committee_normal = $$CANT_READ("UnitInterval");
+
+    let committee_no_confidence = $$CANT_READ("UnitInterval");
+
+    let hard_fork_initiation = $$CANT_READ("UnitInterval");
+
+    let security_relevant_threshold = $$CANT_READ("UnitInterval");
 
     return new PoolVotingThresholds(
       motion_no_confidence,
       committee_normal,
       committee_no_confidence,
       hard_fork_initiation,
-      security_relevant_parameter_voting_threshold,
+      security_relevant_threshold,
     );
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.motion_no_confidence);
-    entries.push(this.committee_normal);
-    entries.push(this.committee_no_confidence);
-    entries.push(this.hard_fork_initiation);
-    entries.push(this.security_relevant_parameter_voting_threshold);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(5);
 
-  static fromCBOR(value: CBORReaderValue): PoolVotingThresholds {
-    let array = value.get("array");
-    return PoolVotingThresholds.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
   }
 }
 
 export class DrepVotingThresholds {
-  private motion_no_confidence: UnitInterval;
-  private committee_normal: UnitInterval;
-  private committee_no_confidence: UnitInterval;
-  private update_constitution: UnitInterval;
-  private hard_fork_initiation: UnitInterval;
-  private pp_network_group: UnitInterval;
-  private pp_economic_group: UnitInterval;
-  private pp_technical_group: UnitInterval;
-  private pp_governance_group: UnitInterval;
-  private treasury_withdrawal: UnitInterval;
+  private motion_no_confidence: unknown;
+  private committee_normal: unknown;
+  private committee_no_confidence: unknown;
+  private update_constitution: unknown;
+  private hard_fork_initiation: unknown;
+  private pp_network_group: unknown;
+  private pp_economic_group: unknown;
+  private pp_technical_group: unknown;
+  private pp_governance_group: unknown;
+  private treasury_withdrawal: unknown;
 
   constructor(
-    motion_no_confidence: UnitInterval,
-    committee_normal: UnitInterval,
-    committee_no_confidence: UnitInterval,
-    update_constitution: UnitInterval,
-    hard_fork_initiation: UnitInterval,
-    pp_network_group: UnitInterval,
-    pp_economic_group: UnitInterval,
-    pp_technical_group: UnitInterval,
-    pp_governance_group: UnitInterval,
-    treasury_withdrawal: UnitInterval,
+    motion_no_confidence: unknown,
+    committee_normal: unknown,
+    committee_no_confidence: unknown,
+    update_constitution: unknown,
+    hard_fork_initiation: unknown,
+    pp_network_group: unknown,
+    pp_economic_group: unknown,
+    pp_technical_group: unknown,
+    pp_governance_group: unknown,
+    treasury_withdrawal: unknown,
   ) {
     this.motion_no_confidence = motion_no_confidence;
     this.committee_normal = committee_normal;
@@ -4688,111 +6929,136 @@ export class DrepVotingThresholds {
     this.treasury_withdrawal = treasury_withdrawal;
   }
 
-  get_motion_no_confidence(): UnitInterval {
+  get_motion_no_confidence(): unknown {
     return this.motion_no_confidence;
   }
 
-  set_motion_no_confidence(motion_no_confidence: UnitInterval): void {
+  set_motion_no_confidence(motion_no_confidence: unknown): void {
     this.motion_no_confidence = motion_no_confidence;
   }
 
-  get_committee_normal(): UnitInterval {
+  get_committee_normal(): unknown {
     return this.committee_normal;
   }
 
-  set_committee_normal(committee_normal: UnitInterval): void {
+  set_committee_normal(committee_normal: unknown): void {
     this.committee_normal = committee_normal;
   }
 
-  get_committee_no_confidence(): UnitInterval {
+  get_committee_no_confidence(): unknown {
     return this.committee_no_confidence;
   }
 
-  set_committee_no_confidence(committee_no_confidence: UnitInterval): void {
+  set_committee_no_confidence(committee_no_confidence: unknown): void {
     this.committee_no_confidence = committee_no_confidence;
   }
 
-  get_update_constitution(): UnitInterval {
+  get_update_constitution(): unknown {
     return this.update_constitution;
   }
 
-  set_update_constitution(update_constitution: UnitInterval): void {
+  set_update_constitution(update_constitution: unknown): void {
     this.update_constitution = update_constitution;
   }
 
-  get_hard_fork_initiation(): UnitInterval {
+  get_hard_fork_initiation(): unknown {
     return this.hard_fork_initiation;
   }
 
-  set_hard_fork_initiation(hard_fork_initiation: UnitInterval): void {
+  set_hard_fork_initiation(hard_fork_initiation: unknown): void {
     this.hard_fork_initiation = hard_fork_initiation;
   }
 
-  get_pp_network_group(): UnitInterval {
+  get_pp_network_group(): unknown {
     return this.pp_network_group;
   }
 
-  set_pp_network_group(pp_network_group: UnitInterval): void {
+  set_pp_network_group(pp_network_group: unknown): void {
     this.pp_network_group = pp_network_group;
   }
 
-  get_pp_economic_group(): UnitInterval {
+  get_pp_economic_group(): unknown {
     return this.pp_economic_group;
   }
 
-  set_pp_economic_group(pp_economic_group: UnitInterval): void {
+  set_pp_economic_group(pp_economic_group: unknown): void {
     this.pp_economic_group = pp_economic_group;
   }
 
-  get_pp_technical_group(): UnitInterval {
+  get_pp_technical_group(): unknown {
     return this.pp_technical_group;
   }
 
-  set_pp_technical_group(pp_technical_group: UnitInterval): void {
+  set_pp_technical_group(pp_technical_group: unknown): void {
     this.pp_technical_group = pp_technical_group;
   }
 
-  get_pp_governance_group(): UnitInterval {
+  get_pp_governance_group(): unknown {
     return this.pp_governance_group;
   }
 
-  set_pp_governance_group(pp_governance_group: UnitInterval): void {
+  set_pp_governance_group(pp_governance_group: unknown): void {
     this.pp_governance_group = pp_governance_group;
   }
 
-  get_treasury_withdrawal(): UnitInterval {
+  get_treasury_withdrawal(): unknown {
     return this.treasury_withdrawal;
   }
 
-  set_treasury_withdrawal(treasury_withdrawal: UnitInterval): void {
+  set_treasury_withdrawal(treasury_withdrawal: unknown): void {
     this.treasury_withdrawal = treasury_withdrawal;
   }
 
-  static fromArray(
-    array: CBORArrayReader<CBORReaderValue>,
-  ): DrepVotingThresholds {
-    let motion_no_confidence_ = array.shiftRequired();
-    let motion_no_confidence = UnitInterval.fromCBOR(motion_no_confidence_);
-    let committee_normal_ = array.shiftRequired();
-    let committee_normal = UnitInterval.fromCBOR(committee_normal_);
-    let committee_no_confidence_ = array.shiftRequired();
-    let committee_no_confidence = UnitInterval.fromCBOR(
-      committee_no_confidence_,
-    );
-    let update_constitution_ = array.shiftRequired();
-    let update_constitution = UnitInterval.fromCBOR(update_constitution_);
-    let hard_fork_initiation_ = array.shiftRequired();
-    let hard_fork_initiation = UnitInterval.fromCBOR(hard_fork_initiation_);
-    let pp_network_group_ = array.shiftRequired();
-    let pp_network_group = UnitInterval.fromCBOR(pp_network_group_);
-    let pp_economic_group_ = array.shiftRequired();
-    let pp_economic_group = UnitInterval.fromCBOR(pp_economic_group_);
-    let pp_technical_group_ = array.shiftRequired();
-    let pp_technical_group = UnitInterval.fromCBOR(pp_technical_group_);
-    let pp_governance_group_ = array.shiftRequired();
-    let pp_governance_group = UnitInterval.fromCBOR(pp_governance_group_);
-    let treasury_withdrawal_ = array.shiftRequired();
-    let treasury_withdrawal = UnitInterval.fromCBOR(treasury_withdrawal_);
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DrepVotingThresholds {
+    let reader = new CBORReader(data);
+    return DrepVotingThresholds.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DrepVotingThresholds {
+    return DrepVotingThresholds.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): DrepVotingThresholds {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 10) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 10. Received " + len,
+      );
+    }
+
+    let motion_no_confidence = $$CANT_READ("UnitInterval");
+
+    let committee_normal = $$CANT_READ("UnitInterval");
+
+    let committee_no_confidence = $$CANT_READ("UnitInterval");
+
+    let update_constitution = $$CANT_READ("UnitInterval");
+
+    let hard_fork_initiation = $$CANT_READ("UnitInterval");
+
+    let pp_network_group = $$CANT_READ("UnitInterval");
+
+    let pp_economic_group = $$CANT_READ("UnitInterval");
+
+    let pp_technical_group = $$CANT_READ("UnitInterval");
+
+    let pp_governance_group = $$CANT_READ("UnitInterval");
+
+    let treasury_withdrawal = $$CANT_READ("UnitInterval");
 
     return new DrepVotingThresholds(
       motion_no_confidence,
@@ -4808,284 +7074,599 @@ export class DrepVotingThresholds {
     );
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.motion_no_confidence);
-    entries.push(this.committee_normal);
-    entries.push(this.committee_no_confidence);
-    entries.push(this.update_constitution);
-    entries.push(this.hard_fork_initiation);
-    entries.push(this.pp_network_group);
-    entries.push(this.pp_economic_group);
-    entries.push(this.pp_technical_group);
-    entries.push(this.pp_governance_group);
-    entries.push(this.treasury_withdrawal);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(10);
 
-  static fromCBOR(value: CBORReaderValue): DrepVotingThresholds {
-    let array = value.get("array");
-    return DrepVotingThresholds.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class Vkeywitnesses extends Array<Vkeywitness> {
-  static fromCBOR(value: CBORReaderValue): Vkeywitnesses {
-    let tagged = value.get("tagged");
-    let array = tagged.getTagged(258n).get("array");
-    return new Vkeywitnesses(...array.map((x) => Vkeywitness.fromCBOR(x)));
-  }
-
-  toCBOR(writer: CBORWriter) {
-    return writer.writeTagged(258n, [...this]);
-  }
-}
-
-export class NativeScripts extends Array<NativeScript> {
-  static fromCBOR(value: CBORReaderValue): NativeScripts {
-    let tagged = value.get("tagged");
-    let array = tagged.getTagged(258n).get("array");
-    return new NativeScripts(...array.map((x) => NativeScript.fromCBOR(x)));
-  }
-
-  toCBOR(writer: CBORWriter) {
-    return writer.writeTagged(258n, [...this]);
-  }
-}
-
-export class BootstrapWitnesses extends Array<BootstrapWitness> {
-  static fromCBOR(value: CBORReaderValue): BootstrapWitnesses {
-    let tagged = value.get("tagged");
-    let array = tagged.getTagged(258n).get("array");
-    return new BootstrapWitnesses(
-      ...array.map((x) => BootstrapWitness.fromCBOR(x)),
-    );
-  }
-
-  toCBOR(writer: CBORWriter) {
-    return writer.writeTagged(258n, [...this]);
-  }
-}
-
-export class PlutusV1Scripts extends Array<PlutusV1Script> {
-  static fromCBOR(value: CBORReaderValue): PlutusV1Scripts {
-    let tagged = value.get("tagged");
-    let array = tagged.getTagged(258n).get("array");
-    return new PlutusV1Scripts(...array.map((x) => PlutusV1Script.fromCBOR(x)));
-  }
-
-  toCBOR(writer: CBORWriter) {
-    return writer.writeTagged(258n, [...this]);
-  }
-}
-
-export class PlutusV2Scripts extends Array<PlutusV2Script> {
-  static fromCBOR(value: CBORReaderValue): PlutusV2Scripts {
-    let tagged = value.get("tagged");
-    let array = tagged.getTagged(258n).get("array");
-    return new PlutusV2Scripts(...array.map((x) => PlutusV2Script.fromCBOR(x)));
-  }
-
-  toCBOR(writer: CBORWriter) {
-    return writer.writeTagged(258n, [...this]);
-  }
-}
-
-export class PlutusV3Scripts extends Array<PlutusV3Script> {
-  static fromCBOR(value: CBORReaderValue): PlutusV3Scripts {
-    let tagged = value.get("tagged");
-    let array = tagged.getTagged(258n).get("array");
-    return new PlutusV3Scripts(...array.map((x) => PlutusV3Script.fromCBOR(x)));
-  }
-
-  toCBOR(writer: CBORWriter) {
-    return writer.writeTagged(258n, [...this]);
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
   }
 }
 
 export class TransactionWitnessSet {
-  private vkeywitnesses: Vkeywitnesses;
-  private native_scripts: NativeScripts;
-  private bootstrap_witnesses: BootstrapWitnesses;
-  private plutus_v1_scripts: PlutusV1Scripts;
-  private plutus_data: PlutusData;
-  private redeemers: Redeemers;
-  private plutus_v2_scripts: PlutusV2Scripts;
-  private plutus_v3_scripts: PlutusV3Scripts;
+  private vkeys: Vkeywitnesses | undefined;
+  private native_scripts: NativeScripts | undefined;
+  private bootstraps: BootstrapWitnesses | undefined;
+  private plutus_scripts_v1: PlutusScripts | undefined;
+  private plutus_data: PlutusList | undefined;
+  private redeemers: unknown | undefined;
+  private plutus_scripts_v2: PlutusScripts | undefined;
+  private plutus_scripts_v3: PlutusScripts | undefined;
 
   constructor(
-    vkeywitnesses: Vkeywitnesses,
-    native_scripts: NativeScripts,
-    bootstrap_witnesses: BootstrapWitnesses,
-    plutus_v1_scripts: PlutusV1Scripts,
-    plutus_data: PlutusData,
-    redeemers: Redeemers,
-    plutus_v2_scripts: PlutusV2Scripts,
-    plutus_v3_scripts: PlutusV3Scripts,
+    vkeys: Vkeywitnesses | undefined,
+    native_scripts: NativeScripts | undefined,
+    bootstraps: BootstrapWitnesses | undefined,
+    plutus_scripts_v1: PlutusScripts | undefined,
+    plutus_data: PlutusList | undefined,
+    redeemers: unknown | undefined,
+    plutus_scripts_v2: PlutusScripts | undefined,
+    plutus_scripts_v3: PlutusScripts | undefined,
   ) {
-    this.vkeywitnesses = vkeywitnesses;
+    this.vkeys = vkeys;
     this.native_scripts = native_scripts;
-    this.bootstrap_witnesses = bootstrap_witnesses;
-    this.plutus_v1_scripts = plutus_v1_scripts;
+    this.bootstraps = bootstraps;
+    this.plutus_scripts_v1 = plutus_scripts_v1;
     this.plutus_data = plutus_data;
     this.redeemers = redeemers;
-    this.plutus_v2_scripts = plutus_v2_scripts;
-    this.plutus_v3_scripts = plutus_v3_scripts;
+    this.plutus_scripts_v2 = plutus_scripts_v2;
+    this.plutus_scripts_v3 = plutus_scripts_v3;
   }
 
-  get_vkeywitnesses(): Vkeywitnesses {
-    return this.vkeywitnesses;
+  get_vkeys(): Vkeywitnesses | undefined {
+    return this.vkeys;
   }
 
-  set_vkeywitnesses(vkeywitnesses: Vkeywitnesses): void {
-    this.vkeywitnesses = vkeywitnesses;
+  set_vkeys(vkeys: Vkeywitnesses | undefined): void {
+    this.vkeys = vkeys;
   }
 
-  get_native_scripts(): NativeScripts {
+  get_native_scripts(): NativeScripts | undefined {
     return this.native_scripts;
   }
 
-  set_native_scripts(native_scripts: NativeScripts): void {
+  set_native_scripts(native_scripts: NativeScripts | undefined): void {
     this.native_scripts = native_scripts;
   }
 
-  get_bootstrap_witnesses(): BootstrapWitnesses {
-    return this.bootstrap_witnesses;
+  get_bootstraps(): BootstrapWitnesses | undefined {
+    return this.bootstraps;
   }
 
-  set_bootstrap_witnesses(bootstrap_witnesses: BootstrapWitnesses): void {
-    this.bootstrap_witnesses = bootstrap_witnesses;
+  set_bootstraps(bootstraps: BootstrapWitnesses | undefined): void {
+    this.bootstraps = bootstraps;
   }
 
-  get_plutus_v1_scripts(): PlutusV1Scripts {
-    return this.plutus_v1_scripts;
+  get_plutus_scripts_v1(): PlutusScripts | undefined {
+    return this.plutus_scripts_v1;
   }
 
-  set_plutus_v1_scripts(plutus_v1_scripts: PlutusV1Scripts): void {
-    this.plutus_v1_scripts = plutus_v1_scripts;
+  set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts | undefined): void {
+    this.plutus_scripts_v1 = plutus_scripts_v1;
   }
 
-  get_plutus_data(): PlutusData {
+  get_plutus_data(): PlutusList | undefined {
     return this.plutus_data;
   }
 
-  set_plutus_data(plutus_data: PlutusData): void {
+  set_plutus_data(plutus_data: PlutusList | undefined): void {
     this.plutus_data = plutus_data;
   }
 
-  get_redeemers(): Redeemers {
+  get_redeemers(): unknown | undefined {
     return this.redeemers;
   }
 
-  set_redeemers(redeemers: Redeemers): void {
+  set_redeemers(redeemers: unknown | undefined): void {
     this.redeemers = redeemers;
   }
 
-  get_plutus_v2_scripts(): PlutusV2Scripts {
-    return this.plutus_v2_scripts;
+  get_plutus_scripts_v2(): PlutusScripts | undefined {
+    return this.plutus_scripts_v2;
   }
 
-  set_plutus_v2_scripts(plutus_v2_scripts: PlutusV2Scripts): void {
-    this.plutus_v2_scripts = plutus_v2_scripts;
+  set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts | undefined): void {
+    this.plutus_scripts_v2 = plutus_scripts_v2;
   }
 
-  get_plutus_v3_scripts(): PlutusV3Scripts {
-    return this.plutus_v3_scripts;
+  get_plutus_scripts_v3(): PlutusScripts | undefined {
+    return this.plutus_scripts_v3;
   }
 
-  set_plutus_v3_scripts(plutus_v3_scripts: PlutusV3Scripts): void {
-    this.plutus_v3_scripts = plutus_v3_scripts;
+  set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts | undefined): void {
+    this.plutus_scripts_v3 = plutus_scripts_v3;
   }
 
-  static fromCBOR(value: CBORReaderValue): TransactionWitnessSet {
-    let map = value
-      .get("map")
-      .toMap()
-      .map({ key: (x) => Number(x.getInt()), value: (x) => x });
-    let vkeywitnesses_ = map.getRequired(0);
-    let vkeywitnesses =
-      vkeywitnesses_ != undefined
-        ? Vkeywitnesses.fromCBOR(vkeywitnesses_)
-        : undefined;
-    let native_scripts_ = map.getRequired(1);
-    let native_scripts =
-      native_scripts_ != undefined
-        ? NativeScripts.fromCBOR(native_scripts_)
-        : undefined;
-    let bootstrap_witnesses_ = map.getRequired(2);
-    let bootstrap_witnesses =
-      bootstrap_witnesses_ != undefined
-        ? BootstrapWitnesses.fromCBOR(bootstrap_witnesses_)
-        : undefined;
-    let plutus_v1_scripts_ = map.getRequired(3);
-    let plutus_v1_scripts =
-      plutus_v1_scripts_ != undefined
-        ? PlutusV1Scripts.fromCBOR(plutus_v1_scripts_)
-        : undefined;
-    let plutus_data_ = map.getRequired(4);
-    let plutus_data =
-      plutus_data_ != undefined ? PlutusData.fromCBOR(plutus_data_) : undefined;
-    let redeemers_ = map.getRequired(5);
-    let redeemers =
-      redeemers_ != undefined ? Redeemers.fromCBOR(redeemers_) : undefined;
-    let plutus_v2_scripts_ = map.getRequired(6);
-    let plutus_v2_scripts =
-      plutus_v2_scripts_ != undefined
-        ? PlutusV2Scripts.fromCBOR(plutus_v2_scripts_)
-        : undefined;
-    let plutus_v3_scripts_ = map.getRequired(7);
-    let plutus_v3_scripts =
-      plutus_v3_scripts_ != undefined
-        ? PlutusV3Scripts.fromCBOR(plutus_v3_scripts_)
-        : undefined;
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TransactionWitnessSet {
+    let reader = new CBORReader(data);
+    return TransactionWitnessSet.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TransactionWitnessSet {
+    return TransactionWitnessSet.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): TransactionWitnessSet {
+    let fields: any = {};
+    reader.readMap((r) => {
+      let key = Number(r.readUint());
+      switch (key) {
+        case 0:
+          fields.vkeys = Vkeywitnesses.deserialize(r);
+          break;
+
+        case 1:
+          fields.native_scripts = NativeScripts.deserialize(r);
+          break;
+
+        case 2:
+          fields.bootstraps = BootstrapWitnesses.deserialize(r);
+          break;
+
+        case 3:
+          fields.plutus_scripts_v1 = PlutusScripts.deserialize(r);
+          break;
+
+        case 4:
+          fields.plutus_data = PlutusList.deserialize(r);
+          break;
+
+        case 5:
+          fields.redeemers = $$CANT_READ("Redeemers");
+          break;
+
+        case 6:
+          fields.plutus_scripts_v2 = PlutusScripts.deserialize(r);
+          break;
+
+        case 7:
+          fields.plutus_scripts_v3 = PlutusScripts.deserialize(r);
+          break;
+      }
+    });
+
+    let vkeys = fields.vkeys;
+
+    let native_scripts = fields.native_scripts;
+
+    let bootstraps = fields.bootstraps;
+
+    let plutus_scripts_v1 = fields.plutus_scripts_v1;
+
+    let plutus_data = fields.plutus_data;
+
+    let redeemers = fields.redeemers;
+
+    let plutus_scripts_v2 = fields.plutus_scripts_v2;
+
+    let plutus_scripts_v3 = fields.plutus_scripts_v3;
 
     return new TransactionWitnessSet(
-      vkeywitnesses,
+      vkeys,
       native_scripts,
-      bootstrap_witnesses,
-      plutus_v1_scripts,
+      bootstraps,
+      plutus_scripts_v1,
       plutus_data,
       redeemers,
-      plutus_v2_scripts,
-      plutus_v3_scripts,
+      plutus_scripts_v2,
+      plutus_scripts_v3,
     );
   }
 
-  toCBOR(writer: CBORWriter) {
-    let entries = [];
-    entries.push([0, this.vkeywitnesses]);
-    entries.push([1, this.native_scripts]);
-    entries.push([2, this.bootstrap_witnesses]);
-    entries.push([3, this.plutus_v1_scripts]);
-    entries.push([4, this.plutus_data]);
-    entries.push([5, this.redeemers]);
-    entries.push([6, this.plutus_v2_scripts]);
-    entries.push([7, this.plutus_v3_scripts]);
-    writer.writeMap(entries);
+  serialize(writer: CBORWriter) {
+    let len = 8;
+    if (this.vkeys === undefined) len -= 1;
+    if (this.native_scripts === undefined) len -= 1;
+    if (this.bootstraps === undefined) len -= 1;
+    if (this.plutus_scripts_v1 === undefined) len -= 1;
+    if (this.plutus_data === undefined) len -= 1;
+    if (this.redeemers === undefined) len -= 1;
+    if (this.plutus_scripts_v2 === undefined) len -= 1;
+    if (this.plutus_scripts_v3 === undefined) len -= 1;
+    writer.writeMapTag(len);
+    if (this.vkeys !== undefined) {
+      writer.writeInt(0n);
+      this.vkeys.serialize(writer);
+    }
+    if (this.native_scripts !== undefined) {
+      writer.writeInt(1n);
+      this.native_scripts.serialize(writer);
+    }
+    if (this.bootstraps !== undefined) {
+      writer.writeInt(2n);
+      this.bootstraps.serialize(writer);
+    }
+    if (this.plutus_scripts_v1 !== undefined) {
+      writer.writeInt(3n);
+      this.plutus_scripts_v1.serialize(writer);
+    }
+    if (this.plutus_data !== undefined) {
+      writer.writeInt(4n);
+      this.plutus_data.serialize(writer);
+    }
+    if (this.redeemers !== undefined) {
+      writer.writeInt(5n);
+      $$CANT_WRITE("Redeemers");
+    }
+    if (this.plutus_scripts_v2 !== undefined) {
+      writer.writeInt(6n);
+      this.plutus_scripts_v2.serialize(writer);
+    }
+    if (this.plutus_scripts_v3 !== undefined) {
+      writer.writeInt(7n);
+      this.plutus_scripts_v3.serialize(writer);
+    }
   }
 }
 
-export type PlutusV1Script = Uint8Array;
+export class Vkeywitnesses {
+  private items: Vkeywitness[];
 
-export type PlutusV2Script = Uint8Array;
+  // no-op
+  free(): void {}
 
-export type PlutusV3Script = Uint8Array;
+  static from_bytes(data: Uint8Array): Vkeywitnesses {
+    let reader = new CBORReader(data);
+    return Vkeywitnesses.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Vkeywitnesses {
+    return Vkeywitnesses.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor() {
+    this.items = [];
+  }
+
+  static new(): Vkeywitnesses {
+    return new Vkeywitnesses();
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): Vkeywitness {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: Vkeywitness): boolean {
+    if (this.contains(elem)) return true;
+    this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: Vkeywitness): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static deserialize(reader: CBORReader): Vkeywitnesses {
+    let ret = new Vkeywitnesses();
+    if (reader.peekType() == "tagged") {
+      let tag = reader.readTaggedTag();
+      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+    }
+    reader.readArray((reader) => ret.add(Vkeywitness.deserialize(reader)));
+    return ret;
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeTaggedTag(258);
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+}
+
+export class NativeScripts {
+  private items: NativeScript[];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): NativeScripts {
+    let reader = new CBORReader(data);
+    return NativeScripts.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): NativeScripts {
+    return NativeScripts.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(items: NativeScript[]) {
+    this.items = items;
+  }
+
+  static new(): NativeScripts {
+    return new NativeScripts([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): NativeScript {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: NativeScript): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): NativeScripts {
+    return new NativeScripts(
+      reader.readArray((reader) => NativeScript.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+}
+
+export class BootstrapWitnesses {
+  private items: BootstrapWitness[];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): BootstrapWitnesses {
+    let reader = new CBORReader(data);
+    return BootstrapWitnesses.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): BootstrapWitnesses {
+    return BootstrapWitnesses.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(items: BootstrapWitness[]) {
+    this.items = items;
+  }
+
+  static new(): BootstrapWitnesses {
+    return new BootstrapWitnesses([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): BootstrapWitness {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: BootstrapWitness): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): BootstrapWitnesses {
+    return new BootstrapWitnesses(
+      reader.readArray((reader) => BootstrapWitness.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+}
+
+export class PlutusScripts {
+  private items: Uint8Array[];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PlutusScripts {
+    let reader = new CBORReader(data);
+    return PlutusScripts.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PlutusScripts {
+    return PlutusScripts.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(items: Uint8Array[]) {
+    this.items = items;
+  }
+
+  static new(): PlutusScripts {
+    return new PlutusScripts([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): Uint8Array {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: Uint8Array): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): PlutusScripts {
+    return new PlutusScripts(reader.readArray((reader) => reader.readBytes()));
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeArray(this.items, (writer, x) => writer.writeBytes(x));
+  }
+}
+
+export class PlutusList {
+  private items: unknown[];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PlutusList {
+    let reader = new CBORReader(data);
+    return PlutusList.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PlutusList {
+    return PlutusList.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor() {
+    this.items = [];
+  }
+
+  static new(): PlutusList {
+    return new PlutusList();
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): unknown {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: unknown): boolean {
+    if (this.contains(elem)) return true;
+    this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: unknown): boolean {
+    for (let item of this.items) {
+      if ($$CANT_EQ("PlutusData")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static deserialize(reader: CBORReader): PlutusList {
+    let ret = new PlutusList();
+    if (reader.peekType() == "tagged") {
+      let tag = reader.readTaggedTag();
+      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+    }
+    reader.readArray((reader) => ret.add($$CANT_READ("PlutusData")));
+    return ret;
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeTaggedTag(258);
+    writer.writeArray(this.items, (writer, x) => $$CANT_WRITE("PlutusData"));
+  }
+}
 
 export enum RedeemerTagKind {
-  Spending = 0,
-  Minting = 1,
-  Certifying = 2,
-  Rewarding = 3,
-  Voting = 4,
-  Proposing = 5,
+  spending = 0,
+  minting = 1,
+  certifying = 2,
+  rewarding = 3,
+  voting = 4,
+  proposing = 5,
 }
 
 export class RedeemerTag {
   private kind_: RedeemerTagKind;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): RedeemerTag {
+    let reader = new CBORReader(data);
+    return RedeemerTag.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): RedeemerTag {
+    return RedeemerTag.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 
   constructor(kind: RedeemerTagKind) {
     this.kind_ = kind;
@@ -5115,141 +7696,194 @@ export class RedeemerTag {
     return new RedeemerTag(5);
   }
 
-  static fromCBOR(value: CBORReaderValue): RedeemerTag {
-    return value.with((value) => {
-      let kind = Number(value.getInt());
-
-      if (kind == 0) return new RedeemerTag(0);
-
-      if (kind == 1) return new RedeemerTag(1);
-
-      if (kind == 2) return new RedeemerTag(2);
-
-      if (kind == 3) return new RedeemerTag(3);
-
-      if (kind == 4) return new RedeemerTag(4);
-
-      if (kind == 5) return new RedeemerTag(5);
-
-      throw "Unrecognized enum value: " + kind + " for " + RedeemerTag;
-    });
+  static deserialize(reader: CBORReader): RedeemerTag {
+    let kind = Number(reader.readInt());
+    if (kind == 0) return new RedeemerTag(0);
+    if (kind == 1) return new RedeemerTag(1);
+    if (kind == 2) return new RedeemerTag(2);
+    if (kind == 3) return new RedeemerTag(3);
+    if (kind == 4) return new RedeemerTag(4);
+    if (kind == 5) return new RedeemerTag(5);
+    throw "Unrecognized enum value: " + kind + " for " + RedeemerTag;
   }
 
-  toCBOR(writer: CBORWriter) {
-    writer.write(this.kind_);
+  serialize(writer: CBORWriter) {
+    writer.writeInt(BigInt(this.kind_));
   }
 }
 
 export class ExUnits {
-  private mem: number;
-  private steps: number;
+  private mem: bigint;
+  private steps: bigint;
 
-  constructor(mem: number, steps: number) {
+  constructor(mem: bigint, steps: bigint) {
     this.mem = mem;
     this.steps = steps;
   }
 
-  get_mem(): number {
+  get_mem(): bigint {
     return this.mem;
   }
 
-  set_mem(mem: number): void {
+  set_mem(mem: bigint): void {
     this.mem = mem;
   }
 
-  get_steps(): number {
+  get_steps(): bigint {
     return this.steps;
   }
 
-  set_steps(steps: number): void {
+  set_steps(steps: bigint): void {
     this.steps = steps;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): ExUnits {
-    let mem_ = array.shiftRequired();
-    let mem = mem_.get("uint");
-    let steps_ = array.shiftRequired();
-    let steps = steps_.get("uint");
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ExUnits {
+    let reader = new CBORReader(data);
+    return ExUnits.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ExUnits {
+    return ExUnits.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): ExUnits {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let mem = reader.readInt();
+
+    let steps = reader.readInt();
 
     return new ExUnits(mem, steps);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.mem);
-    entries.push(this.steps);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
 
-  static fromCBOR(value: CBORReaderValue): ExUnits {
-    let array = value.get("array");
-    return ExUnits.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    writer.writeInt(this.mem);
+    writer.writeInt(this.steps);
   }
 }
 
 export class ExUnitPrices {
-  private mem_price: UnitInterval;
-  private step_price: UnitInterval;
+  private mem_price: unknown;
+  private step_price: unknown;
 
-  constructor(mem_price: UnitInterval, step_price: UnitInterval) {
+  constructor(mem_price: unknown, step_price: unknown) {
     this.mem_price = mem_price;
     this.step_price = step_price;
   }
 
-  get_mem_price(): UnitInterval {
+  get_mem_price(): unknown {
     return this.mem_price;
   }
 
-  set_mem_price(mem_price: UnitInterval): void {
+  set_mem_price(mem_price: unknown): void {
     this.mem_price = mem_price;
   }
 
-  get_step_price(): UnitInterval {
+  get_step_price(): unknown {
     return this.step_price;
   }
 
-  set_step_price(step_price: UnitInterval): void {
+  set_step_price(step_price: unknown): void {
     this.step_price = step_price;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): ExUnitPrices {
-    let mem_price_ = array.shiftRequired();
-    let mem_price = UnitInterval.fromCBOR(mem_price_);
-    let step_price_ = array.shiftRequired();
-    let step_price = UnitInterval.fromCBOR(step_price_);
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ExUnitPrices {
+    let reader = new CBORReader(data);
+    return ExUnitPrices.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ExUnitPrices {
+    return ExUnitPrices.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): ExUnitPrices {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let mem_price = $$CANT_READ("UnitInterval");
+
+    let step_price = $$CANT_READ("UnitInterval");
 
     return new ExUnitPrices(mem_price, step_price);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.mem_price);
-    entries.push(this.step_price);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
 
-  static fromCBOR(value: CBORReaderValue): ExUnitPrices {
-    let array = value.get("array");
-    return ExUnitPrices.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    $$CANT_WRITE("UnitInterval");
+    $$CANT_WRITE("UnitInterval");
   }
 }
 
 export enum LanguageKind {
-  PlutusV1 = 0,
-  PlutusV2 = 1,
-  PlutusV3 = 2,
+  plutus_v1 = 0,
+  plutus_v2 = 1,
+  plutus_v3 = 2,
 }
 
 export class Language {
   private kind_: LanguageKind;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Language {
+    let reader = new CBORReader(data);
+    return Language.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Language {
+    return Language.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 
   constructor(kind: LanguageKind) {
     this.kind_ = kind;
@@ -5267,361 +7901,110 @@ export class Language {
     return new Language(2);
   }
 
-  static fromCBOR(value: CBORReaderValue): Language {
-    return value.with((value) => {
-      let kind = Number(value.getInt());
+  static deserialize(reader: CBORReader): Language {
+    let kind = Number(reader.readInt());
+    if (kind == 0) return new Language(0);
+    if (kind == 1) return new Language(1);
+    if (kind == 2) return new Language(2);
+    throw "Unrecognized enum value: " + kind + " for " + Language;
+  }
 
-      if (kind == 0) return new Language(0);
+  serialize(writer: CBORWriter) {
+    writer.writeInt(BigInt(this.kind_));
+  }
+}
 
-      if (kind == 1) return new Language(1);
+export class GeneralTransactionMetadata {
+  private items: [bigint, unknown][];
 
-      if (kind == 2) return new Language(2);
+  // no-op
+  free(): void {}
 
-      throw "Unrecognized enum value: " + kind + " for " + Language;
+  static from_bytes(data: Uint8Array): GeneralTransactionMetadata {
+    let reader = new CBORReader(data);
+    return GeneralTransactionMetadata.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): GeneralTransactionMetadata {
+    return GeneralTransactionMetadata.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(items: [bigint, unknown][]) {
+    this.items = items;
+  }
+
+  static new(): GeneralTransactionMetadata {
+    return new GeneralTransactionMetadata([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(key: bigint, value: unknown): void {
+    let entry = this.items.find((x) => key === x[0]);
+    if (entry != null) entry[1] = value;
+    else this.items.push([key, value]);
+  }
+
+  get(key: bigint): unknown | undefined {
+    let entry = this.items.find((x) => key === x[0]);
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  static deserialize(reader: CBORReader): GeneralTransactionMetadata {
+    let ret = new GeneralTransactionMetadata([]);
+    reader.readMap((reader) =>
+      ret.insert(reader.readInt(), $$CANT_READ("TransactionMetadatum")),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeMap(this.items, (writer, x) => {
+      writer.writeInt(x[0]);
+      $$CANT_WRITE("TransactionMetadatum");
     });
   }
-
-  toCBOR(writer: CBORWriter) {
-    writer.write(this.kind_);
-  }
 }
 
-export class PlutusV1 extends Array<number> {
-  static fromCBOR(value: CBORReaderValue): PlutusV1 {
-    let array = value.get("array");
-    return new PlutusV1(...array.map((x) => x.get("uint")));
-  }
-}
-
-export class PlutusV2 extends Array<number> {
-  static fromCBOR(value: CBORReaderValue): PlutusV2 {
-    let array = value.get("array");
-    return new PlutusV2(...array.map((x) => x.get("uint")));
-  }
-}
-
-export class PlutusV3 extends Array<number> {
-  static fromCBOR(value: CBORReaderValue): PlutusV3 {
-    let array = value.get("array");
-    return new PlutusV3(...array.map((x) => x.get("uint")));
-  }
-}
-
-export class Other extends Array<number> {
-  static fromCBOR(value: CBORReaderValue): Other {
-    let array = value.get("array");
-    return new Other(...array.map((x) => x.get("uint")));
-  }
-}
-
-export class Costmdls {
-  private plutus_v1: PlutusV1;
-  private plutus_v2: PlutusV2;
-  private plutus_v3: PlutusV3;
-  private other: Other;
-
-  constructor(
-    plutus_v1: PlutusV1,
-    plutus_v2: PlutusV2,
-    plutus_v3: PlutusV3,
-    other: Other,
-  ) {
-    this.plutus_v1 = plutus_v1;
-    this.plutus_v2 = plutus_v2;
-    this.plutus_v3 = plutus_v3;
-    this.other = other;
-  }
-
-  get_plutus_v1(): PlutusV1 {
-    return this.plutus_v1;
-  }
-
-  set_plutus_v1(plutus_v1: PlutusV1): void {
-    this.plutus_v1 = plutus_v1;
-  }
-
-  get_plutus_v2(): PlutusV2 {
-    return this.plutus_v2;
-  }
-
-  set_plutus_v2(plutus_v2: PlutusV2): void {
-    this.plutus_v2 = plutus_v2;
-  }
-
-  get_plutus_v3(): PlutusV3 {
-    return this.plutus_v3;
-  }
-
-  set_plutus_v3(plutus_v3: PlutusV3): void {
-    this.plutus_v3 = plutus_v3;
-  }
-
-  get_other(): Other {
-    return this.other;
-  }
-
-  set_other(other: Other): void {
-    this.other = other;
-  }
-
-  static fromCBOR(value: CBORReaderValue): Costmdls {
-    let map = value
-      .get("map")
-      .toMap()
-      .map({ key: (x) => Number(x.getInt()), value: (x) => x });
-    let plutus_v1_ = map.getRequired(0);
-    let plutus_v1 =
-      plutus_v1_ != undefined ? PlutusV1.fromCBOR(plutus_v1_) : undefined;
-    let plutus_v2_ = map.getRequired(1);
-    let plutus_v2 =
-      plutus_v2_ != undefined ? PlutusV2.fromCBOR(plutus_v2_) : undefined;
-    let plutus_v3_ = map.getRequired(2);
-    let plutus_v3 =
-      plutus_v3_ != undefined ? PlutusV3.fromCBOR(plutus_v3_) : undefined;
-    let other_ = map.getRequired(3);
-    let other = other_ != undefined ? Other.fromCBOR(other_) : undefined;
-
-    return new Costmdls(plutus_v1, plutus_v2, plutus_v3, other);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    let entries = [];
-    entries.push([0, this.plutus_v1]);
-    entries.push([1, this.plutus_v2]);
-    entries.push([2, this.plutus_v3]);
-    entries.push([3, this.other]);
-    writer.writeMap(entries);
-  }
-}
-
-export class Map extends CBORMap<TransactionMetadatum, TransactionMetadatum> {
-  static fromCBOR(value: CBORReaderValue): Map {
-    let map = value.get("map");
-    return new Map(
-      map.map({
-        key: (x) => TransactionMetadatum.fromCBOR(x),
-        value: (x) => TransactionMetadatum.fromCBOR(x),
-      }),
-    );
-  }
-}
-
-export class List extends Array<TransactionMetadatum> {
-  static fromCBOR(value: CBORReaderValue): List {
-    let array = value.get("array");
-    return new List(...array.map((x) => TransactionMetadatum.fromCBOR(x)));
-  }
-}
-
-export type Int = number;
-
-export type Bytes = Uint8Array;
-
-export type String = string;
-
-export enum TransactionMetadatumKind {
-  Map = 0,
-  List = 1,
-  Int = 2,
-  Bytes = 3,
-  String = 4,
-}
-
-export type TransactionMetadatumVariant =
-  | { kind: 0; value: Map }
-  | { kind: 1; value: List }
-  | { kind: 2; value: Int }
-  | { kind: 3; value: Bytes }
-  | { kind: 4; value: String };
-
-export class TransactionMetadatum {
-  private variant: TransactionMetadatumVariant;
-
-  constructor(variant: TransactionMetadatumVariant) {
-    this.variant = variant;
-  }
-
-  static new_map(map: Map): TransactionMetadatum {
-    return new TransactionMetadatum({ kind: 0, value: map });
-  }
-
-  static new_list(list: List): TransactionMetadatum {
-    return new TransactionMetadatum({ kind: 1, value: list });
-  }
-
-  static new_int(int: Int): TransactionMetadatum {
-    return new TransactionMetadatum({ kind: 2, value: int });
-  }
-
-  static new_bytes(bytes: Bytes): TransactionMetadatum {
-    return new TransactionMetadatum({ kind: 3, value: bytes });
-  }
-
-  static new_string(string: String): TransactionMetadatum {
-    return new TransactionMetadatum({ kind: 4, value: string });
-  }
-
-  as_map(): Map | undefined {
-    if (this.variant.kind == 0) return this.variant.value;
-  }
-
-  as_list(): List | undefined {
-    if (this.variant.kind == 1) return this.variant.value;
-  }
-
-  as_int(): Int | undefined {
-    if (this.variant.kind == 2) return this.variant.value;
-  }
-
-  as_bytes(): Bytes | undefined {
-    if (this.variant.kind == 3) return this.variant.value;
-  }
-
-  as_string(): String | undefined {
-    if (this.variant.kind == 4) return this.variant.value;
-  }
-
-  static fromCBOR(value: CBORReaderValue): TransactionMetadatum {
-    return value.getChoice({
-      "": (v) =>
-        new TransactionMetadatum({
-          kind: 0,
-          value: Map.fromCBOR(v),
-        }),
-      "": (v) =>
-        new TransactionMetadatum({
-          kind: 1,
-          value: List.fromCBOR(v),
-        }),
-      "": (v) =>
-        new TransactionMetadatum({
-          kind: 2,
-          value: Int.fromCBOR(v),
-        }),
-      "": (v) =>
-        new TransactionMetadatum({
-          kind: 3,
-          value: Bytes.fromCBOR(v),
-        }),
-      "": (v) =>
-        new TransactionMetadatum({
-          kind: 4,
-          value: String.fromCBOR(v),
-        }),
-    });
-  }
-
-  toCBOR(writer: CBORWriter) {
-    this.variant.value.toCBOR(writer);
-  }
-}
-
-export type TransactionMetadatumLabel = number;
-
-export class GeneralTransactionMetadata extends CBORMap<
-  TransactionMetadatumLabel,
-  TransactionMetadatum
-> {
-  static fromCBOR(value: CBORReaderValue): GeneralTransactionMetadata {
-    let map = value.get("map");
-    return new GeneralTransactionMetadata(
-      map.map({
-        key: (x) => TransactionMetadatumLabel.fromCBOR(x),
-        value: (x) => TransactionMetadatumLabel.fromCBOR(x),
-      }),
-    );
-  }
-}
-
-export type Shelley = GeneralTransactionMetadata;
-
-export class AuxiliaryScripts extends Array<NativeScript> {
-  static fromCBOR(value: CBORReaderValue): AuxiliaryScripts {
-    let array = value.get("array");
-    return new AuxiliaryScripts(...array.map((x) => NativeScript.fromCBOR(x)));
-  }
-}
-
-export class ShelleyMa {
-  private transaction_metadata: Metadata;
-  private auxiliary_scripts: AuxiliaryScripts;
-
-  constructor(
-    transaction_metadata: Metadata,
-    auxiliary_scripts: AuxiliaryScripts,
-  ) {
-    this.transaction_metadata = transaction_metadata;
-    this.auxiliary_scripts = auxiliary_scripts;
-  }
-
-  get_transaction_metadata(): Metadata {
-    return this.transaction_metadata;
-  }
-
-  set_transaction_metadata(transaction_metadata: Metadata): void {
-    this.transaction_metadata = transaction_metadata;
-  }
-
-  get_auxiliary_scripts(): AuxiliaryScripts {
-    return this.auxiliary_scripts;
-  }
-
-  set_auxiliary_scripts(auxiliary_scripts: AuxiliaryScripts): void {
-    this.auxiliary_scripts = auxiliary_scripts;
-  }
-
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): ShelleyMa {
-    let transaction_metadata_ = array.shiftRequired();
-    let transaction_metadata = Metadata.fromCBOR(transaction_metadata_);
-    let auxiliary_scripts_ = array.shiftRequired();
-    let auxiliary_scripts = AuxiliaryScripts.fromCBOR(auxiliary_scripts_);
-
-    return new ShelleyMa(transaction_metadata, auxiliary_scripts);
-  }
-
-  toArray() {
-    let entries = [];
-    entries.push(this.transaction_metadata);
-    entries.push(this.auxiliary_scripts);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): ShelleyMa {
-    let array = value.get("array");
-    return ShelleyMa.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
-  }
-}
-
-export class AlonzoAndBeyond {
-  private metadata: Metadata;
+export class AuxiliaryData {
+  private metadata: GeneralTransactionMetadata;
   private native_scripts: NativeScripts;
-  private plutus_v1_scripts: PlutusV1Scripts;
-  private plutus_v2_scripts: PlutusV2Scripts;
-  private plutus_v3_scripts: PlutusV3Scripts;
+  private plutus_scripts_v1: PlutusScripts;
+  private plutus_scripts_v2: PlutusScripts;
+  private plutus_scripts_v3: PlutusScripts;
 
   constructor(
-    metadata: Metadata,
+    metadata: GeneralTransactionMetadata,
     native_scripts: NativeScripts,
-    plutus_v1_scripts: PlutusV1Scripts,
-    plutus_v2_scripts: PlutusV2Scripts,
-    plutus_v3_scripts: PlutusV3Scripts,
+    plutus_scripts_v1: PlutusScripts,
+    plutus_scripts_v2: PlutusScripts,
+    plutus_scripts_v3: PlutusScripts,
   ) {
     this.metadata = metadata;
     this.native_scripts = native_scripts;
-    this.plutus_v1_scripts = plutus_v1_scripts;
-    this.plutus_v2_scripts = plutus_v2_scripts;
-    this.plutus_v3_scripts = plutus_v3_scripts;
+    this.plutus_scripts_v1 = plutus_scripts_v1;
+    this.plutus_scripts_v2 = plutus_scripts_v2;
+    this.plutus_scripts_v3 = plutus_scripts_v3;
   }
 
-  get_metadata(): Metadata {
+  get_metadata(): GeneralTransactionMetadata {
     return this.metadata;
   }
 
-  set_metadata(metadata: Metadata): void {
+  set_metadata(metadata: GeneralTransactionMetadata): void {
     this.metadata = metadata;
   }
 
@@ -5633,230 +8016,228 @@ export class AlonzoAndBeyond {
     this.native_scripts = native_scripts;
   }
 
-  get_plutus_v1_scripts(): PlutusV1Scripts {
-    return this.plutus_v1_scripts;
+  get_plutus_scripts_v1(): PlutusScripts {
+    return this.plutus_scripts_v1;
   }
 
-  set_plutus_v1_scripts(plutus_v1_scripts: PlutusV1Scripts): void {
-    this.plutus_v1_scripts = plutus_v1_scripts;
+  set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts): void {
+    this.plutus_scripts_v1 = plutus_scripts_v1;
   }
 
-  get_plutus_v2_scripts(): PlutusV2Scripts {
-    return this.plutus_v2_scripts;
+  get_plutus_scripts_v2(): PlutusScripts {
+    return this.plutus_scripts_v2;
   }
 
-  set_plutus_v2_scripts(plutus_v2_scripts: PlutusV2Scripts): void {
-    this.plutus_v2_scripts = plutus_v2_scripts;
+  set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts): void {
+    this.plutus_scripts_v2 = plutus_scripts_v2;
   }
 
-  get_plutus_v3_scripts(): PlutusV3Scripts {
-    return this.plutus_v3_scripts;
+  get_plutus_scripts_v3(): PlutusScripts {
+    return this.plutus_scripts_v3;
   }
 
-  set_plutus_v3_scripts(plutus_v3_scripts: PlutusV3Scripts): void {
-    this.plutus_v3_scripts = plutus_v3_scripts;
+  set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts): void {
+    this.plutus_scripts_v3 = plutus_scripts_v3;
   }
 
-  static fromCBOR(value: CBORReaderValue): AlonzoAndBeyond {
-    let map = value
-      .get("map")
-      .toMap()
-      .map({ key: (x) => Number(x.getInt()), value: (x) => x });
-    let metadata_ = map.getRequired(0);
-    let metadata =
-      metadata_ != undefined ? Metadata.fromCBOR(metadata_) : undefined;
-    let native_scripts_ = map.getRequired(1);
-    let native_scripts =
-      native_scripts_ != undefined
-        ? NativeScripts.fromCBOR(native_scripts_)
-        : undefined;
-    let plutus_v1_scripts_ = map.getRequired(2);
-    let plutus_v1_scripts =
-      plutus_v1_scripts_ != undefined
-        ? PlutusV1Scripts.fromCBOR(plutus_v1_scripts_)
-        : undefined;
-    let plutus_v2_scripts_ = map.getRequired(3);
-    let plutus_v2_scripts =
-      plutus_v2_scripts_ != undefined
-        ? PlutusV2Scripts.fromCBOR(plutus_v2_scripts_)
-        : undefined;
-    let plutus_v3_scripts_ = map.getRequired(4);
-    let plutus_v3_scripts =
-      plutus_v3_scripts_ != undefined
-        ? PlutusV3Scripts.fromCBOR(plutus_v3_scripts_)
-        : undefined;
+  // no-op
+  free(): void {}
 
-    return new AlonzoAndBeyond(
+  static from_bytes(data: Uint8Array): AuxiliaryData {
+    let reader = new CBORReader(data);
+    return AuxiliaryData.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): AuxiliaryData {
+    return AuxiliaryData.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): AuxiliaryData {
+    let fields: any = {};
+    reader.readMap((r) => {
+      let key = Number(r.readUint());
+      switch (key) {
+        case 0:
+          fields.metadata = GeneralTransactionMetadata.deserialize(r);
+          break;
+
+        case 1:
+          fields.native_scripts = NativeScripts.deserialize(r);
+          break;
+
+        case 2:
+          fields.plutus_scripts_v1 = PlutusScripts.deserialize(r);
+          break;
+
+        case 3:
+          fields.plutus_scripts_v2 = PlutusScripts.deserialize(r);
+          break;
+
+        case 4:
+          fields.plutus_scripts_v3 = PlutusScripts.deserialize(r);
+          break;
+      }
+    });
+
+    if (fields.metadata === undefined)
+      throw new Error("Value not provided for field 0 (metadata)");
+    let metadata = fields.metadata;
+    if (fields.native_scripts === undefined)
+      throw new Error("Value not provided for field 1 (native_scripts)");
+    let native_scripts = fields.native_scripts;
+    if (fields.plutus_scripts_v1 === undefined)
+      throw new Error("Value not provided for field 2 (plutus_scripts_v1)");
+    let plutus_scripts_v1 = fields.plutus_scripts_v1;
+    if (fields.plutus_scripts_v2 === undefined)
+      throw new Error("Value not provided for field 3 (plutus_scripts_v2)");
+    let plutus_scripts_v2 = fields.plutus_scripts_v2;
+    if (fields.plutus_scripts_v3 === undefined)
+      throw new Error("Value not provided for field 4 (plutus_scripts_v3)");
+    let plutus_scripts_v3 = fields.plutus_scripts_v3;
+
+    return new AuxiliaryData(
       metadata,
       native_scripts,
-      plutus_v1_scripts,
-      plutus_v2_scripts,
-      plutus_v3_scripts,
+      plutus_scripts_v1,
+      plutus_scripts_v2,
+      plutus_scripts_v3,
     );
   }
 
-  toCBOR(writer: CBORWriter) {
-    let entries = [];
-    entries.push([0, this.metadata]);
-    entries.push([1, this.native_scripts]);
-    entries.push([2, this.plutus_v1_scripts]);
-    entries.push([3, this.plutus_v2_scripts]);
-    entries.push([4, this.plutus_v3_scripts]);
-    writer.writeMap(entries);
-  }
-}
+  serialize(writer: CBORWriter) {
+    let len = 5;
 
-export enum AuxiliaryDataKind {
-  Shelley = 0,
-  ShelleyMa = 1,
-  AlonzoAndBeyond = 2,
-}
+    writer.writeMapTag(len);
 
-export type AuxiliaryDataVariant =
-  | { kind: 0; value: Shelley }
-  | { kind: 1; value: ShelleyMa }
-  | { kind: 2; value: AlonzoAndBeyond };
+    writer.writeInt(0n);
+    this.metadata.serialize(writer);
 
-export class AuxiliaryData {
-  private variant: AuxiliaryDataVariant;
+    writer.writeInt(1n);
+    this.native_scripts.serialize(writer);
 
-  constructor(variant: AuxiliaryDataVariant) {
-    this.variant = variant;
-  }
+    writer.writeInt(2n);
+    this.plutus_scripts_v1.serialize(writer);
 
-  static new_shelley(shelley: Shelley): AuxiliaryData {
-    return new AuxiliaryData({ kind: 0, value: shelley });
-  }
+    writer.writeInt(3n);
+    this.plutus_scripts_v2.serialize(writer);
 
-  static new_shelley_ma(shelley_ma: ShelleyMa): AuxiliaryData {
-    return new AuxiliaryData({ kind: 1, value: shelley_ma });
-  }
-
-  static new_alonzo_and_beyond(
-    alonzo_and_beyond: AlonzoAndBeyond,
-  ): AuxiliaryData {
-    return new AuxiliaryData({ kind: 2, value: alonzo_and_beyond });
-  }
-
-  as_shelley(): Shelley | undefined {
-    if (this.variant.kind == 0) return this.variant.value;
-  }
-
-  as_shelley_ma(): ShelleyMa | undefined {
-    if (this.variant.kind == 1) return this.variant.value;
-  }
-
-  as_alonzo_and_beyond(): AlonzoAndBeyond | undefined {
-    if (this.variant.kind == 2) return this.variant.value;
-  }
-
-  static fromCBOR(value: CBORReaderValue): AuxiliaryData {
-    return value.getChoice({
-      "": (v) =>
-        new AuxiliaryData({
-          kind: 0,
-          value: Shelley.fromCBOR(v),
-        }),
-      "": (v) =>
-        new AuxiliaryData({
-          kind: 1,
-          value: ShelleyMa.fromCBOR(v),
-        }),
-      "": (v) =>
-        new AuxiliaryData({
-          kind: 2,
-          value: AlonzoAndBeyond.fromCBOR(v),
-        }),
-    });
-  }
-
-  toCBOR(writer: CBORWriter) {
-    this.variant.value.toCBOR(writer);
+    writer.writeInt(4n);
+    this.plutus_scripts_v3.serialize(writer);
   }
 }
 
 export class Vkeywitness {
-  private vkey: Vkey;
-  private signature: Signature;
+  private vkey: unknown;
+  private signature: unknown;
 
-  constructor(vkey: Vkey, signature: Signature) {
+  constructor(vkey: unknown, signature: unknown) {
     this.vkey = vkey;
     this.signature = signature;
   }
 
-  get_vkey(): Vkey {
+  get_vkey(): unknown {
     return this.vkey;
   }
 
-  set_vkey(vkey: Vkey): void {
+  set_vkey(vkey: unknown): void {
     this.vkey = vkey;
   }
 
-  get_signature(): Signature {
+  get_signature(): unknown {
     return this.signature;
   }
 
-  set_signature(signature: Signature): void {
+  set_signature(signature: unknown): void {
     this.signature = signature;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): Vkeywitness {
-    let vkey_ = array.shiftRequired();
-    let vkey = Vkey.fromCBOR(vkey_);
-    let signature_ = array.shiftRequired();
-    let signature = Signature.fromCBOR(signature_);
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Vkeywitness {
+    let reader = new CBORReader(data);
+    return Vkeywitness.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Vkeywitness {
+    return Vkeywitness.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): Vkeywitness {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let vkey = $$CANT_READ("Vkey");
+
+    let signature = $$CANT_READ("Ed25519Signature");
 
     return new Vkeywitness(vkey, signature);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.vkey);
-    entries.push(this.signature);
-    return entries;
-  }
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
 
-  static fromCBOR(value: CBORReaderValue): Vkeywitness {
-    let array = value.get("array");
-    return Vkeywitness.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+    $$CANT_WRITE("Vkey");
+    $$CANT_WRITE("Ed25519Signature");
   }
 }
 
 export class BootstrapWitness {
-  private public_key: Vkey;
-  private signature: Signature;
+  private vkey: unknown;
+  private signature: unknown;
   private chain_code: Uint8Array;
   private attributes: Uint8Array;
 
   constructor(
-    public_key: Vkey,
-    signature: Signature,
+    vkey: unknown,
+    signature: unknown,
     chain_code: Uint8Array,
     attributes: Uint8Array,
   ) {
-    this.public_key = public_key;
+    this.vkey = vkey;
     this.signature = signature;
     this.chain_code = chain_code;
     this.attributes = attributes;
   }
 
-  get_public_key(): Vkey {
-    return this.public_key;
+  get_vkey(): unknown {
+    return this.vkey;
   }
 
-  set_public_key(public_key: Vkey): void {
-    this.public_key = public_key;
+  set_vkey(vkey: unknown): void {
+    this.vkey = vkey;
   }
 
-  get_signature(): Signature {
+  get_signature(): unknown {
     return this.signature;
   }
 
-  set_signature(signature: Signature): void {
+  set_signature(signature: unknown): void {
     this.signature = signature;
   }
 
@@ -5876,39 +8257,420 @@ export class BootstrapWitness {
     this.attributes = attributes;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): BootstrapWitness {
-    let public_key_ = array.shiftRequired();
-    let public_key = Vkey.fromCBOR(public_key_);
-    let signature_ = array.shiftRequired();
-    let signature = Signature.fromCBOR(signature_);
-    let chain_code_ = array.shiftRequired();
-    let chain_code = chain_code_.get("bstr");
-    let attributes_ = array.shiftRequired();
-    let attributes = attributes_.get("bstr");
+  // no-op
+  free(): void {}
 
-    return new BootstrapWitness(public_key, signature, chain_code, attributes);
+  static from_bytes(data: Uint8Array): BootstrapWitness {
+    let reader = new CBORReader(data);
+    return BootstrapWitness.deserialize(reader);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.public_key);
-    entries.push(this.signature);
-    entries.push(this.chain_code);
-    entries.push(this.attributes);
-    return entries;
+  static from_hex(hex_str: string): BootstrapWitness {
+    return BootstrapWitness.from_bytes(hexToBytes(hex_str));
   }
 
-  static fromCBOR(value: CBORReaderValue): BootstrapWitness {
-    let array = value.get("array");
-    return BootstrapWitness.fromArray(array);
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
   }
 
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): BootstrapWitness {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 4) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 4. Received " + len,
+      );
+    }
+
+    let vkey = $$CANT_READ("VKey");
+
+    let signature = $$CANT_READ("Ed25519Signature");
+
+    let chain_code = reader.readBytes();
+
+    let attributes = reader.readBytes();
+
+    return new BootstrapWitness(vkey, signature, chain_code, attributes);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(4);
+
+    $$CANT_WRITE("VKey");
+    $$CANT_WRITE("Ed25519Signature");
+    writer.writeBytes(this.chain_code);
+    writer.writeBytes(this.attributes);
+  }
+}
+
+export enum NativeScriptKind {
+  ScriptPubkey = 0,
+  ScriptAll = 1,
+  ScriptAny = 2,
+  ScriptNOfK = 3,
+  TimelockStart = 4,
+  TimelockExpiry = 5,
+}
+
+export type NativeScriptVariant =
+  | { kind: 0; value: unknown }
+  | { kind: 1; value: ScriptAll }
+  | { kind: 2; value: ScriptAny }
+  | { kind: 3; value: ScriptNOfK }
+  | { kind: 4; value: TimelockStart }
+  | { kind: 5; value: TimelockExpiry };
+
+export class NativeScript {
+  private variant: NativeScriptVariant;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): NativeScript {
+    let reader = new CBORReader(data);
+    return NativeScript.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): NativeScript {
+    return NativeScript.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(variant: NativeScriptVariant) {
+    this.variant = variant;
+  }
+
+  static new_script_pubkey(script_pubkey: unknown): NativeScript {
+    return new NativeScript({ kind: 0, value: script_pubkey });
+  }
+
+  static new_script_all(script_all: ScriptAll): NativeScript {
+    return new NativeScript({ kind: 1, value: script_all });
+  }
+
+  static new_script_any(script_any: ScriptAny): NativeScript {
+    return new NativeScript({ kind: 2, value: script_any });
+  }
+
+  static new_script_n_of_k(script_n_of_k: ScriptNOfK): NativeScript {
+    return new NativeScript({ kind: 3, value: script_n_of_k });
+  }
+
+  static new_timelock_start(timelock_start: TimelockStart): NativeScript {
+    return new NativeScript({ kind: 4, value: timelock_start });
+  }
+
+  static new_timelock_expiry(timelock_expiry: TimelockExpiry): NativeScript {
+    return new NativeScript({ kind: 5, value: timelock_expiry });
+  }
+
+  as_script_pubkey(): unknown | undefined {
+    if (this.variant.kind == 0) return this.variant.value;
+  }
+
+  as_script_all(): ScriptAll | undefined {
+    if (this.variant.kind == 1) return this.variant.value;
+  }
+
+  as_script_any(): ScriptAny | undefined {
+    if (this.variant.kind == 2) return this.variant.value;
+  }
+
+  as_script_n_of_k(): ScriptNOfK | undefined {
+    if (this.variant.kind == 3) return this.variant.value;
+  }
+
+  as_timelock_start(): TimelockStart | undefined {
+    if (this.variant.kind == 4) return this.variant.value;
+  }
+
+  as_timelock_expiry(): TimelockExpiry | undefined {
+    if (this.variant.kind == 5) return this.variant.value;
+  }
+
+  static deserialize(reader: CBORReader): NativeScript {
+    let len = reader.readArrayTag();
+    let tag = Number(reader.readUint());
+
+    let fragmentLen = len != null ? len - 1 : null;
+
+    switch (tag) {
+      case 0:
+        return new NativeScript({
+          kind: 0,
+          value: $$CANT_READ("ScriptPubkey"),
+        });
+
+      case 1:
+        if (ScriptAll.FRAGMENT_FIELDS_LEN != null) {
+          return new NativeScript({
+            kind: 1,
+            value: ScriptAll.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant script_all");
+          return new NativeScript({
+            kind: 1,
+            value: ScriptAll.deserialize(reader),
+          });
+        }
+
+      case 2:
+        if (ScriptAny.FRAGMENT_FIELDS_LEN != null) {
+          return new NativeScript({
+            kind: 2,
+            value: ScriptAny.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant script_any");
+          return new NativeScript({
+            kind: 2,
+            value: ScriptAny.deserialize(reader),
+          });
+        }
+
+      case 3:
+        if (ScriptNOfK.FRAGMENT_FIELDS_LEN != null) {
+          return new NativeScript({
+            kind: 3,
+            value: ScriptNOfK.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant script_n_of_k");
+          return new NativeScript({
+            kind: 3,
+            value: ScriptNOfK.deserialize(reader),
+          });
+        }
+
+      case 4:
+        if (TimelockStart.FRAGMENT_FIELDS_LEN != null) {
+          return new NativeScript({
+            kind: 4,
+            value: TimelockStart.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant timelock_start");
+          return new NativeScript({
+            kind: 4,
+            value: TimelockStart.deserialize(reader),
+          });
+        }
+
+      case 5:
+        if (TimelockExpiry.FRAGMENT_FIELDS_LEN != null) {
+          return new NativeScript({
+            kind: 5,
+            value: TimelockExpiry.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant timelock_expiry");
+          return new NativeScript({
+            kind: 5,
+            value: TimelockExpiry.deserialize(reader),
+          });
+        }
+    }
+
+    throw new Error("Unexpected tag for NativeScript: " + tag);
+  }
+
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        writer.writeArrayTag(2);
+        writer.writeInt(0n);
+        $$CANT_WRITE("ScriptPubkey");
+        break;
+      case 1:
+        let fragmentLen = ScriptAll.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(1n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(1n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 2:
+        let fragmentLen = ScriptAny.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(2n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(2n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 3:
+        let fragmentLen = ScriptNOfK.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(3n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(3n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 4:
+        let fragmentLen = TimelockStart.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(4n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(4n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 5:
+        let fragmentLen = TimelockExpiry.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(5n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(5n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+    }
+  }
+}
+
+export class ScriptPubname {
+  static FRAGMENT_FIELDS_LEN: number = 1;
+
+  private addr_keyhash: unknown;
+
+  constructor(addr_keyhash: unknown) {
+    this.addr_keyhash = addr_keyhash;
+  }
+
+  get_addr_keyhash(): unknown {
+    return this.addr_keyhash;
+  }
+
+  set_addr_keyhash(addr_keyhash: unknown): void {
+    this.addr_keyhash = addr_keyhash;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): ScriptPubname {
+    if (len != null && len < 1) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 1. Received " + len,
+      );
+    }
+
+    let addr_keyhash = $$CANT_READ("Ed25519KeyHash");
+
+    return new ScriptPubname(addr_keyhash);
+  }
+
+  serialize(writer: CBORWriter): void {
+    $$CANT_WRITE("Ed25519KeyHash");
+  }
+}
+
+export class ScriptAll {
+  static FRAGMENT_FIELDS_LEN: number = 1;
+
+  private native_scripts: NativeScripts;
+
+  constructor(native_scripts: NativeScripts) {
+    this.native_scripts = native_scripts;
+  }
+
+  get_native_scripts(): NativeScripts {
+    return this.native_scripts;
+  }
+
+  set_native_scripts(native_scripts: NativeScripts): void {
+    this.native_scripts = native_scripts;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): ScriptAll {
+    if (len != null && len < 1) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 1. Received " + len,
+      );
+    }
+
+    let native_scripts = NativeScripts.deserialize(reader);
+
+    return new ScriptAll(native_scripts);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.native_scripts.serialize(writer);
+  }
+}
+
+export class ScriptAny {
+  static FRAGMENT_FIELDS_LEN: number = 1;
+
+  private native_scripts: NativeScripts;
+
+  constructor(native_scripts: NativeScripts) {
+    this.native_scripts = native_scripts;
+  }
+
+  get_native_scripts(): NativeScripts {
+    return this.native_scripts;
+  }
+
+  set_native_scripts(native_scripts: NativeScripts): void {
+    this.native_scripts = native_scripts;
+  }
+
+  static deserialize(reader: CBORReader, len: number | null): ScriptAny {
+    if (len != null && len < 1) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 1. Received " + len,
+      );
+    }
+
+    let native_scripts = NativeScripts.deserialize(reader);
+
+    return new ScriptAny(native_scripts);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.native_scripts.serialize(writer);
   }
 }
 
 export class ScriptNOfK {
+  static FRAGMENT_FIELDS_LEN: number = 2;
+
   private n: number;
   private native_scripts: NativeScripts;
 
@@ -5933,217 +8695,170 @@ export class ScriptNOfK {
     this.native_scripts = native_scripts;
   }
 
-  static fromArray(array: CBORArrayReader<CBORReaderValue>): ScriptNOfK {
-    let n_ = array.shiftRequired();
-    let n = n_.get("uint");
-    let native_scripts_ = array.shiftRequired();
-    let native_scripts = NativeScripts.fromCBOR(native_scripts_);
+  static deserialize(reader: CBORReader, len: number | null): ScriptNOfK {
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let n = Number(reader.readInt());
+
+    let native_scripts = NativeScripts.deserialize(reader);
 
     return new ScriptNOfK(n, native_scripts);
   }
 
-  toArray() {
-    let entries = [];
-    entries.push(this.n);
-    entries.push(this.native_scripts);
-    return entries;
-  }
-
-  static fromCBOR(value: CBORReaderValue): ScriptNOfK {
-    let array = value.get("array");
-    return ScriptNOfK.fromArray(array);
-  }
-
-  toCBOR(writer: CBORWriter) {
-    writer.writeArray(this.toArray());
+  serialize(writer: CBORWriter): void {
+    writer.writeInt(BigInt(this.n));
+    this.native_scripts.serialize(writer);
   }
 }
 
-export enum NativeScriptKind {
-  AddrKeyhash = 0,
-  NativeScripts = 1,
-  NativeScripts = 2,
-  ScriptNOfK = 3,
-  number = 4,
-  number = 5,
-}
+export class TimelockStart {
+  static FRAGMENT_FIELDS_LEN: number = 1;
 
-export type NativeScriptVariant =
-  | { kind: 0; value: AddrKeyhash }
-  | { kind: 1; value: NativeScripts }
-  | { kind: 2; value: NativeScripts }
-  | { kind: 3; value: ScriptNOfK }
-  | { kind: 4; value: number }
-  | { kind: 5; value: number };
+  private slot: bigint;
 
-export class NativeScript {
-  private variant: NativeScriptVariant;
-
-  constructor(variant: NativeScriptVariant) {
-    this.variant = variant;
+  constructor(slot: bigint) {
+    this.slot = slot;
   }
 
-  static new_script_pubkey(script_pubkey: AddrKeyhash): NativeScript {
-    return new NativeScript({ kind: 0, value: script_pubkey });
+  get_slot(): bigint {
+    return this.slot;
   }
 
-  static new_script_all(script_all: NativeScripts): NativeScript {
-    return new NativeScript({ kind: 1, value: script_all });
+  set_slot(slot: bigint): void {
+    this.slot = slot;
   }
 
-  static new_script_any(script_any: NativeScripts): NativeScript {
-    return new NativeScript({ kind: 2, value: script_any });
+  static deserialize(reader: CBORReader, len: number | null): TimelockStart {
+    if (len != null && len < 1) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 1. Received " + len,
+      );
+    }
+
+    let slot = reader.readInt();
+
+    return new TimelockStart(slot);
   }
 
-  static new_script_n_of_k(script_n_of_k: ScriptNOfK): NativeScript {
-    return new NativeScript({ kind: 3, value: script_n_of_k });
-  }
-
-  static new_invalid_before(invalid_before: number): NativeScript {
-    return new NativeScript({ kind: 4, value: invalid_before });
-  }
-
-  static new_invalid_hereafter(invalid_hereafter: number): NativeScript {
-    return new NativeScript({ kind: 5, value: invalid_hereafter });
-  }
-
-  as_script_pubkey(): AddrKeyhash | undefined {
-    if (this.variant.kind == 0) return this.variant.value;
-  }
-
-  as_script_all(): NativeScripts | undefined {
-    if (this.variant.kind == 1) return this.variant.value;
-  }
-
-  as_script_any(): NativeScripts | undefined {
-    if (this.variant.kind == 2) return this.variant.value;
-  }
-
-  as_script_n_of_k(): ScriptNOfK | undefined {
-    if (this.variant.kind == 3) return this.variant.value;
-  }
-
-  as_invalid_before(): number | undefined {
-    if (this.variant.kind == 4) return this.variant.value;
-  }
-
-  as_invalid_hereafter(): number | undefined {
-    if (this.variant.kind == 5) return this.variant.value;
-  }
-
-  static fromCBOR(value: CBORReaderValue): NativeScript {
-    let array = value.get("array");
-    let [tag, variant] = array.shiftRequired().with((tag_) => {
-      let tag = Number(tag_.get("uint"));
-
-      if (tag == 0) {
-        return [tag, AddrKeyhash.fromCBOR(array.shiftRequired())];
-      }
-
-      if (tag == 1) {
-        return [tag, NativeScripts.fromCBOR(array.shiftRequired())];
-      }
-
-      if (tag == 2) {
-        return [tag, NativeScripts.fromCBOR(array.shiftRequired())];
-      }
-
-      if (tag == 3) {
-        return [tag, ScriptNOfK.fromArray(array)];
-      }
-
-      if (tag == 4) {
-        return [tag, number.fromCBOR(array.shiftRequired())];
-      }
-
-      if (tag == 5) {
-        return [tag, number.fromCBOR(array.shiftRequired())];
-      }
-
-      throw "Unrecognized tag: " + tag + " for NativeScript";
-    });
-
-    return new NativeScript({ kind: tag, value: variant });
-  }
-
-  toCBOR(writer: CBORWriter) {
-    let entries =
-      this.variant.value.toArray != null
-        ? [this.variant.kind, ...this.variant.value.toArray()]
-        : [this.variant.kind, this.variant.value];
-    writer.writeArray(entries);
+  serialize(writer: CBORWriter): void {
+    writer.writeInt(this.slot);
   }
 }
 
-export type Coin = number;
+export class TimelockExpiry {
+  static FRAGMENT_FIELDS_LEN: number = 1;
 
-export type AssetName = Uint8Array;
+  private slot: bigint;
 
-export type NegInt64 = number;
-
-export type PosInt64 = number;
-
-export enum NonZeroInt64Kind {
-  NegInt64 = 0,
-  PosInt64 = 1,
-}
-
-export type NonZeroInt64Variant =
-  | { kind: 0; value: NegInt64 }
-  | { kind: 1; value: PosInt64 };
-
-export class NonZeroInt64 {
-  private variant: NonZeroInt64Variant;
-
-  constructor(variant: NonZeroInt64Variant) {
-    this.variant = variant;
+  constructor(slot: bigint) {
+    this.slot = slot;
   }
 
-  static new_negInt64(negInt64: NegInt64): NonZeroInt64 {
-    return new NonZeroInt64({ kind: 0, value: negInt64 });
+  get_slot(): bigint {
+    return this.slot;
   }
 
-  static new_posInt64(posInt64: PosInt64): NonZeroInt64 {
-    return new NonZeroInt64({ kind: 1, value: posInt64 });
+  set_slot(slot: bigint): void {
+    this.slot = slot;
   }
 
-  as_negInt64(): NegInt64 | undefined {
-    if (this.variant.kind == 0) return this.variant.value;
+  static deserialize(reader: CBORReader, len: number | null): TimelockExpiry {
+    if (len != null && len < 1) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 1. Received " + len,
+      );
+    }
+
+    let slot = reader.readInt();
+
+    return new TimelockExpiry(slot);
   }
 
-  as_posInt64(): PosInt64 | undefined {
-    if (this.variant.kind == 1) return this.variant.value;
-  }
-
-  static fromCBOR(value: CBORReaderValue): NonZeroInt64 {
-    return value.getChoice({
-      "": (v) =>
-        new NonZeroInt64({
-          kind: 0,
-          value: NegInt64.fromCBOR(v),
-        }),
-      "": (v) =>
-        new NonZeroInt64({
-          kind: 1,
-          value: PosInt64.fromCBOR(v),
-        }),
-    });
-  }
-
-  toCBOR(writer: CBORWriter) {
-    this.variant.value.toCBOR(writer);
+  serialize(writer: CBORWriter): void {
+    writer.writeInt(this.slot);
   }
 }
 
-export type Int64 = number;
+export class AssetName {
+  private inner: Uint8Array;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): AssetName {
+    let reader = new CBORReader(data);
+    return AssetName.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): AssetName {
+    return AssetName.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(inner: Uint8Array) {
+    if (inner.length > 32) throw new Error("Expected length to be atmost 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): AssetName {
+    return new AssetName(inner);
+  }
+
+  name(): Uint8Array {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader): AssetName {
+    return new AssetName(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeBytes(this.inner);
+  }
+}
 
 export enum NetworkIdKind {
-  Mainnet = 0,
-  Testnet = 1,
+  mainnet = 0,
+  testnet = 1,
 }
 
 export class NetworkId {
   private kind_: NetworkIdKind;
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): NetworkId {
+    let reader = new CBORReader(data);
+    return NetworkId.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): NetworkId {
+    return NetworkId.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 
   constructor(kind: NetworkIdKind) {
     this.kind_ = kind;
@@ -6157,196 +8872,243 @@ export class NetworkId {
     return new NetworkId(1);
   }
 
-  static fromCBOR(value: CBORReaderValue): NetworkId {
-    return value.with((value) => {
-      let kind = Number(value.getInt());
-
-      if (kind == 0) return new NetworkId(0);
-
-      if (kind == 1) return new NetworkId(1);
-
-      throw "Unrecognized enum value: " + kind + " for " + NetworkId;
-    });
+  static deserialize(reader: CBORReader): NetworkId {
+    let kind = Number(reader.readInt());
+    if (kind == 0) return new NetworkId(0);
+    if (kind == 1) return new NetworkId(1);
+    throw "Unrecognized enum value: " + kind + " for " + NetworkId;
   }
 
-  toCBOR(writer: CBORWriter) {
-    writer.write(this.kind_);
+  serialize(writer: CBORWriter) {
+    writer.writeInt(BigInt(this.kind_));
   }
 }
 
-export type Epoch = number;
-
-export enum DatumOptionKind {
-  DatumHash = 0,
-  Data = 1,
+export enum DataOptionKind {
+  DataHash = 0,
+  PlutusData = 1,
 }
 
-export type DatumOptionVariant =
-  | { kind: 0; value: DatumHash }
-  | { kind: 1; value: Data };
+export type DataOptionVariant =
+  | { kind: 0; value: unknown }
+  | { kind: 1; value: unknown };
 
-export class DatumOption {
-  private variant: DatumOptionVariant;
+export class DataOption {
+  private variant: DataOptionVariant;
 
-  constructor(variant: DatumOptionVariant) {
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DataOption {
+    let reader = new CBORReader(data);
+    return DataOption.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DataOption {
+    return DataOption.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(variant: DataOptionVariant) {
     this.variant = variant;
   }
 
-  static new_hash(hash: DatumHash): DatumOption {
-    return new DatumOption({ kind: 0, value: hash });
+  static new_hash(hash: unknown): DataOption {
+    return new DataOption({ kind: 0, value: hash });
   }
 
-  static new_data(data: Data): DatumOption {
-    return new DatumOption({ kind: 1, value: data });
+  static new_data(data: unknown): DataOption {
+    return new DataOption({ kind: 1, value: data });
   }
 
-  as_hash(): DatumHash | undefined {
+  as_hash(): unknown | undefined {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
-  as_data(): Data | undefined {
+  as_data(): unknown | undefined {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
-  static fromCBOR(value: CBORReaderValue): DatumOption {
-    let array = value.get("array");
-    let [tag, variant] = array.shiftRequired().with((tag_) => {
-      let tag = Number(tag_.get("uint"));
+  static deserialize(reader: CBORReader): DataOption {
+    let len = reader.readArrayTag();
+    let tag = Number(reader.readUint());
 
-      if (tag == 0) {
-        return [tag, DatumHash.fromCBOR(array.shiftRequired())];
-      }
+    let fragmentLen = len != null ? len - 1 : null;
 
-      if (tag == 1) {
-        return [tag, Data.fromCBOR(array.shiftRequired())];
-      }
+    switch (tag) {
+      case 0:
+        return new DataOption({ kind: 0, value: $$CANT_READ("DataHash") });
 
-      throw "Unrecognized tag: " + tag + " for DatumOption";
-    });
+      case 1:
+        return new DataOption({ kind: 1, value: $$CANT_READ("PlutusData") });
+    }
 
-    return new DatumOption({ kind: tag, value: variant });
+    throw new Error("Unexpected tag for DataOption: " + tag);
   }
 
-  toCBOR(writer: CBORWriter) {
-    let entries =
-      this.variant.value.toArray != null
-        ? [this.variant.kind, ...this.variant.value.toArray()]
-        : [this.variant.kind, this.variant.value];
-    writer.writeArray(entries);
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        writer.writeArrayTag(2);
+        writer.writeInt(0n);
+        $$CANT_WRITE("DataHash");
+        break;
+      case 1:
+        writer.writeArrayTag(2);
+        writer.writeInt(1n);
+        $$CANT_WRITE("PlutusData");
+        break;
+    }
   }
 }
 
-export enum ScriptKind {
+export enum ScriptRefKind {
   NativeScript = 0,
-  PlutusV1Script = 1,
-  PlutusV2Script = 2,
-  PlutusV3Script = 3,
+  bytes = 1,
+  bytes = 2,
+  bytes = 3,
 }
 
-export type ScriptVariant =
+export type ScriptRefVariant =
   | { kind: 0; value: NativeScript }
-  | { kind: 1; value: PlutusV1Script }
-  | { kind: 2; value: PlutusV2Script }
-  | { kind: 3; value: PlutusV3Script };
+  | { kind: 1; value: Uint8Array }
+  | { kind: 2; value: Uint8Array }
+  | { kind: 3; value: Uint8Array };
 
-export class Script {
-  private variant: ScriptVariant;
+export class ScriptRef {
+  private variant: ScriptRefVariant;
 
-  constructor(variant: ScriptVariant) {
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ScriptRef {
+    let reader = new CBORReader(data);
+    return ScriptRef.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ScriptRef {
+    return ScriptRef.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor(variant: ScriptRefVariant) {
     this.variant = variant;
   }
 
-  static new_native_script(native_script: NativeScript): Script {
-    return new Script({ kind: 0, value: native_script });
+  static new_native_script(native_script: NativeScript): ScriptRef {
+    return new ScriptRef({ kind: 0, value: native_script });
   }
 
-  static new_plutus_v1_script(plutus_v1_script: PlutusV1Script): Script {
-    return new Script({ kind: 1, value: plutus_v1_script });
+  static new_plutus_script_v1(plutus_script_v1: Uint8Array): ScriptRef {
+    return new ScriptRef({ kind: 1, value: plutus_script_v1 });
   }
 
-  static new_plutus_v2_script(plutus_v2_script: PlutusV2Script): Script {
-    return new Script({ kind: 2, value: plutus_v2_script });
+  static new_plutus_script_v2(plutus_script_v2: Uint8Array): ScriptRef {
+    return new ScriptRef({ kind: 2, value: plutus_script_v2 });
   }
 
-  static new_plutus_v3_script(plutus_v3_script: PlutusV3Script): Script {
-    return new Script({ kind: 3, value: plutus_v3_script });
+  static new_plutus_script_v3(plutus_script_v3: Uint8Array): ScriptRef {
+    return new ScriptRef({ kind: 3, value: plutus_script_v3 });
   }
 
   as_native_script(): NativeScript | undefined {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
-  as_plutus_v1_script(): PlutusV1Script | undefined {
+  as_plutus_script_v1(): Uint8Array | undefined {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
-  as_plutus_v2_script(): PlutusV2Script | undefined {
+  as_plutus_script_v2(): Uint8Array | undefined {
     if (this.variant.kind == 2) return this.variant.value;
   }
 
-  as_plutus_v3_script(): PlutusV3Script | undefined {
+  as_plutus_script_v3(): Uint8Array | undefined {
     if (this.variant.kind == 3) return this.variant.value;
   }
 
-  static fromCBOR(value: CBORReaderValue): Script {
-    let array = value.get("array");
-    let [tag, variant] = array.shiftRequired().with((tag_) => {
-      let tag = Number(tag_.get("uint"));
+  static deserialize(reader: CBORReader): ScriptRef {
+    let len = reader.readArrayTag();
+    let tag = Number(reader.readUint());
 
-      if (tag == 0) {
-        return [tag, NativeScript.fromCBOR(array.shiftRequired())];
-      }
+    let fragmentLen = len != null ? len - 1 : null;
 
-      if (tag == 1) {
-        return [tag, PlutusV1Script.fromCBOR(array.shiftRequired())];
-      }
+    switch (tag) {
+      case 0:
+        if (NativeScript.FRAGMENT_FIELDS_LEN != null) {
+          return new ScriptRef({
+            kind: 0,
+            value: NativeScript.deserialize(reader, fragmentLen),
+          });
+        } else {
+          if (fragmentLen == 0)
+            throw new Error("Expected more values for variant native_script");
+          return new ScriptRef({
+            kind: 0,
+            value: NativeScript.deserialize(reader),
+          });
+        }
 
-      if (tag == 2) {
-        return [tag, PlutusV2Script.fromCBOR(array.shiftRequired())];
-      }
+      case 1:
+        return new ScriptRef({ kind: 1, value: reader.readBytes() });
 
-      if (tag == 3) {
-        return [tag, PlutusV3Script.fromCBOR(array.shiftRequired())];
-      }
+      case 2:
+        return new ScriptRef({ kind: 2, value: reader.readBytes() });
 
-      throw "Unrecognized tag: " + tag + " for Script";
-    });
+      case 3:
+        return new ScriptRef({ kind: 3, value: reader.readBytes() });
+    }
 
-    return new Script({ kind: tag, value: variant });
+    throw new Error("Unexpected tag for ScriptRef: " + tag);
   }
 
-  toCBOR(writer: CBORWriter) {
-    let entries =
-      this.variant.value.toArray != null
-        ? [this.variant.kind, ...this.variant.value.toArray()]
-        : [this.variant.kind, this.variant.value];
-    writer.writeArray(entries);
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        let fragmentLen = NativeScript.FRAGMENT_FIELDS_LEN;
+        if (fragmentLen != null) {
+          writer.writeArrayTag(fragmentLen + 1);
+          writer.writeInt(0n);
+          this.variant.value.serialize(writer);
+        } else {
+          writer.writeArrayTag(2);
+          writer.writeInt(0n);
+          this.variant.value.serialize(writer);
+        }
+        break;
+      case 1:
+        writer.writeArrayTag(2);
+        writer.writeInt(1n);
+        writer.writeBytes(this.variant.value);
+        break;
+      case 2:
+        writer.writeArrayTag(2);
+        writer.writeInt(2n);
+        writer.writeBytes(this.variant.value);
+        break;
+      case 3:
+        writer.writeArrayTag(2);
+        writer.writeInt(3n);
+        writer.writeBytes(this.variant.value);
+        break;
+    }
   }
 }
-
-export type Hash28 = Uint8Array;
-
-export type Hash32 = Uint8Array;
-
-export type Vkey = Uint8Array;
-
-export type VrfVkey = Uint8Array;
-
-export class VrfCert extends Array<Uint8Array> {
-  static fromCBOR(value: CBORReaderValue): VrfCert {
-    let array = value.get("array");
-    return new VrfCert(...array.map((x) => x.get("bstr")));
-  }
-}
-
-export type KesVkey = Uint8Array;
-
-export type KesSignature = Uint8Array;
-
-export type SignkeyKes = Uint8Array;
-
-export type Signature = Uint8Array;
-
-export type Address = Uint8Array;
-
-export type RewardAccount = Uint8Array;
