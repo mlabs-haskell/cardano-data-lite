@@ -14,10 +14,22 @@ export class GenNewtype implements CodeGenerator {
     };
   };
 
-  constructor(name: string, item: string, accessor: string) {
+  constructor(
+    name: string,
+    item: string,
+    accessor: string,
+    constraints?: {
+      len?: {
+        eq?: number;
+        min?: number;
+        max?: number;
+      };
+    },
+  ) {
     this.name = name;
     this.item = item;
     this.accessor = accessor;
+    this.constraints = constraints;
   }
 
   generate(customTypes: Set<string>): string {
