@@ -1,5 +1,6 @@
 import { CodeGenerator } from ".";
 import { readType, writeType } from "./utils/cbor-utils";
+import { genCSL } from "./utils/csl";
 import { genAccessors, genConstructor, genMembers } from "./utils/structured";
 
 export type Field = {
@@ -24,6 +25,7 @@ export class GenStruct implements CodeGenerator {
         ${genMembers(this.fields)}
         ${genConstructor(this.fields)}
         ${genAccessors(this.fields)}
+        ${genCSL(this.name)}
         
         static deserialize(reader: CBORReader): ${this.name} {
           let fields = {};

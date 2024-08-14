@@ -1,5 +1,6 @@
 import { CodeGenerator } from ".";
 import { readType, writeType } from "./utils/cbor-utils";
+import { genCSL } from "./utils/csl";
 import { genAccessors, genConstructor, genMembers } from "./utils/structured";
 
 export type Field = {
@@ -25,6 +26,7 @@ export class GenRecord implements CodeGenerator {
         ${genMembers(this.fields)}
         ${genConstructor(this.fields)}
         ${genAccessors(this.fields)}
+        ${genCSL(this.name)}
 
         const FRAGMENT_FIELDS_LEN: number = ${this.fields.length};
 

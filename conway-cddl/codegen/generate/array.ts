@@ -17,6 +17,8 @@ export class GenArray implements CodeGenerator {
       export class ${this.name} {
         private items: ${itemJsType}[];
 
+        ${genCSL(this.name)}
+
         constructor(items: ${itemJsType}[]) {
           this.items = items;
         }
@@ -37,8 +39,6 @@ export class GenArray implements CodeGenerator {
         add(elem: ${itemJsType}): void {
           this.items.push(elem);
         }
-
-        ${genCSL(this.name)}
 
         static deserialize(reader: CBORReader): ${this.name} {
           let ret = new ${this.name}();

@@ -1,4 +1,5 @@
 import { CodeGenerator } from ".";
+import { genCSL } from "./utils/csl";
 
 export type Variant = {
   name: string;
@@ -22,6 +23,8 @@ export class GenEnum implements CodeGenerator {
 
       export class ${this.name} {
         private kind_: ${this.name}Kind;
+
+        ${genCSL(this.name)}
 
         constructor(kind: ${this.name}Kind) {
           this.kind_ = kind;

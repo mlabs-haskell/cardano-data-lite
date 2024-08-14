@@ -17,6 +17,8 @@ export class GenSet implements CodeGenerator {
       export class ${this.name} {
         private items: ${itemJsType}[];
 
+        ${genCSL(this.name)}
+
         constructor() {
           this.items = [];
         }
@@ -48,8 +50,6 @@ export class GenSet implements CodeGenerator {
           }
           return false;
         }
-
-        ${genCSL(this.name)}
 
         static deserialize(reader: CBORReader): ${this.name} {
           let ret = new ${this.name}();
