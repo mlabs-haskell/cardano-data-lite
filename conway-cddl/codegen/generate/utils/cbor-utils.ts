@@ -1,5 +1,8 @@
-export function jsType(yamlType: string, customTypes: Set<string>): string {
-  if (customTypes.has(yamlType)) {
+import { SchemaTable } from "../../compiler";
+import { GenEnumSimple } from "../enum_simple";
+
+export function jsType(yamlType: string, customTypes: SchemaTable): string {
+  if (customTypes[yamlType] != null) {
     return yamlType;
   }
   switch (yamlType) {
@@ -20,12 +23,16 @@ export function jsType(yamlType: string, customTypes: Set<string>): string {
 }
 
 export function readType(
-  customTypes: Set<string>,
+  customTypes: SchemaTable,
   reader: string,
   type: string,
 ): string {
-  if (customTypes.has(type)) {
-    return `${type}.deserialize(${reader})`;
+  if (customTypes[type] != null) {
+    if (customTypes[type].type == "enum_simple") {
+      return GenEnumSimple.readType(type, reader);
+    } else {
+      return `${type}.deserialize(${reader})`;
+    }
   }
 
   switch (type) {
@@ -48,13 +55,17 @@ export function readType(
 }
 
 export function writeType(
-  customTypes: Set<string>,
+  customTypes: SchemaTable,
   writer: string,
   value: string,
   type: string,
 ) {
-  if (customTypes.has(type)) {
-    return `${value}.serialize(${writer})`;
+  if (customTypes[type] != null) {
+    if (customTypes[type].type == "enum_simple") {
+      return GenEnumSimple.writeType(type, value, writer);
+    } else {
+      return `${value}.serialize(${writer})`;
+    }
   }
 
   switch (type) {
@@ -77,12 +88,12 @@ export function writeType(
 }
 
 export function eqType(
-  customTypes: Set<string>,
+  customTypes: SchemaTable,
   var1: string,
   var2: string,
   type: string,
 ) {
-  if (customTypes.has(type)) {
+  if (customTypes[type] != null) {
     return `arrayEq(${var1}.to_bytes(), ${var2}.to_bytes())`;
   }
 

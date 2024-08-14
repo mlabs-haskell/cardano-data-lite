@@ -1,4 +1,5 @@
 import { CodeGenerator } from ".";
+import { SchemaTable } from "../compiler";
 import { jsType, readType, writeType } from "./utils/cbor-utils";
 import { genCSL } from "./utils/csl";
 
@@ -18,7 +19,7 @@ export class GenTaggedRecord implements CodeGenerator {
     this.variants = variants;
   }
 
-  generate(customTypes: Set<string>): string {
+  generate(customTypes: SchemaTable): string {
     return `
       export enum ${this.name}Kind {
         ${this.variants.map((x) => `${x.kind_name ?? x.value} = ${x.tag},`).join("\n")}
@@ -84,7 +85,7 @@ export class GenTaggedRecord implements CodeGenerator {
                     ${
                       x.value == null
                         ? `return new ${this.name}({kind: ${x.tag}});`
-                        : customTypes.has(x.value)
+                        : customTypes[x.value] != null
                           ? `
                     if(${x.value}.FRAGMENT_FIELDS_LEN != null) {
                       return new ${this.name}({kind: ${x.tag}, value: ${x.value}.deserialize(reader, fragmentLen)});
@@ -113,7 +114,7 @@ export class GenTaggedRecord implements CodeGenerator {
                       writer.writeArrayTag(1);
                       writer.writeInt(${x.tag}n);
                       break;`
-                  : customTypes.has(x.value)
+                  : customTypes[x.value] != null
                     ? `case ${x.tag}: 
                         let fragmentLen = ${x.value}.FRAGMENT_FIELDS_LEN;
                         if(fragmentLen != null) {

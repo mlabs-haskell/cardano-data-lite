@@ -1,4 +1,5 @@
 import { CodeGenerator } from ".";
+import { SchemaTable } from "../compiler";
 import { genCSL } from "./utils/csl";
 import { genAccessors, genConstructor, genMembers } from "./utils/structured";
 
@@ -16,7 +17,7 @@ export class GenRecordFragmentWrapper implements CodeGenerator {
     this.item = item;
   }
 
-  generate(customTypes: Set<string>): string {
+  generate(customTypes: SchemaTable): string {
     return `
       export class ${this.name} {
         static FRAGMENT_FIELDS_LEN: number = ${this.item.type}.FRAGMENT_FIELDS_LEN;

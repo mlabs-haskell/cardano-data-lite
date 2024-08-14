@@ -12,12 +12,14 @@ import { GenNewtype } from "../generate/newtype";
 import { GenRecordFragment } from "../generate/record_fragment";
 import { GenRecordFragmentWrapper } from "../generate/record_fragment_wrapper";
 
+export type SchemaTable = { [key: string]: Schema };
+
 export class Compiler {
-  customTypes: Set<string>;
+  customTypes: SchemaTable;
   codegen: CodeGenerator[];
 
   constructor() {
-    this.customTypes = new Set();
+    this.customTypes = {};
     this.codegen = [];
   }
 
@@ -64,7 +66,7 @@ export class Compiler {
 
   compile(name: string, schema: any) {
     let codegen = this.getCodegen(name, schema);
-    this.customTypes.add(name);
+    this.customTypes[name] = schema;
     this.codegen.push(codegen);
   }
 }

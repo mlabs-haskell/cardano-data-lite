@@ -1,6 +1,6 @@
 import { CodeGenerator } from ".";
+import { SchemaTable } from "../compiler";
 import { readType, writeType } from "./utils/cbor-utils";
-import { genCSL } from "./utils/csl";
 import { genAccessors, genConstructor, genMembers } from "./utils/structured";
 
 export type Field = {
@@ -18,7 +18,7 @@ export class GenRecordFragment implements CodeGenerator {
     this.fields = fields;
   }
 
-  generate(customTypes: Set<string>): string {
+  generate(customTypes: SchemaTable): string {
     return `
       export class ${this.name} {
         static FRAGMENT_FIELDS_LEN: number = ${this.fields.length};

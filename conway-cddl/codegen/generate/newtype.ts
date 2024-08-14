@@ -1,4 +1,5 @@
 import { CodeGenerator } from ".";
+import { SchemaTable } from "../compiler";
 import { jsType, readType, writeType } from "./utils/cbor-utils";
 import { genCSL } from "./utils/csl";
 
@@ -32,7 +33,7 @@ export class GenNewtype implements CodeGenerator {
     this.constraints = constraints;
   }
 
-  generate(customTypes: Set<string>): string {
+  generate(customTypes: SchemaTable): string {
     let itemJsType = jsType(this.item, customTypes);
     return `
       export class ${this.name} {
