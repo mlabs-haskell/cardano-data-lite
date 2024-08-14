@@ -753,7 +753,7 @@ StakeDelegation:
       type: Ed25519KeyHash
 
 PoolRegistration:
-  type: record_fragment
+  type: record_fragment_wrapper
   fields:
     - name: pool_params
       type: PoolParams
@@ -929,7 +929,7 @@ DRep:
 #               , pool_metadata:  pool_metadata / null
 #               )
 PoolParams:
-  type: record
+  type: record_fragment
   fields:
     - key: operator
       value: Ed25519KeyHash
