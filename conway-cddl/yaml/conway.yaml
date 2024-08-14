@@ -343,7 +343,7 @@ GovernanceAction:
       value: InfoAction
 
 ParameterChangeAction:
-  type: record
+  type: record_fragment
   fields:
     - key: gov_action_id
       value: GovernanceActionId
@@ -354,17 +354,8 @@ ParameterChangeAction:
       value: ScriptHash
       nullable: true
 
-TreasuryWithdrawalsAction:
-  type: record
-  fields:
-    - key: withdrawals
-      value: TreasuryWithdrawals
-    - key: policy_hash
-      value: ScriptHash
-      nullable: true
-
 HardForkInitiationAction:
-  type: record
+  type: record_fragment
   fields:
     - key: gov_action_id
       value: GovernanceActionId
@@ -372,15 +363,24 @@ HardForkInitiationAction:
     - key: protocol_version
       value: ProtocolVersion
 
+TreasuryWithdrawalsAction:
+  type: record_fragment
+  fields:
+    - key: withdrawals
+      value: TreasuryWithdrawals
+    - key: policy_hash
+      value: ScriptHash
+      nullable: true
+
 NoConfidenceAction:
-  type: record
+  type: record_fragment
   fields:
     - key: gov_action_id
       value: GovernanceActionId
       nullable: true
 
 UpdateCommitteeAction:
-  type: record
+  type: record_fragment
   fields:
     - key: gov_action_id
       value: GovernanceActionId
@@ -393,7 +393,7 @@ UpdateCommitteeAction:
       value: UnitInterval
 
 NewConstitutionAction:
-  type: record
+  type: record_fragment
   fields:
     - key: gov_action_id
       value: GovernanceActionId
@@ -402,7 +402,8 @@ NewConstitutionAction:
       value: Constitution
 
 InfoAction:
-  type: empty_class
+  type: record_fragment
+  fields: []
 
 Credentials:
   type: set
@@ -732,19 +733,19 @@ Certificate:
       value: DrepUpdate
 
 StakeRegistration:
-  type: record
+  type: record_fragment
   fields:
     - key: stake_credential
       value: Credential
 
 StakeDeregistration:
-  type: record
+  type: record_fragment
   fields:
     - key: stake_credential
       value: Credential
 
 StakeDelegation:
-  type: record
+  type: record_fragment
   fields:
     - key: stake_credential
       value: Credential
@@ -752,13 +753,13 @@ StakeDelegation:
       value: Ed25519KeyHash
 
 PoolRegistration:
-  type: record
+  type: record_fragment
   fields:
     - key: pool_params
       value: PoolParams
 
 PoolRetirement:
-  type: record
+  type: record_fragment
   fields:
     - key: pool_keyhash
       value: Ed25519KeyHash
@@ -766,7 +767,7 @@ PoolRetirement:
       value: number
 
 RegCert:
-  type: record
+  type: record_fragment
   fields:
     - key: stake_credential
       value: Credential
@@ -774,7 +775,7 @@ RegCert:
       value: bignum
 
 UnregCert:
-  type: record
+  type: record_fragment
   fields:
     - key: stake_credential
       value: Credential
@@ -782,7 +783,7 @@ UnregCert:
       value: bignum
 
 VoteDelegation:
-  type: record
+  type: record_fragment
   fields:
     - key: stake_credential
       value: Credential
@@ -790,7 +791,7 @@ VoteDelegation:
       value: DRep
 
 StakeAndVoteDelegation:
-  type: record
+  type: record_fragment
   fields:
     - key: stake_credential
       value: Credential
@@ -800,7 +801,7 @@ StakeAndVoteDelegation:
       value: DRep
 
 StakeRegistrationAndDelegation:
-  type: record
+  type: record_fragment
   fields:
     - key: stake_credential
       value: Credential
@@ -810,7 +811,7 @@ StakeRegistrationAndDelegation:
       value: bignum
 
 VoteRegistrationAndDelegation:
-  type: record
+  type: record_fragment
   fields:
     - key: stake_credential
       value: Credential
@@ -820,7 +821,7 @@ VoteRegistrationAndDelegation:
       value: bignum
 
 StakeVoteRegistrationAndDelegation:
-  type: record
+  type: record_fragment
   fields:
     - key: stake_credential
       value: Credential
@@ -832,7 +833,7 @@ StakeVoteRegistrationAndDelegation:
       value: bignum
 
 CommitteeHotAuth:
-  type: record
+  type: record_fragment
   fields:
     - key: committee_cold_key
       value: Credential
@@ -840,7 +841,7 @@ CommitteeHotAuth:
       value: Credential
 
 CommitteeColdResign:
-  type: record
+  type: record_fragment
   fields:
     - key: committee_cold_key
       value: Credential
@@ -849,7 +850,7 @@ CommitteeColdResign:
       nullable: true
 
 DrepRegistration:
-  type: record
+  type: record_fragment
   fields:
     - key: voting_credential
       value: Credential
@@ -860,7 +861,7 @@ DrepRegistration:
       nullable: true
 
 DrepDeregistration:
-  type: record
+  type: record_fragment
   fields:
     - key: drep_credential
       value: Credential
@@ -868,7 +869,7 @@ DrepDeregistration:
       value: bignum
 
 DrepUpdate:
-  type: record
+  type: record_fragment
   fields:
     - key: drep_credential
       value: Credential
@@ -1018,7 +1019,7 @@ Relay:
       value: MultiHostName
 
 SingleHostAddr:
-  type: record
+  type: record_fragment
   fields:
     - key: port
       value: number
@@ -1031,7 +1032,7 @@ SingleHostAddr:
       nullable: true
 
 SingleHostName:
-  type: record
+  type: record_fragment
   fields:
     - key: port
       value: number
@@ -1040,7 +1041,7 @@ SingleHostName:
       value: DNSRecordAorAAAA
 
 MultiHostName:
-  type: record
+  type: record_fragment
   fields:
     - key: dns_name
       value: DNSRecordSRV
@@ -1581,25 +1582,25 @@ native_script:
       value: TimelockExpiry
 
 ScriptPubkey:
-  type: record
+  type: record_fragment
   fields:
     - key: addr_keyhash
       value: Ed25519KeyHash
 
 ScriptAll:
-  type: record
+  type: record_fragment
   fields:
     - key: native_scripts
       value: NativeScripts
 
 ScriptAny:
-  type: record
+  type: record_fragment
   fields:
     - key: native_scripts
       value: NativeScripts
 
 ScriptNOfK:
-  type: record
+  type: record_fragment
   fields:
     - key: n
       value: number
@@ -1607,13 +1608,13 @@ ScriptNOfK:
       value: NativeScripts
 
 TimelockStart:
-  type: record
+  type: record_fragment
   fields:
     - key: slot
       value: bignum
 
 TimelockExpiry:
-  type: record
+  type: record_fragment
   fields:
     - key: slot
       value: bignum
