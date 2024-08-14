@@ -2363,13 +2363,13 @@ export class UpdateCommitteeAction {
   private gov_action_id: GovernanceActionId | undefined;
   private members_to_remove: Credentials;
   private committee: unknown;
-  private quorom_threshold: unknown;
+  private quorom_threshold: UnitInterval;
 
   constructor(
     gov_action_id: GovernanceActionId | undefined,
     members_to_remove: Credentials,
     committee: unknown,
-    quorom_threshold: unknown,
+    quorom_threshold: UnitInterval,
   ) {
     this.gov_action_id = gov_action_id;
     this.members_to_remove = members_to_remove;
@@ -2401,11 +2401,11 @@ export class UpdateCommitteeAction {
     this.committee = committee;
   }
 
-  get_quorom_threshold(): unknown {
+  get_quorom_threshold(): UnitInterval {
     return this.quorom_threshold;
   }
 
-  set_quorom_threshold(quorom_threshold: unknown): void {
+  set_quorom_threshold(quorom_threshold: UnitInterval): void {
     this.quorom_threshold = quorom_threshold;
   }
 
@@ -2418,7 +2418,7 @@ export class UpdateCommitteeAction {
 
     let committee = $$CANT_READ("Committee");
 
-    let quorom_threshold = $$CANT_READ("UnitInterval");
+    let quorom_threshold = UnitInterval.deserialize(reader);
 
     return new UpdateCommitteeAction(
       gov_action_id,
@@ -2436,7 +2436,7 @@ export class UpdateCommitteeAction {
     }
     this.members_to_remove.serialize(writer);
     $$CANT_WRITE("Committee");
-    $$CANT_WRITE("UnitInterval");
+    this.quorom_threshold.serialize(writer);
   }
 }
 
@@ -4658,7 +4658,7 @@ export class PoolParams {
   private vrf_keyhash: unknown;
   private pledge: bigint;
   private cost: bigint;
-  private margin: unknown;
+  private margin: UnitInterval;
   private reward_account: unknown;
   private pool_owners: Ed25519KeyHashes;
   private relays: Relays;
@@ -4669,7 +4669,7 @@ export class PoolParams {
     vrf_keyhash: unknown,
     pledge: bigint,
     cost: bigint,
-    margin: unknown,
+    margin: UnitInterval,
     reward_account: unknown,
     pool_owners: Ed25519KeyHashes,
     relays: Relays,
@@ -4718,11 +4718,11 @@ export class PoolParams {
     this.cost = cost;
   }
 
-  get_margin(): unknown {
+  get_margin(): UnitInterval {
     return this.margin;
   }
 
-  set_margin(margin: unknown): void {
+  set_margin(margin: UnitInterval): void {
     this.margin = margin;
   }
 
@@ -4767,7 +4767,7 @@ export class PoolParams {
 
     let cost = reader.readInt();
 
-    let margin = $$CANT_READ("UnitInterval");
+    let margin = UnitInterval.deserialize(reader);
 
     let reward_account = $$CANT_READ("RewardAddress");
 
@@ -4796,7 +4796,7 @@ export class PoolParams {
     $$CANT_WRITE("VRFKeyHash");
     writer.writeInt(this.pledge);
     writer.writeInt(this.cost);
-    $$CANT_WRITE("UnitInterval");
+    this.margin.serialize(writer);
     $$CANT_WRITE("RewardAddress");
     this.pool_owners.serialize(writer);
     this.relays.serialize(writer);
@@ -5516,9 +5516,9 @@ export class ProtocolParamUpdate {
   private pool_deposit: bigint | undefined;
   private max_epoch: number | undefined;
   private n_opt: number | undefined;
-  private pool_pledge_influence: unknown | undefined;
-  private expansion_rate: unknown | undefined;
-  private treasury_growth_rate: unknown | undefined;
+  private pool_pledge_influence: UnitInterval | undefined;
+  private expansion_rate: UnitInterval | undefined;
+  private treasury_growth_rate: UnitInterval | undefined;
   private min_pool_cost: bigint | undefined;
   private ada_per_utxo_byte: bigint | undefined;
   private costmdls: unknown | undefined;
@@ -5536,7 +5536,7 @@ export class ProtocolParamUpdate {
   private governance_action_deposit: bigint | undefined;
   private drep_deposit: bigint | undefined;
   private drep_inactivity_period: number | undefined;
-  private script_cost_per_byte: unknown | undefined;
+  private script_cost_per_byte: UnitInterval | undefined;
 
   constructor(
     minfee_a: bigint | undefined,
@@ -5548,9 +5548,9 @@ export class ProtocolParamUpdate {
     pool_deposit: bigint | undefined,
     max_epoch: number | undefined,
     n_opt: number | undefined,
-    pool_pledge_influence: unknown | undefined,
-    expansion_rate: unknown | undefined,
-    treasury_growth_rate: unknown | undefined,
+    pool_pledge_influence: UnitInterval | undefined,
+    expansion_rate: UnitInterval | undefined,
+    treasury_growth_rate: UnitInterval | undefined,
     min_pool_cost: bigint | undefined,
     ada_per_utxo_byte: bigint | undefined,
     costmdls: unknown | undefined,
@@ -5568,7 +5568,7 @@ export class ProtocolParamUpdate {
     governance_action_deposit: bigint | undefined,
     drep_deposit: bigint | undefined,
     drep_inactivity_period: number | undefined,
-    script_cost_per_byte: unknown | undefined,
+    script_cost_per_byte: UnitInterval | undefined,
   ) {
     this.minfee_a = minfee_a;
     this.minfee_b = minfee_b;
@@ -5674,27 +5674,31 @@ export class ProtocolParamUpdate {
     this.n_opt = n_opt;
   }
 
-  get_pool_pledge_influence(): unknown | undefined {
+  get_pool_pledge_influence(): UnitInterval | undefined {
     return this.pool_pledge_influence;
   }
 
-  set_pool_pledge_influence(pool_pledge_influence: unknown | undefined): void {
+  set_pool_pledge_influence(
+    pool_pledge_influence: UnitInterval | undefined,
+  ): void {
     this.pool_pledge_influence = pool_pledge_influence;
   }
 
-  get_expansion_rate(): unknown | undefined {
+  get_expansion_rate(): UnitInterval | undefined {
     return this.expansion_rate;
   }
 
-  set_expansion_rate(expansion_rate: unknown | undefined): void {
+  set_expansion_rate(expansion_rate: UnitInterval | undefined): void {
     this.expansion_rate = expansion_rate;
   }
 
-  get_treasury_growth_rate(): unknown | undefined {
+  get_treasury_growth_rate(): UnitInterval | undefined {
     return this.treasury_growth_rate;
   }
 
-  set_treasury_growth_rate(treasury_growth_rate: unknown | undefined): void {
+  set_treasury_growth_rate(
+    treasury_growth_rate: UnitInterval | undefined,
+  ): void {
     this.treasury_growth_rate = treasury_growth_rate;
   }
 
@@ -5842,11 +5846,13 @@ export class ProtocolParamUpdate {
     this.drep_inactivity_period = drep_inactivity_period;
   }
 
-  get_script_cost_per_byte(): unknown | undefined {
+  get_script_cost_per_byte(): UnitInterval | undefined {
     return this.script_cost_per_byte;
   }
 
-  set_script_cost_per_byte(script_cost_per_byte: unknown | undefined): void {
+  set_script_cost_per_byte(
+    script_cost_per_byte: UnitInterval | undefined,
+  ): void {
     this.script_cost_per_byte = script_cost_per_byte;
   }
 
@@ -5914,15 +5920,15 @@ export class ProtocolParamUpdate {
           break;
 
         case 9:
-          fields.pool_pledge_influence = $$CANT_READ("UnitInterval");
+          fields.pool_pledge_influence = UnitInterval.deserialize(r);
           break;
 
         case 10:
-          fields.expansion_rate = $$CANT_READ("UnitInterval");
+          fields.expansion_rate = UnitInterval.deserialize(r);
           break;
 
         case 11:
-          fields.treasury_growth_rate = $$CANT_READ("UnitInterval");
+          fields.treasury_growth_rate = UnitInterval.deserialize(r);
           break;
 
         case 16:
@@ -5994,7 +6000,7 @@ export class ProtocolParamUpdate {
           break;
 
         case 33:
-          fields.script_cost_per_byte = $$CANT_READ("UnitInterval");
+          fields.script_cost_per_byte = UnitInterval.deserialize(r);
           break;
       }
     });
@@ -6165,15 +6171,15 @@ export class ProtocolParamUpdate {
     }
     if (this.pool_pledge_influence !== undefined) {
       writer.writeInt(9n);
-      $$CANT_WRITE("UnitInterval");
+      this.pool_pledge_influence.serialize(writer);
     }
     if (this.expansion_rate !== undefined) {
       writer.writeInt(10n);
-      $$CANT_WRITE("UnitInterval");
+      this.expansion_rate.serialize(writer);
     }
     if (this.treasury_growth_rate !== undefined) {
       writer.writeInt(11n);
-      $$CANT_WRITE("UnitInterval");
+      this.treasury_growth_rate.serialize(writer);
     }
     if (this.min_pool_cost !== undefined) {
       writer.writeInt(16n);
@@ -6245,24 +6251,24 @@ export class ProtocolParamUpdate {
     }
     if (this.script_cost_per_byte !== undefined) {
       writer.writeInt(33n);
-      $$CANT_WRITE("UnitInterval");
+      this.script_cost_per_byte.serialize(writer);
     }
   }
 }
 
 export class PoolVotingThresholds {
-  private motion_no_confidence: unknown;
-  private committee_normal: unknown;
-  private committee_no_confidence: unknown;
-  private hard_fork_initiation: unknown;
-  private security_relevant_threshold: unknown;
+  private motion_no_confidence: UnitInterval;
+  private committee_normal: UnitInterval;
+  private committee_no_confidence: UnitInterval;
+  private hard_fork_initiation: UnitInterval;
+  private security_relevant_threshold: UnitInterval;
 
   constructor(
-    motion_no_confidence: unknown,
-    committee_normal: unknown,
-    committee_no_confidence: unknown,
-    hard_fork_initiation: unknown,
-    security_relevant_threshold: unknown,
+    motion_no_confidence: UnitInterval,
+    committee_normal: UnitInterval,
+    committee_no_confidence: UnitInterval,
+    hard_fork_initiation: UnitInterval,
+    security_relevant_threshold: UnitInterval,
   ) {
     this.motion_no_confidence = motion_no_confidence;
     this.committee_normal = committee_normal;
@@ -6271,43 +6277,45 @@ export class PoolVotingThresholds {
     this.security_relevant_threshold = security_relevant_threshold;
   }
 
-  get_motion_no_confidence(): unknown {
+  get_motion_no_confidence(): UnitInterval {
     return this.motion_no_confidence;
   }
 
-  set_motion_no_confidence(motion_no_confidence: unknown): void {
+  set_motion_no_confidence(motion_no_confidence: UnitInterval): void {
     this.motion_no_confidence = motion_no_confidence;
   }
 
-  get_committee_normal(): unknown {
+  get_committee_normal(): UnitInterval {
     return this.committee_normal;
   }
 
-  set_committee_normal(committee_normal: unknown): void {
+  set_committee_normal(committee_normal: UnitInterval): void {
     this.committee_normal = committee_normal;
   }
 
-  get_committee_no_confidence(): unknown {
+  get_committee_no_confidence(): UnitInterval {
     return this.committee_no_confidence;
   }
 
-  set_committee_no_confidence(committee_no_confidence: unknown): void {
+  set_committee_no_confidence(committee_no_confidence: UnitInterval): void {
     this.committee_no_confidence = committee_no_confidence;
   }
 
-  get_hard_fork_initiation(): unknown {
+  get_hard_fork_initiation(): UnitInterval {
     return this.hard_fork_initiation;
   }
 
-  set_hard_fork_initiation(hard_fork_initiation: unknown): void {
+  set_hard_fork_initiation(hard_fork_initiation: UnitInterval): void {
     this.hard_fork_initiation = hard_fork_initiation;
   }
 
-  get_security_relevant_threshold(): unknown {
+  get_security_relevant_threshold(): UnitInterval {
     return this.security_relevant_threshold;
   }
 
-  set_security_relevant_threshold(security_relevant_threshold: unknown): void {
+  set_security_relevant_threshold(
+    security_relevant_threshold: UnitInterval,
+  ): void {
     this.security_relevant_threshold = security_relevant_threshold;
   }
 
@@ -6342,15 +6350,15 @@ export class PoolVotingThresholds {
       );
     }
 
-    let motion_no_confidence = $$CANT_READ("UnitInterval");
+    let motion_no_confidence = UnitInterval.deserialize(reader);
 
-    let committee_normal = $$CANT_READ("UnitInterval");
+    let committee_normal = UnitInterval.deserialize(reader);
 
-    let committee_no_confidence = $$CANT_READ("UnitInterval");
+    let committee_no_confidence = UnitInterval.deserialize(reader);
 
-    let hard_fork_initiation = $$CANT_READ("UnitInterval");
+    let hard_fork_initiation = UnitInterval.deserialize(reader);
 
-    let security_relevant_threshold = $$CANT_READ("UnitInterval");
+    let security_relevant_threshold = UnitInterval.deserialize(reader);
 
     return new PoolVotingThresholds(
       motion_no_confidence,
@@ -6364,37 +6372,37 @@ export class PoolVotingThresholds {
   serialize(writer: CBORWriter): void {
     writer.writeArrayTag(5);
 
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
+    this.motion_no_confidence.serialize(writer);
+    this.committee_normal.serialize(writer);
+    this.committee_no_confidence.serialize(writer);
+    this.hard_fork_initiation.serialize(writer);
+    this.security_relevant_threshold.serialize(writer);
   }
 }
 
 export class DrepVotingThresholds {
-  private motion_no_confidence: unknown;
-  private committee_normal: unknown;
-  private committee_no_confidence: unknown;
-  private update_constitution: unknown;
-  private hard_fork_initiation: unknown;
-  private pp_network_group: unknown;
-  private pp_economic_group: unknown;
-  private pp_technical_group: unknown;
-  private pp_governance_group: unknown;
-  private treasury_withdrawal: unknown;
+  private motion_no_confidence: UnitInterval;
+  private committee_normal: UnitInterval;
+  private committee_no_confidence: UnitInterval;
+  private update_constitution: UnitInterval;
+  private hard_fork_initiation: UnitInterval;
+  private pp_network_group: UnitInterval;
+  private pp_economic_group: UnitInterval;
+  private pp_technical_group: UnitInterval;
+  private pp_governance_group: UnitInterval;
+  private treasury_withdrawal: UnitInterval;
 
   constructor(
-    motion_no_confidence: unknown,
-    committee_normal: unknown,
-    committee_no_confidence: unknown,
-    update_constitution: unknown,
-    hard_fork_initiation: unknown,
-    pp_network_group: unknown,
-    pp_economic_group: unknown,
-    pp_technical_group: unknown,
-    pp_governance_group: unknown,
-    treasury_withdrawal: unknown,
+    motion_no_confidence: UnitInterval,
+    committee_normal: UnitInterval,
+    committee_no_confidence: UnitInterval,
+    update_constitution: UnitInterval,
+    hard_fork_initiation: UnitInterval,
+    pp_network_group: UnitInterval,
+    pp_economic_group: UnitInterval,
+    pp_technical_group: UnitInterval,
+    pp_governance_group: UnitInterval,
+    treasury_withdrawal: UnitInterval,
   ) {
     this.motion_no_confidence = motion_no_confidence;
     this.committee_normal = committee_normal;
@@ -6408,83 +6416,83 @@ export class DrepVotingThresholds {
     this.treasury_withdrawal = treasury_withdrawal;
   }
 
-  get_motion_no_confidence(): unknown {
+  get_motion_no_confidence(): UnitInterval {
     return this.motion_no_confidence;
   }
 
-  set_motion_no_confidence(motion_no_confidence: unknown): void {
+  set_motion_no_confidence(motion_no_confidence: UnitInterval): void {
     this.motion_no_confidence = motion_no_confidence;
   }
 
-  get_committee_normal(): unknown {
+  get_committee_normal(): UnitInterval {
     return this.committee_normal;
   }
 
-  set_committee_normal(committee_normal: unknown): void {
+  set_committee_normal(committee_normal: UnitInterval): void {
     this.committee_normal = committee_normal;
   }
 
-  get_committee_no_confidence(): unknown {
+  get_committee_no_confidence(): UnitInterval {
     return this.committee_no_confidence;
   }
 
-  set_committee_no_confidence(committee_no_confidence: unknown): void {
+  set_committee_no_confidence(committee_no_confidence: UnitInterval): void {
     this.committee_no_confidence = committee_no_confidence;
   }
 
-  get_update_constitution(): unknown {
+  get_update_constitution(): UnitInterval {
     return this.update_constitution;
   }
 
-  set_update_constitution(update_constitution: unknown): void {
+  set_update_constitution(update_constitution: UnitInterval): void {
     this.update_constitution = update_constitution;
   }
 
-  get_hard_fork_initiation(): unknown {
+  get_hard_fork_initiation(): UnitInterval {
     return this.hard_fork_initiation;
   }
 
-  set_hard_fork_initiation(hard_fork_initiation: unknown): void {
+  set_hard_fork_initiation(hard_fork_initiation: UnitInterval): void {
     this.hard_fork_initiation = hard_fork_initiation;
   }
 
-  get_pp_network_group(): unknown {
+  get_pp_network_group(): UnitInterval {
     return this.pp_network_group;
   }
 
-  set_pp_network_group(pp_network_group: unknown): void {
+  set_pp_network_group(pp_network_group: UnitInterval): void {
     this.pp_network_group = pp_network_group;
   }
 
-  get_pp_economic_group(): unknown {
+  get_pp_economic_group(): UnitInterval {
     return this.pp_economic_group;
   }
 
-  set_pp_economic_group(pp_economic_group: unknown): void {
+  set_pp_economic_group(pp_economic_group: UnitInterval): void {
     this.pp_economic_group = pp_economic_group;
   }
 
-  get_pp_technical_group(): unknown {
+  get_pp_technical_group(): UnitInterval {
     return this.pp_technical_group;
   }
 
-  set_pp_technical_group(pp_technical_group: unknown): void {
+  set_pp_technical_group(pp_technical_group: UnitInterval): void {
     this.pp_technical_group = pp_technical_group;
   }
 
-  get_pp_governance_group(): unknown {
+  get_pp_governance_group(): UnitInterval {
     return this.pp_governance_group;
   }
 
-  set_pp_governance_group(pp_governance_group: unknown): void {
+  set_pp_governance_group(pp_governance_group: UnitInterval): void {
     this.pp_governance_group = pp_governance_group;
   }
 
-  get_treasury_withdrawal(): unknown {
+  get_treasury_withdrawal(): UnitInterval {
     return this.treasury_withdrawal;
   }
 
-  set_treasury_withdrawal(treasury_withdrawal: unknown): void {
+  set_treasury_withdrawal(treasury_withdrawal: UnitInterval): void {
     this.treasury_withdrawal = treasury_withdrawal;
   }
 
@@ -6519,25 +6527,25 @@ export class DrepVotingThresholds {
       );
     }
 
-    let motion_no_confidence = $$CANT_READ("UnitInterval");
+    let motion_no_confidence = UnitInterval.deserialize(reader);
 
-    let committee_normal = $$CANT_READ("UnitInterval");
+    let committee_normal = UnitInterval.deserialize(reader);
 
-    let committee_no_confidence = $$CANT_READ("UnitInterval");
+    let committee_no_confidence = UnitInterval.deserialize(reader);
 
-    let update_constitution = $$CANT_READ("UnitInterval");
+    let update_constitution = UnitInterval.deserialize(reader);
 
-    let hard_fork_initiation = $$CANT_READ("UnitInterval");
+    let hard_fork_initiation = UnitInterval.deserialize(reader);
 
-    let pp_network_group = $$CANT_READ("UnitInterval");
+    let pp_network_group = UnitInterval.deserialize(reader);
 
-    let pp_economic_group = $$CANT_READ("UnitInterval");
+    let pp_economic_group = UnitInterval.deserialize(reader);
 
-    let pp_technical_group = $$CANT_READ("UnitInterval");
+    let pp_technical_group = UnitInterval.deserialize(reader);
 
-    let pp_governance_group = $$CANT_READ("UnitInterval");
+    let pp_governance_group = UnitInterval.deserialize(reader);
 
-    let treasury_withdrawal = $$CANT_READ("UnitInterval");
+    let treasury_withdrawal = UnitInterval.deserialize(reader);
 
     return new DrepVotingThresholds(
       motion_no_confidence,
@@ -6556,16 +6564,16 @@ export class DrepVotingThresholds {
   serialize(writer: CBORWriter): void {
     writer.writeArrayTag(10);
 
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
+    this.motion_no_confidence.serialize(writer);
+    this.committee_normal.serialize(writer);
+    this.committee_no_confidence.serialize(writer);
+    this.update_constitution.serialize(writer);
+    this.hard_fork_initiation.serialize(writer);
+    this.pp_network_group.serialize(writer);
+    this.pp_economic_group.serialize(writer);
+    this.pp_technical_group.serialize(writer);
+    this.pp_governance_group.serialize(writer);
+    this.treasury_withdrawal.serialize(writer);
   }
 }
 
@@ -7263,27 +7271,27 @@ export class ExUnits {
 }
 
 export class ExUnitPrices {
-  private mem_price: unknown;
-  private step_price: unknown;
+  private mem_price: UnitInterval;
+  private step_price: UnitInterval;
 
-  constructor(mem_price: unknown, step_price: unknown) {
+  constructor(mem_price: UnitInterval, step_price: UnitInterval) {
     this.mem_price = mem_price;
     this.step_price = step_price;
   }
 
-  get_mem_price(): unknown {
+  get_mem_price(): UnitInterval {
     return this.mem_price;
   }
 
-  set_mem_price(mem_price: unknown): void {
+  set_mem_price(mem_price: UnitInterval): void {
     this.mem_price = mem_price;
   }
 
-  get_step_price(): unknown {
+  get_step_price(): UnitInterval {
     return this.step_price;
   }
 
-  set_step_price(step_price: unknown): void {
+  set_step_price(step_price: UnitInterval): void {
     this.step_price = step_price;
   }
 
@@ -7318,9 +7326,9 @@ export class ExUnitPrices {
       );
     }
 
-    let mem_price = $$CANT_READ("UnitInterval");
+    let mem_price = UnitInterval.deserialize(reader);
 
-    let step_price = $$CANT_READ("UnitInterval");
+    let step_price = UnitInterval.deserialize(reader);
 
     return new ExUnitPrices(mem_price, step_price);
   }
@@ -7328,8 +7336,8 @@ export class ExUnitPrices {
   serialize(writer: CBORWriter): void {
     writer.writeArrayTag(2);
 
-    $$CANT_WRITE("UnitInterval");
-    $$CANT_WRITE("UnitInterval");
+    this.mem_price.serialize(writer);
+    this.step_price.serialize(writer);
   }
 }
 
@@ -8529,5 +8537,83 @@ export class ScriptRef {
         writer.writeBytes(this.variant.value);
         break;
     }
+  }
+}
+
+export class UnitInterval {
+  private numerator: bigint;
+  private denominator: bigint;
+
+  constructor(numerator: bigint, denominator: bigint) {
+    this.numerator = numerator;
+    this.denominator = denominator;
+  }
+
+  get_numerator(): bigint {
+    return this.numerator;
+  }
+
+  set_numerator(numerator: bigint): void {
+    this.numerator = numerator;
+  }
+
+  get_denominator(): bigint {
+    return this.denominator;
+  }
+
+  set_denominator(denominator: bigint): void {
+    this.denominator = denominator;
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): UnitInterval {
+    let reader = new CBORReader(data);
+    return UnitInterval.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): UnitInterval {
+    return UnitInterval.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): UnitInterval {
+    let taggedTag = reader.readTaggedTag();
+    if (taggedTag != 30) {
+      throw new Error("Expected tag 30, got " + taggedTag);
+    }
+
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let numerator = reader.readInt();
+
+    let denominator = reader.readInt();
+
+    return new UnitInterval(numerator, denominator);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeTaggedTag(30);
+
+    writer.writeArrayTag(2);
+
+    writer.writeInt(this.numerator);
+    writer.writeInt(this.denominator);
   }
 }

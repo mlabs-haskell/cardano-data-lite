@@ -39,7 +39,7 @@ export class Compiler {
       case "set":
         return new GenSet(name, schema.item);
       case "record":
-        return new GenRecord(name, schema.fields);
+        return new GenRecord(name, schema.fields, schema.tagged);
       case "tagged_record":
         return new GenTaggedRecord(name, schema.variants);
       case "record_fragment":

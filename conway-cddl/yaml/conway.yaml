@@ -1722,3 +1722,13 @@ ScriptRef:
       tag: 3
       value: bytes
       kind_name: PlutusScriptV3
+
+UnitInterval:
+  type: record
+  fields:
+    - name: numerator
+      type: bignum
+    - name: denominator
+      type: bignum
+  tagged:
+    tag: 30

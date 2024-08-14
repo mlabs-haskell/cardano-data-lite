@@ -14,6 +14,7 @@ export type Schema =
         type: string;
         nullable?: boolean;
       }[];
+      tagged?: { tag: number };
     }
   | {
       type: "tagged_record";

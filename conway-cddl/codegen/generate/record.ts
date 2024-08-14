@@ -3,6 +3,7 @@ import { SchemaTable } from "../compiler";
 import { readType, writeType } from "./utils/cbor-utils";
 import { genCSL } from "./utils/csl";
 import { genAccessors, genConstructor, genMembers } from "./utils/structured";
+import { Tagged, deserializeTagged, serializeTagged } from "./utils/tagged";
 
 export type Field = {
   name: string;
@@ -13,10 +14,13 @@ export type Field = {
 export class GenRecord implements CodeGenerator {
   name: string;
   fields: Field[];
+  tagged?: Tagged;
 
-  constructor(name: string, fields: Field[]) {
+  constructor(name: string, fields: Field[], tagged?: Tagged) {
     this.name = name;
     this.fields = fields;
+    this.tagged = tagged;
+    console.log(name, tagged);
   }
 
   generate(customTypes: SchemaTable): string {
@@ -28,6 +32,8 @@ export class GenRecord implements CodeGenerator {
         ${genCSL(this.name)}
 
         static deserialize(reader: CBORReader): ${this.name} {
+          ${this.tagged != null ? deserializeTagged(this.tagged, "reader") : ""}
+
           let len = reader.readArrayTag();
           
           if(len != null && len < ${this.fields.length}) {
@@ -49,6 +55,8 @@ export class GenRecord implements CodeGenerator {
         }
 
         serialize(writer: CBORWriter): void {
+          ${this.tagged != null ? serializeTagged(this.tagged, "writer") : ""}
+
           writer.writeArrayTag(${this.fields.length});
 
           ${this.fields
