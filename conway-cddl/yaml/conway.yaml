@@ -1713,9 +1713,12 @@ ScriptRef:
     - name: plutus_script_v1
       tag: 1
       value: bytes
+      kind_name: PlutusScriptV1
     - name: plutus_script_v2
       tag: 2
       value: bytes
+      kind_name: PlutusScriptV2
     - name: plutus_script_v3
       tag: 3
       value: bytes
+      kind_name: PlutusScriptV3

@@ -8973,9 +8973,9 @@ export class DataOption {
 
 export enum ScriptRefKind {
   NativeScript = 0,
-  bytes = 1,
-  bytes = 2,
-  bytes = 3,
+  PlutusScriptV1 = 1,
+  PlutusScriptV2 = 2,
+  PlutusScriptV3 = 3,
 }
 
 export type ScriptRefVariant =
