@@ -23,7 +23,7 @@ export function readType(
   customTypes: Set<string>,
   reader: string,
   type: string,
-) {
+): string {
   if (customTypes.has(type)) {
     return `${type}.deserialize(${reader})`;
   }
@@ -43,6 +43,7 @@ export function readType(
       return `new Uint32Array(${reader}.readArray((reader) => reader.readUint()));`;
     default:
       console.error("Can't decode: " + type);
+      return "$CANT_READ";
   }
 }
 
