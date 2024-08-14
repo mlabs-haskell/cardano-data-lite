@@ -1,5 +1,6 @@
 import { CodeGenerator } from ".";
 import { jsType, readType, writeType } from "./utils/cbor-utils";
+import { genCSL } from "./utils/csl";
 
 export type Variant = {
   tag: number;
@@ -26,6 +27,8 @@ export class GenTaggedRecord implements CodeGenerator {
 
       export class ${this.name} {
         private variant: ${this.name}Variant;
+
+        ${genCSL(this.name)}
 
         constructor(variant: ${this.name}Variant) {
           this.variant = variant;

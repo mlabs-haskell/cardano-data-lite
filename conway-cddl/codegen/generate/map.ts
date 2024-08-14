@@ -21,6 +21,8 @@ export class GenMap implements CodeGenerator {
       export class ${this.name} {
         private items: ${entryJsType}[];
 
+        ${genCSL(this.name)}
+
         constructor(items: ${entryJsType}[]) {
           this.items = items;
         }
