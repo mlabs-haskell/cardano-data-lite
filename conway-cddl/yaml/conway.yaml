@@ -12,16 +12,16 @@
 Block:
   type: record
   fields:
-    - key: header
-      value: Header
-    - key: transaction_bodies
-      value: TransactionBodies
-    - key: transaction_witness_sets
-      value: TransactionWitnessSets
-    - key: auxiliary_data_set
-      value: AuxiliaryDataSet
-    - key: invalid_transactions
-      value: arrayToUint32Array
+    - name: header
+      type: Header
+    - name: transaction_bodies
+      type: TransactionBodies
+    - name: transaction_witness_sets
+      type: TransactionWitnessSets
+    - name: auxiliary_data_set
+      type: AuxiliaryDataSet
+    - name: invalid_transactions
+      type: arrayToUint32Array
 
 TransactionBodies:
   type: array
@@ -47,14 +47,14 @@ AuxiliaryDataSet:
 Transaction:
   type: record
   fields:
-    - key: body
-      value: TransactionBody
-    - key: witness_set
-      value: TransactionWitnessSet
-    - key: is_valid
-      value: boolean
-    - key: auxiliary_data
-      value: AuxiliaryData
+    - name: body
+      type: TransactionBody
+    - name: witness_set
+      type: TransactionWitnessSet
+    - name: is_valid
+      type: boolean
+    - name: auxiliary_data
+      type: AuxiliaryData
       nullable: true
 
 # transaction_index = uint .size 2
@@ -66,10 +66,10 @@ Transaction:
 Header:
   type: record
   fields:
-    - key: header_body
-      value: HeaderBody
-    - key: body_signature
-      value: KESSignature
+    - name: header_body
+      type: HeaderBody
+    - name: body_signature
+      type: KESSignature
 
 # header_body =
 #   [ block_number     : uint
@@ -86,27 +86,27 @@ Header:
 HeaderBody:
   type: record
   fields:
-    - key: block_number
-      value: number
-    - key: slot
-      value: bignum
-    - key: prev_hash
-      value: BlockHash
+    - name: block_number
+      type: number
+    - name: slot
+      type: bignum
+    - name: prev_hash
+      type: BlockHash
       nullable: true
-    - key: issuer_vkey
-      value: Vkey
-    - key: vrf_vkey
-      value: VRFVKey
-    - key: vrf_result
-      value: VRFCert
-    - key: block_body_size
-      value: number
-    - key: block_body_hash
-      value: BlockHash
-    - key: operational_cert
-      value: OperationalCert
-    - key: protocol_version
-      value: ProtocolVersion
+    - name: issuer_vkey
+      type: Vkey
+    - name: vrf_vkey
+      type: VRFVKey
+    - name: vrf_result
+      type: VRFCert
+    - name: block_body_size
+      type: number
+    - name: block_body_hash
+      type: BlockHash
+    - name: operational_cert
+      type: OperationalCert
+    - name: protocol_version
+      type: ProtocolVersion
 
 # operational_cert =
 #   [ hot_vkey        : $kes_vkey
@@ -117,14 +117,14 @@ HeaderBody:
 OperationalCert:
   type: record
   fields:
-    - key: hot_vkey
-      value: KESVKey
-    - key: sequence_number
-      value: number
-    - key: kes_period
-      value: number
-    - key: sigma
-      value: Ed25519Signature
+    - name: hot_vkey
+      type: KESVKey
+    - name: sequence_number
+      type: number
+    - name: kes_period
+      type: number
+    - name: sigma
+      type: Ed25519Signature
 
 # next_major_protocol_version = 10
 # major_protocol_version = 1..next_major_protocol_version
@@ -133,10 +133,10 @@ OperationalCert:
 ProtocolVersion:
   type: record
   fields:
-    - key: major
-      value: number
-    - key: minor
-      value: number
+    - name: major
+      type: number
+    - name: minor
+      type: number
 
 # transaction_body =
 #   { 0 : set<transaction_input>             ; inputs
@@ -164,83 +164,83 @@ TransactionBody:
   type: struct
   fields:
     - id: 0
-      key: inputs
-      value: TransactionInputs
+      name: inputs
+      type: TransactionInputs
     - id: 1
-      key: outputs
-      value: TransactionOutputs
+      name: outputs
+      type: TransactionOutputs
     - id: 2
-      key: fee
-      value: bignum
+      name: fee
+      type: bignum
     - id: 3
-      key: ttl
-      value: bignum
+      name: ttl
+      type: bignum
       optional: true
       flags:
         - as_number
     - id: 4
-      key: certs
-      value: Certificates
+      name: certs
+      type: Certificates
       optional: true
     - id: 5
-      key: withdrawals
-      value: Withdrawals
+      name: withdrawals
+      type: Withdrawals
       optional: true
     - id: 7
-      key: auxiliary_data_hash
-      value: AuxiliaryDataHash
+      name: auxiliary_data_hash
+      type: AuxiliaryDataHash
       optional: true
     - id: 8
-      key: validity_start_interval
-      value: bignum
+      name: validity_start_interval
+      type: bignum
       optional: true
     - id: 9
-      key: mint
-      value: Mint
+      name: mint
+      type: Mint
       optional: true
     - id: 11
-      key: script_data_hash
-      value: ScriptDataHash
+      name: script_data_hash
+      type: ScriptDataHash
       optional: true
     - id: 13
-      key: collateral
-      value: TransactionInputs
+      name: collateral
+      type: TransactionInputs
       optional: true
     - id: 14
-      key: required_signers
-      value: Ed25519KeyHashes
+      name: required_signers
+      type: Ed25519KeyHashes
       optional: true
     - id: 15
-      key: network_id
-      value: NetworkId
+      name: network_id
+      type: NetworkId
       optional: true
     - id: 16
-      key: collateral_return
-      value: TransactionOutput
+      name: collateral_return
+      type: TransactionOutput
       optional: true
     - id: 17
-      key: total_collateral
-      value: bignum
+      name: total_collateral
+      type: bignum
       optional: true
     - id: 18
-      key: reference_inputs
-      value: TransactionInputs
+      name: reference_inputs
+      type: TransactionInputs
       optional: true
     - id: 19
-      key: voting_procedures
-      value: VotingProcedures
+      name: voting_procedures
+      type: VotingProcedures
       optional: true
     - id: 20
-      key: voting_proposals
-      value: VotingProposals
+      name: voting_proposals
+      type: VotingProposals
       optional: true
     - id: 21
-      key: current_treasury_value
-      value: bignum
+      name: current_treasury_value
+      type: bignum
       optional: true
     - id: 22
-      key: donation
-      value: bignum
+      name: donation
+      type: bignum
       optional: true
 
 TransactionInputs:
@@ -265,10 +265,10 @@ Ed25519KeyHashes:
 VotingProcedure:
   type: record
   fields:
-    - key: vote
-      value: VoteKind
-    - key: anchor
-      value: Anchor
+    - name: vote
+      type: VoteKind
+    - name: anchor
+      type: Anchor
       nullable: true
 
 # proposal_procedure =
@@ -280,14 +280,14 @@ VotingProcedure:
 VotingProposal:
   type: record
   fields:
-    - key: deposit
-      value: bignum
-    - key: reward_account
-      value: RewardAddress
-    - key: governance_action
-      value: GovernanceAction
-    - key: anchor
-      value: Anchor
+    - name: deposit
+      type: bignum
+    - name: reward_account
+      type: RewardAddress
+    - name: governance_action
+      type: GovernanceAction
+    - name: anchor
+      type: Anchor
 
 # proposal_procedures = nonempty_oset<proposal_procedure>
 VotingProposals:
@@ -345,61 +345,61 @@ GovernanceAction:
 ParameterChangeAction:
   type: record_fragment
   fields:
-    - key: gov_action_id
-      value: GovernanceActionId
+    - name: gov_action_id
+      type: GovernanceActionId
       nullable: true
-    - key: protocol_param_updates
-      value: ProtocolParamUpdate
-    - key: policy_hash
-      value: ScriptHash
+    - name: protocol_param_updates
+      type: ProtocolParamUpdate
+    - name: policy_hash
+      type: ScriptHash
       nullable: true
 
 HardForkInitiationAction:
   type: record_fragment
   fields:
-    - key: gov_action_id
-      value: GovernanceActionId
+    - name: gov_action_id
+      type: GovernanceActionId
       nullable: true
-    - key: protocol_version
-      value: ProtocolVersion
+    - name: protocol_version
+      type: ProtocolVersion
 
 TreasuryWithdrawalsAction:
   type: record_fragment
   fields:
-    - key: withdrawals
-      value: TreasuryWithdrawals
-    - key: policy_hash
-      value: ScriptHash
+    - name: withdrawals
+      type: TreasuryWithdrawals
+    - name: policy_hash
+      type: ScriptHash
       nullable: true
 
 NoConfidenceAction:
   type: record_fragment
   fields:
-    - key: gov_action_id
-      value: GovernanceActionId
+    - name: gov_action_id
+      type: GovernanceActionId
       nullable: true
 
 UpdateCommitteeAction:
   type: record_fragment
   fields:
-    - key: gov_action_id
-      value: GovernanceActionId
+    - name: gov_action_id
+      type: GovernanceActionId
       nullable: true
-    - key: members_to_remove
-      value: Credentials
-    - key: committee
-      value: Committee
-    - key: quorom_threshold
-      value: UnitInterval
+    - name: members_to_remove
+      type: Credentials
+    - name: committee
+      type: Committee
+    - name: quorom_threshold
+      type: UnitInterval
 
 NewConstitutionAction:
   type: record_fragment
   fields:
-    - key: gov_action_id
-      value: GovernanceActionId
+    - name: gov_action_id
+      type: GovernanceActionId
       nullable: true
-    - key: constitution
-      value: Constitution
+    - name: constitution
+      type: Constitution
 
 InfoAction:
   type: record_fragment
@@ -416,10 +416,10 @@ Credentials:
 Constitution:
   type: record
   fields:
-    - key: anchor
-      value: Anchor
-    - key: scripthash
-      value: ScriptHash
+    - name: anchor
+      type: Anchor
+    - name: scripthash
+      type: ScriptHash
       nullable: true
 
 # ; Constitutional Committee Hot KeyHash: 0
@@ -437,12 +437,12 @@ Constitution:
 Voter: # TODO (custom serializer)
   type: record
   fields:
-    - key: constitutional_committee_hot_key
-      value: Credential
-    - key: drep
-      value: Credential
+    - name: constitutional_committee_hot_key
+      type: Credential
+    - name: drep
+      type: Credential
     - name: staking_pool
-      value: Ed25519KeyHash
+      type: Ed25519KeyHash
 
 # anchor =
 #   [ anchor_url       : url
@@ -451,10 +451,10 @@ Voter: # TODO (custom serializer)
 Anchor:
   type: record
   fields:
-    - key: url
-      value: URL
-    - key: anchor_data_hash
-      value: AnchorDataHash
+    - name: url
+      type: URL
+    - name: anchor_data_hash
+      type: AnchorDataHash
 
 # ; no - 0
 # ; yes - 1
@@ -477,10 +477,10 @@ VoteKind:
 GovernanceActionId:
   type: record
   fields:
-    - key: transaction_id
-      value: TransactionHash
-    - key: index
-      value: number
+    - name: transaction_id
+      type: TransactionHash
+    - name: index
+      type: number
 
 # required_signers = nonempty_set<addr_keyhash>
 # Replaced by Ed25519KeyHashes. See TransactionBody
@@ -491,10 +491,10 @@ GovernanceActionId:
 TransactionInput:
   type: record
   fields:
-    - key: transaction_id
-      value: TransactionHash
-    - key: index
-      value: number
+    - name: transaction_id
+      type: TransactionHash
+    - name: index
+      type: number
 
 # ; Both of the Alonzo and Babbage style TxOut formats are equally valid
 # ; and can be used interchangeably
@@ -516,18 +516,18 @@ TransactionOutput:
   type: struct
   fields:
     - id: 0
-      key: address
-      value: Address
+      name: address
+      type: Address
     - id: 1
-      key: amount
-      value: Value
+      name: amount
+      type: Value
     - id: 2
-      key: plutus_data
-      value: DataOption
+      name: plutus_data
+      type: DataOption
       optional: true
     - id: 3
-      key: script_ref
-      value: ScriptRef
+      name: script_ref
+      type: ScriptRef
       optional: true
 
 # script_data_hash = $hash32
@@ -735,146 +735,146 @@ Certificate:
 StakeRegistration:
   type: record_fragment
   fields:
-    - key: stake_credential
-      value: Credential
+    - name: stake_credential
+      type: Credential
 
 StakeDeregistration:
   type: record_fragment
   fields:
-    - key: stake_credential
-      value: Credential
+    - name: stake_credential
+      type: Credential
 
 StakeDelegation:
   type: record_fragment
   fields:
-    - key: stake_credential
-      value: Credential
-    - key: pool_keyhash
-      value: Ed25519KeyHash
+    - name: stake_credential
+      type: Credential
+    - name: pool_keyhash
+      type: Ed25519KeyHash
 
 PoolRegistration:
   type: record_fragment
   fields:
-    - key: pool_params
-      value: PoolParams
+    - name: pool_params
+      type: PoolParams
 
 PoolRetirement:
   type: record_fragment
   fields:
-    - key: pool_keyhash
-      value: Ed25519KeyHash
-    - key: epoch
-      value: number
+    - name: pool_keyhash
+      type: Ed25519KeyHash
+    - name: epoch
+      type: number
 
 RegCert:
   type: record_fragment
   fields:
-    - key: stake_credential
-      value: Credential
-    - key: coin
-      value: bignum
+    - name: stake_credential
+      type: Credential
+    - name: coin
+      type: bignum
 
 UnregCert:
   type: record_fragment
   fields:
-    - key: stake_credential
-      value: Credential
-    - key: coin
-      value: bignum
+    - name: stake_credential
+      type: Credential
+    - name: coin
+      type: bignum
 
 VoteDelegation:
   type: record_fragment
   fields:
-    - key: stake_credential
-      value: Credential
-    - key: drep
-      value: DRep
+    - name: stake_credential
+      type: Credential
+    - name: drep
+      type: DRep
 
 StakeAndVoteDelegation:
   type: record_fragment
   fields:
-    - key: stake_credential
-      value: Credential
-    - key: pool_keyhash
-      value: Ed25519KeyHash
-    - key: drep
-      value: DRep
+    - name: stake_credential
+      type: Credential
+    - name: pool_keyhash
+      type: Ed25519KeyHash
+    - name: drep
+      type: DRep
 
 StakeRegistrationAndDelegation:
   type: record_fragment
   fields:
-    - key: stake_credential
-      value: Credential
-    - key: pool_keyhash
-      value: Ed25519KeyHash
-    - key: coin
-      value: bignum
+    - name: stake_credential
+      type: Credential
+    - name: pool_keyhash
+      type: Ed25519KeyHash
+    - name: coin
+      type: bignum
 
 VoteRegistrationAndDelegation:
   type: record_fragment
   fields:
-    - key: stake_credential
-      value: Credential
-    - key: drep
-      value: DRep
-    - key: coin
-      value: bignum
+    - name: stake_credential
+      type: Credential
+    - name: drep
+      type: DRep
+    - name: coin
+      type: bignum
 
 StakeVoteRegistrationAndDelegation:
   type: record_fragment
   fields:
-    - key: stake_credential
-      value: Credential
-    - key: pool_keyhash
-      value: Ed25519KeyHash
-    - key: drep
-      value: DRep
-    - key: coin
-      value: bignum
+    - name: stake_credential
+      type: Credential
+    - name: pool_keyhash
+      type: Ed25519KeyHash
+    - name: drep
+      type: DRep
+    - name: coin
+      type: bignum
 
 CommitteeHotAuth:
   type: record_fragment
   fields:
-    - key: committee_cold_key
-      value: Credential
-    - key: committee_hot_key
-      value: Credential
+    - name: committee_cold_key
+      type: Credential
+    - name: committee_hot_key
+      type: Credential
 
 CommitteeColdResign:
   type: record_fragment
   fields:
-    - key: committee_cold_key
-      value: Credential
-    - key: anchor
-      value: Anchor
+    - name: committee_cold_key
+      type: Credential
+    - name: anchor
+      type: Anchor
       nullable: true
 
 DrepRegistration:
   type: record_fragment
   fields:
-    - key: voting_credential
-      value: Credential
-    - key: coin
-      value: bignum
-    - key: anchor
-      value: Anchor
+    - name: voting_credential
+      type: Credential
+    - name: coin
+      type: bignum
+    - name: anchor
+      type: Anchor
       nullable: true
 
 DrepDeregistration:
   type: record_fragment
   fields:
-    - key: drep_credential
-      value: Credential
-    - key: coin
-      value: bignum
+    - name: drep_credential
+      type: Credential
+    - name: coin
+      type: bignum
 
 DrepUpdate:
   type: record_fragment
   fields:
-    - key: drep_credential
-      value: Credential
-    - key: anchor
-      value: Anchor
+    - name: drep_credential
+      type: Credential
+    - name: anchor
+      type: Anchor
       nullable: true
 
 # delta_coin = int
@@ -1021,39 +1021,39 @@ Relay:
 SingleHostAddr:
   type: record_fragment
   fields:
-    - key: port
-      value: number
+    - name: port
+      type: number
       nullable: true
-    - key: ipv4
-      value: Ipv4
+    - name: ipv4
+      type: Ipv4
       nullable: true
-    - key: ipv6
-      value: Ipv6
+    - name: ipv6
+      type: Ipv6
       nullable: true
 
 SingleHostName:
   type: record_fragment
   fields:
-    - key: port
-      value: number
+    - name: port
+      type: number
       nullable: true
-    - key: dns_name
-      value: DNSRecordAorAAAA
+    - name: dns_name
+      type: DNSRecordAorAAAA
 
 MultiHostName:
   type: record_fragment
   fields:
-    - key: dns_name
-      value: DNSRecordSRV
+    - name: dns_name
+      type: DNSRecordSRV
 
 # pool_metadata = [url, pool_metadata_hash]
 PoolMetadata:
   type: record
   fields:
-    - key: url
-      value: URL
-    - key: pool_metadata_hash
-      value: PoolMetadataHash
+    - name: url
+      type: URL
+    - name: pool_metadata_hash
+      type: PoolMetadataHash
 
 # url = tstr .size (0..128)
 URL:
@@ -1107,124 +1107,124 @@ protocol_param_update:
   type: struct
   fields:
     - id: 0
-      key: minfee_a
-      value: bignum
+      name: minfee_a
+      type: bignum
       optional: true
     - id: 1
-      key: minfee_b
-      value: bignum
+      name: minfee_b
+      type: bignum
       optional: true
     - id: 2
-      key: max_block_body_size
-      value: number
+      name: max_block_body_size
+      type: number
       optional: true
     - id: 3
-      key: max_tx_size
-      value: number
+      name: max_tx_size
+      type: number
       optional: true
     - id: 4
-      key: max_block_header_size
-      value: number
+      name: max_block_header_size
+      type: number
       optional: true
     - id: 5
-      key: key_deposit
-      value: bignum
+      name: key_deposit
+      type: bignum
       optional: true
     - id: 6
-      key: pool_deposit
-      value: bignum
+      name: pool_deposit
+      type: bignum
       optional: true
     - id: 7
-      key: max_epoch
-      value: number
+      name: max_epoch
+      type: number
       optional: true
     - id: 8
-      key: n_opt
-      value: number
+      name: n_opt
+      type: number
       optional: true
     - id: 9
-      key: pool_pledge_influence
-      value: UnitInterval
+      name: pool_pledge_influence
+      type: UnitInterval
       optional: true
     - id: 10
-      key: expansion_rate
-      value: UnitInterval
+      name: expansion_rate
+      type: UnitInterval
       optional: true
     - id: 11
-      key: treasury_growth_rate
-      value: UnitInterval
+      name: treasury_growth_rate
+      type: UnitInterval
       optional: true
     - id: 16
-      key: min_pool_cost
-      value: bignum
+      name: min_pool_cost
+      type: bignum
       optional: true
     - id: 17
-      key: ada_per_utxo_byte
-      value: bignum
+      name: ada_per_utxo_byte
+      type: bignum
       optional: true
     - id: 18
-      key: costmdls
-      value: Costmdls
+      name: costmdls
+      type: Costmdls
       optional: true
     - id: 19
-      key: execution_costs
-      value: ExUnitPrices
+      name: execution_costs
+      type: ExUnitPrices
       optional: true
     - id: 20
-      key: max_tx_ex_units
-      value: ExUnits
+      name: max_tx_ex_units
+      type: ExUnits
       optional: true
     - id: 21
-      key: max_block_ex_units
-      value: ExUnits
+      name: max_block_ex_units
+      type: ExUnits
       optional: true
     - id: 22
-      key: max_value_size
-      value: number
+      name: max_value_size
+      type: number
       optional: true
     - id: 23
-      key: collateral_percentage
-      value: number
+      name: collateral_percentage
+      type: number
       optional: true
     - id: 24
-      key: max_collateral_inputs
-      value: number
+      name: max_collateral_inputs
+      type: number
       optional: true
     - id: 25
-      key: pool_voting_thresholds
-      value: PoolVotingThresholds
+      name: pool_voting_thresholds
+      type: PoolVotingThresholds
       optional: true
     - id: 26
-      key: drep_voting_thresholds
-      value: DrepVotingThresholds
+      name: drep_voting_thresholds
+      type: DrepVotingThresholds
       optional: true
     - id: 27
-      key: min_committee_size
-      value: number
+      name: min_committee_size
+      type: number
       optional: true
     - id: 28
-      key: committee_term_limit
-      value: number
+      name: committee_term_limit
+      type: number
       optional: true
     - id: 29
-      key: governance_action_validity_period
-      value: number
+      name: governance_action_validity_period
+      type: number
       optional: true
     - id: 30
-      key: governance_action_deposit
-      value: bignum
+      name: governance_action_deposit
+      type: bignum
       optional: true
     - id: 31
-      key: drep_deposit
-      value: bignum
+      name: drep_deposit
+      type: bignum
       optional: true
     - id: 32
-      key: drep_inactivity_period
-      value: number
+      name: drep_inactivity_period
+      type: number
       optional: true
     - id: 33
-      key: script_cost_per_byte
-      value: UnitInterval
+      name: script_cost_per_byte
+      type: UnitInterval
       optional: true
 
 # pool_voting_thresholds =
@@ -1237,16 +1237,16 @@ protocol_param_update:
 PoolVotingThresholds:
   type: record
   fields:
-    - key: motion_no_confidence
-      value: UnitInterval
-    - key: committee_normal
-      value: UnitInterval
-    - key: committee_no_confidence
-      value: UnitInterval
-    - key: hard_fork_initiation
-      value: UnitInterval
-    - key: security_relevant_threshold
-      value: UnitInterval
+    - name: motion_no_confidence
+      type: UnitInterval
+    - name: committee_normal
+      type: UnitInterval
+    - name: committee_no_confidence
+      type: UnitInterval
+    - name: hard_fork_initiation
+      type: UnitInterval
+    - name: security_relevant_threshold
+      type: UnitInterval
 
 # drep_voting_thresholds =
 #   [ unit_interval ; motion no confidence
@@ -1263,26 +1263,26 @@ PoolVotingThresholds:
 DrepVotingThresholds:
   type: record
   fields:
-    - key: motion_no_confidence
-      value: UnitInterval
-    - key: committee_normal
-      value: UnitInterval
-    - key: committee_no_confidence
-      value: UnitInterval
-    - key: update_constitution
-      value: UnitInterval
-    - key: hard_fork_initiation
-      value: UnitInterval
-    - key: pp_network_group
-      value: UnitInterval
-    - key: pp_economic_group
-      value: UnitInterval
-    - key: pp_technical_group
-      value: UnitInterval
-    - key: pp_governance_group
-      value: UnitInterval
-    - key: treasury_withdrawal
-      value: UnitInterval
+    - name: motion_no_confidence
+      type: UnitInterval
+    - name: committee_normal
+      type: UnitInterval
+    - name: committee_no_confidence
+      type: UnitInterval
+    - name: update_constitution
+      type: UnitInterval
+    - name: hard_fork_initiation
+      type: UnitInterval
+    - name: pp_network_group
+      type: UnitInterval
+    - name: pp_economic_group
+      type: UnitInterval
+    - name: pp_technical_group
+      type: UnitInterval
+    - name: pp_governance_group
+      type: UnitInterval
+    - name: treasury_withdrawal
+      type: UnitInterval
 
 # transaction_witness_set =
 #   { ? 0: nonempty_set<vkeywitness>
@@ -1298,36 +1298,36 @@ TransactionWitnessSet:
   type: struct
   fields:
     - id: 0
-      key: vkeys
-      value: Vkeywitnesses
+      name: vkeys
+      type: Vkeywitnesses
       optional: true
     - id: 1
-      key: native_scripts
-      value: NativeScripts
+      name: native_scripts
+      type: NativeScripts
       optional: true
     - id: 2
-      key: bootstraps
-      value: BootstrapWitnesses
+      name: bootstraps
+      type: BootstrapWitnesses
       optional: true
     - id: 3
-      key: plutus_scripts_v1
-      value: PlutusScripts
+      name: plutus_scripts_v1
+      type: PlutusScripts
       optional: true
     - id: 4
-      key: plutus_data
-      value: PlutusList
+      name: plutus_data
+      type: PlutusList
       optional: true
     - id: 5
-      key: redeemers
-      value: Redeemers
+      name: redeemers
+      type: Redeemers
       optional: true
     - id: 6
-      key: plutus_scripts_v2
-      value: PlutusScripts
+      name: plutus_scripts_v2
+      type: PlutusScripts
       optional: true
     - id: 7
-      key: plutus_scripts_v3
-      value: PlutusScripts
+      name: plutus_scripts_v3
+      type: PlutusScripts
       optional: true
 
 Vkeywitnesses:
@@ -1416,10 +1416,10 @@ RedeemerTag:
 ExUnits:
   type: record
   fields:
-    - key: mem
-      value: bignum
-    - key: steps
-      value: bignum
+    - name: mem
+      type: bignum
+    - name: steps
+      type: bignum
 
 # ex_unit_prices =
 #   [ mem_price: nonnegative_interval, step_price: nonnegative_interval ]
@@ -1427,10 +1427,10 @@ ExUnits:
 ExUnitPrices:
   type: record
   fields:
-    - key: mem_price
-      value: UnitInterval
-    - key: step_price
-      value: UnitInterval
+    - name: mem_price
+      type: UnitInterval
+    - name: step_price
+      type: UnitInterval
 
 # language = 0 ; Plutus v1
 #          / 1 ; Plutus v2
@@ -1499,29 +1499,29 @@ AuxiliaryData:
   type: struct
   fields:
     - id: 0
-      key: metadata
-      value: GeneralTransactionMetadata
+      name: metadata
+      type: GeneralTransactionMetadata
     - id: 1
-      key: native_scripts
-      value: NativeScripts
+      name: native_scripts
+      type: NativeScripts
     - id: 2
-      key: plutus_scripts_v1
-      value: PlutusScripts
+      name: plutus_scripts_v1
+      type: PlutusScripts
     - id: 3
-      key: plutus_scripts_v2
-      value: PlutusScripts
+      name: plutus_scripts_v2
+      type: PlutusScripts
     - id: 4
-      key: plutus_scripts_v3
-      value: PlutusScripts
+      name: plutus_scripts_v3
+      type: PlutusScripts
 
 # vkeywitness = [ $vkey, $signature ]
 Vkeywitness:
   type: record
   fields:
-    - key: vkey
-      value: Vkey
-    - key: signature
-      value: Ed25519Signature
+    - name: vkey
+      type: Vkey
+    - name: signature
+      type: Ed25519Signature
 
 # bootstrap_witness =
 #   [ public_key : $vkey
@@ -1532,14 +1532,14 @@ Vkeywitness:
 BootstrapWitness:
   type: record
   fields:
-    - key: vkey
-      value: VKey
-    - key: signature
-      value: Ed25519Signature
-    - key: chain_code
-      value: bytes
-    - key: attributes
-      value: bytes
+    - name: vkey
+      type: VKey
+    - name: signature
+      type: Ed25519Signature
+    - name: chain_code
+      type: bytes
+    - name: attributes
+      type: bytes
 
 # native_script =
 #   [ script_pubkey
@@ -1581,43 +1581,43 @@ NativeScript:
       tag: 5
       value: TimelockExpiry
 
-ScriptPubkey:
+ScriptPubname:
   type: record_fragment
   fields:
-    - key: addr_keyhash
-      value: Ed25519KeyHash
+    - name: addr_keyhash
+      type: Ed25519KeyHash
 
 ScriptAll:
   type: record_fragment
   fields:
-    - key: native_scripts
-      value: NativeScripts
+    - name: native_scripts
+      type: NativeScripts
 
 ScriptAny:
   type: record_fragment
   fields:
-    - key: native_scripts
-      value: NativeScripts
+    - name: native_scripts
+      type: NativeScripts
 
 ScriptNOfK:
   type: record_fragment
   fields:
-    - key: n
-      value: number
-    - key: native_scripts
-      value: NativeScripts
+    - name: n
+      type: number
+    - name: native_scripts
+      type: NativeScripts
 
 TimelockStart:
   type: record_fragment
   fields:
-    - key: slot
-      value: bignum
+    - name: slot
+      type: bignum
 
 TimelockExpiry:
   type: record_fragment
   fields:
-    - key: slot
-      value: bignum
+    - name: slot
+      type: bignum
 
 # coin = uint
 
