@@ -11,10 +11,12 @@ export type Field = {
 export class GenRecord implements CodeGenerator {
   name: string;
   fields: Field[];
+  isFragment: boolean;
 
-  constructor(name: string, fields: Field[]) {
+  constructor(name: string, fields: Field[], isFragment = false) {
     this.name = name;
     this.fields = fields;
+    this.isFragment = isFragment;
   }
 
   generate(customTypes: Set<string>): string {
@@ -24,8 +26,19 @@ export class GenRecord implements CodeGenerator {
         ${genConstructor(this.fields)}
         ${genAccessors(this.fields)}
 
+        const FRAGMENT_FIELDS_LEN: number = ${this.fields.length};
+
+        ${
+          this.isFragment
+            ? ` 
+        static deserialize(reader: CBORReader, len: number | null): ${this.name} {
+            `
+            : `
         static deserialize(reader: CBORReader): ${this.name} {
-          let len = reader.readArrayTag();
+            let len = reader.readArrayTag();
+            `
+        }
+          
           if(len != null && len < ${this.fields.length}) {
             throw new Error("Insufficient number of fields in record. Expected ${this.fields.length}. Received " + len);
           }
@@ -45,7 +58,12 @@ export class GenRecord implements CodeGenerator {
         }
 
         serialize(writer: CBORWriter): void {
-          writer.writeArrayTag(${this.fields.length});
+          ${
+            !this.isFragment
+              ? `writer.writeArrayTag(${this.fields.length});`
+              : ""
+          }
+
           ${this.fields
             .map((x) =>
               x.nullable
