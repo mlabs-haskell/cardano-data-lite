@@ -1,6 +1,7 @@
 import { CBORReader } from "../cbor/reader";
 import { CBORWriter } from "../cbor/writer";
 import { hexToBytes, bytesToHex } from "../hex";
+import { arrayEq } from "../eq";
 
 export class Block {
   private header: Header;
@@ -2028,126 +2029,93 @@ export class GovernanceAction {
   static deserialize(reader: CBORReader): GovernanceAction {
     let len = reader.readArrayTag();
     let tag = Number(reader.readUint());
-
-    let fragmentLen = len != null ? len - 1 : null;
+    let variant: GovernanceActionVariant;
 
     switch (tag) {
       case 0:
-        if (ParameterChangeAction.FRAGMENT_FIELDS_LEN != null) {
-          return new GovernanceAction({
-            kind: 0,
-            value: ParameterChangeAction.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant parameter_change_action",
-            );
-          return new GovernanceAction({
-            kind: 0,
-            value: ParameterChangeAction.deserialize(reader),
-          });
+        if (len != null && len - 1 != 3) {
+          throw new Error("Expected 3 items to decode ParameterChangeAction");
         }
+        variant = {
+          kind: 0,
+          value: ParameterChangeAction.deserialize(reader),
+        };
+
+        break;
 
       case 1:
-        if (HardForkInitiationAction.FRAGMENT_FIELDS_LEN != null) {
-          return new GovernanceAction({
-            kind: 1,
-            value: HardForkInitiationAction.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant hard_fork_initiation_action",
-            );
-          return new GovernanceAction({
-            kind: 1,
-            value: HardForkInitiationAction.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error(
+            "Expected 2 items to decode HardForkInitiationAction",
+          );
         }
+        variant = {
+          kind: 1,
+          value: HardForkInitiationAction.deserialize(reader),
+        };
+
+        break;
 
       case 2:
-        if (TreasuryWithdrawalsAction.FRAGMENT_FIELDS_LEN != null) {
-          return new GovernanceAction({
-            kind: 2,
-            value: TreasuryWithdrawalsAction.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant treasury_withdrawals_action",
-            );
-          return new GovernanceAction({
-            kind: 2,
-            value: TreasuryWithdrawalsAction.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error(
+            "Expected 2 items to decode TreasuryWithdrawalsAction",
+          );
         }
+        variant = {
+          kind: 2,
+          value: TreasuryWithdrawalsAction.deserialize(reader),
+        };
+
+        break;
 
       case 3:
-        if (NoConfidenceAction.FRAGMENT_FIELDS_LEN != null) {
-          return new GovernanceAction({
-            kind: 3,
-            value: NoConfidenceAction.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant no_confidence_action",
-            );
-          return new GovernanceAction({
-            kind: 3,
-            value: NoConfidenceAction.deserialize(reader),
-          });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode NoConfidenceAction");
         }
+        variant = {
+          kind: 3,
+          value: NoConfidenceAction.deserialize(reader),
+        };
+
+        break;
 
       case 4:
-        if (UpdateCommitteeAction.FRAGMENT_FIELDS_LEN != null) {
-          return new GovernanceAction({
-            kind: 4,
-            value: UpdateCommitteeAction.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant new_committee_action",
-            );
-          return new GovernanceAction({
-            kind: 4,
-            value: UpdateCommitteeAction.deserialize(reader),
-          });
+        if (len != null && len - 1 != 4) {
+          throw new Error("Expected 4 items to decode UpdateCommitteeAction");
         }
+        variant = {
+          kind: 4,
+          value: UpdateCommitteeAction.deserialize(reader),
+        };
+
+        break;
 
       case 5:
-        if (NewConstitutionAction.FRAGMENT_FIELDS_LEN != null) {
-          return new GovernanceAction({
-            kind: 5,
-            value: NewConstitutionAction.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant new_constitution_action",
-            );
-          return new GovernanceAction({
-            kind: 5,
-            value: NewConstitutionAction.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error("Expected 2 items to decode NewConstitutionAction");
         }
+        variant = {
+          kind: 5,
+          value: NewConstitutionAction.deserialize(reader),
+        };
+
+        break;
 
       case 6:
-        if (InfoAction.FRAGMENT_FIELDS_LEN != null) {
-          return new GovernanceAction({
-            kind: 6,
-            value: InfoAction.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant info_action");
-          return new GovernanceAction({
-            kind: 6,
-            value: InfoAction.deserialize(reader),
-          });
+        if (len != null && len - 1 != 0) {
+          throw new Error("Expected 0 items to decode InfoAction");
         }
+        variant = {
+          kind: 6,
+          value: InfoAction.deserialize(reader),
+        };
+
+        break;
+    }
+
+    if (len == null) {
+      reader.readBreak();
     }
 
     throw new Error("Unexpected tag for GovernanceAction: " + tag);
@@ -2156,96 +2124,45 @@ export class GovernanceAction {
   serialize(writer: CBORWriter): void {
     switch (this.variant.kind) {
       case 0:
-        let fragmentLen = ParameterChangeAction.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(0n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(0n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(4);
+        writer.writeInt(BigInt(0));
+        this.variant.value.serialize(writer);
         break;
       case 1:
-        let fragmentLen = HardForkInitiationAction.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(1n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(1n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(1));
+        this.variant.value.serialize(writer);
         break;
       case 2:
-        let fragmentLen = TreasuryWithdrawalsAction.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(2n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(2n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(2));
+        this.variant.value.serialize(writer);
         break;
       case 3:
-        let fragmentLen = NoConfidenceAction.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(3n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(3n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(3));
+        this.variant.value.serialize(writer);
         break;
       case 4:
-        let fragmentLen = UpdateCommitteeAction.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(4n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(4n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(5);
+        writer.writeInt(BigInt(4));
+        this.variant.value.serialize(writer);
         break;
       case 5:
-        let fragmentLen = NewConstitutionAction.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(5n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(5n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(5));
+        this.variant.value.serialize(writer);
         break;
       case 6:
-        let fragmentLen = InfoAction.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(6n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(6n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(1);
+        writer.writeInt(BigInt(6));
+        this.variant.value.serialize(writer);
         break;
     }
   }
 }
 
 export class ParameterChangeAction {
-  static FRAGMENT_FIELDS_LEN: number = 3;
-
   private gov_action_id: GovernanceActionId | undefined;
   private protocol_param_updates: ProtocolParamUpdate;
   private policy_hash: unknown | undefined;
@@ -2286,16 +2203,7 @@ export class ParameterChangeAction {
     this.policy_hash = policy_hash;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): ParameterChangeAction {
-    if (len != null && len < 3) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): ParameterChangeAction {
     let gov_action_id =
       reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
       undefined;
@@ -2328,8 +2236,6 @@ export class ParameterChangeAction {
 }
 
 export class HardForkInitiationAction {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private gov_action_id: GovernanceActionId | undefined;
   private protocol_version: ProtocolVersion;
 
@@ -2357,16 +2263,7 @@ export class HardForkInitiationAction {
     this.protocol_version = protocol_version;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): HardForkInitiationAction {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): HardForkInitiationAction {
     let gov_action_id =
       reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
       undefined;
@@ -2387,8 +2284,6 @@ export class HardForkInitiationAction {
 }
 
 export class TreasuryWithdrawalsAction {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private withdrawals: unknown;
   private policy_hash: unknown | undefined;
 
@@ -2413,16 +2308,7 @@ export class TreasuryWithdrawalsAction {
     this.policy_hash = policy_hash;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): TreasuryWithdrawalsAction {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): TreasuryWithdrawalsAction {
     let withdrawals = $$CANT_READ("TreasuryWithdrawals");
 
     let policy_hash =
@@ -2442,8 +2328,6 @@ export class TreasuryWithdrawalsAction {
 }
 
 export class NoConfidenceAction {
-  static FRAGMENT_FIELDS_LEN: number = 1;
-
   private gov_action_id: GovernanceActionId | undefined;
 
   constructor(gov_action_id: GovernanceActionId | undefined) {
@@ -2458,16 +2342,7 @@ export class NoConfidenceAction {
     this.gov_action_id = gov_action_id;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): NoConfidenceAction {
-    if (len != null && len < 1) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): NoConfidenceAction {
     let gov_action_id =
       reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
       undefined;
@@ -2485,8 +2360,6 @@ export class NoConfidenceAction {
 }
 
 export class UpdateCommitteeAction {
-  static FRAGMENT_FIELDS_LEN: number = 4;
-
   private gov_action_id: GovernanceActionId | undefined;
   private members_to_remove: Credentials;
   private committee: unknown;
@@ -2536,16 +2409,7 @@ export class UpdateCommitteeAction {
     this.quorom_threshold = quorom_threshold;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): UpdateCommitteeAction {
-    if (len != null && len < 4) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): UpdateCommitteeAction {
     let gov_action_id =
       reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
       undefined;
@@ -2577,8 +2441,6 @@ export class UpdateCommitteeAction {
 }
 
 export class NewConstitutionAction {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private gov_action_id: GovernanceActionId | undefined;
   private constitution: Constitution;
 
@@ -2606,16 +2468,7 @@ export class NewConstitutionAction {
     this.constitution = constitution;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): NewConstitutionAction {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): NewConstitutionAction {
     let gov_action_id =
       reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
       undefined;
@@ -2636,17 +2489,9 @@ export class NewConstitutionAction {
 }
 
 export class InfoAction {
-  static FRAGMENT_FIELDS_LEN: number = 0;
-
   constructor() {}
 
-  static deserialize(reader: CBORReader, len: number | null): InfoAction {
-    if (len != null && len < 0) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 0. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): InfoAction {
     return new InfoAction();
   }
 
@@ -3504,297 +3349,205 @@ export class Certificate {
   static deserialize(reader: CBORReader): Certificate {
     let len = reader.readArrayTag();
     let tag = Number(reader.readUint());
-
-    let fragmentLen = len != null ? len - 1 : null;
+    let variant: CertificateVariant;
 
     switch (tag) {
       case 0:
-        if (StakeRegistration.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 0,
-            value: StakeRegistration.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant stake_registration",
-            );
-          return new Certificate({
-            kind: 0,
-            value: StakeRegistration.deserialize(reader),
-          });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode StakeRegistration");
         }
+        variant = {
+          kind: 0,
+          value: StakeRegistration.deserialize(reader),
+        };
+
+        break;
 
       case 1:
-        if (StakeDeregistration.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 1,
-            value: StakeDeregistration.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant stake_deregistration",
-            );
-          return new Certificate({
-            kind: 1,
-            value: StakeDeregistration.deserialize(reader),
-          });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode StakeDeregistration");
         }
+        variant = {
+          kind: 1,
+          value: StakeDeregistration.deserialize(reader),
+        };
+
+        break;
 
       case 2:
-        if (StakeDelegation.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 2,
-            value: StakeDelegation.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant stake_delegation",
-            );
-          return new Certificate({
-            kind: 2,
-            value: StakeDelegation.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error("Expected 2 items to decode StakeDelegation");
         }
+        variant = {
+          kind: 2,
+          value: StakeDelegation.deserialize(reader),
+        };
+
+        break;
 
       case 3:
-        if (PoolRegistration.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 3,
-            value: PoolRegistration.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant pool_registration",
-            );
-          return new Certificate({
-            kind: 3,
-            value: PoolRegistration.deserialize(reader),
-          });
+        if (len != null && len - 1 != 9) {
+          throw new Error("Expected 9 items to decode PoolRegistration");
         }
+        variant = {
+          kind: 3,
+          value: PoolRegistration.deserialize(reader),
+        };
+
+        break;
 
       case 4:
-        if (PoolRetirement.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 4,
-            value: PoolRetirement.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant pool_retirement");
-          return new Certificate({
-            kind: 4,
-            value: PoolRetirement.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error("Expected 2 items to decode PoolRetirement");
         }
+        variant = {
+          kind: 4,
+          value: PoolRetirement.deserialize(reader),
+        };
+
+        break;
 
       case 7:
-        if (RegCert.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 7,
-            value: RegCert.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant reg_cert");
-          return new Certificate({
-            kind: 7,
-            value: RegCert.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error("Expected 2 items to decode RegCert");
         }
+        variant = {
+          kind: 7,
+          value: RegCert.deserialize(reader),
+        };
+
+        break;
 
       case 8:
-        if (UnregCert.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 8,
-            value: UnregCert.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant unreg_cert");
-          return new Certificate({
-            kind: 8,
-            value: UnregCert.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error("Expected 2 items to decode UnregCert");
         }
+        variant = {
+          kind: 8,
+          value: UnregCert.deserialize(reader),
+        };
+
+        break;
 
       case 9:
-        if (VoteDelegation.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 9,
-            value: VoteDelegation.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant vote_delegation");
-          return new Certificate({
-            kind: 9,
-            value: VoteDelegation.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error("Expected 2 items to decode VoteDelegation");
         }
+        variant = {
+          kind: 9,
+          value: VoteDelegation.deserialize(reader),
+        };
+
+        break;
 
       case 10:
-        if (StakeAndVoteDelegation.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 10,
-            value: StakeAndVoteDelegation.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant stake_and_vote_delegation",
-            );
-          return new Certificate({
-            kind: 10,
-            value: StakeAndVoteDelegation.deserialize(reader),
-          });
+        if (len != null && len - 1 != 3) {
+          throw new Error("Expected 3 items to decode StakeAndVoteDelegation");
         }
+        variant = {
+          kind: 10,
+          value: StakeAndVoteDelegation.deserialize(reader),
+        };
+
+        break;
 
       case 11:
-        if (StakeRegistrationAndDelegation.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 11,
-            value: StakeRegistrationAndDelegation.deserialize(
-              reader,
-              fragmentLen,
-            ),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant stake_registration_and_delegation",
-            );
-          return new Certificate({
-            kind: 11,
-            value: StakeRegistrationAndDelegation.deserialize(reader),
-          });
+        if (len != null && len - 1 != 3) {
+          throw new Error(
+            "Expected 3 items to decode StakeRegistrationAndDelegation",
+          );
         }
+        variant = {
+          kind: 11,
+          value: StakeRegistrationAndDelegation.deserialize(reader),
+        };
+
+        break;
 
       case 12:
-        if (VoteRegistrationAndDelegation.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 12,
-            value: VoteRegistrationAndDelegation.deserialize(
-              reader,
-              fragmentLen,
-            ),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant vote_registration_and_delegation",
-            );
-          return new Certificate({
-            kind: 12,
-            value: VoteRegistrationAndDelegation.deserialize(reader),
-          });
+        if (len != null && len - 1 != 3) {
+          throw new Error(
+            "Expected 3 items to decode VoteRegistrationAndDelegation",
+          );
         }
+        variant = {
+          kind: 12,
+          value: VoteRegistrationAndDelegation.deserialize(reader),
+        };
+
+        break;
 
       case 13:
-        if (StakeVoteRegistrationAndDelegation.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 13,
-            value: StakeVoteRegistrationAndDelegation.deserialize(
-              reader,
-              fragmentLen,
-            ),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant stake_vote_registration_and_delegation",
-            );
-          return new Certificate({
-            kind: 13,
-            value: StakeVoteRegistrationAndDelegation.deserialize(reader),
-          });
+        if (len != null && len - 1 != 4) {
+          throw new Error(
+            "Expected 4 items to decode StakeVoteRegistrationAndDelegation",
+          );
         }
+        variant = {
+          kind: 13,
+          value: StakeVoteRegistrationAndDelegation.deserialize(reader),
+        };
+
+        break;
 
       case 14:
-        if (CommitteeHotAuth.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 14,
-            value: CommitteeHotAuth.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant committee_hot_auth",
-            );
-          return new Certificate({
-            kind: 14,
-            value: CommitteeHotAuth.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error("Expected 2 items to decode CommitteeHotAuth");
         }
+        variant = {
+          kind: 14,
+          value: CommitteeHotAuth.deserialize(reader),
+        };
+
+        break;
 
       case 15:
-        if (CommitteeColdResign.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 15,
-            value: CommitteeColdResign.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant committee_cold_resign",
-            );
-          return new Certificate({
-            kind: 15,
-            value: CommitteeColdResign.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error("Expected 2 items to decode CommitteeColdResign");
         }
+        variant = {
+          kind: 15,
+          value: CommitteeColdResign.deserialize(reader),
+        };
+
+        break;
 
       case 16:
-        if (DrepRegistration.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 16,
-            value: DrepRegistration.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant drep_registration",
-            );
-          return new Certificate({
-            kind: 16,
-            value: DrepRegistration.deserialize(reader),
-          });
+        if (len != null && len - 1 != 3) {
+          throw new Error("Expected 3 items to decode DrepRegistration");
         }
+        variant = {
+          kind: 16,
+          value: DrepRegistration.deserialize(reader),
+        };
+
+        break;
 
       case 17:
-        if (DrepDeregistration.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 17,
-            value: DrepDeregistration.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant drep_deregistration",
-            );
-          return new Certificate({
-            kind: 17,
-            value: DrepDeregistration.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error("Expected 2 items to decode DrepDeregistration");
         }
+        variant = {
+          kind: 17,
+          value: DrepDeregistration.deserialize(reader),
+        };
+
+        break;
 
       case 18:
-        if (DrepUpdate.FRAGMENT_FIELDS_LEN != null) {
-          return new Certificate({
-            kind: 18,
-            value: DrepUpdate.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant drep_update");
-          return new Certificate({
-            kind: 18,
-            value: DrepUpdate.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error("Expected 2 items to decode DrepUpdate");
         }
+        variant = {
+          kind: 18,
+          value: DrepUpdate.deserialize(reader),
+        };
+
+        break;
+    }
+
+    if (len == null) {
+      reader.readBreak();
     }
 
     throw new Error("Unexpected tag for Certificate: " + tag);
@@ -3803,217 +3556,95 @@ export class Certificate {
   serialize(writer: CBORWriter): void {
     switch (this.variant.kind) {
       case 0:
-        let fragmentLen = StakeRegistration.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(0n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(0n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(0));
+        this.variant.value.serialize(writer);
         break;
       case 1:
-        let fragmentLen = StakeDeregistration.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(1n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(1n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(1));
+        this.variant.value.serialize(writer);
         break;
       case 2:
-        let fragmentLen = StakeDelegation.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(2n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(2n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(2));
+        this.variant.value.serialize(writer);
         break;
       case 3:
-        let fragmentLen = PoolRegistration.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(3n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(3n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(10);
+        writer.writeInt(BigInt(3));
+        this.variant.value.serialize(writer);
         break;
       case 4:
-        let fragmentLen = PoolRetirement.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(4n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(4n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(4));
+        this.variant.value.serialize(writer);
         break;
       case 7:
-        let fragmentLen = RegCert.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(7n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(7n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(7));
+        this.variant.value.serialize(writer);
         break;
       case 8:
-        let fragmentLen = UnregCert.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(8n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(8n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(8));
+        this.variant.value.serialize(writer);
         break;
       case 9:
-        let fragmentLen = VoteDelegation.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(9n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(9n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(9));
+        this.variant.value.serialize(writer);
         break;
       case 10:
-        let fragmentLen = StakeAndVoteDelegation.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(10n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(10n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(4);
+        writer.writeInt(BigInt(10));
+        this.variant.value.serialize(writer);
         break;
       case 11:
-        let fragmentLen = StakeRegistrationAndDelegation.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(11n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(11n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(4);
+        writer.writeInt(BigInt(11));
+        this.variant.value.serialize(writer);
         break;
       case 12:
-        let fragmentLen = VoteRegistrationAndDelegation.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(12n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(12n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(4);
+        writer.writeInt(BigInt(12));
+        this.variant.value.serialize(writer);
         break;
       case 13:
-        let fragmentLen =
-          StakeVoteRegistrationAndDelegation.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(13n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(13n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(5);
+        writer.writeInt(BigInt(13));
+        this.variant.value.serialize(writer);
         break;
       case 14:
-        let fragmentLen = CommitteeHotAuth.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(14n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(14n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(14));
+        this.variant.value.serialize(writer);
         break;
       case 15:
-        let fragmentLen = CommitteeColdResign.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(15n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(15n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(15));
+        this.variant.value.serialize(writer);
         break;
       case 16:
-        let fragmentLen = DrepRegistration.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(16n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(16n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(4);
+        writer.writeInt(BigInt(16));
+        this.variant.value.serialize(writer);
         break;
       case 17:
-        let fragmentLen = DrepDeregistration.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(17n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(17n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(17));
+        this.variant.value.serialize(writer);
         break;
       case 18:
-        let fragmentLen = DrepUpdate.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(18n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(18n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(18));
+        this.variant.value.serialize(writer);
         break;
     }
   }
 }
 
 export class StakeRegistration {
-  static FRAGMENT_FIELDS_LEN: number = 1;
-
   private stake_credential: Credential;
 
   constructor(stake_credential: Credential) {
@@ -4028,16 +3659,7 @@ export class StakeRegistration {
     this.stake_credential = stake_credential;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): StakeRegistration {
-    if (len != null && len < 1) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): StakeRegistration {
     let stake_credential = Credential.deserialize(reader);
 
     return new StakeRegistration(stake_credential);
@@ -4049,8 +3671,6 @@ export class StakeRegistration {
 }
 
 export class StakeDeregistration {
-  static FRAGMENT_FIELDS_LEN: number = 1;
-
   private stake_credential: Credential;
 
   constructor(stake_credential: Credential) {
@@ -4065,16 +3685,7 @@ export class StakeDeregistration {
     this.stake_credential = stake_credential;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): StakeDeregistration {
-    if (len != null && len < 1) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): StakeDeregistration {
     let stake_credential = Credential.deserialize(reader);
 
     return new StakeDeregistration(stake_credential);
@@ -4086,8 +3697,6 @@ export class StakeDeregistration {
 }
 
 export class StakeDelegation {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private stake_credential: Credential;
   private pool_keyhash: unknown;
 
@@ -4112,13 +3721,7 @@ export class StakeDelegation {
     this.pool_keyhash = pool_keyhash;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): StakeDelegation {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): StakeDelegation {
     let stake_credential = Credential.deserialize(reader);
 
     let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
@@ -4133,8 +3736,6 @@ export class StakeDelegation {
 }
 
 export class PoolRegistration {
-  static FRAGMENT_FIELDS_LEN: number = PoolParams.FRAGMENT_FIELDS_LEN;
-
   private pool_params: PoolParams;
 
   constructor(pool_params: PoolParams) {
@@ -4171,8 +3772,8 @@ export class PoolRegistration {
     return bytesToHex(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader, len: number | null): PoolRegistration {
-    let pool_params = PoolParams.deserialize(reader, len);
+  static deserialize(reader: CBORReader): PoolRegistration {
+    let pool_params = PoolParams.deserialize(reader);
     return new PoolRegistration(pool_params);
   }
 
@@ -4182,8 +3783,6 @@ export class PoolRegistration {
 }
 
 export class PoolRetirement {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private pool_keyhash: unknown;
   private epoch: number;
 
@@ -4208,13 +3807,7 @@ export class PoolRetirement {
     this.epoch = epoch;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): PoolRetirement {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): PoolRetirement {
     let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
 
     let epoch = Number(reader.readInt());
@@ -4229,8 +3822,6 @@ export class PoolRetirement {
 }
 
 export class RegCert {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private stake_credential: Credential;
   private coin: bigint;
 
@@ -4255,13 +3846,7 @@ export class RegCert {
     this.coin = coin;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): RegCert {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): RegCert {
     let stake_credential = Credential.deserialize(reader);
 
     let coin = reader.readInt();
@@ -4276,8 +3861,6 @@ export class RegCert {
 }
 
 export class UnregCert {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private stake_credential: Credential;
   private coin: bigint;
 
@@ -4302,13 +3885,7 @@ export class UnregCert {
     this.coin = coin;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): UnregCert {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): UnregCert {
     let stake_credential = Credential.deserialize(reader);
 
     let coin = reader.readInt();
@@ -4323,8 +3900,6 @@ export class UnregCert {
 }
 
 export class VoteDelegation {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private stake_credential: Credential;
   private drep: DRep;
 
@@ -4349,13 +3924,7 @@ export class VoteDelegation {
     this.drep = drep;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): VoteDelegation {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): VoteDelegation {
     let stake_credential = Credential.deserialize(reader);
 
     let drep = DRep.deserialize(reader);
@@ -4370,8 +3939,6 @@ export class VoteDelegation {
 }
 
 export class StakeAndVoteDelegation {
-  static FRAGMENT_FIELDS_LEN: number = 3;
-
   private stake_credential: Credential;
   private pool_keyhash: unknown;
   private drep: DRep;
@@ -4406,16 +3973,7 @@ export class StakeAndVoteDelegation {
     this.drep = drep;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): StakeAndVoteDelegation {
-    if (len != null && len < 3) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): StakeAndVoteDelegation {
     let stake_credential = Credential.deserialize(reader);
 
     let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
@@ -4433,8 +3991,6 @@ export class StakeAndVoteDelegation {
 }
 
 export class StakeRegistrationAndDelegation {
-  static FRAGMENT_FIELDS_LEN: number = 3;
-
   private stake_credential: Credential;
   private pool_keyhash: unknown;
   private coin: bigint;
@@ -4473,16 +4029,7 @@ export class StakeRegistrationAndDelegation {
     this.coin = coin;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): StakeRegistrationAndDelegation {
-    if (len != null && len < 3) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): StakeRegistrationAndDelegation {
     let stake_credential = Credential.deserialize(reader);
 
     let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
@@ -4504,8 +4051,6 @@ export class StakeRegistrationAndDelegation {
 }
 
 export class VoteRegistrationAndDelegation {
-  static FRAGMENT_FIELDS_LEN: number = 3;
-
   private stake_credential: Credential;
   private drep: DRep;
   private coin: bigint;
@@ -4540,16 +4085,7 @@ export class VoteRegistrationAndDelegation {
     this.coin = coin;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): VoteRegistrationAndDelegation {
-    if (len != null && len < 3) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): VoteRegistrationAndDelegation {
     let stake_credential = Credential.deserialize(reader);
 
     let drep = DRep.deserialize(reader);
@@ -4567,8 +4103,6 @@ export class VoteRegistrationAndDelegation {
 }
 
 export class StakeVoteRegistrationAndDelegation {
-  static FRAGMENT_FIELDS_LEN: number = 4;
-
   private stake_credential: Credential;
   private pool_keyhash: unknown;
   private drep: DRep;
@@ -4618,16 +4152,7 @@ export class StakeVoteRegistrationAndDelegation {
     this.coin = coin;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): StakeVoteRegistrationAndDelegation {
-    if (len != null && len < 4) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): StakeVoteRegistrationAndDelegation {
     let stake_credential = Credential.deserialize(reader);
 
     let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
@@ -4653,8 +4178,6 @@ export class StakeVoteRegistrationAndDelegation {
 }
 
 export class CommitteeHotAuth {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private committee_cold_key: Credential;
   private committee_hot_key: Credential;
 
@@ -4679,13 +4202,7 @@ export class CommitteeHotAuth {
     this.committee_hot_key = committee_hot_key;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): CommitteeHotAuth {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): CommitteeHotAuth {
     let committee_cold_key = Credential.deserialize(reader);
 
     let committee_hot_key = Credential.deserialize(reader);
@@ -4700,8 +4217,6 @@ export class CommitteeHotAuth {
 }
 
 export class CommitteeColdResign {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private committee_cold_key: Credential;
   private anchor: Anchor | undefined;
 
@@ -4726,16 +4241,7 @@ export class CommitteeColdResign {
     this.anchor = anchor;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): CommitteeColdResign {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): CommitteeColdResign {
     let committee_cold_key = Credential.deserialize(reader);
 
     let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
@@ -4754,8 +4260,6 @@ export class CommitteeColdResign {
 }
 
 export class DrepRegistration {
-  static FRAGMENT_FIELDS_LEN: number = 3;
-
   private voting_credential: Credential;
   private coin: bigint;
   private anchor: Anchor | undefined;
@@ -4794,13 +4298,7 @@ export class DrepRegistration {
     this.anchor = anchor;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): DrepRegistration {
-    if (len != null && len < 3) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): DrepRegistration {
     let voting_credential = Credential.deserialize(reader);
 
     let coin = reader.readInt();
@@ -4822,8 +4320,6 @@ export class DrepRegistration {
 }
 
 export class DrepDeregistration {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private drep_credential: Credential;
   private coin: bigint;
 
@@ -4848,16 +4344,7 @@ export class DrepDeregistration {
     this.coin = coin;
   }
 
-  static deserialize(
-    reader: CBORReader,
-    len: number | null,
-  ): DrepDeregistration {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): DrepDeregistration {
     let drep_credential = Credential.deserialize(reader);
 
     let coin = reader.readInt();
@@ -4872,8 +4359,6 @@ export class DrepDeregistration {
 }
 
 export class DrepUpdate {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private drep_credential: Credential;
   private anchor: Anchor | undefined;
 
@@ -4898,13 +4383,7 @@ export class DrepUpdate {
     this.anchor = anchor;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): DrepUpdate {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): DrepUpdate {
     let drep_credential = Credential.deserialize(reader);
 
     let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
@@ -4979,18 +4458,34 @@ export class Credential {
   static deserialize(reader: CBORReader): Credential {
     let len = reader.readArrayTag();
     let tag = Number(reader.readUint());
-
-    let fragmentLen = len != null ? len - 1 : null;
+    let variant: CredentialVariant;
 
     switch (tag) {
       case 0:
-        return new Credential({
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode Ed25519KeyHash");
+        }
+        variant = {
           kind: 0,
           value: $$CANT_READ("Ed25519KeyHash"),
-        });
+        };
+
+        break;
 
       case 1:
-        return new Credential({ kind: 1, value: $$CANT_READ("ScriptHash") });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode ScriptHash");
+        }
+        variant = {
+          kind: 1,
+          value: $$CANT_READ("ScriptHash"),
+        };
+
+        break;
+    }
+
+    if (len == null) {
+      reader.readBreak();
     }
 
     throw new Error("Unexpected tag for Credential: " + tag);
@@ -5000,12 +4495,12 @@ export class Credential {
     switch (this.variant.kind) {
       case 0:
         writer.writeArrayTag(2);
-        writer.writeInt(0n);
+        writer.writeInt(BigInt(0));
         $$CANT_WRITE("Ed25519KeyHash");
         break;
       case 1:
         writer.writeArrayTag(2);
-        writer.writeInt(1n);
+        writer.writeInt(BigInt(1));
         $$CANT_WRITE("ScriptHash");
         break;
     }
@@ -5081,21 +4576,54 @@ export class DRep {
   static deserialize(reader: CBORReader): DRep {
     let len = reader.readArrayTag();
     let tag = Number(reader.readUint());
-
-    let fragmentLen = len != null ? len - 1 : null;
+    let variant: DRepVariant;
 
     switch (tag) {
       case 0:
-        return new DRep({ kind: 0, value: $$CANT_READ("Ed25519KeyHash") });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode Ed25519KeyHash");
+        }
+        variant = {
+          kind: 0,
+          value: $$CANT_READ("Ed25519KeyHash"),
+        };
+
+        break;
 
       case 1:
-        return new DRep({ kind: 1, value: $$CANT_READ("ScriptHash") });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode ScriptHash");
+        }
+        variant = {
+          kind: 1,
+          value: $$CANT_READ("ScriptHash"),
+        };
+
+        break;
 
       case 2:
-        return new DRep({ kind: 2 });
+        if (len != null && len - 1 != 0) {
+          throw new Error("Expected 0 items to decode AlwaysAbstain");
+        }
+        variant = {
+          kind: 2,
+        };
+
+        break;
 
       case 3:
-        return new DRep({ kind: 3 });
+        if (len != null && len - 1 != 0) {
+          throw new Error("Expected 0 items to decode AlwaysNoConfidence");
+        }
+        variant = {
+          kind: 3,
+        };
+
+        break;
+    }
+
+    if (len == null) {
+      reader.readBreak();
     }
 
     throw new Error("Unexpected tag for DRep: " + tag);
@@ -5105,29 +4633,27 @@ export class DRep {
     switch (this.variant.kind) {
       case 0:
         writer.writeArrayTag(2);
-        writer.writeInt(0n);
+        writer.writeInt(BigInt(0));
         $$CANT_WRITE("Ed25519KeyHash");
         break;
       case 1:
         writer.writeArrayTag(2);
-        writer.writeInt(1n);
+        writer.writeInt(BigInt(1));
         $$CANT_WRITE("ScriptHash");
         break;
       case 2:
         writer.writeArrayTag(1);
-        writer.writeInt(2n);
+        writer.writeInt(BigInt(2));
         break;
       case 3:
         writer.writeArrayTag(1);
-        writer.writeInt(3n);
+        writer.writeInt(BigInt(3));
         break;
     }
   }
 }
 
 export class PoolParams {
-  static FRAGMENT_FIELDS_LEN: number = 9;
-
   private operator: unknown;
   private vrf_keyhash: unknown;
   private pledge: bigint;
@@ -5232,13 +4758,7 @@ export class PoolParams {
     this.pool_metadata = pool_metadata;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): PoolParams {
-    if (len != null && len < 9) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 9. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): PoolParams {
     let operator = $$CANT_READ("Ed25519KeyHash");
 
     let vrf_keyhash = $$CANT_READ("VRFKeyHash");
@@ -5600,58 +5120,45 @@ export class Relay {
   static deserialize(reader: CBORReader): Relay {
     let len = reader.readArrayTag();
     let tag = Number(reader.readUint());
-
-    let fragmentLen = len != null ? len - 1 : null;
+    let variant: RelayVariant;
 
     switch (tag) {
       case 0:
-        if (SingleHostAddr.FRAGMENT_FIELDS_LEN != null) {
-          return new Relay({
-            kind: 0,
-            value: SingleHostAddr.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant single_host_addr",
-            );
-          return new Relay({
-            kind: 0,
-            value: SingleHostAddr.deserialize(reader),
-          });
+        if (len != null && len - 1 != 3) {
+          throw new Error("Expected 3 items to decode SingleHostAddr");
         }
+        variant = {
+          kind: 0,
+          value: SingleHostAddr.deserialize(reader),
+        };
+
+        break;
 
       case 1:
-        if (SingleHostName.FRAGMENT_FIELDS_LEN != null) {
-          return new Relay({
-            kind: 1,
-            value: SingleHostName.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error(
-              "Expected more values for variant single_host_name",
-            );
-          return new Relay({
-            kind: 1,
-            value: SingleHostName.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error("Expected 2 items to decode SingleHostName");
         }
+        variant = {
+          kind: 1,
+          value: SingleHostName.deserialize(reader),
+        };
+
+        break;
 
       case 2:
-        if (MultiHostName.FRAGMENT_FIELDS_LEN != null) {
-          return new Relay({
-            kind: 2,
-            value: MultiHostName.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant multi_host_name");
-          return new Relay({
-            kind: 2,
-            value: MultiHostName.deserialize(reader),
-          });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode MultiHostName");
         }
+        variant = {
+          kind: 2,
+          value: MultiHostName.deserialize(reader),
+        };
+
+        break;
+    }
+
+    if (len == null) {
+      reader.readBreak();
     }
 
     throw new Error("Unexpected tag for Relay: " + tag);
@@ -5660,48 +5167,25 @@ export class Relay {
   serialize(writer: CBORWriter): void {
     switch (this.variant.kind) {
       case 0:
-        let fragmentLen = SingleHostAddr.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(0n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(0n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(4);
+        writer.writeInt(BigInt(0));
+        this.variant.value.serialize(writer);
         break;
       case 1:
-        let fragmentLen = SingleHostName.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(1n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(1n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(1));
+        this.variant.value.serialize(writer);
         break;
       case 2:
-        let fragmentLen = MultiHostName.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(2n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(2n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(2));
+        this.variant.value.serialize(writer);
         break;
     }
   }
 }
 
 export class SingleHostAddr {
-  static FRAGMENT_FIELDS_LEN: number = 3;
-
   private port: number | undefined;
   private ipv4: Ipv4 | undefined;
   private ipv6: Ipv6 | undefined;
@@ -5740,13 +5224,7 @@ export class SingleHostAddr {
     this.ipv6 = ipv6;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): SingleHostAddr {
-    if (len != null && len < 3) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): SingleHostAddr {
     let port = reader.readNullable((r) => Number(r.readInt())) ?? undefined;
 
     let ipv4 = reader.readNullable((r) => Ipv4.deserialize(r)) ?? undefined;
@@ -5776,8 +5254,6 @@ export class SingleHostAddr {
 }
 
 export class SingleHostName {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private port: number | undefined;
   private dns_name: DNSRecordAorAAAA;
 
@@ -5802,13 +5278,7 @@ export class SingleHostName {
     this.dns_name = dns_name;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): SingleHostName {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): SingleHostName {
     let port = reader.readNullable((r) => Number(r.readInt())) ?? undefined;
 
     let dns_name = DNSRecordAorAAAA.deserialize(reader);
@@ -5827,8 +5297,6 @@ export class SingleHostName {
 }
 
 export class MultiHostName {
-  static FRAGMENT_FIELDS_LEN: number = 1;
-
   private dns_name: DNSRecordSRV;
 
   constructor(dns_name: DNSRecordSRV) {
@@ -5843,13 +5311,7 @@ export class MultiHostName {
     this.dns_name = dns_name;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): MultiHostName {
-    if (len != null && len < 1) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): MultiHostName {
     let dns_name = DNSRecordSRV.deserialize(reader);
 
     return new MultiHostName(dns_name);
@@ -8423,90 +7885,78 @@ export class NativeScript {
   static deserialize(reader: CBORReader): NativeScript {
     let len = reader.readArrayTag();
     let tag = Number(reader.readUint());
-
-    let fragmentLen = len != null ? len - 1 : null;
+    let variant: NativeScriptVariant;
 
     switch (tag) {
       case 0:
-        return new NativeScript({
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode ScriptPubkey");
+        }
+        variant = {
           kind: 0,
           value: $$CANT_READ("ScriptPubkey"),
-        });
+        };
+
+        break;
 
       case 1:
-        if (ScriptAll.FRAGMENT_FIELDS_LEN != null) {
-          return new NativeScript({
-            kind: 1,
-            value: ScriptAll.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant script_all");
-          return new NativeScript({
-            kind: 1,
-            value: ScriptAll.deserialize(reader),
-          });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode ScriptAll");
         }
+        variant = {
+          kind: 1,
+          value: ScriptAll.deserialize(reader),
+        };
+
+        break;
 
       case 2:
-        if (ScriptAny.FRAGMENT_FIELDS_LEN != null) {
-          return new NativeScript({
-            kind: 2,
-            value: ScriptAny.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant script_any");
-          return new NativeScript({
-            kind: 2,
-            value: ScriptAny.deserialize(reader),
-          });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode ScriptAny");
         }
+        variant = {
+          kind: 2,
+          value: ScriptAny.deserialize(reader),
+        };
+
+        break;
 
       case 3:
-        if (ScriptNOfK.FRAGMENT_FIELDS_LEN != null) {
-          return new NativeScript({
-            kind: 3,
-            value: ScriptNOfK.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant script_n_of_k");
-          return new NativeScript({
-            kind: 3,
-            value: ScriptNOfK.deserialize(reader),
-          });
+        if (len != null && len - 1 != 2) {
+          throw new Error("Expected 2 items to decode ScriptNOfK");
         }
+        variant = {
+          kind: 3,
+          value: ScriptNOfK.deserialize(reader),
+        };
+
+        break;
 
       case 4:
-        if (TimelockStart.FRAGMENT_FIELDS_LEN != null) {
-          return new NativeScript({
-            kind: 4,
-            value: TimelockStart.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant timelock_start");
-          return new NativeScript({
-            kind: 4,
-            value: TimelockStart.deserialize(reader),
-          });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode TimelockStart");
         }
+        variant = {
+          kind: 4,
+          value: TimelockStart.deserialize(reader),
+        };
+
+        break;
 
       case 5:
-        if (TimelockExpiry.FRAGMENT_FIELDS_LEN != null) {
-          return new NativeScript({
-            kind: 5,
-            value: TimelockExpiry.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant timelock_expiry");
-          return new NativeScript({
-            kind: 5,
-            value: TimelockExpiry.deserialize(reader),
-          });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode TimelockExpiry");
         }
+        variant = {
+          kind: 5,
+          value: TimelockExpiry.deserialize(reader),
+        };
+
+        break;
+    }
+
+    if (len == null) {
+      reader.readBreak();
     }
 
     throw new Error("Unexpected tag for NativeScript: " + tag);
@@ -8516,76 +7966,39 @@ export class NativeScript {
     switch (this.variant.kind) {
       case 0:
         writer.writeArrayTag(2);
-        writer.writeInt(0n);
+        writer.writeInt(BigInt(0));
         $$CANT_WRITE("ScriptPubkey");
         break;
       case 1:
-        let fragmentLen = ScriptAll.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(1n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(1n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(1));
+        this.variant.value.serialize(writer);
         break;
       case 2:
-        let fragmentLen = ScriptAny.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(2n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(2n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(2));
+        this.variant.value.serialize(writer);
         break;
       case 3:
-        let fragmentLen = ScriptNOfK.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(3n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(3n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(3);
+        writer.writeInt(BigInt(3));
+        this.variant.value.serialize(writer);
         break;
       case 4:
-        let fragmentLen = TimelockStart.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(4n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(4n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(4));
+        this.variant.value.serialize(writer);
         break;
       case 5:
-        let fragmentLen = TimelockExpiry.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(5n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(5n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(5));
+        this.variant.value.serialize(writer);
         break;
     }
   }
 }
 
 export class ScriptPubname {
-  static FRAGMENT_FIELDS_LEN: number = 1;
-
   private addr_keyhash: unknown;
 
   constructor(addr_keyhash: unknown) {
@@ -8600,13 +8013,7 @@ export class ScriptPubname {
     this.addr_keyhash = addr_keyhash;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): ScriptPubname {
-    if (len != null && len < 1) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): ScriptPubname {
     let addr_keyhash = $$CANT_READ("Ed25519KeyHash");
 
     return new ScriptPubname(addr_keyhash);
@@ -8618,8 +8025,6 @@ export class ScriptPubname {
 }
 
 export class ScriptAll {
-  static FRAGMENT_FIELDS_LEN: number = 1;
-
   private native_scripts: NativeScripts;
 
   constructor(native_scripts: NativeScripts) {
@@ -8634,13 +8039,7 @@ export class ScriptAll {
     this.native_scripts = native_scripts;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): ScriptAll {
-    if (len != null && len < 1) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): ScriptAll {
     let native_scripts = NativeScripts.deserialize(reader);
 
     return new ScriptAll(native_scripts);
@@ -8652,8 +8051,6 @@ export class ScriptAll {
 }
 
 export class ScriptAny {
-  static FRAGMENT_FIELDS_LEN: number = 1;
-
   private native_scripts: NativeScripts;
 
   constructor(native_scripts: NativeScripts) {
@@ -8668,13 +8065,7 @@ export class ScriptAny {
     this.native_scripts = native_scripts;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): ScriptAny {
-    if (len != null && len < 1) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): ScriptAny {
     let native_scripts = NativeScripts.deserialize(reader);
 
     return new ScriptAny(native_scripts);
@@ -8686,8 +8077,6 @@ export class ScriptAny {
 }
 
 export class ScriptNOfK {
-  static FRAGMENT_FIELDS_LEN: number = 2;
-
   private n: number;
   private native_scripts: NativeScripts;
 
@@ -8712,13 +8101,7 @@ export class ScriptNOfK {
     this.native_scripts = native_scripts;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): ScriptNOfK {
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): ScriptNOfK {
     let n = Number(reader.readInt());
 
     let native_scripts = NativeScripts.deserialize(reader);
@@ -8733,8 +8116,6 @@ export class ScriptNOfK {
 }
 
 export class TimelockStart {
-  static FRAGMENT_FIELDS_LEN: number = 1;
-
   private slot: bigint;
 
   constructor(slot: bigint) {
@@ -8749,13 +8130,7 @@ export class TimelockStart {
     this.slot = slot;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): TimelockStart {
-    if (len != null && len < 1) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): TimelockStart {
     let slot = reader.readInt();
 
     return new TimelockStart(slot);
@@ -8767,8 +8142,6 @@ export class TimelockStart {
 }
 
 export class TimelockExpiry {
-  static FRAGMENT_FIELDS_LEN: number = 1;
-
   private slot: bigint;
 
   constructor(slot: bigint) {
@@ -8783,13 +8156,7 @@ export class TimelockExpiry {
     this.slot = slot;
   }
 
-  static deserialize(reader: CBORReader, len: number | null): TimelockExpiry {
-    if (len != null && len < 1) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " + len,
-      );
-    }
-
+  static deserialize(reader: CBORReader): TimelockExpiry {
     let slot = reader.readInt();
 
     return new TimelockExpiry(slot);
@@ -8958,15 +8325,34 @@ export class DataOption {
   static deserialize(reader: CBORReader): DataOption {
     let len = reader.readArrayTag();
     let tag = Number(reader.readUint());
-
-    let fragmentLen = len != null ? len - 1 : null;
+    let variant: DataOptionVariant;
 
     switch (tag) {
       case 0:
-        return new DataOption({ kind: 0, value: $$CANT_READ("DataHash") });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode DataHash");
+        }
+        variant = {
+          kind: 0,
+          value: $$CANT_READ("DataHash"),
+        };
+
+        break;
 
       case 1:
-        return new DataOption({ kind: 1, value: $$CANT_READ("PlutusData") });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode PlutusData");
+        }
+        variant = {
+          kind: 1,
+          value: $$CANT_READ("PlutusData"),
+        };
+
+        break;
+    }
+
+    if (len == null) {
+      reader.readBreak();
     }
 
     throw new Error("Unexpected tag for DataOption: " + tag);
@@ -8976,12 +8362,12 @@ export class DataOption {
     switch (this.variant.kind) {
       case 0:
         writer.writeArrayTag(2);
-        writer.writeInt(0n);
+        writer.writeInt(BigInt(0));
         $$CANT_WRITE("DataHash");
         break;
       case 1:
         writer.writeArrayTag(2);
-        writer.writeInt(1n);
+        writer.writeInt(BigInt(1));
         $$CANT_WRITE("PlutusData");
         break;
     }
@@ -9065,33 +8451,56 @@ export class ScriptRef {
   static deserialize(reader: CBORReader): ScriptRef {
     let len = reader.readArrayTag();
     let tag = Number(reader.readUint());
-
-    let fragmentLen = len != null ? len - 1 : null;
+    let variant: ScriptRefVariant;
 
     switch (tag) {
       case 0:
-        if (NativeScript.FRAGMENT_FIELDS_LEN != null) {
-          return new ScriptRef({
-            kind: 0,
-            value: NativeScript.deserialize(reader, fragmentLen),
-          });
-        } else {
-          if (fragmentLen == 0)
-            throw new Error("Expected more values for variant native_script");
-          return new ScriptRef({
-            kind: 0,
-            value: NativeScript.deserialize(reader),
-          });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode NativeScript");
         }
+        variant = {
+          kind: 0,
+          value: NativeScript.deserialize(reader),
+        };
+
+        break;
 
       case 1:
-        return new ScriptRef({ kind: 1, value: reader.readBytes() });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode PlutusScriptV1");
+        }
+        variant = {
+          kind: 1,
+          value: reader.readBytes(),
+        };
+
+        break;
 
       case 2:
-        return new ScriptRef({ kind: 2, value: reader.readBytes() });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode PlutusScriptV2");
+        }
+        variant = {
+          kind: 2,
+          value: reader.readBytes(),
+        };
+
+        break;
 
       case 3:
-        return new ScriptRef({ kind: 3, value: reader.readBytes() });
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode PlutusScriptV3");
+        }
+        variant = {
+          kind: 3,
+          value: reader.readBytes(),
+        };
+
+        break;
+    }
+
+    if (len == null) {
+      reader.readBreak();
     }
 
     throw new Error("Unexpected tag for ScriptRef: " + tag);
@@ -9100,30 +8509,23 @@ export class ScriptRef {
   serialize(writer: CBORWriter): void {
     switch (this.variant.kind) {
       case 0:
-        let fragmentLen = NativeScript.FRAGMENT_FIELDS_LEN;
-        if (fragmentLen != null) {
-          writer.writeArrayTag(fragmentLen + 1);
-          writer.writeInt(0n);
-          this.variant.value.serialize(writer);
-        } else {
-          writer.writeArrayTag(2);
-          writer.writeInt(0n);
-          this.variant.value.serialize(writer);
-        }
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(0));
+        this.variant.value.serialize(writer);
         break;
       case 1:
         writer.writeArrayTag(2);
-        writer.writeInt(1n);
+        writer.writeInt(BigInt(1));
         writer.writeBytes(this.variant.value);
         break;
       case 2:
         writer.writeArrayTag(2);
-        writer.writeInt(2n);
+        writer.writeInt(BigInt(2));
         writer.writeBytes(this.variant.value);
         break;
       case 3:
         writer.writeArrayTag(2);
-        writer.writeInt(3n);
+        writer.writeInt(BigInt(3));
         writer.writeBytes(this.variant.value);
         break;
     }
