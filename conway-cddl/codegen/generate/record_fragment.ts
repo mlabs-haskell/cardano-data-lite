@@ -9,7 +9,7 @@ export type Field = {
   nullable?: boolean;
 };
 
-export class GenRecord implements CodeGenerator {
+export class GenRecordFragment implements CodeGenerator {
   name: string;
   fields: Field[];
 
@@ -26,8 +26,9 @@ export class GenRecord implements CodeGenerator {
         ${genAccessors(this.fields)}
         ${genCSL(this.name)}
 
-        static deserialize(reader: CBORReader): ${this.name} {
-          let len = reader.readArrayTag();
+        const FRAGMENT_FIELDS_LEN: number = ${this.fields.length};
+
+        static deserialize(reader: CBORReader, len: number | null): ${this.name} {
           
           if(len != null && len < ${this.fields.length}) {
             throw new Error("Insufficient number of fields in record. Expected ${this.fields.length}. Received " + len);
@@ -48,8 +49,6 @@ export class GenRecord implements CodeGenerator {
         }
 
         serialize(writer: CBORWriter): void {
-          writer.writeArrayTag(${this.fields.length});
-
           ${this.fields
             .map((x) =>
               x.nullable
