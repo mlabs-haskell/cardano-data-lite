@@ -1,140 +1,67 @@
-export type Primitive =
-  | {
-      type: "bool";
-    }
-  | {
-      type: "bytes";
-      len?: NumberConstraints;
-    }
-  | {
-      type: "int";
-      value?: NumberConstraints;
-    }
-  | {
-      type: "string";
-      len?: NumberConstraints;
-    }
-  | {
-      type: "uint";
-      value?: NumberConstraints;
-    }
-  | {
-      type: "nint";
-      value?: NumberConstraints;
-    }
-  | {
-      type: "float";
-      value?: NumberConstraints;
-    };
-
-export type PrimitiveShort = Primitive["type"];
-
-export function isPrimitive(value: any): value is PrimitiveShort | Primitive {
-  if (typeof value === "string") {
-    return (
-      value === "bool" ||
-      value === "bytes" ||
-      value === "int" ||
-      value === "string" ||
-      value === "uint" ||
-      value === "nint" ||
-      value === "float"
-    );
-  } else {
-    return (
-      value.type === "bool" ||
-      value.type === "bytes" ||
-      value.type === "int" ||
-      value.type === "string" ||
-      value.type === "uint" ||
-      value.type === "nint" ||
-      value.type === "float"
-    );
-  }
-}
-
-function validatePrimitiveType(value: string): PrimitiveShort | null {
-  return value === "bool" ||
-    value === "bytes" ||
-    value === "int" ||
-    value === "string" ||
-    value === "uint" ||
-    value === "nint" ||
-    value === "float"
-    ? value
-    : null;
-}
-
-export function getPrimitiveType(value: any): PrimitiveShort | null {
-  if (typeof value === "string") {
-    return validatePrimitiveType(value);
-  } else {
-    return validatePrimitiveType(value.type);
-  }
-}
-
-export type Composite =
+export type Schema =
   | {
       type: "array";
-      item: Schema;
-      len?: NumberConstraints;
+      item: string;
     }
   | {
       type: "set";
-      item: Schema;
-      len?: NumberConstraints;
+      item: string;
     }
   | {
       type: "record";
       fields: {
-        key: string;
-        value: Schema;
-        optional?: boolean;
+        name: string;
+        type: string;
         nullable?: boolean;
       }[];
     }
   | {
       type: "tagged_record";
       variants: {
-        name: string;
         tag: number;
-        fields?: { key: string; value: Schema }[];
+        name: string;
+        value?: string;
+        kind_name?: string;
       }[];
     }
-  | { type: "map"; key: string; value: Schema; len?: NumberConstraints }
+  | {
+      type: "record_fragment";
+      fields: {
+        name: string;
+        type: string;
+        nullable?: boolean;
+      }[];
+    }
+  | {
+      type: "record_fragment_wrapper";
+      item: {
+        name: string;
+        type: string;
+      };
+    }
+  | { type: "map"; key: string; value: string }
   | {
       type: "struct";
-      fields: { id: number; key: string; value: Schema; optional?: boolean }[];
+      fields: {
+        id: number;
+        name: string;
+        type: string;
+        optional?: boolean;
+      }[];
     }
   | {
       type: "enum";
       values: { name: string; value: number }[];
     }
   | {
-      type: "tagged";
-      tag: NumberConstraints;
-      item: Schema;
+      type: "enum_simple";
+      values: { name: string; value: number }[];
     }
   | {
-      type: "union";
-      variants: {
-        name: string;
-        item: Schema;
-      }[];
-    }
-  | {
-      type: "group";
-      fields: { key: string; value: Schema }[];
+      type: "newtype";
+      item: string;
+      accessor: string;
+      constraints?: {
+        len?: { eq?: number; min?: number; max?: number };
+      };
     };
-export type Schema = Composite | Primitive | PrimitiveShort | string;
-
-export type NumberConstraint =
-  | {
-      min?: number;
-      max?: number;
-    }
-  | number;
-
-export type NumberConstraints = NumberConstraint | NumberConstraint[];
-export type Schema_<T> = Exclude<Schema & { type: T }, string>;
-export type Composite_<T> = Composite & { type: T };
