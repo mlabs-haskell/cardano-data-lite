@@ -963,6 +963,7 @@ Relays:
 Ipv4:
   type: newtype
   item: bytes
+  accessor: ip
   constraints:
     len:
       eq: 4
@@ -970,6 +971,7 @@ Ipv4:
 Ipv6:
   type: newtype
   item: bytes
+  accessor: ip
   constraints:
     len:
       eq: 16
@@ -977,6 +979,7 @@ Ipv6:
 DNSRecordAorAAAA:
   type: newtype
   item: string
+  accessor: record
   constraints:
     len:
       max: 64
@@ -984,6 +987,7 @@ DNSRecordAorAAAA:
 DNSRecordSRV:
   type: newtype
   item: string
+  accessor: record
   constraints:
     len:
       max: 64
@@ -1059,6 +1063,7 @@ PoolMetadata:
 URL:
   type: newtype
   item: string
+  accessor: url
   constraints:
     len:
       min: 0
@@ -1630,6 +1635,7 @@ TimelockExpiry:
 AssetName:
   type: newtype
   item: bytes
+  accessor: name
   constraints:
     len:
       max: 32
