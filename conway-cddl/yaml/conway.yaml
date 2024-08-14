@@ -1047,7 +1047,7 @@ MultiHostName:
       value: DNSRecordSRV
 
 # pool_metadata = [url, pool_metadata_hash]
-pool_metadata:
+PoolMetadata:
   type: record
   fields:
     - key: url
@@ -1559,7 +1559,7 @@ BootstrapWitness:
 # script_n_of_k = (3, n: uint, [ * native_script ])
 # invalid_before = (4, uint)
 # invalid_hereafter = (5, uint)
-native_script:
+NativeScript:
   type: tagged_record
   variants:
     - name: script_pubkey
@@ -1627,7 +1627,7 @@ TimelockExpiry:
 # policy_id = scripthash
 
 # asset_name = bytes .size (0..32)
-asset_name:
+AssetName:
   type: newtype
   item: bytes
   constraints:
