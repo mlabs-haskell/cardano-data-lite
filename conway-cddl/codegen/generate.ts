@@ -5,7 +5,7 @@ import { Compiler } from "./compiler";
 
 async function main() {
   let compiler = new Compiler();
-  for (let filename of ["conway", "crypto", "extra"]) {
+  for (let filename of ["conway"]) {
     let file = fs.readFileSync(`../yaml/${filename}.yaml`, "utf8");
     let doc = yaml.parse(file);
     for (let [key, value] of Object.entries(doc)) {
@@ -22,11 +22,13 @@ async function main() {
     }
   }
   let header = `
-    import {CBORValue, CBORMap} from "../cbor/types";
-    import {CBORArrayReader, CBORMapReader, CBORReaderValue} from "../cbor/reader";
+    import {CBORReader} from "../cbor/reader";
     import {CBORWriter} from "../cbor/writer";
+    import {hexToBytes, bytesToHex} from "../hex";
+
   `;
   let out = compiler.generate();
+  fs.writeFileSync("../../src/generated/out-unformatted.ts", out);
   out = await prettier.format(header + out, { parser: "babel-ts" });
   fs.writeFileSync("../../src/generated/out.ts", out);
 }
