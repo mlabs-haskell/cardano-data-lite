@@ -7,7 +7,7 @@ export type Item = {
   type: string;
 };
 
-export class GenRecordFragment implements CodeGenerator {
+export class GenRecordFragmentWrapper implements CodeGenerator {
   name: string;
   item: Item;
 
@@ -16,15 +16,15 @@ export class GenRecordFragment implements CodeGenerator {
     this.item = item;
   }
 
-  generate(_customTypes: Set<string>): string {
+  generate(customTypes: Set<string>): string {
     return `
       export class ${this.name} {
-        ${genMembers([this.item])}
-        ${genConstructor([this.item])}
-        ${genAccessors([this.item])}
-        ${genCSL(this.name)}
+        static FRAGMENT_FIELDS_LEN: number = ${this.item.type}.FRAGMENT_FIELDS_LEN;
 
-        const FRAGMENT_FIELDS_LEN: number = ${this.item.type}.FRAGMENT_FIELDS_LEN;
+        ${genMembers([this.item], customTypes)}
+        ${genConstructor([this.item], customTypes)}
+        ${genAccessors([this.item], customTypes)}
+        ${genCSL(this.name)}
 
         static deserialize(reader: CBORReader, len: number | null): ${this.name} {
           let ${this.item.name} = ${this.item.type}.deserialize(reader, len);

@@ -22,13 +22,13 @@ export class GenStruct implements CodeGenerator {
   generate(customTypes: Set<string>): string {
     return `
       export class ${this.name} {
-        ${genMembers(this.fields)}
-        ${genConstructor(this.fields)}
-        ${genAccessors(this.fields)}
+        ${genMembers(this.fields, customTypes)}
+        ${genConstructor(this.fields, customTypes)}
+        ${genAccessors(this.fields, customTypes)}
         ${genCSL(this.name)}
         
         static deserialize(reader: CBORReader): ${this.name} {
-          let fields = {};
+          let fields: any = {};
           reader.readMap(r => {
             let key = Number(r.readUint()); 
             switch(key) {
@@ -44,16 +44,18 @@ export class GenStruct implements CodeGenerator {
             }
           });
 
-          return new ${this.name}(
             ${this.fields
-              .map((x) =>
-                x.optional
-                  ? `fields.${x.name}`
-                  : `fields.${x.name} !== undefined 
-                        ? fields.${x.name} 
-                        : throw new Error("Value not provided for field ${x.id} (${x.name})")`,
-              )
-              .join(", ")}
+              .flatMap((x) => [
+                !x.optional
+                  ? `if(fields.${x.name} === undefined) throw new Error("Value not provided for field ${x.id} (${x.name})");`
+                  : "",
+                `let ${x.name} = fields.${x.name};`,
+              ])
+              .join("\n")}
+          
+
+          return new ${this.name}(
+            ${this.fields.map((x) => `${x.name}`).join(", ")}
           );
         }
 
@@ -65,14 +67,17 @@ export class GenStruct implements CodeGenerator {
             )
             .filter((x) => x != "")
             .join("\n")}
-          writer.writeMapTag(entries.length);
-          ${this.fields.map((x) => {
-            let write = `
+          writer.writeMapTag(len);
+          ${this.fields
+            .map((x) => {
+              let write = `
               writer.writeInt(${x.id}n);
               ${writeType(customTypes, "writer", `this.${x.name}`, x.type)};
             `;
-            return `${x.optional ? `if(this.${x.name} !== undefined) { ${write} }` : write}`;
-          })}
-      }`;
+              return `${x.optional ? `if(this.${x.name} !== undefined) { ${write} }` : write}`;
+            })
+            .join("\n")}
+      }
+    }`;
   }
 }

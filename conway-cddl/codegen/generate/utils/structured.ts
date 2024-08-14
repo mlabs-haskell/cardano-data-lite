@@ -1,3 +1,5 @@
+import { jsType } from "./cbor-utils";
+
 type Field = {
   name: string;
   type: string;
@@ -5,30 +7,32 @@ type Field = {
   nullable?: boolean;
 };
 
-function fieldType(field: Field) {
-  return `${field.type} ${field.optional || field.nullable ? "| undefined" : ""}`;
+function fieldType(field: Field, customTypes: Set<string>) {
+  return `${jsType(field.type, customTypes)} ${field.optional || field.nullable ? "| undefined" : ""}`;
 }
 
-export function genMembers(fields: Field[]) {
-  return fields.map((x) => `private ${x.name}: ${fieldType(x)};`).join("\n");
+export function genMembers(fields: Field[], customTypes: Set<string>) {
+  return fields
+    .map((x) => `private ${x.name}: ${fieldType(x, customTypes)};`)
+    .join("\n");
 }
 
-export function genConstructor(fields: Field[]) {
+export function genConstructor(fields: Field[], customTypes: Set<string>) {
   return `
-  constructor(${fields.map((x) => `${x.name}: ${fieldType(x)}`).join(", ")}) {
+  constructor(${fields.map((x) => `${x.name}: ${fieldType(x, customTypes)}`).join(", ")}) {
     ${fields.map((x) => `this.${x.name} = ${x.name};`).join("\n")}
   }`;
 }
 
-export function genAccessors(fields: Field[]) {
+export function genAccessors(fields: Field[], customTypes: Set<string>) {
   return fields
     .map(
       (x) => `
-        get_${x.name}(): ${fieldType(x)} {
+        get_${x.name}(): ${fieldType(x, customTypes)} {
           return this.${x.name};
         }
 
-        set_${x.name}(${x.name}: ${fieldType(x)}): void {
+        set_${x.name}(${x.name}: ${fieldType(x, customTypes)}): void {
           this.${x.name} = ${x.name};
         }
       `,

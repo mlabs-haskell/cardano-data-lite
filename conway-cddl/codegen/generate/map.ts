@@ -36,7 +36,9 @@ export class GenMap implements CodeGenerator {
         }
 
         insert(key: ${keyJsType}, value: ${valueJsType}): void {
-          this.items.push([key, value]);
+          let entry = this.items.find(x => ${eqType(customTypes, "key", "x[0]", this.key)});
+          if(entry != null) entry[1] = value;
+          else this.items.push([key, value]);
         }
 
         get(key: ${keyJsType}): ${valueJsType} | undefined {
@@ -45,12 +47,9 @@ export class GenMap implements CodeGenerator {
           return entry[1];
         }
 
-
-        ${genCSL(this.name)}
-
         static deserialize(reader: CBORReader): ${this.name} {
-          let ret = new ${this.name}();
-          ret.items = reader.readMap(reader => [${(readType(customTypes, "reader", this.key), readType(customTypes, "reader", this.value))}]);
+          let ret = new ${this.name}([]);
+          reader.readMap(reader => ret.insert(${readType(customTypes, "reader", this.key)}, ${readType(customTypes, "reader", this.value)}));
           return ret;
         }
 

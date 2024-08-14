@@ -48,7 +48,6 @@ export class GenEnum implements CodeGenerator {
             )
             .join("\n")}
             throw "Unrecognized enum value: " + kind + " for " + ${this.name};
-          });
         }
 
         serialize (writer: CBORWriter) {

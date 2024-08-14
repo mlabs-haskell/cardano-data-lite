@@ -43,17 +43,17 @@ export class GenNewtype implements CodeGenerator {
         constructor(inner: ${itemJsType}) {
           ${
             this.constraints?.len?.eq != null
-              ? `if(inner.length != ${this.constraints.len.eq}) throw new Error("Expected length to be ${this.constraints.len.eq});`
+              ? `if(inner.length != ${this.constraints.len.eq}) throw new Error("Expected length to be ${this.constraints.len.eq}");`
               : ""
           }
           ${
             this.constraints?.len?.min != null
-              ? `if(inner.length < ${this.constraints.len.min}) throw new Error("Expected length to be atleast ${this.constraints.len.min});`
+              ? `if(inner.length < ${this.constraints.len.min}) throw new Error("Expected length to be atleast ${this.constraints.len.min}");`
               : ""
           }
           ${
             this.constraints?.len?.max != null
-              ? `if(inner.length > ${this.constraints.len.max}) throw new Error("Expected length to be atmost ${this.constraints.len.max});`
+              ? `if(inner.length > ${this.constraints.len.max}) throw new Error("Expected length to be atmost ${this.constraints.len.max}");`
               : ""
           }
           this.inner = inner;

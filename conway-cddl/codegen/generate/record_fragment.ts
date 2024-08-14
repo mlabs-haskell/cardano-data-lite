@@ -21,12 +21,11 @@ export class GenRecordFragment implements CodeGenerator {
   generate(customTypes: Set<string>): string {
     return `
       export class ${this.name} {
-        ${genMembers(this.fields)}
-        ${genConstructor(this.fields)}
-        ${genAccessors(this.fields)}
-        ${genCSL(this.name)}
+        static FRAGMENT_FIELDS_LEN: number = ${this.fields.length};
 
-        const FRAGMENT_FIELDS_LEN: number = ${this.fields.length};
+        ${genMembers(this.fields, customTypes)}
+        ${genConstructor(this.fields, customTypes)}
+        ${genAccessors(this.fields, customTypes)}
 
         static deserialize(reader: CBORReader, len: number | null): ${this.name} {
           
@@ -39,7 +38,7 @@ export class GenRecordFragment implements CodeGenerator {
               (x) => `
               let ${x.name} = ${
                 x.nullable
-                  ? `reader.readNullable(r => ${readType(customTypes, "r", x.type)})`
+                  ? `reader.readNullable(r => ${readType(customTypes, "r", x.type)})?? undefined`
                   : readType(customTypes, "reader", x.type)
               };`,
             )
