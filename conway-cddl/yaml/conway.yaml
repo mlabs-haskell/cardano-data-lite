@@ -463,11 +463,11 @@ Anchor:
 VoteKind:
   type: enum_simple
   values:
-    - name: no
+    - name: No
       value: 0
-    - name: yes
+    - name: Yes
       value: 1
-    - name: abstain
+    - name: Abstain
       value: 2
 
 # gov_action_id =
