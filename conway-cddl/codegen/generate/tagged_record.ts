@@ -5,7 +5,7 @@ import { genCSL } from "./utils/csl";
 export type Variant = {
   tag: number;
   name: string;
-  value: string;
+  value?: string;
 };
 
 export class GenTaggedRecord implements CodeGenerator {
@@ -23,7 +23,14 @@ export class GenTaggedRecord implements CodeGenerator {
         ${this.variants.map((x) => `${x.name} = ${x.tag},`).join("\n")}
       }
 
-      export type ${this.name}Variant = ${this.variants.map((x) => `{ kind: ${x.tag}, value: ${jsType(x.value, customTypes)} }`).join(" | ")};
+      export type ${this.name}Variant = 
+        ${this.variants
+          .map((x) =>
+            x.value != null
+              ? `{ kind: ${x.tag}, value: ${jsType(x.value, customTypes)} }`
+              : `{ kind: ${x.tag} }`,
+          )
+          .join(" | ")};
 
       export class ${this.name} {
         private variant: ${this.name}Variant;
@@ -35,20 +42,30 @@ export class GenTaggedRecord implements CodeGenerator {
         }
 
         ${this.variants
-          .map(
-            (x) => `
+          .map((x) =>
+            x.value != null
+              ? `
         static new_${x.name}(${x.name}: ${jsType(x.value, customTypes)}): ${this.name} {
           return new ${this.name}({kind: ${x.tag}, value: ${x.name}});
-        }`,
+        }
+              `
+              : `
+        static new_${x.name}(): ${this.name} {
+          return new ${this.name}({kind: ${x.tag}});
+        }
+              `,
           )
           .join("\n")}
 
         ${this.variants
-          .map(
-            (x) => `
+          .map((x) =>
+            x.value != null
+              ? `
         as_${x.name}(): ${jsType(x.value, customTypes)} | undefined {
           if(this.variant.kind == ${x.tag}) return this.variant.value;
-        }`,
+        }
+              `
+              : "",
           )
           .join("\n")}
         
@@ -64,15 +81,17 @@ export class GenTaggedRecord implements CodeGenerator {
                 (x) => `
                   case ${x.tag}:
                     ${
-                      customTypes.has(x.value)
-                        ? `
+                      x.value == null
+                        ? `return new ${this.name}({kind: ${x.tag}});`
+                        : customTypes.has(x.value)
+                          ? `
                     if(${x.value}.FRAGMENT_FIELDS_LEN != null) {
                       return new ${this.name}({kind: ${x.tag}, value: ${x.value}.deserialize(reader, fragmentLen)});
                     } else {
                       if(fragmentLen == 0) throw new Error("Expected more values for variant ${x.name}");
                       return new ${this.name}({kind: ${x.tag}, value: ${x.value}.deserialize(reader)});
                     }`
-                        : `
+                          : `
                       return new ${this.name}({kind: ${x.tag}, value: ${readType(customTypes, "reader", x.value)}}); 
                     `
                     }
@@ -88,8 +107,13 @@ export class GenTaggedRecord implements CodeGenerator {
           switch(this.variant.kind) {
             ${this.variants
               .map((x) =>
-                customTypes.has(x.value)
+                x.value == null
                   ? `case ${x.tag}: 
+                      writer.writeArrayTag(1);
+                      writer.writeInt(${x.tag}n);
+                      break;`
+                  : customTypes.has(x.value)
+                    ? `case ${x.tag}: 
                         let fragmentLen = ${x.value}.FRAGMENT_FIELDS_LEN;
                         if(fragmentLen != null) {
                           writer.writeArrayTag(fragmentLen + 1);
@@ -100,13 +124,12 @@ export class GenTaggedRecord implements CodeGenerator {
                           writer.writeInt(${x.tag}n);
                           this.variant.value.serialize(writer);
                         }
-                        break;
-                    `
-                  : `case ${x.tag}: 
-                          writer.writeArrayTag(2);
-                          writer.writeInt(${x.tag}n);
-                          ${writeType(customTypes, "writer", "this.variant.value", x.value)}
-                    `,
+                        break;`
+                    : `case ${x.tag}: 
+                        writer.writeArrayTag(2);
+                        writer.writeInt(${x.tag}n);
+                        ${writeType(customTypes, "writer", "this.variant.value", x.value)}
+                        break;`,
               )
               .join("\n")} 
           }
