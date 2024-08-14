@@ -25,6 +25,7 @@ async function main() {
     import {CBORReader} from "../cbor/reader";
     import {CBORWriter} from "../cbor/writer";
     import {hexToBytes, bytesToHex} from "../hex";
+    import {arrayEq} from "../eq";
 
   `;
   let out = compiler.generate();
