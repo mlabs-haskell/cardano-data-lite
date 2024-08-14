@@ -31,7 +31,8 @@ export class Compiler {
     return out.join("\n\n");
   }
 
-  getCodegen(name: string, schema: Schema) {
+  getCodegen(name: string, schema_: any) {
+    let schema: Schema = schema_;
     switch (schema.type) {
       case "array":
         return new GenArray(name, schema.item);
@@ -61,7 +62,7 @@ export class Compiler {
           schema.constraints,
         );
     }
-    throw new Error("Unknown type: " + schema.type + " for " + name);
+    throw new Error("Unknown type: " + schema_.type + " for " + name);
   }
 
   compile(name: string, schema: any) {
