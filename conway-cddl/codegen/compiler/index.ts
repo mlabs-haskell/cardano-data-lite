@@ -1,4 +1,4 @@
-import { CodeGenerator } from "../generate/index";
+import { CodeGeneratorBase } from "../generate/index";
 import { Schema } from "./types";
 import { GenArray } from "../generate/array";
 import { GenSet } from "../generate/set";
@@ -12,11 +12,11 @@ import { GenNewtype } from "../generate/newtype";
 import { GenRecordFragment } from "../generate/record_fragment";
 import { GenRecordFragmentWrapper } from "../generate/record_fragment_wrapper";
 
-export type SchemaTable = { [key: string]: Schema };
+export type SchemaTable = { [key: string]: CodeGeneratorBase };
 
 export class Compiler {
   customTypes: SchemaTable;
-  codegen: CodeGenerator[];
+  codegen: CodeGeneratorBase[];
 
   constructor() {
     this.customTypes = {};
@@ -26,7 +26,7 @@ export class Compiler {
   generate(): string {
     let out = [];
     for (let item of this.codegen) {
-      out.push(item.generate(this.customTypes));
+      out.push(item.generate());
     }
     return out.join("\n\n");
   }
@@ -35,31 +35,41 @@ export class Compiler {
     let schema: Schema = schema_;
     switch (schema.type) {
       case "array":
-        return new GenArray(name, schema.item);
+        return new GenArray(name, schema.item, this.customTypes);
       case "set":
-        return new GenSet(name, schema.item);
+        return new GenSet(name, schema.item, this.customTypes);
       case "record":
-        return new GenRecord(name, schema.fields, schema.tagged);
+        return new GenRecord(
+          name,
+          schema.fields,
+          schema.tagged,
+          this.customTypes,
+        );
       case "tagged_record":
-        return new GenTaggedRecord(name, schema.variants);
+        return new GenTaggedRecord(name, schema.variants, this.customTypes);
       case "record_fragment":
-        return new GenRecordFragment(name, schema.fields);
+        return new GenRecordFragment(name, schema.fields, this.customTypes);
       case "record_fragment_wrapper":
-        return new GenRecordFragmentWrapper(name, schema.item);
+        return new GenRecordFragmentWrapper(
+          name,
+          schema.item,
+          this.customTypes,
+        );
       case "map":
-        return new GenMap(name, schema.key, schema.value);
+        return new GenMap(name, schema.key, schema.value, this.customTypes);
       case "struct":
-        return new GenStruct(name, schema.fields);
+        return new GenStruct(name, schema.fields, this.customTypes);
       case "enum":
-        return new GenEnum(name, schema.values);
+        return new GenEnum(name, schema.values, this.customTypes);
       case "enum_simple":
-        return new GenEnumSimple(name, schema.values);
+        return new GenEnumSimple(name, schema.values, this.customTypes);
       case "newtype":
         return new GenNewtype(
           name,
           schema.item,
           schema.accessor,
           schema.constraints,
+          this.customTypes,
         );
     }
     throw new Error("Unknown type: " + schema_.type + " for " + name);
@@ -67,7 +77,7 @@ export class Compiler {
 
   compile(name: string, schema: any) {
     let codegen = this.getCodegen(name, schema);
-    this.customTypes[name] = schema;
+    this.customTypes[name] = codegen;
     this.codegen.push(codegen);
   }
 }

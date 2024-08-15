@@ -1,19 +1,17 @@
-import { CodeGenerator } from ".";
+import { CodeGeneratorBase } from ".";
 import { SchemaTable } from "../compiler";
-import { jsType, readType, writeType } from "./utils/cbor-utils";
 import { genCSL } from "./utils/csl";
 
-export class GenArray implements CodeGenerator {
-  name: string;
+export class GenArray extends CodeGeneratorBase {
   item: string;
 
-  constructor(name: string, item: string) {
-    this.name = name;
+  constructor(name: string, item: string, customTypes: SchemaTable) {
+    super(name, customTypes);
     this.item = item;
   }
 
-  generate(customTypes: SchemaTable): string {
-    let itemJsType = jsType(this.item, customTypes);
+  generate(): string {
+    let itemJsType = this.typeUtils.jsType(this.item);
     return `
       export class ${this.name} {
         private items: ${itemJsType}[];
@@ -42,11 +40,11 @@ export class GenArray implements CodeGenerator {
         }
 
         static deserialize(reader: CBORReader): ${this.name} {
-          return new ${this.name}(reader.readArray(reader => ${readType(customTypes, "reader", this.item)}));
+          return new ${this.name}(reader.readArray(reader => ${this.typeUtils.readType("reader", this.item)}));
         }
 
         serialize(writer: CBORWriter) {
-          writer.writeArray(this.items, (writer, x) => ${writeType(customTypes, "writer", "x", this.item)});
+          writer.writeArray(this.items, (writer, x) => ${this.typeUtils.writeType("writer", "x", this.item)});
         }
       }
     `;

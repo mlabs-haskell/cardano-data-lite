@@ -1715,7 +1715,7 @@ export class VotingProcedure {
   serialize(writer: CBORWriter): void {
     writer.writeArrayTag(2);
 
-    serializeVoteKind(this.vote, writer);
+    serializeVoteKind(writer, this.vote);
     if (this.anchor == null) {
       writer.writeNull();
     } else {
@@ -2900,7 +2900,7 @@ export function deserializeVoteKind(reader: CBORReader): VoteKind {
   throw new Error("Invalid value for enum VoteKind: " + value);
 }
 
-export function serializeVoteKind(value: VoteKind, writer: CBORWriter): void {
+export function serializeVoteKind(writer: CBORWriter, value: VoteKind): void {
   writer.writeInt(BigInt(value));
 }
 

@@ -1,19 +1,17 @@
-import { CodeGenerator } from ".";
+import { CodeGeneratorBase } from ".";
 import { SchemaTable } from "../compiler";
-import { jsType, eqType, readType, writeType } from "./utils/cbor-utils";
 import { genCSL } from "./utils/csl";
 
-export class GenSet implements CodeGenerator {
-  name: string;
+export class GenSet extends CodeGeneratorBase {
   item: string;
 
-  constructor(name: string, item: string) {
-    this.name = name;
+  constructor(name: string, item: string, customTypes: SchemaTable) {
+    super(name, customTypes);
     this.item = item;
   }
 
-  generate(customTypes: SchemaTable): string {
-    let itemJsType = jsType(this.item, customTypes);
+  generate(): string {
+    let itemJsType = this.typeUtils.jsType(this.item);
     return `
       export class ${this.name} {
         private items: ${itemJsType}[];
@@ -45,7 +43,7 @@ export class GenSet implements CodeGenerator {
 
         contains(elem: ${itemJsType}): boolean {
           for(let item of this.items) {
-            if(${eqType(customTypes, "item", "elem", this.item)}) {
+            if(${this.typeUtils.eqType("item", "elem", this.item)}) {
               return true;
             }
           }
@@ -58,13 +56,13 @@ export class GenSet implements CodeGenerator {
             let tag = reader.readTaggedTag();
             if(tag != 258) throw new Error("Expected tag 258. Got " + tag);
           }
-          reader.readArray(reader => ret.add(${readType(customTypes, "reader", this.item)}));
+          reader.readArray(reader => ret.add(${this.typeUtils.readType("reader", this.item)}));
           return ret;
         }
 
         serialize(writer: CBORWriter) {
           writer.writeTaggedTag(258);
-          writer.writeArray(this.items, (writer, x) => ${writeType(customTypes, "writer", "x", this.item)});
+          writer.writeArray(this.items, (writer, x) => ${this.typeUtils.writeType("writer", "x", this.item)});
         }
       }
     `;

@@ -1,6 +1,5 @@
-import { CodeGenerator } from ".";
+import { CodeGeneratorBase } from ".";
 import { SchemaTable } from "../compiler";
-import { readType, writeType } from "./utils/cbor-utils";
 import { genCSL } from "./utils/csl";
 import { genAccessors, genConstructor, genMembers } from "./utils/structured";
 
@@ -11,21 +10,20 @@ export type Field = {
   optional?: boolean;
 };
 
-export class GenStruct implements CodeGenerator {
-  name: string;
+export class GenStruct extends CodeGeneratorBase {
   fields: Field[];
 
-  constructor(name: string, fields: Field[]) {
-    this.name = name;
+  constructor(name: string, fields: Field[], customTypes: SchemaTable) {
+    super(name, customTypes);
     this.fields = fields;
   }
 
-  generate(customTypes: SchemaTable): string {
+  generate(): string {
     return `
       export class ${this.name} {
-        ${genMembers(this.fields, customTypes)}
-        ${genConstructor(this.fields, customTypes)}
-        ${genAccessors(this.fields, customTypes)}
+        ${genMembers(this.fields, this.typeUtils)}
+        ${genConstructor(this.fields, this.typeUtils)}
+        ${genAccessors(this.fields, this.typeUtils)}
         ${genCSL(this.name)}
         
         static deserialize(reader: CBORReader): ${this.name} {
@@ -37,7 +35,7 @@ export class GenStruct implements CodeGenerator {
                 .map(
                   (x) => `
                   case ${x.id}:   
-                      fields.${x.name} = ${readType(customTypes, "r", x.type)}; 
+                      fields.${x.name} = ${this.typeUtils.readType("r", x.type)}; 
                       break;
                 `,
                 )
@@ -73,7 +71,7 @@ export class GenStruct implements CodeGenerator {
             .map((x) => {
               let write = `
               writer.writeInt(${x.id}n);
-              ${writeType(customTypes, "writer", `this.${x.name}`, x.type)};
+              ${this.typeUtils.writeType("writer", `this.${x.name}`, x.type)};
             `;
               return `${x.optional ? `if(this.${x.name} !== undefined) { ${write} }` : write}`;
             })

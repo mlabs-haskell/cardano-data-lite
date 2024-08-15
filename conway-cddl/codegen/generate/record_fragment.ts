@@ -1,6 +1,5 @@
-import { CodeGenerator } from ".";
+import { CodeGeneratorBase } from ".";
 import { SchemaTable } from "../compiler";
-import { readType, writeType } from "./utils/cbor-utils";
 import { genAccessors, genConstructor, genMembers } from "./utils/structured";
 
 export type Field = {
@@ -9,21 +8,20 @@ export type Field = {
   nullable?: boolean;
 };
 
-export class GenRecordFragment implements CodeGenerator {
-  name: string;
+export class GenRecordFragment extends CodeGeneratorBase {
   fields: Field[];
 
-  constructor(name: string, fields: Field[]) {
-    this.name = name;
+  constructor(name: string, fields: Field[], customTypes: SchemaTable) {
+    super(name, customTypes);
     this.fields = fields;
   }
 
-  generate(customTypes: SchemaTable): string {
+  generate(): string {
     return `
       export class ${this.name} {
-        ${genMembers(this.fields, customTypes)}
-        ${genConstructor(this.fields, customTypes)}
-        ${genAccessors(this.fields, customTypes)}
+        ${genMembers(this.fields, this.typeUtils)}
+        ${genConstructor(this.fields, this.typeUtils)}
+        ${genAccessors(this.fields, this.typeUtils)}
 
         static deserialize(reader: CBORReader): ${this.name} {
           ${this.fields
@@ -31,8 +29,8 @@ export class GenRecordFragment implements CodeGenerator {
               (x) => `
               let ${x.name} = ${
                 x.nullable
-                  ? `reader.readNullable(r => ${readType(customTypes, "r", x.type)})?? undefined`
-                  : readType(customTypes, "reader", x.type)
+                  ? `reader.readNullable(r => ${this.typeUtils.readType("r", x.type)})?? undefined`
+                  : this.typeUtils.readType("reader", x.type)
               };`,
             )
             .join("\n")}
@@ -47,9 +45,9 @@ export class GenRecordFragment implements CodeGenerator {
                 ? `if(this.${x.name} == null) { 
                       writer.writeNull();
                   } else { 
-                      ${writeType(customTypes, "writer", `this.${x.name}`, x.type)};
+                      ${this.typeUtils.writeType("writer", `this.${x.name}`, x.type)};
                   }`
-                : `${writeType(customTypes, "writer", `this.${x.name}`, x.type)};`,
+                : `${this.typeUtils.writeType("writer", `this.${x.name}`, x.type)};`,
             )
             .join("\n")}
         }
