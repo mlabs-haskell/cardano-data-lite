@@ -1,6 +1,7 @@
-import { CodeGenerator } from ".";
+import { CodeGeneratorBase } from ".";
 import { SchemaTable } from "../compiler";
-import { jsType, readType, writeType } from "./utils/cbor-utils";
+import { GenRecordFragment } from "./record_fragment";
+import { GenRecordFragmentWrapper } from "./record_fragment_wrapper";
 import { genCSL } from "./utils/csl";
 
 export type Variant = {
@@ -10,25 +11,24 @@ export type Variant = {
   kind_name?: string;
 };
 
-export class GenTaggedRecord implements CodeGenerator {
-  name: string;
+export class GenTaggedRecord extends CodeGeneratorBase {
   variants: Variant[];
 
-  constructor(name: string, variants: Variant[]) {
-    this.name = name;
+  constructor(name: string, variants: Variant[], customTypes: SchemaTable) {
+    super(name, customTypes);
     this.variants = variants;
   }
 
-  getVariantLen(customTypes: SchemaTable, variant: Variant) {
+  getVariantLen(variant: Variant) {
     if (variant.value == null) return 0;
 
-    let custom = customTypes[variant.value];
-    if (custom?.type == "record_fragment") {
+    let custom = this.typeUtils.customTypes[variant.value];
+    if (custom instanceof GenRecordFragment) {
       return custom.fields.length;
-    } else if (custom?.type == "record_fragment_wrapper") {
-      let inner = customTypes[custom.item.type];
-      if (inner.type != "record_fragment")
-        throw new Error("Expected record_fragment");
+    } else if (custom instanceof GenRecordFragmentWrapper) {
+      let inner = this.typeUtils.customTypes[custom.item.type];
+      if (!(inner instanceof GenRecordFragment))
+        throw new Error("Expected GenRecordFragment");
       return inner.fields.length;
     } else {
       return 1;
@@ -36,13 +36,12 @@ export class GenTaggedRecord implements CodeGenerator {
   }
 
   deserializeVariant(
-    customTypes: SchemaTable,
     variant: Variant,
     reader: string,
     arrayLen: string,
     assignToVar: string,
   ) {
-    let variantLen = this.getVariantLen(customTypes, variant);
+    let variantLen = this.getVariantLen(variant);
     return `
       if(${arrayLen} != null && (${arrayLen}-1) != ${variantLen}) {
         throw new Error("Expected ${variantLen} items to decode ${variant.kind_name ?? variant.value}");
@@ -51,28 +50,23 @@ export class GenTaggedRecord implements CodeGenerator {
         kind: ${variant.tag},
         ${
           variant.value != null
-            ? `value: ${readType(customTypes, reader, variant.value)},`
+            ? `value: ${this.typeUtils.readType(reader, variant.value)},`
             : ""
         }
       };
     `;
   }
 
-  serializeVariant(
-    customTypes: SchemaTable,
-    variant: Variant,
-    writer: string,
-    value: string,
-  ) {
-    let variantLen = this.getVariantLen(customTypes, variant);
+  serializeVariant(variant: Variant, writer: string, value: string) {
+    let variantLen = this.getVariantLen(variant);
     return `
       ${writer}.writeArrayTag(${variantLen + 1});
       ${writer}.writeInt(BigInt(${variant.tag}));
-      ${variant.value != null ? writeType(customTypes, writer, value, variant.value) : ""};
+      ${variant.value != null ? this.typeUtils.writeType(writer, value, variant.value) : ""};
     `;
   }
 
-  generate(customTypes: SchemaTable): string {
+  generate(): string {
     return `
       export enum ${this.name}Kind {
         ${this.variants.map((x) => `${x.kind_name ?? x.value} = ${x.tag},`).join("\n")}
@@ -82,7 +76,7 @@ export class GenTaggedRecord implements CodeGenerator {
         ${this.variants
           .map((x) =>
             x.value != null
-              ? `{ kind: ${x.tag}, value: ${jsType(x.value, customTypes)} }`
+              ? `{ kind: ${x.tag}, value: ${this.typeUtils.jsType(x.value)} }`
               : `{ kind: ${x.tag} }`,
           )
           .join(" | ")};
@@ -100,7 +94,7 @@ export class GenTaggedRecord implements CodeGenerator {
           .map((x) =>
             x.value != null
               ? `
-        static new_${x.name}(${x.name}: ${jsType(x.value, customTypes)}): ${this.name} {
+        static new_${x.name}(${x.name}: ${this.typeUtils.jsType(x.value)}): ${this.name} {
           return new ${this.name}({kind: ${x.tag}, value: ${x.name}});
         }
               `
@@ -116,7 +110,7 @@ export class GenTaggedRecord implements CodeGenerator {
           .map((x) =>
             x.value != null
               ? `
-        as_${x.name}(): ${jsType(x.value, customTypes)} | undefined {
+        as_${x.name}(): ${this.typeUtils.jsType(x.value)} | undefined {
           if(this.variant.kind == ${x.tag}) return this.variant.value;
         }
               `
@@ -134,13 +128,7 @@ export class GenTaggedRecord implements CodeGenerator {
               .map(
                 (x) => `
                 case ${x.tag}:
-                  ${this.deserializeVariant(
-                    customTypes,
-                    x,
-                    "reader",
-                    "len",
-                    "variant",
-                  )}
+                  ${this.deserializeVariant(x, "reader", "len", "variant")}
                   break;
                 `,
               )
@@ -160,12 +148,7 @@ export class GenTaggedRecord implements CodeGenerator {
               .map(
                 (x) =>
                   `case ${x.tag}:
-                      ${this.serializeVariant(
-                        customTypes,
-                        x,
-                        "writer",
-                        "this.variant.value",
-                      )};
+                      ${this.serializeVariant(x, "writer", "this.variant.value")};
                       break;`,
               )
               .join("\n")} 

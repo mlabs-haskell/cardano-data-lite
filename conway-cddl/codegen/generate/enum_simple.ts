@@ -1,4 +1,4 @@
-import { CodeGenerator } from ".";
+import { CodeGeneratorBase } from ".";
 import { SchemaTable } from "../compiler";
 
 export type Variant = {
@@ -6,16 +6,15 @@ export type Variant = {
   value: number;
 };
 
-export class GenEnumSimple implements CodeGenerator {
-  name: string;
+export class GenEnumSimple extends CodeGeneratorBase {
   variants: Variant[];
 
-  constructor(name: string, variants: Variant[]) {
-    this.name = name;
+  constructor(name: string, variants: Variant[], customTypes: SchemaTable) {
+    super(name, customTypes);
     this.variants = variants;
   }
 
-  generate(_customTypes: SchemaTable): string {
+  generate(): string {
     return `
       export enum ${this.name} {
         ${this.variants.map((x) => `${x.name} = ${x.value},`).join("\n")}
@@ -29,17 +28,17 @@ export class GenEnumSimple implements CodeGenerator {
         throw new Error("Invalid value for enum ${this.name}: " + value);
       }
 
-      export function serialize${this.name}(value: ${this.name}, writer: CBORWriter) : void {
+      export function serialize${this.name}(writer: CBORWriter, value: ${this.name}) : void {
         writer.writeInt(BigInt(value)); 
       }
     `;
   }
 
-  static readType(type: string, reader: string) {
-    return `deserialize${type}(${reader})`;
+  deserialize(reader: string) {
+    return `deserialize${this.name}(${reader})`;
   }
 
-  static writeType(type: string, value: string, writer: string) {
-    return `serialize${type}(${value}, ${writer})`;
+  serialize(writer: string, value: string) {
+    return `serialize${this.name}(${writer}, ${value})`;
   }
 }

@@ -1,10 +1,8 @@
-import { CodeGenerator } from ".";
+import { CodeGeneratorBase } from ".";
 import { SchemaTable } from "../compiler";
-import { jsType, readType, writeType } from "./utils/cbor-utils";
 import { genCSL } from "./utils/csl";
 
-export class GenNewtype implements CodeGenerator {
-  name: string;
+export class GenNewtype extends CodeGeneratorBase {
   item: string;
   accessor: string;
   constraints?: {
@@ -19,22 +17,25 @@ export class GenNewtype implements CodeGenerator {
     name: string,
     item: string,
     accessor: string,
-    constraints?: {
-      len?: {
-        eq?: number;
-        min?: number;
-        max?: number;
-      };
-    },
+    constraints:
+      | {
+          len?: {
+            eq?: number;
+            min?: number;
+            max?: number;
+          };
+        }
+      | undefined,
+    customTypes: SchemaTable,
   ) {
-    this.name = name;
+    super(name, customTypes);
     this.item = item;
     this.accessor = accessor;
     this.constraints = constraints;
   }
 
-  generate(customTypes: SchemaTable): string {
-    let itemJsType = jsType(this.item, customTypes);
+  generate(): string {
+    let itemJsType = this.typeUtils.jsType(this.item);
     return `
       export class ${this.name} {
         private inner: ${itemJsType};
@@ -69,11 +70,11 @@ export class GenNewtype implements CodeGenerator {
         }
 
         static deserialize(reader: CBORReader): ${this.name} {
-          return new ${this.name}(${readType(customTypes, "reader", this.item)});
+          return new ${this.name}(${this.typeUtils.readType("reader", this.item)});
         }
 
         serialize(writer: CBORWriter) {
-          ${writeType(customTypes, "writer", "this.inner", this.item)};
+          ${this.typeUtils.writeType("writer", "this.inner", this.item)};
         }
       }
     `;

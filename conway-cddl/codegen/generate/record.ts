@@ -1,6 +1,5 @@
-import { CodeGenerator } from ".";
+import { CodeGeneratorBase } from ".";
 import { SchemaTable } from "../compiler";
-import { readType, writeType } from "./utils/cbor-utils";
 import { genCSL } from "./utils/csl";
 import { genAccessors, genConstructor, genMembers } from "./utils/structured";
 import { Tagged, deserializeTagged, serializeTagged } from "./utils/tagged";
@@ -11,24 +10,27 @@ export type Field = {
   nullable?: boolean;
 };
 
-export class GenRecord implements CodeGenerator {
-  name: string;
+export class GenRecord extends CodeGeneratorBase {
   fields: Field[];
   tagged?: Tagged;
 
-  constructor(name: string, fields: Field[], tagged?: Tagged) {
-    this.name = name;
+  constructor(
+    name: string,
+    fields: Field[],
+    tagged: Tagged | undefined,
+    customTypes: SchemaTable,
+  ) {
+    super(name, customTypes);
     this.fields = fields;
     this.tagged = tagged;
-    console.log(name, tagged);
   }
 
-  generate(customTypes: SchemaTable): string {
+  generate(): string {
     return `
       export class ${this.name} {
-        ${genMembers(this.fields, customTypes)}
-        ${genConstructor(this.fields, customTypes)}
-        ${genAccessors(this.fields, customTypes)}
+        ${genMembers(this.fields, this.typeUtils)}
+        ${genConstructor(this.fields, this.typeUtils)}
+        ${genAccessors(this.fields, this.typeUtils)}
         ${genCSL(this.name)}
 
         static deserialize(reader: CBORReader): ${this.name} {
@@ -45,8 +47,8 @@ export class GenRecord implements CodeGenerator {
               (x) => `
               let ${x.name} = ${
                 x.nullable
-                  ? `reader.readNullable(r => ${readType(customTypes, "r", x.type)})?? undefined`
-                  : readType(customTypes, "reader", x.type)
+                  ? `reader.readNullable(r => ${this.typeUtils.readType("r", x.type)})?? undefined`
+                  : this.typeUtils.readType("reader", x.type)
               };`,
             )
             .join("\n")}
@@ -65,9 +67,9 @@ export class GenRecord implements CodeGenerator {
                 ? `if(this.${x.name} == null) { 
                       writer.writeNull();
                   } else { 
-                      ${writeType(customTypes, "writer", `this.${x.name}`, x.type)};
+                      ${this.typeUtils.writeType("writer", `this.${x.name}`, x.type)};
                   }`
-                : `${writeType(customTypes, "writer", `this.${x.name}`, x.type)};`,
+                : `${this.typeUtils.writeType("writer", `this.${x.name}`, x.type)};`,
             )
             .join("\n")}
         }

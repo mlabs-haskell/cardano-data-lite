@@ -1,5 +1,4 @@
-import { SchemaTable } from "../../compiler";
-import { jsType } from "./cbor-utils";
+import { TypeUtils } from "..";
 
 type Field = {
   name: string;
@@ -8,32 +7,32 @@ type Field = {
   nullable?: boolean;
 };
 
-function fieldType(field: Field, customTypes: SchemaTable) {
-  return `${jsType(field.type, customTypes)} ${field.optional || field.nullable ? "| undefined" : ""}`;
+function fieldType(field: Field, typeUtils: TypeUtils) {
+  return `${typeUtils.jsType(field.type)} ${field.optional || field.nullable ? "| undefined" : ""}`;
 }
 
-export function genMembers(fields: Field[], customTypes: SchemaTable) {
+export function genMembers(fields: Field[], typeUtils: TypeUtils) {
   return fields
-    .map((x) => `private ${x.name}: ${fieldType(x, customTypes)};`)
+    .map((x) => `private ${x.name}: ${fieldType(x, typeUtils)};`)
     .join("\n");
 }
 
-export function genConstructor(fields: Field[], customTypes: SchemaTable) {
+export function genConstructor(fields: Field[], typeUtils: TypeUtils) {
   return `
-  constructor(${fields.map((x) => `${x.name}: ${fieldType(x, customTypes)}`).join(", ")}) {
+  constructor(${fields.map((x) => `${x.name}: ${fieldType(x, typeUtils)}`).join(", ")}) {
     ${fields.map((x) => `this.${x.name} = ${x.name};`).join("\n")}
   }`;
 }
 
-export function genAccessors(fields: Field[], customTypes: SchemaTable) {
+export function genAccessors(fields: Field[], typeUtils: TypeUtils) {
   return fields
     .map(
       (x) => `
-        get_${x.name}(): ${fieldType(x, customTypes)} {
+        get_${x.name}(): ${fieldType(x, typeUtils)} {
           return this.${x.name};
         }
 
-        set_${x.name}(${x.name}: ${fieldType(x, customTypes)}): void {
+        set_${x.name}(${x.name}: ${fieldType(x, typeUtils)}): void {
           this.${x.name} = ${x.name};
         }
       `,
