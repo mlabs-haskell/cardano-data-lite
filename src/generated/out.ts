@@ -868,7 +868,7 @@ export class TransactionBody {
   private outputs: TransactionOutputs;
   private fee: bigint;
   private ttl: bigint | undefined;
-  private certs: unknown | undefined;
+  private certs: Certificates | undefined;
   private withdrawals: Withdrawals | undefined;
   private auxiliary_data_hash: unknown | undefined;
   private validity_start_interval: bigint | undefined;
@@ -890,7 +890,7 @@ export class TransactionBody {
     outputs: TransactionOutputs,
     fee: bigint,
     ttl: bigint | undefined,
-    certs: unknown | undefined,
+    certs: Certificates | undefined,
     withdrawals: Withdrawals | undefined,
     auxiliary_data_hash: unknown | undefined,
     validity_start_interval: bigint | undefined,
@@ -961,11 +961,11 @@ export class TransactionBody {
     this.ttl = ttl;
   }
 
-  get_certs(): unknown | undefined {
+  get_certs(): Certificates | undefined {
     return this.certs;
   }
 
-  set_certs(certs: unknown | undefined): void {
+  set_certs(certs: Certificates | undefined): void {
     this.certs = certs;
   }
 
@@ -1137,7 +1137,7 @@ export class TransactionBody {
           break;
 
         case 4:
-          fields.certs = $$CANT_READ("Certificates");
+          fields.certs = Certificates.deserialize(r);
           break;
 
         case 5:
@@ -1306,7 +1306,7 @@ export class TransactionBody {
     }
     if (this.certs !== undefined) {
       writer.writeInt(4n);
-      $$CANT_WRITE("Certificates");
+      this.certs.serialize(writer);
     }
     if (this.withdrawals !== undefined) {
       writer.writeInt(5n);
@@ -1497,6 +1497,79 @@ export class TransactionOutputs {
   }
 
   serialize(writer: CBORWriter) {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+}
+
+export class Certificates {
+  private items: Certificate[];
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Certificates {
+    let reader = new CBORReader(data);
+    return Certificates.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Certificates {
+    return Certificates.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  constructor() {
+    this.items = [];
+  }
+
+  static new(): Certificates {
+    return new Certificates();
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): Certificate {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: Certificate): boolean {
+    if (this.contains(elem)) return true;
+    this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: Certificate): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static deserialize(reader: CBORReader): Certificates {
+    let ret = new Certificates();
+    if (reader.peekType() == "tagged") {
+      let tag = reader.readTaggedTag();
+      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+    }
+    reader.readArray((reader) => ret.add(Certificate.deserialize(reader)));
+    return ret;
+  }
+
+  serialize(writer: CBORWriter) {
+    writer.writeTaggedTag(258);
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 }

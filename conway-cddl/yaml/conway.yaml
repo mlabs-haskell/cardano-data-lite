@@ -251,6 +251,10 @@ TransactionOutputs:
   type: array
   item: TransactionOutput
 
+Certificates:
+  type: set
+  item: Certificate
+
 Ed25519KeyHashes:
   type: set
   item: Ed25519KeyHash
