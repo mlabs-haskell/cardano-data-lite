@@ -11,6 +11,7 @@ import { GenEnumSimple } from "../generate/enum_simple";
 import { GenNewtype } from "../generate/newtype";
 import { GenRecordFragment } from "../generate/structured/record_fragment";
 import { GenRecordFragmentWrapper } from "../generate/structured/record_fragment_wrapper";
+import { Value } from "@sinclair/typebox/value";
 
 export type SchemaTable = { [key: string]: CodeGeneratorBase };
 
@@ -32,7 +33,7 @@ export class Compiler {
   }
 
   getCodegen(name: string, schema_: any) {
-    let schema: Schema = schema_;
+    let schema: Schema = Value.Parse(Schema, schema_);
     switch (schema.type) {
       case "array":
         return new GenArray(name, this.customTypes, schema);

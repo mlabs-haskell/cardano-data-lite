@@ -1,68 +1,101 @@
-export type Schema =
-  | {
-      type: "array";
-      item: string;
-    }
-  | {
-      type: "set";
-      item: string;
-    }
-  | {
-      type: "record";
-      fields: {
-        name: string;
-        type: string;
-        nullable?: boolean;
-      }[];
-      tagged?: { tag: number };
-    }
-  | {
-      type: "tagged_record";
-      variants: {
-        tag: number;
-        name: string;
-        value?: string;
-        kind_name?: string;
-      }[];
-    }
-  | {
-      type: "record_fragment";
-      fields: {
-        name: string;
-        type: string;
-        nullable?: boolean;
-      }[];
-    }
-  | {
-      type: "record_fragment_wrapper";
-      item: {
-        name: string;
-        type: string;
-      };
-    }
-  | { type: "map"; key: string; value: string }
-  | {
-      type: "struct";
-      fields: {
-        id: number;
-        name: string;
-        type: string;
-        optional?: boolean;
-      }[];
-    }
-  | {
-      type: "enum";
-      values: { name: string; value: number }[];
-    }
-  | {
-      type: "enum_simple";
-      values: { name: string; value: number }[];
-    }
-  | {
-      type: "newtype";
-      item: string;
-      accessor: string;
-      constraints?: {
-        len?: { eq?: number; min?: number; max?: number };
-      };
-    };
+import { Type, type Static } from "@sinclair/typebox";
+
+export const Schema = Type.Intersect([
+  Type.Object({
+    genCSL: Type.Optional(Type.Boolean()),
+    tagged: Type.Optional(
+      Type.Object({
+        tag: Type.Number(),
+        bytes: Type.Optional(Type.Boolean()),
+      }),
+    ),
+  }),
+  Type.Union([
+    Type.Object({ type: Type.Literal("array"), item: Type.String() }),
+    Type.Object({
+      type: Type.Literal("enum"),
+      values: Type.Array(
+        Type.Object({ name: Type.String(), value: Type.Number() }),
+      ),
+    }),
+    Type.Object({
+      type: Type.Literal("enum_simple"),
+      values: Type.Array(
+        Type.Object({ name: Type.String(), value: Type.Number() }),
+      ),
+    }),
+    Type.Object({
+      type: Type.Literal("map"),
+      key: Type.String(),
+      value: Type.String(),
+    }),
+    Type.Object({
+      type: Type.Literal("newtype"),
+      item: Type.String(),
+      accessor: Type.String(),
+      constraints: Type.Optional(
+        Type.Object({
+          len: Type.Optional(
+            Type.Object({
+              eq: Type.Optional(Type.Number()),
+              min: Type.Optional(Type.Number()),
+              max: Type.Optional(Type.Number()),
+            }),
+          ),
+        }),
+      ),
+    }),
+    Type.Object({ type: Type.Literal("set"), item: Type.String() }),
+    Type.Object({
+      type: Type.Literal("tagged_record"),
+      variants: Type.Array(
+        Type.Object({
+          tag: Type.Number(),
+          name: Type.String(),
+          value: Type.Optional(Type.String()),
+          kind_name: Type.Optional(Type.String()),
+        }),
+      ),
+    }),
+    Type.Object({
+      type: Type.Literal("record"),
+      fields: Type.Array(
+        Type.Object({
+          name: Type.String(),
+          type: Type.String(),
+          nullable: Type.Optional(Type.Boolean()),
+        }),
+      ),
+    }),
+    Type.Object({
+      type: Type.Literal("record_fragment"),
+      fields: Type.Array(
+        Type.Object({
+          name: Type.String(),
+          type: Type.String(),
+          nullable: Type.Optional(Type.Boolean()),
+        }),
+      ),
+    }),
+    Type.Object({
+      type: Type.Literal("record_fragment_wrapper"),
+      item: Type.Object({
+        name: Type.String(),
+        type: Type.String(),
+      }),
+    }),
+    Type.Object({
+      type: Type.Literal("struct"),
+      fields: Type.Array(
+        Type.Object({
+          id: Type.Number(),
+          name: Type.String(),
+          type: Type.String(),
+          optional: Type.Optional(Type.Boolean()),
+        }),
+      ),
+    }),
+  ]),
+]);
+
+export type Schema = Static<typeof Schema>;
