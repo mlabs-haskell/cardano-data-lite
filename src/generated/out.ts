@@ -66,28 +66,6 @@ export class Block {
     this.invalid_transactions = invalid_transactions;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Block {
-    let reader = new CBORReader(data);
-    return Block.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Block {
-    return Block.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): Block {
     let len = reader.readArrayTag();
 
@@ -129,21 +107,17 @@ export class Block {
       writer.writeInt(BigInt(x)),
     );
   }
-}
-
-export class TransactionBodies {
-  private items: TransactionBody[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionBodies {
+  static from_bytes(data: Uint8Array): Block {
     let reader = new CBORReader(data);
-    return TransactionBodies.deserialize(reader);
+    return Block.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): TransactionBodies {
-    return TransactionBodies.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): Block {
+    return Block.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -155,6 +129,10 @@ export class TransactionBodies {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class TransactionBodies {
+  private items: TransactionBody[];
 
   constructor(items: TransactionBody[]) {
     this.items = items;
@@ -183,24 +161,20 @@ export class TransactionBodies {
     );
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
-}
-
-export class TransactionWitnessSets {
-  private items: TransactionWitnessSet[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionWitnessSets {
+  static from_bytes(data: Uint8Array): TransactionBodies {
     let reader = new CBORReader(data);
-    return TransactionWitnessSets.deserialize(reader);
+    return TransactionBodies.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): TransactionWitnessSets {
-    return TransactionWitnessSets.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): TransactionBodies {
+    return TransactionBodies.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -212,6 +186,10 @@ export class TransactionWitnessSets {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class TransactionWitnessSets {
+  private items: TransactionWitnessSet[];
 
   constructor(items: TransactionWitnessSet[]) {
     this.items = items;
@@ -240,24 +218,20 @@ export class TransactionWitnessSets {
     );
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
-}
-
-export class AuxiliaryDataSet {
-  private items: [number, AuxiliaryData][];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): AuxiliaryDataSet {
+  static from_bytes(data: Uint8Array): TransactionWitnessSets {
     let reader = new CBORReader(data);
-    return AuxiliaryDataSet.deserialize(reader);
+    return TransactionWitnessSets.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): AuxiliaryDataSet {
-    return AuxiliaryDataSet.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): TransactionWitnessSets {
+    return TransactionWitnessSets.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -269,6 +243,10 @@ export class AuxiliaryDataSet {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class AuxiliaryDataSet {
+  private items: [number, AuxiliaryData][];
 
   constructor(items: [number, AuxiliaryData][]) {
     this.items = items;
@@ -302,11 +280,33 @@ export class AuxiliaryDataSet {
     return ret;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeMap(this.items, (writer, x) => {
       writer.writeInt(BigInt(x[0]));
       x[1].serialize(writer);
     });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): AuxiliaryDataSet {
+    let reader = new CBORReader(data);
+    return AuxiliaryDataSet.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): AuxiliaryDataSet {
+    return AuxiliaryDataSet.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -360,28 +360,6 @@ export class Transaction {
     this.auxiliary_data = auxiliary_data;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Transaction {
-    let reader = new CBORReader(data);
-    return Transaction.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Transaction {
-    return Transaction.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): Transaction {
     let len = reader.readArrayTag();
 
@@ -415,6 +393,28 @@ export class Transaction {
       this.auxiliary_data.serialize(writer);
     }
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Transaction {
+    let reader = new CBORReader(data);
+    return Transaction.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Transaction {
+    return Transaction.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 }
 
 export class Header {
@@ -442,28 +442,6 @@ export class Header {
     this.body_signature = body_signature;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Header {
-    let reader = new CBORReader(data);
-    return Header.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Header {
-    return Header.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): Header {
     let len = reader.readArrayTag();
 
@@ -485,6 +463,28 @@ export class Header {
 
     this.header_body.serialize(writer);
     $$CANT_WRITE("KESSignature");
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Header {
+    let reader = new CBORReader(data);
+    return Header.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Header {
+    return Header.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -604,28 +604,6 @@ export class HeaderBody {
     this.protocol_version = protocol_version;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): HeaderBody {
-    let reader = new CBORReader(data);
-    return HeaderBody.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): HeaderBody {
-    return HeaderBody.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): HeaderBody {
     let len = reader.readArrayTag();
 
@@ -688,6 +666,28 @@ export class HeaderBody {
     this.operational_cert.serialize(writer);
     this.protocol_version.serialize(writer);
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): HeaderBody {
+    let reader = new CBORReader(data);
+    return HeaderBody.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): HeaderBody {
+    return HeaderBody.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 }
 
 export class OperationalCert {
@@ -740,28 +740,6 @@ export class OperationalCert {
     this.sigma = sigma;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): OperationalCert {
-    let reader = new CBORReader(data);
-    return OperationalCert.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): OperationalCert {
-    return OperationalCert.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): OperationalCert {
     let len = reader.readArrayTag();
 
@@ -790,6 +768,28 @@ export class OperationalCert {
     writer.writeInt(BigInt(this.kes_period));
     $$CANT_WRITE("Ed25519Signature");
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): OperationalCert {
+    let reader = new CBORReader(data);
+    return OperationalCert.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): OperationalCert {
+    return OperationalCert.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 }
 
 export class ProtocolVersion {
@@ -817,28 +817,6 @@ export class ProtocolVersion {
     this.minor = minor;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): ProtocolVersion {
-    let reader = new CBORReader(data);
-    return ProtocolVersion.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): ProtocolVersion {
-    return ProtocolVersion.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): ProtocolVersion {
     let len = reader.readArrayTag();
 
@@ -860,6 +838,28 @@ export class ProtocolVersion {
 
     writer.writeInt(BigInt(this.major));
     writer.writeInt(BigInt(this.minor));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ProtocolVersion {
+    let reader = new CBORReader(data);
+    return ProtocolVersion.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ProtocolVersion {
+    return ProtocolVersion.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -1093,28 +1093,6 @@ export class TransactionBody {
     this.donation = donation;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): TransactionBody {
-    let reader = new CBORReader(data);
-    return TransactionBody.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): TransactionBody {
-    return TransactionBody.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): TransactionBody {
     let fields: any = {};
     reader.readMap((r) => {
@@ -1270,7 +1248,7 @@ export class TransactionBody {
     );
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     let len = 20;
     if (this.ttl === undefined) len -= 1;
     if (this.certs === undefined) len -= 1;
@@ -1369,21 +1347,17 @@ export class TransactionBody {
       writer.writeInt(this.donation);
     }
   }
-}
-
-export class TransactionInputs {
-  private items: TransactionInput[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionInputs {
+  static from_bytes(data: Uint8Array): TransactionBody {
     let reader = new CBORReader(data);
-    return TransactionInputs.deserialize(reader);
+    return TransactionBody.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): TransactionInputs {
-    return TransactionInputs.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): TransactionBody {
+    return TransactionBody.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -1395,6 +1369,10 @@ export class TransactionInputs {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class TransactionInputs {
+  private items: TransactionInput[];
 
   constructor() {
     this.items = [];
@@ -1438,25 +1416,21 @@ export class TransactionInputs {
     return ret;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeTaggedTag(258);
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
-}
-
-export class TransactionOutputs {
-  private items: TransactionOutput[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionOutputs {
+  static from_bytes(data: Uint8Array): TransactionInputs {
     let reader = new CBORReader(data);
-    return TransactionOutputs.deserialize(reader);
+    return TransactionInputs.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): TransactionOutputs {
-    return TransactionOutputs.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): TransactionInputs {
+    return TransactionInputs.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -1468,6 +1442,10 @@ export class TransactionOutputs {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class TransactionOutputs {
+  private items: TransactionOutput[];
 
   constructor(items: TransactionOutput[]) {
     this.items = items;
@@ -1496,24 +1474,20 @@ export class TransactionOutputs {
     );
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
-}
-
-export class Certificates {
-  private items: Certificate[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Certificates {
+  static from_bytes(data: Uint8Array): TransactionOutputs {
     let reader = new CBORReader(data);
-    return Certificates.deserialize(reader);
+    return TransactionOutputs.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): Certificates {
-    return Certificates.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): TransactionOutputs {
+    return TransactionOutputs.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -1525,6 +1499,10 @@ export class Certificates {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class Certificates {
+  private items: Certificate[];
 
   constructor() {
     this.items = [];
@@ -1568,25 +1546,21 @@ export class Certificates {
     return ret;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeTaggedTag(258);
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
-}
-
-export class Ed25519KeyHashes {
-  private items: unknown[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Ed25519KeyHashes {
+  static from_bytes(data: Uint8Array): Certificates {
     let reader = new CBORReader(data);
-    return Ed25519KeyHashes.deserialize(reader);
+    return Certificates.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): Ed25519KeyHashes {
-    return Ed25519KeyHashes.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): Certificates {
+    return Certificates.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -1598,6 +1572,10 @@ export class Ed25519KeyHashes {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class Ed25519KeyHashes {
+  private items: unknown[];
 
   constructor() {
     this.items = [];
@@ -1641,11 +1619,33 @@ export class Ed25519KeyHashes {
     return ret;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeTaggedTag(258);
     writer.writeArray(this.items, (writer, x) =>
       $$CANT_WRITE("Ed25519KeyHash"),
     );
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Ed25519KeyHashes {
+    let reader = new CBORReader(data);
+    return Ed25519KeyHashes.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Ed25519KeyHashes {
+    return Ed25519KeyHashes.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -1674,28 +1674,6 @@ export class VotingProcedure {
     this.anchor = anchor;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): VotingProcedure {
-    let reader = new CBORReader(data);
-    return VotingProcedure.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): VotingProcedure {
-    return VotingProcedure.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): VotingProcedure {
     let len = reader.readArrayTag();
 
@@ -1721,6 +1699,28 @@ export class VotingProcedure {
     } else {
       this.anchor.serialize(writer);
     }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): VotingProcedure {
+    let reader = new CBORReader(data);
+    return VotingProcedure.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): VotingProcedure {
+    return VotingProcedure.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -1774,28 +1774,6 @@ export class VotingProposal {
     this.anchor = anchor;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): VotingProposal {
-    let reader = new CBORReader(data);
-    return VotingProposal.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): VotingProposal {
-    return VotingProposal.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): VotingProposal {
     let len = reader.readArrayTag();
 
@@ -1829,21 +1807,17 @@ export class VotingProposal {
     this.governance_action.serialize(writer);
     this.anchor.serialize(writer);
   }
-}
-
-export class VotingProposals {
-  private items: VotingProposal[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): VotingProposals {
+  static from_bytes(data: Uint8Array): VotingProposal {
     let reader = new CBORReader(data);
-    return VotingProposals.deserialize(reader);
+    return VotingProposal.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): VotingProposals {
-    return VotingProposals.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): VotingProposal {
+    return VotingProposal.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -1855,6 +1829,10 @@ export class VotingProposals {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class VotingProposals {
+  private items: VotingProposal[];
 
   constructor() {
     this.items = [];
@@ -1898,25 +1876,21 @@ export class VotingProposals {
     return ret;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeTaggedTag(258);
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
-}
-
-export class certificates {
-  private items: Certificate[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): certificates {
+  static from_bytes(data: Uint8Array): VotingProposals {
     let reader = new CBORReader(data);
-    return certificates.deserialize(reader);
+    return VotingProposals.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): certificates {
-    return certificates.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): VotingProposals {
+    return VotingProposals.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -1928,6 +1902,10 @@ export class certificates {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class certificates {
+  private items: Certificate[];
 
   constructor() {
     this.items = [];
@@ -1971,9 +1949,31 @@ export class certificates {
     return ret;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeTaggedTag(258);
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): certificates {
+    let reader = new CBORReader(data);
+    return certificates.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): certificates {
+    return certificates.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -1998,28 +1998,6 @@ export type GovernanceActionVariant =
 
 export class GovernanceAction {
   private variant: GovernanceActionVariant;
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): GovernanceAction {
-    let reader = new CBORReader(data);
-    return GovernanceAction.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): GovernanceAction {
-    return GovernanceAction.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
 
   constructor(variant: GovernanceActionVariant) {
     this.variant = variant;
@@ -2232,6 +2210,28 @@ export class GovernanceAction {
         this.variant.value.serialize(writer);
         break;
     }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): GovernanceAction {
+    let reader = new CBORReader(data);
+    return GovernanceAction.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): GovernanceAction {
+    return GovernanceAction.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -2574,28 +2574,6 @@ export class InfoAction {
 export class Credentials {
   private items: Credential[];
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Credentials {
-    let reader = new CBORReader(data);
-    return Credentials.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Credentials {
-    return Credentials.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   constructor() {
     this.items = [];
   }
@@ -2638,9 +2616,31 @@ export class Credentials {
     return ret;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeTaggedTag(258);
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Credentials {
+    let reader = new CBORReader(data);
+    return Credentials.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Credentials {
+    return Credentials.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -2669,28 +2669,6 @@ export class Constitution {
     this.scripthash = scripthash;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Constitution {
-    let reader = new CBORReader(data);
-    return Constitution.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Constitution {
-    return Constitution.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): Constitution {
     let len = reader.readArrayTag();
 
@@ -2717,6 +2695,28 @@ export class Constitution {
     } else {
       $$CANT_WRITE("ScriptHash");
     }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Constitution {
+    let reader = new CBORReader(data);
+    return Constitution.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Constitution {
+    return Constitution.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -2761,28 +2761,6 @@ export class Voter {
     this.staking_pool = staking_pool;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Voter {
-    let reader = new CBORReader(data);
-    return Voter.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Voter {
-    return Voter.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): Voter {
     let len = reader.readArrayTag();
 
@@ -2807,6 +2785,28 @@ export class Voter {
     this.constitutional_committee_hot_key.serialize(writer);
     this.drep.serialize(writer);
     $$CANT_WRITE("Ed25519KeyHash");
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Voter {
+    let reader = new CBORReader(data);
+    return Voter.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Voter {
+    return Voter.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -2835,28 +2835,6 @@ export class Anchor {
     this.anchor_data_hash = anchor_data_hash;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Anchor {
-    let reader = new CBORReader(data);
-    return Anchor.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Anchor {
-    return Anchor.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): Anchor {
     let len = reader.readArrayTag();
 
@@ -2878,6 +2856,28 @@ export class Anchor {
 
     this.url.serialize(writer);
     $$CANT_WRITE("AnchorDataHash");
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Anchor {
+    let reader = new CBORReader(data);
+    return Anchor.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Anchor {
+    return Anchor.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -2929,28 +2929,6 @@ export class GovernanceActionId {
     this.index = index;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): GovernanceActionId {
-    let reader = new CBORReader(data);
-    return GovernanceActionId.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): GovernanceActionId {
-    return GovernanceActionId.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): GovernanceActionId {
     let len = reader.readArrayTag();
 
@@ -2972,6 +2950,28 @@ export class GovernanceActionId {
 
     $$CANT_WRITE("TransactionHash");
     writer.writeInt(BigInt(this.index));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): GovernanceActionId {
+    let reader = new CBORReader(data);
+    return GovernanceActionId.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): GovernanceActionId {
+    return GovernanceActionId.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -3000,28 +3000,6 @@ export class TransactionInput {
     this.index = index;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): TransactionInput {
-    let reader = new CBORReader(data);
-    return TransactionInput.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): TransactionInput {
-    return TransactionInput.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): TransactionInput {
     let len = reader.readArrayTag();
 
@@ -3043,6 +3021,28 @@ export class TransactionInput {
 
     $$CANT_WRITE("TransactionHash");
     writer.writeInt(BigInt(this.index));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TransactionInput {
+    let reader = new CBORReader(data);
+    return TransactionInput.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TransactionInput {
+    return TransactionInput.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -3096,28 +3096,6 @@ export class TransactionOutput {
     this.script_ref = script_ref;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): TransactionOutput {
-    let reader = new CBORReader(data);
-    return TransactionOutput.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): TransactionOutput {
-    return TransactionOutput.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): TransactionOutput {
     let fields: any = {};
     reader.readMap((r) => {
@@ -3155,7 +3133,7 @@ export class TransactionOutput {
     return new TransactionOutput(address, amount, plutus_data, script_ref);
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     let len = 4;
     if (this.plutus_data === undefined) len -= 1;
     if (this.script_ref === undefined) len -= 1;
@@ -3175,6 +3153,28 @@ export class TransactionOutput {
       writer.writeInt(3n);
       this.script_ref.serialize(writer);
     }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TransactionOutput {
+    let reader = new CBORReader(data);
+    return TransactionOutput.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TransactionOutput {
+    return TransactionOutput.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -3219,28 +3219,6 @@ export type CertificateVariant =
 
 export class Certificate {
   private variant: CertificateVariant;
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Certificate {
-    let reader = new CBORReader(data);
-    return Certificate.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Certificate {
-    return Certificate.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
 
   constructor(variant: CertificateVariant) {
     this.variant = variant;
@@ -3715,6 +3693,28 @@ export class Certificate {
         break;
     }
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Certificate {
+    let reader = new CBORReader(data);
+    return Certificate.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Certificate {
+    return Certificate.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 }
 
 export class StakeRegistration {
@@ -3823,6 +3823,15 @@ export class PoolRegistration {
     this.pool_params = pool_params;
   }
 
+  static deserialize(reader: CBORReader): PoolRegistration {
+    let pool_params = PoolParams.deserialize(reader);
+    return new PoolRegistration(pool_params);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.pool_params.serialize(writer);
+  }
+
   // no-op
   free(): void {}
 
@@ -3843,15 +3852,6 @@ export class PoolRegistration {
 
   to_hex(): string {
     return bytesToHex(this.to_bytes());
-  }
-
-  static deserialize(reader: CBORReader): PoolRegistration {
-    let pool_params = PoolParams.deserialize(reader);
-    return new PoolRegistration(pool_params);
-  }
-
-  serialize(writer: CBORWriter): void {
-    this.pool_params.serialize(writer);
   }
 }
 
@@ -4486,28 +4486,6 @@ export type CredentialVariant =
 export class Credential {
   private variant: CredentialVariant;
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Credential {
-    let reader = new CBORReader(data);
-    return Credential.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Credential {
-    return Credential.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   constructor(variant: CredentialVariant) {
     this.variant = variant;
   }
@@ -4578,6 +4556,28 @@ export class Credential {
         break;
     }
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Credential {
+    let reader = new CBORReader(data);
+    return Credential.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Credential {
+    return Credential.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 }
 
 export enum DRepKind {
@@ -4595,28 +4595,6 @@ export type DRepVariant =
 
 export class DRep {
   private variant: DRepVariant;
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): DRep {
-    let reader = new CBORReader(data);
-    return DRep.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): DRep {
-    return DRep.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
 
   constructor(variant: DRepVariant) {
     this.variant = variant;
@@ -4723,6 +4701,28 @@ export class DRep {
         writer.writeInt(BigInt(3));
         break;
     }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DRep {
+    let reader = new CBORReader(data);
+    return DRep.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DRep {
+    return DRep.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -4884,28 +4884,6 @@ export class PoolParams {
 export class Relays {
   private items: Relay[];
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Relays {
-    let reader = new CBORReader(data);
-    return Relays.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Relays {
-    return Relays.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   constructor(items: Relay[]) {
     this.items = items;
   }
@@ -4931,13 +4909,57 @@ export class Relays {
     return new Relays(reader.readArray((reader) => Relay.deserialize(reader)));
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Relays {
+    let reader = new CBORReader(data);
+    return Relays.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Relays {
+    return Relays.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
 export class Ipv4 {
   private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 4) throw new Error("Expected length to be 4");
+
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): Ipv4 {
+    return new Ipv4(inner);
+  }
+
+  ip(): Uint8Array {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader): Ipv4 {
+    return new Ipv4(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
 
   // no-op
   free(): void {}
@@ -4960,32 +4982,32 @@ export class Ipv4 {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class Ipv6 {
+  private inner: Uint8Array;
 
   constructor(inner: Uint8Array) {
-    if (inner.length != 4) throw new Error("Expected length to be 4");
+    if (inner.length != 16) throw new Error("Expected length to be 16");
 
     this.inner = inner;
   }
 
-  static new(inner: Uint8Array): Ipv4 {
-    return new Ipv4(inner);
+  static new(inner: Uint8Array): Ipv6 {
+    return new Ipv6(inner);
   }
 
   ip(): Uint8Array {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): Ipv4 {
-    return new Ipv4(reader.readBytes());
+  static deserialize(reader: CBORReader): Ipv6 {
+    return new Ipv6(reader.readBytes());
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
-}
-
-export class Ipv6 {
-  private inner: Uint8Array;
 
   // no-op
   free(): void {}
@@ -5008,32 +5030,31 @@ export class Ipv6 {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
-
-  constructor(inner: Uint8Array) {
-    if (inner.length != 16) throw new Error("Expected length to be 16");
-
-    this.inner = inner;
-  }
-
-  static new(inner: Uint8Array): Ipv6 {
-    return new Ipv6(inner);
-  }
-
-  ip(): Uint8Array {
-    return this.inner;
-  }
-
-  static deserialize(reader: CBORReader): Ipv6 {
-    return new Ipv6(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter) {
-    writer.writeBytes(this.inner);
-  }
 }
 
 export class DNSRecordAorAAAA {
   private inner: string;
+
+  constructor(inner: string) {
+    if (inner.length > 64) throw new Error("Expected length to be atmost 64");
+    this.inner = inner;
+  }
+
+  static new(inner: string): DNSRecordAorAAAA {
+    return new DNSRecordAorAAAA(inner);
+  }
+
+  record(): string {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader): DNSRecordAorAAAA {
+    return new DNSRecordAorAAAA(reader.readString());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeString(this.inner);
+  }
 
   // no-op
   free(): void {}
@@ -5056,31 +5077,31 @@ export class DNSRecordAorAAAA {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class DNSRecordSRV {
+  private inner: string;
 
   constructor(inner: string) {
     if (inner.length > 64) throw new Error("Expected length to be atmost 64");
     this.inner = inner;
   }
 
-  static new(inner: string): DNSRecordAorAAAA {
-    return new DNSRecordAorAAAA(inner);
+  static new(inner: string): DNSRecordSRV {
+    return new DNSRecordSRV(inner);
   }
 
   record(): string {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): DNSRecordAorAAAA {
-    return new DNSRecordAorAAAA(reader.readString());
+  static deserialize(reader: CBORReader): DNSRecordSRV {
+    return new DNSRecordSRV(reader.readString());
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeString(this.inner);
   }
-}
-
-export class DNSRecordSRV {
-  private inner: string;
 
   // no-op
   free(): void {}
@@ -5103,27 +5124,6 @@ export class DNSRecordSRV {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
-
-  constructor(inner: string) {
-    if (inner.length > 64) throw new Error("Expected length to be atmost 64");
-    this.inner = inner;
-  }
-
-  static new(inner: string): DNSRecordSRV {
-    return new DNSRecordSRV(inner);
-  }
-
-  record(): string {
-    return this.inner;
-  }
-
-  static deserialize(reader: CBORReader): DNSRecordSRV {
-    return new DNSRecordSRV(reader.readString());
-  }
-
-  serialize(writer: CBORWriter) {
-    writer.writeString(this.inner);
-  }
 }
 
 export enum RelayKind {
@@ -5139,28 +5139,6 @@ export type RelayVariant =
 
 export class Relay {
   private variant: RelayVariant;
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Relay {
-    let reader = new CBORReader(data);
-    return Relay.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Relay {
-    return Relay.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
 
   constructor(variant: RelayVariant) {
     this.variant = variant;
@@ -5255,6 +5233,28 @@ export class Relay {
         this.variant.value.serialize(writer);
         break;
     }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Relay {
+    let reader = new CBORReader(data);
+    return Relay.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Relay {
+    return Relay.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -5420,28 +5420,6 @@ export class PoolMetadata {
     this.pool_metadata_hash = pool_metadata_hash;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): PoolMetadata {
-    let reader = new CBORReader(data);
-    return PoolMetadata.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): PoolMetadata {
-    return PoolMetadata.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): PoolMetadata {
     let len = reader.readArrayTag();
 
@@ -5464,10 +5442,54 @@ export class PoolMetadata {
     this.url.serialize(writer);
     $$CANT_WRITE("PoolMetadataHash");
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PoolMetadata {
+    let reader = new CBORReader(data);
+    return PoolMetadata.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PoolMetadata {
+    return PoolMetadata.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 }
 
 export class URL {
   private inner: string;
+
+  constructor(inner: string) {
+    if (inner.length < 0) throw new Error("Expected length to be atleast 0");
+    if (inner.length > 128) throw new Error("Expected length to be atmost 128");
+    this.inner = inner;
+  }
+
+  static new(inner: string): URL {
+    return new URL(inner);
+  }
+
+  url(): string {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader): URL {
+    return new URL(reader.readString());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeString(this.inner);
+  }
 
   // no-op
   free(): void {}
@@ -5490,54 +5512,10 @@ export class URL {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
-
-  constructor(inner: string) {
-    if (inner.length < 0) throw new Error("Expected length to be atleast 0");
-    if (inner.length > 128) throw new Error("Expected length to be atmost 128");
-    this.inner = inner;
-  }
-
-  static new(inner: string): URL {
-    return new URL(inner);
-  }
-
-  url(): string {
-    return this.inner;
-  }
-
-  static deserialize(reader: CBORReader): URL {
-    return new URL(reader.readString());
-  }
-
-  serialize(writer: CBORWriter) {
-    writer.writeString(this.inner);
-  }
 }
 
 export class Withdrawals {
   private items: [unknown, bigint][];
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Withdrawals {
-    let reader = new CBORReader(data);
-    return Withdrawals.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Withdrawals {
-    return Withdrawals.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
 
   constructor(items: [unknown, bigint][]) {
     this.items = items;
@@ -5571,11 +5549,33 @@ export class Withdrawals {
     return ret;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeMap(this.items, (writer, x) => {
       $$CANT_WRITE("RewardAddress");
       writer.writeInt(x[1]);
     });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Withdrawals {
+    let reader = new CBORReader(data);
+    return Withdrawals.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Withdrawals {
+    return Withdrawals.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -5929,28 +5929,6 @@ export class ProtocolParamUpdate {
     this.script_cost_per_byte = script_cost_per_byte;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): ProtocolParamUpdate {
-    let reader = new CBORReader(data);
-    return ProtocolParamUpdate.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): ProtocolParamUpdate {
-    return ProtocolParamUpdate.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): ProtocolParamUpdate {
     let fields: any = {};
     reader.readMap((r) => {
@@ -6173,7 +6151,7 @@ export class ProtocolParamUpdate {
     );
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     let len = 30;
     if (this.minfee_a === undefined) len -= 1;
     if (this.minfee_b === undefined) len -= 1;
@@ -6327,6 +6305,28 @@ export class ProtocolParamUpdate {
       this.script_cost_per_byte.serialize(writer);
     }
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ProtocolParamUpdate {
+    let reader = new CBORReader(data);
+    return ProtocolParamUpdate.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ProtocolParamUpdate {
+    return ProtocolParamUpdate.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 }
 
 export class PoolVotingThresholds {
@@ -6392,28 +6392,6 @@ export class PoolVotingThresholds {
     this.security_relevant_threshold = security_relevant_threshold;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): PoolVotingThresholds {
-    let reader = new CBORReader(data);
-    return PoolVotingThresholds.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): PoolVotingThresholds {
-    return PoolVotingThresholds.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): PoolVotingThresholds {
     let len = reader.readArrayTag();
 
@@ -6450,6 +6428,28 @@ export class PoolVotingThresholds {
     this.committee_no_confidence.serialize(writer);
     this.hard_fork_initiation.serialize(writer);
     this.security_relevant_threshold.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PoolVotingThresholds {
+    let reader = new CBORReader(data);
+    return PoolVotingThresholds.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PoolVotingThresholds {
+    return PoolVotingThresholds.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -6569,28 +6569,6 @@ export class DrepVotingThresholds {
     this.treasury_withdrawal = treasury_withdrawal;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): DrepVotingThresholds {
-    let reader = new CBORReader(data);
-    return DrepVotingThresholds.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): DrepVotingThresholds {
-    return DrepVotingThresholds.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): DrepVotingThresholds {
     let len = reader.readArrayTag();
 
@@ -6647,6 +6625,28 @@ export class DrepVotingThresholds {
     this.pp_technical_group.serialize(writer);
     this.pp_governance_group.serialize(writer);
     this.treasury_withdrawal.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DrepVotingThresholds {
+    let reader = new CBORReader(data);
+    return DrepVotingThresholds.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DrepVotingThresholds {
+    return DrepVotingThresholds.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -6744,28 +6744,6 @@ export class TransactionWitnessSet {
     this.plutus_scripts_v3 = plutus_scripts_v3;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): TransactionWitnessSet {
-    let reader = new CBORReader(data);
-    return TransactionWitnessSet.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): TransactionWitnessSet {
-    return TransactionWitnessSet.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): TransactionWitnessSet {
     let fields: any = {};
     reader.readMap((r) => {
@@ -6833,7 +6811,7 @@ export class TransactionWitnessSet {
     );
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     let len = 8;
     if (this.vkeys === undefined) len -= 1;
     if (this.native_scripts === undefined) len -= 1;
@@ -6877,21 +6855,17 @@ export class TransactionWitnessSet {
       this.plutus_scripts_v3.serialize(writer);
     }
   }
-}
-
-export class Vkeywitnesses {
-  private items: Vkeywitness[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Vkeywitnesses {
+  static from_bytes(data: Uint8Array): TransactionWitnessSet {
     let reader = new CBORReader(data);
-    return Vkeywitnesses.deserialize(reader);
+    return TransactionWitnessSet.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): Vkeywitnesses {
-    return Vkeywitnesses.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): TransactionWitnessSet {
+    return TransactionWitnessSet.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -6903,6 +6877,10 @@ export class Vkeywitnesses {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class Vkeywitnesses {
+  private items: Vkeywitness[];
 
   constructor() {
     this.items = [];
@@ -6946,25 +6924,21 @@ export class Vkeywitnesses {
     return ret;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeTaggedTag(258);
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
-}
-
-export class NativeScripts {
-  private items: NativeScript[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): NativeScripts {
+  static from_bytes(data: Uint8Array): Vkeywitnesses {
     let reader = new CBORReader(data);
-    return NativeScripts.deserialize(reader);
+    return Vkeywitnesses.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): NativeScripts {
-    return NativeScripts.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): Vkeywitnesses {
+    return Vkeywitnesses.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -6976,6 +6950,10 @@ export class NativeScripts {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class NativeScripts {
+  private items: NativeScript[];
 
   constructor(items: NativeScript[]) {
     this.items = items;
@@ -7004,24 +6982,20 @@ export class NativeScripts {
     );
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
-}
-
-export class BootstrapWitnesses {
-  private items: BootstrapWitness[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): BootstrapWitnesses {
+  static from_bytes(data: Uint8Array): NativeScripts {
     let reader = new CBORReader(data);
-    return BootstrapWitnesses.deserialize(reader);
+    return NativeScripts.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): BootstrapWitnesses {
-    return BootstrapWitnesses.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): NativeScripts {
+    return NativeScripts.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -7033,6 +7007,10 @@ export class BootstrapWitnesses {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class BootstrapWitnesses {
+  private items: BootstrapWitness[];
 
   constructor(items: BootstrapWitness[]) {
     this.items = items;
@@ -7061,24 +7039,20 @@ export class BootstrapWitnesses {
     );
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
-}
-
-export class PlutusScripts {
-  private items: Uint8Array[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PlutusScripts {
+  static from_bytes(data: Uint8Array): BootstrapWitnesses {
     let reader = new CBORReader(data);
-    return PlutusScripts.deserialize(reader);
+    return BootstrapWitnesses.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): PlutusScripts {
-    return PlutusScripts.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): BootstrapWitnesses {
+    return BootstrapWitnesses.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -7090,6 +7064,10 @@ export class PlutusScripts {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class PlutusScripts {
+  private items: Uint8Array[];
 
   constructor(items: Uint8Array[]) {
     this.items = items;
@@ -7116,24 +7094,20 @@ export class PlutusScripts {
     return new PlutusScripts(reader.readArray((reader) => reader.readBytes()));
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeArray(this.items, (writer, x) => writer.writeBytes(x));
   }
-}
-
-export class PlutusList {
-  private items: unknown[];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PlutusList {
+  static from_bytes(data: Uint8Array): PlutusScripts {
     let reader = new CBORReader(data);
-    return PlutusList.deserialize(reader);
+    return PlutusScripts.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): PlutusList {
-    return PlutusList.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): PlutusScripts {
+    return PlutusScripts.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -7145,6 +7119,10 @@ export class PlutusList {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class PlutusList {
+  private items: unknown[];
 
   constructor() {
     this.items = [];
@@ -7188,9 +7166,31 @@ export class PlutusList {
     return ret;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeTaggedTag(258);
     writer.writeArray(this.items, (writer, x) => $$CANT_WRITE("PlutusData"));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PlutusList {
+    let reader = new CBORReader(data);
+    return PlutusList.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PlutusList {
+    return PlutusList.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -7205,28 +7205,6 @@ export enum RedeemerTagKind {
 
 export class RedeemerTag {
   private kind_: RedeemerTagKind;
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): RedeemerTag {
-    let reader = new CBORReader(data);
-    return RedeemerTag.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): RedeemerTag {
-    return RedeemerTag.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
 
   constructor(kind: RedeemerTagKind) {
     this.kind_ = kind;
@@ -7267,8 +7245,30 @@ export class RedeemerTag {
     throw "Unrecognized enum value: " + kind + " for " + RedeemerTag;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeInt(BigInt(this.kind_));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): RedeemerTag {
+    let reader = new CBORReader(data);
+    return RedeemerTag.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): RedeemerTag {
+    return RedeemerTag.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -7297,28 +7297,6 @@ export class ExUnits {
     this.steps = steps;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): ExUnits {
-    let reader = new CBORReader(data);
-    return ExUnits.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): ExUnits {
-    return ExUnits.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): ExUnits {
     let len = reader.readArrayTag();
 
@@ -7340,6 +7318,28 @@ export class ExUnits {
 
     writer.writeInt(this.mem);
     writer.writeInt(this.steps);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ExUnits {
+    let reader = new CBORReader(data);
+    return ExUnits.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ExUnits {
+    return ExUnits.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -7368,28 +7368,6 @@ export class ExUnitPrices {
     this.step_price = step_price;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): ExUnitPrices {
-    let reader = new CBORReader(data);
-    return ExUnitPrices.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): ExUnitPrices {
-    return ExUnitPrices.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): ExUnitPrices {
     let len = reader.readArrayTag();
 
@@ -7412,27 +7390,17 @@ export class ExUnitPrices {
     this.mem_price.serialize(writer);
     this.step_price.serialize(writer);
   }
-}
-
-export enum LanguageKind {
-  plutus_v1 = 0,
-  plutus_v2 = 1,
-  plutus_v3 = 2,
-}
-
-export class Language {
-  private kind_: LanguageKind;
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Language {
+  static from_bytes(data: Uint8Array): ExUnitPrices {
     let reader = new CBORReader(data);
-    return Language.deserialize(reader);
+    return ExUnitPrices.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): Language {
-    return Language.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): ExUnitPrices {
+    return ExUnitPrices.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -7444,6 +7412,16 @@ export class Language {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export enum LanguageKind {
+  plutus_v1 = 0,
+  plutus_v2 = 1,
+  plutus_v3 = 2,
+}
+
+export class Language {
+  private kind_: LanguageKind;
 
   constructor(kind: LanguageKind) {
     this.kind_ = kind;
@@ -7469,24 +7447,20 @@ export class Language {
     throw "Unrecognized enum value: " + kind + " for " + Language;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeInt(BigInt(this.kind_));
   }
-}
-
-export class GeneralTransactionMetadata {
-  private items: [bigint, unknown][];
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): GeneralTransactionMetadata {
+  static from_bytes(data: Uint8Array): Language {
     let reader = new CBORReader(data);
-    return GeneralTransactionMetadata.deserialize(reader);
+    return Language.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): GeneralTransactionMetadata {
-    return GeneralTransactionMetadata.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): Language {
+    return Language.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -7498,6 +7472,10 @@ export class GeneralTransactionMetadata {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
+}
+
+export class GeneralTransactionMetadata {
+  private items: [bigint, unknown][];
 
   constructor(items: [bigint, unknown][]) {
     this.items = items;
@@ -7531,11 +7509,33 @@ export class GeneralTransactionMetadata {
     return ret;
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     writer.writeMap(this.items, (writer, x) => {
       writer.writeInt(x[0]);
       $$CANT_WRITE("TransactionMetadatum");
     });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): GeneralTransactionMetadata {
+    let reader = new CBORReader(data);
+    return GeneralTransactionMetadata.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): GeneralTransactionMetadata {
+    return GeneralTransactionMetadata.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -7600,28 +7600,6 @@ export class AuxiliaryData {
     this.plutus_scripts_v3 = plutus_scripts_v3;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): AuxiliaryData {
-    let reader = new CBORReader(data);
-    return AuxiliaryData.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): AuxiliaryData {
-    return AuxiliaryData.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): AuxiliaryData {
     let fields: any = {};
     reader.readMap((r) => {
@@ -7674,7 +7652,7 @@ export class AuxiliaryData {
     );
   }
 
-  serialize(writer: CBORWriter) {
+  serialize(writer: CBORWriter): void {
     let len = 5;
 
     writer.writeMapTag(len);
@@ -7693,6 +7671,28 @@ export class AuxiliaryData {
 
     writer.writeInt(4n);
     this.plutus_scripts_v3.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): AuxiliaryData {
+    let reader = new CBORReader(data);
+    return AuxiliaryData.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): AuxiliaryData {
+    return AuxiliaryData.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -7721,28 +7721,6 @@ export class Vkeywitness {
     this.signature = signature;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Vkeywitness {
-    let reader = new CBORReader(data);
-    return Vkeywitness.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Vkeywitness {
-    return Vkeywitness.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): Vkeywitness {
     let len = reader.readArrayTag();
 
@@ -7764,6 +7742,28 @@ export class Vkeywitness {
 
     $$CANT_WRITE("Vkey");
     $$CANT_WRITE("Ed25519Signature");
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Vkeywitness {
+    let reader = new CBORReader(data);
+    return Vkeywitness.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Vkeywitness {
+    return Vkeywitness.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -7817,28 +7817,6 @@ export class BootstrapWitness {
     this.attributes = attributes;
   }
 
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): BootstrapWitness {
-    let reader = new CBORReader(data);
-    return BootstrapWitness.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): BootstrapWitness {
-    return BootstrapWitness.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
   static deserialize(reader: CBORReader): BootstrapWitness {
     let len = reader.readArrayTag();
 
@@ -7867,6 +7845,28 @@ export class BootstrapWitness {
     writer.writeBytes(this.chain_code);
     writer.writeBytes(this.attributes);
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): BootstrapWitness {
+    let reader = new CBORReader(data);
+    return BootstrapWitness.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): BootstrapWitness {
+    return BootstrapWitness.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 }
 
 export enum NativeScriptKind {
@@ -7888,28 +7888,6 @@ export type NativeScriptVariant =
 
 export class NativeScript {
   private variant: NativeScriptVariant;
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): NativeScript {
-    let reader = new CBORReader(data);
-    return NativeScript.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): NativeScript {
-    return NativeScript.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
 
   constructor(variant: NativeScriptVariant) {
     this.variant = variant;
@@ -8076,6 +8054,28 @@ export class NativeScript {
         this.variant.value.serialize(writer);
         break;
     }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): NativeScript {
+    let reader = new CBORReader(data);
+    return NativeScript.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): NativeScript {
+    return NativeScript.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
   }
 }
 
@@ -8251,6 +8251,27 @@ export class TimelockExpiry {
 export class AssetName {
   private inner: Uint8Array;
 
+  constructor(inner: Uint8Array) {
+    if (inner.length > 32) throw new Error("Expected length to be atmost 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): AssetName {
+    return new AssetName(inner);
+  }
+
+  name(): Uint8Array {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader): AssetName {
+    return new AssetName(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
   // no-op
   free(): void {}
 
@@ -8272,27 +8293,6 @@ export class AssetName {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
-
-  constructor(inner: Uint8Array) {
-    if (inner.length > 32) throw new Error("Expected length to be atmost 32");
-    this.inner = inner;
-  }
-
-  static new(inner: Uint8Array): AssetName {
-    return new AssetName(inner);
-  }
-
-  name(): Uint8Array {
-    return this.inner;
-  }
-
-  static deserialize(reader: CBORReader): AssetName {
-    return new AssetName(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter) {
-    writer.writeBytes(this.inner);
-  }
 }
 
 export enum NetworkIdKind {
@@ -8302,6 +8302,29 @@ export enum NetworkIdKind {
 
 export class NetworkId {
   private kind_: NetworkIdKind;
+
+  constructor(kind: NetworkIdKind) {
+    this.kind_ = kind;
+  }
+
+  static new_mainnet(): NetworkId {
+    return new NetworkId(0);
+  }
+
+  static new_testnet(): NetworkId {
+    return new NetworkId(1);
+  }
+
+  static deserialize(reader: CBORReader): NetworkId {
+    let kind = Number(reader.readInt());
+    if (kind == 0) return new NetworkId(0);
+    if (kind == 1) return new NetworkId(1);
+    throw "Unrecognized enum value: " + kind + " for " + NetworkId;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeInt(BigInt(this.kind_));
+  }
 
   // no-op
   free(): void {}
@@ -8324,29 +8347,6 @@ export class NetworkId {
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
-
-  constructor(kind: NetworkIdKind) {
-    this.kind_ = kind;
-  }
-
-  static new_mainnet(): NetworkId {
-    return new NetworkId(0);
-  }
-
-  static new_testnet(): NetworkId {
-    return new NetworkId(1);
-  }
-
-  static deserialize(reader: CBORReader): NetworkId {
-    let kind = Number(reader.readInt());
-    if (kind == 0) return new NetworkId(0);
-    if (kind == 1) return new NetworkId(1);
-    throw "Unrecognized enum value: " + kind + " for " + NetworkId;
-  }
-
-  serialize(writer: CBORWriter) {
-    writer.writeInt(BigInt(this.kind_));
-  }
 }
 
 export enum DataOptionKind {
@@ -8360,28 +8360,6 @@ export type DataOptionVariant =
 
 export class DataOption {
   private variant: DataOptionVariant;
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): DataOption {
-    let reader = new CBORReader(data);
-    return DataOption.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): DataOption {
-    return DataOption.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
 
   constructor(variant: DataOptionVariant) {
     this.variant = variant;
@@ -8453,6 +8431,28 @@ export class DataOption {
         break;
     }
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DataOption {
+    let reader = new CBORReader(data);
+    return DataOption.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DataOption {
+    return DataOption.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 }
 
 export enum ScriptRefKind {
@@ -8470,28 +8470,6 @@ export type ScriptRefVariant =
 
 export class ScriptRef {
   private variant: ScriptRefVariant;
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): ScriptRef {
-    let reader = new CBORReader(data);
-    return ScriptRef.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): ScriptRef {
-    return ScriptRef.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
 
   constructor(variant: ScriptRefVariant) {
     this.variant = variant;
@@ -8611,6 +8589,28 @@ export class ScriptRef {
         break;
     }
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ScriptRef {
+    let reader = new CBORReader(data);
+    return ScriptRef.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ScriptRef {
+    return ScriptRef.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
 }
 
 export class UnitInterval {
@@ -8638,6 +8638,44 @@ export class UnitInterval {
     this.denominator = denominator;
   }
 
+  static deserialize(reader: CBORReader): UnitInterval {
+    let taggedTag = reader.readTaggedTag();
+    if (taggedTag != 30) {
+      throw new Error("Expected tag 30, got " + taggedTag);
+    }
+
+    return UnitInterval.deserializeInner(reader);
+  }
+
+  static deserializeInner(reader: CBORReader): UnitInterval {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let numerator = reader.readInt();
+
+    let denominator = reader.readInt();
+
+    return new UnitInterval(numerator, denominator);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeTaggedTag(30);
+
+    UnitInterval.serializeInner(writer);
+  }
+
+  serializeInner(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
+
+    writer.writeInt(this.numerator);
+    writer.writeInt(this.denominator);
+  }
+
   // no-op
   free(): void {}
 
@@ -8658,35 +8696,5 @@ export class UnitInterval {
 
   to_hex(): string {
     return bytesToHex(this.to_bytes());
-  }
-
-  static deserialize(reader: CBORReader): UnitInterval {
-    let taggedTag = reader.readTaggedTag();
-    if (taggedTag != 30) {
-      throw new Error("Expected tag 30, got " + taggedTag);
-    }
-
-    let len = reader.readArrayTag();
-
-    if (len != null && len < 2) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
-      );
-    }
-
-    let numerator = reader.readInt();
-
-    let denominator = reader.readInt();
-
-    return new UnitInterval(numerator, denominator);
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(30);
-
-    writer.writeArrayTag(2);
-
-    writer.writeInt(this.numerator);
-    writer.writeInt(this.denominator);
   }
 }
