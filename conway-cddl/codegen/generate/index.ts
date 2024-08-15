@@ -1,5 +1,4 @@
 import { SchemaTable } from "../compiler";
-import { genCSL } from "./utils/csl";
 
 export type CodeGeneratorBaseOptions = {
   genCSL?: boolean;
@@ -33,6 +32,33 @@ export class CodeGeneratorBase {
 
   eq(var1: string, var2: string): string {
     return `arrayEq(${var1}.to_bytes(), ${var2}.to_bytes())`;
+  }
+
+  generateCSLHelpers() {
+    return `  
+    // no-op
+    free(): void {}
+
+    static from_bytes(data: Uint8Array): ${this.name} {
+      let reader = new CBORReader(data);
+      return ${this.deserialize("reader")}
+    }
+
+    static from_hex(hex_str: string): ${this.name} {
+      return ${this.name}.from_bytes(hexToBytes(hex_str));
+    }
+
+    
+    to_bytes(): Uint8Array {
+      let writer = new CBORWriter();
+      ${this.serialize("writer", "this")}
+      return writer.getBytes();
+    }
+
+    to_hex(): string {
+      return bytesToHex(this.to_bytes());
+    }
+  `;
   }
 
   generateMembers(): string {
@@ -136,7 +162,7 @@ export class CodeGeneratorBase {
         ${deserialize}
         ${serialize}
 
-        ${this.options.genCSL ? genCSL(this.name) : ""}
+        ${this.options.genCSL ? this.generateCSLHelpers() : ""}
       }
 
       ${this.generatePost()}
