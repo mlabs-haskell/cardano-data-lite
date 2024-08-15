@@ -1,12 +1,26 @@
 import { SchemaTable } from "../compiler";
+import { genCSL } from "./utils/csl";
 
+export type CodeGeneratorBaseOptions = {
+  genCSL?: boolean;
+  tagged?: {
+    tag: number;
+    bytes?: boolean;
+  };
+};
 export class CodeGeneratorBase {
   name: string;
   typeUtils: TypeUtils;
+  options: CodeGeneratorBaseOptions;
 
-  constructor(name: string, customTypes: SchemaTable) {
+  constructor(
+    name: string,
+    customTypes: SchemaTable,
+    options: CodeGeneratorBaseOptions = {},
+  ) {
     this.name = name;
     this.typeUtils = new TypeUtils(customTypes);
+    this.options = options;
   }
 
   deserialize(reader: string): string {
@@ -21,13 +35,111 @@ export class CodeGeneratorBase {
     return `arrayEq(${var1}.to_bytes(), ${var2}.to_bytes())`;
   }
 
+  generateMembers(): string {
+    return "";
+  }
+
+  generateConstructor(): string {
+    return `constructor() {}`;
+  }
+
+  generatePre(): string {
+    return "";
+  }
+
+  generatePost(): string {
+    return "";
+  }
+
+  generateDeserialize(_reader: string): string {
+    return `throw new Error("Not Implemented");`;
+  }
+
+  generateSerialize(_writer: string): string {
+    return `throw new Error("Not Implemented");`;
+  }
+
+  generateExtraMethods(): string {
+    return "";
+  }
+
   generate(): string {
-    return `
-      export class ${this.name} {
-        constructor() {}
-        static deserialize(reader: CBORWriter) { throw new Error("Not Implemented"); }
-        serialize(writer: CBORWriter) { throw new Error("Not Implemented"); }
+    let deserialize;
+    let serialize;
+
+    if (this.options.tagged != null) {
+      let deserializeInner;
+      let serializeInner;
+      if (this.options.tagged.bytes) {
+        deserializeInner = `
+          let innerBytes = reader.readBytes();
+          let innerReader = new CBORReader(innerBytes);
+          return ${this.name}.deserializeInner(innerReader);
+        `;
+        serializeInner = `
+          let innerWriter = new CBORWriter();
+          ${this.name}.serializeInner(innerWriter);
+          reader.writeBytes(innerWriter.getBytes());
+        `;
+      } else {
+        deserializeInner = `
+          return ${this.name}.deserializeInner(reader);
+        `;
+        serializeInner = `
+          ${this.name}.serializeInner(writer);
+        `;
       }
+
+      deserialize = `
+        static deserialize(reader: CBORReader): ${this.name} {
+          let taggedTag = reader.readTaggedTag();
+          if (taggedTag != ${this.options.tagged.tag}) {
+            throw new Error("Expected tag ${this.options.tagged.tag}, got " + taggedTag);
+          }
+          ${deserializeInner}
+        }
+
+        static deserializeInner(reader: CBORReader): ${this.name} {
+          ${this.generateDeserialize("reader")}
+        }`;
+
+      serialize = `
+        serialize(writer: CBORWriter): void {
+          writer.writeTaggedTag(${this.options.tagged.tag});
+          ${serializeInner}
+        }
+
+        serializeInner(writer: CBORWriter): void {
+          ${this.generateSerialize("writer")}
+        }`;
+    } else {
+      deserialize = `
+        static deserialize(reader: CBORReader): ${this.name} {
+          ${this.generateDeserialize("reader")}
+        }`;
+
+      serialize = `
+        serialize(writer: CBORWriter): void {
+          ${this.generateSerialize("writer")}
+        }`;
+    }
+
+    return `
+      ${this.generatePre()}
+
+      export class ${this.name} {
+        ${this.generateMembers()}
+        ${this.generateConstructor()}
+
+        ${this.generateExtraMethods()}
+
+        ${deserialize}
+        ${serialize}
+
+        ${this.options.genCSL ? genCSL(this.name) : ""}
+      }
+
+      ${this.generatePost()}
     `;
   }
 }

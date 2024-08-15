@@ -2,15 +2,15 @@ import { CodeGeneratorBase } from "../generate/index";
 import { Schema } from "./types";
 import { GenArray } from "../generate/array";
 import { GenSet } from "../generate/set";
-import { GenRecord } from "../generate/record";
-import { GenStruct } from "../generate/struct";
+import { GenRecord } from "../generate/structured/record";
+import { GenStruct } from "../generate/structured/struct";
 import { GenTaggedRecord } from "../generate/tagged_record";
 import { GenMap } from "../generate/map";
 import { GenEnum } from "../generate/enum";
 import { GenEnumSimple } from "../generate/enum_simple";
 import { GenNewtype } from "../generate/newtype";
-import { GenRecordFragment } from "../generate/record_fragment";
-import { GenRecordFragmentWrapper } from "../generate/record_fragment_wrapper";
+import { GenRecordFragment } from "../generate/structured/record_fragment";
+import { GenRecordFragmentWrapper } from "../generate/structured/record_fragment_wrapper";
 
 export type SchemaTable = { [key: string]: CodeGeneratorBase };
 
@@ -35,42 +35,27 @@ export class Compiler {
     let schema: Schema = schema_;
     switch (schema.type) {
       case "array":
-        return new GenArray(name, schema.item, this.customTypes);
+        return new GenArray(name, this.customTypes, schema);
       case "set":
-        return new GenSet(name, schema.item, this.customTypes);
+        return new GenSet(name, this.customTypes, schema);
       case "record":
-        return new GenRecord(
-          name,
-          schema.fields,
-          schema.tagged,
-          this.customTypes,
-        );
+        return new GenRecord(name, this.customTypes, schema);
       case "tagged_record":
-        return new GenTaggedRecord(name, schema.variants, this.customTypes);
+        return new GenTaggedRecord(name, this.customTypes, schema);
       case "record_fragment":
-        return new GenRecordFragment(name, schema.fields, this.customTypes);
+        return new GenRecordFragment(name, this.customTypes, schema);
       case "record_fragment_wrapper":
-        return new GenRecordFragmentWrapper(
-          name,
-          schema.item,
-          this.customTypes,
-        );
+        return new GenRecordFragmentWrapper(name, this.customTypes, schema);
       case "map":
-        return new GenMap(name, schema.key, schema.value, this.customTypes);
+        return new GenMap(name, this.customTypes, schema);
       case "struct":
-        return new GenStruct(name, schema.fields, this.customTypes);
+        return new GenStruct(name, this.customTypes, schema);
       case "enum":
-        return new GenEnum(name, schema.values, this.customTypes);
+        return new GenEnum(name, this.customTypes, schema);
       case "enum_simple":
-        return new GenEnumSimple(name, schema.values, this.customTypes);
+        return new GenEnumSimple(name, this.customTypes, schema);
       case "newtype":
-        return new GenNewtype(
-          name,
-          schema.item,
-          schema.accessor,
-          schema.constraints,
-          this.customTypes,
-        );
+        return new GenNewtype(name, this.customTypes, schema);
     }
     throw new Error("Unknown type: " + schema_.type + " for " + name);
   }
