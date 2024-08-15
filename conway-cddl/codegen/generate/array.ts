@@ -1,27 +1,41 @@
-import { CodeGeneratorBase } from ".";
+import { CodeGeneratorBase, CodeGeneratorBaseOptions } from ".";
 import { SchemaTable } from "../compiler";
-import { genCSL } from "./utils/csl";
+
+export type GenArrayOptions = {
+  item: string;
+} & CodeGeneratorBaseOptions;
 
 export class GenArray extends CodeGeneratorBase {
   item: string;
 
-  constructor(name: string, item: string, customTypes: SchemaTable) {
-    super(name, customTypes);
-    this.item = item;
+  constructor(
+    name: string,
+    customTypes: SchemaTable,
+    options: GenArrayOptions,
+  ) {
+    super(name, customTypes, { genCSL: true, ...options });
+    this.item = options.item;
   }
 
-  generate(): string {
-    let itemJsType = this.typeUtils.jsType(this.item);
+  private itemJsType() {
+    return this.typeUtils.jsType(this.item);
+  }
+
+  generateMembers(): string {
+    return `private items: ${this.itemJsType()}[];`;
+  }
+
+  generateConstructor(): string {
     return `
-      export class ${this.name} {
-        private items: ${itemJsType}[];
-
-        ${genCSL(this.name)}
-
-        constructor(items: ${itemJsType}[]) {
+        constructor(items: ${this.itemJsType()}[]) {
           this.items = items;
         }
+    `;
+  }
 
+  generateExtraMethods(): string {
+    let itemJsType = this.typeUtils.jsType(this.item);
+    return `
         static new(): ${this.name} {
           return new ${this.name}([]);
         }
@@ -38,15 +52,25 @@ export class GenArray extends CodeGeneratorBase {
         add(elem: ${itemJsType}): void {
           this.items.push(elem);
         }
+    `;
+  }
 
-        static deserialize(reader: CBORReader): ${this.name} {
-          return new ${this.name}(reader.readArray(reader => ${this.typeUtils.readType("reader", this.item)}));
-        }
+  generateDeserialize(reader: string): string {
+    return `
+      return new ${this.name}(
+        ${reader}.readArray(
+          reader => ${this.typeUtils.readType("reader", this.item)}
+        )
+      );
+    `;
+  }
 
-        serialize(writer: CBORWriter) {
-          writer.writeArray(this.items, (writer, x) => ${this.typeUtils.writeType("writer", "x", this.item)});
-        }
-      }
+  generateSerialize(writer: string): string {
+    return `
+      ${writer}.writeArray(
+        this.items,
+        (writer, x) => ${this.typeUtils.writeType("writer", "x", this.item)}
+      );
     `;
   }
 }

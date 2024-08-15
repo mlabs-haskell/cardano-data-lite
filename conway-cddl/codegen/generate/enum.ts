@@ -1,58 +1,71 @@
-import { CodeGeneratorBase } from ".";
+import { CodeGeneratorBase, CodeGeneratorBaseOptions } from ".";
 import { SchemaTable } from "../compiler";
-import { genCSL } from "./utils/csl";
 
-export type Variant = {
+export type Value = {
   name: string;
   value: number;
 };
 
-export class GenEnum extends CodeGeneratorBase {
-  variants: Variant[];
+export type GenEnumOptions = {
+  values: Value[];
+} & CodeGeneratorBaseOptions;
 
-  constructor(name: string, variants: Variant[], customTypes: SchemaTable) {
-    super(name, customTypes);
-    this.variants = variants;
+export class GenEnum extends CodeGeneratorBase {
+  values: Value[];
+
+  constructor(name: string, customTypes: SchemaTable, options: GenEnumOptions) {
+    super(name, customTypes, { genCSL: true });
+    this.values = options.values;
   }
 
-  generate(): string {
+  generatePre(): string {
     return `
       export enum ${this.name}Kind {
-        ${this.variants.map((x) => `${x.name} = ${x.value},`).join("\n")}
+        ${this.values.map((x) => `${x.name} = ${x.value},`).join("\n")}
       }
+    `;
+  }
 
-      export class ${this.name} {
+  generateMembers(): string {
+    return `
         private kind_: ${this.name}Kind;
+    `;
+  }
 
-        ${genCSL(this.name)}
+  generateConstructor(): string {
+    return `
+      constructor(kind: ${this.name}Kind) {
+        this.kind_ = kind;
+      }
+    `;
+  }
 
-        constructor(kind: ${this.name}Kind) {
-          this.kind_ = kind;
-        }
-
-        ${this.variants
-          .map(
-            (x) => `
+  generateExtraMethods(): string {
+    return this.values
+      .map(
+        (x) => `
         static new_${x.name}(): ${this.name} {
           return new ${this.name}(${x.value});
         }`,
-          )
-          .join("\n")}
-        
-        static deserialize(reader: CBORReader): ${this.name} {
-          let kind = Number(reader.readInt());
-          ${this.variants
-            .map(
-              (x) =>
-                `if(kind == ${x.value}) return new ${this.name}(${x.value})`,
-            )
-            .join("\n")}
-            throw "Unrecognized enum value: " + kind + " for " + ${this.name};
-        }
+      )
+      .join("\n");
+  }
 
-        serialize (writer: CBORWriter) {
-          writer.writeInt(BigInt(this.kind_));
-        }
-      }`;
+  generateDeserialize(reader: string): string {
+    return `
+      let kind = Number(${reader}.readInt());
+      ${this.values
+        .map(
+          (x) => `if(kind == ${x.value}) return new ${this.name}(${x.value})`,
+        )
+        .join("\n")}
+        throw "Unrecognized enum value: " + kind + " for " + ${this.name};
+     `;
+  }
+
+  generateSerialize(writer: string): string {
+    return `
+          ${writer}.writeInt(BigInt(this.kind_));
+    `;
   }
 }

@@ -1,6 +1,17 @@
-import { CodeGeneratorBase } from ".";
+import { CodeGeneratorBase, CodeGeneratorBaseOptions } from ".";
 import { SchemaTable } from "../compiler";
-import { genCSL } from "./utils/csl";
+
+export type GenNewtypeOptions = {
+  item: string;
+  accessor: string;
+  constraints?: {
+    len?: {
+      eq?: number;
+      min?: number;
+      max?: number;
+    };
+  };
+} & CodeGeneratorBaseOptions;
 
 export class GenNewtype extends CodeGeneratorBase {
   item: string;
@@ -15,68 +26,70 @@ export class GenNewtype extends CodeGeneratorBase {
 
   constructor(
     name: string,
-    item: string,
-    accessor: string,
-    constraints:
-      | {
-          len?: {
-            eq?: number;
-            min?: number;
-            max?: number;
-          };
-        }
-      | undefined,
     customTypes: SchemaTable,
+    options: GenNewtypeOptions,
   ) {
-    super(name, customTypes);
-    this.item = item;
-    this.accessor = accessor;
-    this.constraints = constraints;
+    super(name, customTypes, { genCSL: true, ...options });
+    this.item = options.item;
+    this.accessor = options.accessor;
+    this.constraints = options.constraints;
   }
 
-  generate(): string {
-    let itemJsType = this.typeUtils.jsType(this.item);
+  private itemJsType(): string {
+    return this.typeUtils.jsType(this.item);
+  }
+
+  generateMembers(): string {
     return `
-      export class ${this.name} {
-        private inner: ${itemJsType};
+      private inner: ${this.itemJsType()};
+    `;
+  }
 
-        ${genCSL(this.name)}
-
-        constructor(inner: ${itemJsType}) {
-          ${
-            this.constraints?.len?.eq != null
-              ? `if(inner.length != ${this.constraints.len.eq}) throw new Error("Expected length to be ${this.constraints.len.eq}");`
-              : ""
-          }
-          ${
-            this.constraints?.len?.min != null
-              ? `if(inner.length < ${this.constraints.len.min}) throw new Error("Expected length to be atleast ${this.constraints.len.min}");`
-              : ""
-          }
-          ${
-            this.constraints?.len?.max != null
-              ? `if(inner.length > ${this.constraints.len.max}) throw new Error("Expected length to be atmost ${this.constraints.len.max}");`
-              : ""
-          }
-          this.inner = inner;
+  generateConstructor(): string {
+    return ` 
+      constructor(inner: ${this.itemJsType()}) {
+        ${
+          this.constraints?.len?.eq != null
+            ? `if(inner.length != ${this.constraints.len.eq}) throw new Error("Expected length to be ${this.constraints.len.eq}");`
+            : ""
         }
-
-        static new(inner: ${itemJsType}): ${this.name} {
-          return new ${this.name}(inner);
+        ${
+          this.constraints?.len?.min != null
+            ? `if(inner.length < ${this.constraints.len.min}) throw new Error("Expected length to be atleast ${this.constraints.len.min}");`
+            : ""
         }
-
-        ${this.accessor}(): ${itemJsType} {
-          return this.inner;
+        ${
+          this.constraints?.len?.max != null
+            ? `if(inner.length > ${this.constraints.len.max}) throw new Error("Expected length to be atmost ${this.constraints.len.max}");`
+            : ""
         }
-
-        static deserialize(reader: CBORReader): ${this.name} {
-          return new ${this.name}(${this.typeUtils.readType("reader", this.item)});
-        }
-
-        serialize(writer: CBORWriter) {
-          ${this.typeUtils.writeType("writer", "this.inner", this.item)};
-        }
+        this.inner = inner;
       }
+    `;
+  }
+
+  generateExtraMethods(): string {
+    let itemJsType = this.itemJsType();
+    return `
+      static new(inner: ${itemJsType}): ${this.name} {
+        return new ${this.name}(inner);
+      }
+
+      ${this.accessor}(): ${itemJsType} {
+        return this.inner;
+      }
+    `;
+  }
+
+  generateDeserialize(reader: string): string {
+    return ` 
+      return new ${this.name}(${this.typeUtils.readType(reader, this.item)});
+    `;
+  }
+
+  generateSerialize(writer: string): string {
+    return `
+      ${this.typeUtils.writeType(writer, "this.inner", this.item)}; 
     `;
   }
 }

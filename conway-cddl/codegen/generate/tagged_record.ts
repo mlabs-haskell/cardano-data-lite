@@ -1,8 +1,7 @@
-import { CodeGeneratorBase } from ".";
+import { CodeGeneratorBase, CodeGeneratorBaseOptions } from ".";
 import { SchemaTable } from "../compiler";
-import { GenRecordFragment } from "./record_fragment";
-import { GenRecordFragmentWrapper } from "./record_fragment_wrapper";
-import { genCSL } from "./utils/csl";
+import { GenRecordFragment } from "./structured/record_fragment";
+import { GenRecordFragmentWrapper } from "./structured/record_fragment_wrapper";
 
 export type Variant = {
   tag: number;
@@ -11,12 +10,20 @@ export type Variant = {
   kind_name?: string;
 };
 
+export type GenTaggedRecordOptions = {
+  variants: Variant[];
+} & CodeGeneratorBaseOptions;
+
 export class GenTaggedRecord extends CodeGeneratorBase {
   variants: Variant[];
 
-  constructor(name: string, variants: Variant[], customTypes: SchemaTable) {
-    super(name, customTypes);
-    this.variants = variants;
+  constructor(
+    name: string,
+    customTypes: SchemaTable,
+    options: GenTaggedRecordOptions,
+  ) {
+    super(name, customTypes, { genCSL: true, ...options });
+    this.variants = options.variants;
   }
 
   getVariantLen(variant: Variant) {
@@ -24,12 +31,12 @@ export class GenTaggedRecord extends CodeGeneratorBase {
 
     let custom = this.typeUtils.customTypes[variant.value];
     if (custom instanceof GenRecordFragment) {
-      return custom.fields.length;
+      return custom.getFields().length;
     } else if (custom instanceof GenRecordFragmentWrapper) {
-      let inner = this.typeUtils.customTypes[custom.item.type];
+      let inner = this.typeUtils.customTypes[custom.getItem().type];
       if (!(inner instanceof GenRecordFragment))
         throw new Error("Expected GenRecordFragment");
-      return inner.fields.length;
+      return inner.getFields().length;
     } else {
       return 1;
     }
@@ -66,7 +73,7 @@ export class GenTaggedRecord extends CodeGeneratorBase {
     `;
   }
 
-  generate(): string {
+  generatePre(): string {
     return `
       export enum ${this.name}Kind {
         ${this.variants.map((x) => `${x.kind_name ?? x.value} = ${x.tag},`).join("\n")}
@@ -80,16 +87,25 @@ export class GenTaggedRecord extends CodeGeneratorBase {
               : `{ kind: ${x.tag} }`,
           )
           .join(" | ")};
+     `;
+  }
 
-      export class ${this.name} {
+  generateMembers(): string {
+    return `
         private variant: ${this.name}Variant;
+    `;
+  }
 
-        ${genCSL(this.name)}
-
+  generateConstructor(): string {
+    return `
         constructor(variant: ${this.name}Variant) {
           this.variant = variant;
         }
+     `;
+  }
 
+  generateExtraMethods(): string {
+    return `
         ${this.variants
           .map((x) =>
             x.value != null
@@ -117,43 +133,47 @@ export class GenTaggedRecord extends CodeGeneratorBase {
               : "",
           )
           .join("\n")}
-        
-        static deserialize(reader: CBORReader): ${this.name} {
-          let len = reader.readArrayTag();
-          let tag = Number(reader.readUint());
-          let variant: ${this.name}Variant;
+    `;
+  }
 
-          switch(tag) {
-            ${this.variants
-              .map(
-                (x) => `
-                case ${x.tag}:
-                  ${this.deserializeVariant(x, "reader", "len", "variant")}
-                  break;
-                `,
-              )
-              .join("\n")}
-          }
+  generateDeserialize(reader: string): string {
+    return `
+      let len = ${reader}.readArrayTag();
+      let tag = Number(${reader}.readUint());
+      let variant: ${this.name}Variant;
 
-          if(len == null) {
-            reader.readBreak();
-          }
-          
-          throw new Error("Unexpected tag for ${this.name}: " + tag);
-        }
+      switch(tag) {
+        ${this.variants
+          .map(
+            (x) => `
+            case ${x.tag}:
+              ${this.deserializeVariant(x, reader, "len", "variant")}
+              break;
+            `,
+          )
+          .join("\n")}
+      }
 
-        serialize(writer: CBORWriter): void {
-          switch(this.variant.kind) {
-            ${this.variants
-              .map(
-                (x) =>
-                  `case ${x.tag}:
-                      ${this.serializeVariant(x, "writer", "this.variant.value")};
-                      break;`,
-              )
-              .join("\n")} 
-          }
-        }
-      }`;
+      if(len == null) {
+        ${reader}.readBreak();
+      }
+      
+      throw new Error("Unexpected tag for ${this.name}: " + tag);
+    `;
+  }
+
+  generateSerialize(writer: string): string {
+    return `
+      switch(this.variant.kind) {
+        ${this.variants
+          .map(
+            (x) =>
+              `case ${x.tag}:
+                  ${this.serializeVariant(x, writer, "this.variant.value")};
+                  break;`,
+          )
+          .join("\n")} 
+      }
+     `;
   }
 }

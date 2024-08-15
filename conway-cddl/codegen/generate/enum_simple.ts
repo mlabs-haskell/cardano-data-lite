@@ -1,29 +1,37 @@
 import { CodeGeneratorBase } from ".";
 import { SchemaTable } from "../compiler";
 
-export type Variant = {
+export type Value = {
   name: string;
   value: number;
 };
 
-export class GenEnumSimple extends CodeGeneratorBase {
-  variants: Variant[];
+export type GenEnumSimpleOptions = {
+  values: Value[];
+};
 
-  constructor(name: string, variants: Variant[], customTypes: SchemaTable) {
+export class GenEnumSimple extends CodeGeneratorBase {
+  values: Value[];
+
+  constructor(
+    name: string,
+    customTypes: SchemaTable,
+    options: GenEnumSimpleOptions,
+  ) {
     super(name, customTypes);
-    this.variants = variants;
+    this.values = options.values;
   }
 
   generate(): string {
     return `
       export enum ${this.name} {
-        ${this.variants.map((x) => `${x.name} = ${x.value},`).join("\n")}
+        ${this.values.map((x) => `${x.name} = ${x.value},`).join("\n")}
       }
 
       export function deserialize${this.name}(reader: CBORReader): ${this.name} {
         let value = Number(reader.readInt());
         switch(value) {
-          ${this.variants.map((x) => `case ${x.value}: return ${this.name}.${x.name}`).join("\n")}
+          ${this.values.map((x) => `case ${x.value}: return ${this.name}.${x.name}`).join("\n")}
         }
         throw new Error("Invalid value for enum ${this.name}: " + value);
       }
@@ -40,5 +48,9 @@ export class GenEnumSimple extends CodeGeneratorBase {
 
   serialize(writer: string, value: string) {
     return `serialize${this.name}(${writer}, ${value})`;
+  }
+
+  eq(var1: string, var2: string): string {
+    return `${var1} === ${var2}`;
   }
 }
