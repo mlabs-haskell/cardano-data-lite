@@ -1,5 +1,5 @@
 import { CodeGeneratorBase } from ".";
-import { SchemaTable } from "../compiler";
+import { SchemaTable } from "..";
 
 export type Value = {
   name: string;

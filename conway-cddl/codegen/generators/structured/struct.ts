@@ -1,5 +1,5 @@
 import { GenStructuredBase, GenStructuredBaseOptions } from ".";
-import { SchemaTable } from "../../compiler";
+import { SchemaTable } from "../..";
 
 export type Field = {
   id: number;

@@ -1,5 +1,5 @@
 import { CodeGeneratorBase, CodeGeneratorBaseOptions } from ".";
-import { SchemaTable } from "../compiler";
+import { SchemaTable } from "..";
 
 export type GenSetOptions = {
   item: string;
