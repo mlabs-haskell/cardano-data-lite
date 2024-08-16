@@ -1,4 +1,4 @@
-import { SchemaTable } from "../compiler";
+import { SchemaTable } from "..";
 
 export type CodeGeneratorBaseOptions = {
   genCSL?: boolean;

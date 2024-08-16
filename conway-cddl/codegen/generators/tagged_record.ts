@@ -1,5 +1,5 @@
 import { CodeGeneratorBase, CodeGeneratorBaseOptions } from ".";
-import { SchemaTable } from "../compiler";
+import { SchemaTable } from "..";
 import { GenRecordFragment } from "./structured/record_fragment";
 import { GenRecordFragmentWrapper } from "./structured/record_fragment_wrapper";
 
