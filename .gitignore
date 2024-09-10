@@ -1,2 +1,5 @@
 /src/generated/out-unformatted.ts
 /node_modules
+shell.nix
+.envrc
+.direnv
