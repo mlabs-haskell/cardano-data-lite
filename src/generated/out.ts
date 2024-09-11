@@ -8666,7 +8666,7 @@ export class UnitInterval {
   serialize(writer: CBORWriter): void {
     writer.writeTaggedTag(30);
 
-    UnitInterval.serializeInner(writer);
+    this.serializeInner(writer);
   }
 
   serializeInner(writer: CBORWriter): void {

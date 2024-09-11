@@ -112,7 +112,7 @@ export class CodeGeneratorBase {
           return ${this.name}.deserializeInner(reader);
         `;
         serializeInner = `
-          ${this.name}.serializeInner(writer);
+          this.serializeInner(writer);
         `;
       }
 
