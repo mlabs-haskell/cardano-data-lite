@@ -29,6 +29,7 @@ with open("./cardano_serialization_lib.d.ts") as f:
                 for x in [
                     "to_json()",
                     "to_js_value()",
+                    "static from_json(json: string)",
                 ]
             ):
                 pass

@@ -200,7 +200,6 @@ export enum GovernanceActionKind {
 export class Address {
   free(): void;
   static from_bytes(data: Uint8Array): Address;
-  static from_json(json: string): Address;
   kind(): AddressKind;
   payment_cred(): Credential | undefined;
   is_malformed(): boolean;
@@ -218,7 +217,6 @@ export class Anchor {
   static from_bytes(bytes: Uint8Array): Anchor;
   to_hex(): string;
   static from_hex(hex_str: string): Anchor;
-  static from_json(json: string): Anchor;
   url(): URL;
   anchor_data_hash(): AnchorDataHash;
   static new(anchor_url: URL, anchor_data_hash: AnchorDataHash): Anchor;
@@ -240,7 +238,6 @@ export class AssetName {
   static from_bytes(bytes: Uint8Array): AssetName;
   to_hex(): string;
   static from_hex(hex_str: string): AssetName;
-  static from_json(json: string): AssetName;
   static new(name: Uint8Array): AssetName;
   name(): Uint8Array;
 }
@@ -251,7 +248,6 @@ export class AssetNames {
   static from_bytes(bytes: Uint8Array): AssetNames;
   to_hex(): string;
   static from_hex(hex_str: string): AssetNames;
-  static from_json(json: string): AssetNames;
   static new(): AssetNames;
   len(): number;
   get(index: number): AssetName;
@@ -264,7 +260,6 @@ export class Assets {
   static from_bytes(bytes: Uint8Array): Assets;
   to_hex(): string;
   static from_hex(hex_str: string): Assets;
-  static from_json(json: string): Assets;
   static new(): Assets;
   len(): number;
   insert(key: AssetName, value: BigNum): BigNum | undefined;
@@ -278,7 +273,6 @@ export class AuxiliaryData {
   static from_bytes(bytes: Uint8Array): AuxiliaryData;
   to_hex(): string;
   static from_hex(hex_str: string): AuxiliaryData;
-  static from_json(json: string): AuxiliaryData;
   static new(): AuxiliaryData;
   metadata(): GeneralTransactionMetadata | undefined;
   set_metadata(metadata: GeneralTransactionMetadata): void;
@@ -325,7 +319,6 @@ export class BigInt {
   static from_bytes(bytes: Uint8Array): BigInt;
   to_hex(): string;
   static from_hex(hex_str: string): BigInt;
-  static from_json(json: string): BigInt;
   is_zero(): boolean;
   as_u64(): BigNum | undefined;
   as_int(): Int | undefined;
@@ -349,7 +342,6 @@ export class BigNum {
   static from_bytes(bytes: Uint8Array): BigNum;
   to_hex(): string;
   static from_hex(hex_str: string): BigNum;
-  static from_json(json: string): BigNum;
   static from_str(string: string): BigNum;
   to_str(): string;
   static zero(): BigNum;
@@ -403,7 +395,6 @@ export class Block {
   static from_bytes(bytes: Uint8Array): Block;
   to_hex(): string;
   static from_hex(hex_str: string): Block;
-  static from_json(json: string): Block;
   header(): Header;
   transaction_bodies(): TransactionBodies;
   transaction_witness_sets(): TransactionWitnessSets;
@@ -428,7 +419,6 @@ export class BootstrapWitness {
   static from_bytes(bytes: Uint8Array): BootstrapWitness;
   to_hex(): string;
   static from_hex(hex_str: string): BootstrapWitness;
-  static from_json(json: string): BootstrapWitness;
   vkey(): Vkey;
   signature(): Ed25519Signature;
   chain_code(): Uint8Array;
@@ -442,7 +432,6 @@ export class BootstrapWitnesses {
   static from_bytes(bytes: Uint8Array): BootstrapWitnesses;
   to_hex(): string;
   static from_hex(hex_str: string): BootstrapWitnesses;
-  static from_json(json: string): BootstrapWitnesses;
   static new(): BootstrapWitnesses;
   len(): number;
   get(index: number): BootstrapWitness;
@@ -470,7 +459,6 @@ export class Certificate {
   static from_bytes(bytes: Uint8Array): Certificate;
   to_hex(): string;
   static from_hex(hex_str: string): Certificate;
-  static from_json(json: string): Certificate;
   static new_stake_registration(stake_registration: StakeRegistration): Certificate;
   static new_reg_cert(stake_registration: StakeRegistration): Certificate;
   static new_stake_deregistration(stake_deregistration: StakeDeregistration): Certificate;
@@ -519,7 +507,6 @@ export class Certificates {
   static from_bytes(bytes: Uint8Array): Certificates;
   to_hex(): string;
   static from_hex(hex_str: string): Certificates;
-  static from_json(json: string): Certificates;
   static new(): Certificates;
   len(): number;
   get(index: number): Certificate;
@@ -540,7 +527,6 @@ export class Committee {
   static from_bytes(bytes: Uint8Array): Committee;
   to_hex(): string;
   static from_hex(hex_str: string): Committee;
-  static from_json(json: string): Committee;
   static new(quorum_threshold: UnitInterval): Committee;
   members_keys(): Credentials;
   quorum_threshold(): UnitInterval;
@@ -554,7 +540,6 @@ export class CommitteeColdResign {
   static from_bytes(bytes: Uint8Array): CommitteeColdResign;
   to_hex(): string;
   static from_hex(hex_str: string): CommitteeColdResign;
-  static from_json(json: string): CommitteeColdResign;
   committee_cold_credential(): Credential;
   anchor(): Anchor | undefined;
   static new(committee_cold_credential: Credential): CommitteeColdResign;
@@ -568,7 +553,6 @@ export class CommitteeHotAuth {
   static from_bytes(bytes: Uint8Array): CommitteeHotAuth;
   to_hex(): string;
   static from_hex(hex_str: string): CommitteeHotAuth;
-  static from_json(json: string): CommitteeHotAuth;
   committee_cold_credential(): Credential;
   committee_hot_credential(): Credential;
   static new(committee_cold_credential: Credential, committee_hot_credential: Credential): CommitteeHotAuth;
@@ -581,7 +565,6 @@ export class Constitution {
   static from_bytes(bytes: Uint8Array): Constitution;
   to_hex(): string;
   static from_hex(hex_str: string): Constitution;
-  static from_json(json: string): Constitution;
   anchor(): Anchor;
   script_hash(): ScriptHash | undefined;
   static new(anchor: Anchor): Constitution;
@@ -605,7 +588,6 @@ export class CostModel {
   static from_bytes(bytes: Uint8Array): CostModel;
   to_hex(): string;
   static from_hex(hex_str: string): CostModel;
-  static from_json(json: string): CostModel;
   static new(): CostModel;
   set(operation: number, cost: Int): Int;
   get(operation: number): Int;
@@ -618,7 +600,6 @@ export class Costmdls {
   static from_bytes(bytes: Uint8Array): Costmdls;
   to_hex(): string;
   static from_hex(hex_str: string): Costmdls;
-  static from_json(json: string): Costmdls;
   static new(): Costmdls;
   len(): number;
   insert(key: Language, value: CostModel): CostModel | undefined;
@@ -639,7 +620,6 @@ export class Credential {
   static from_bytes(bytes: Uint8Array): Credential;
   to_hex(): string;
   static from_hex(hex_str: string): Credential;
-  static from_json(json: string): Credential;
 }
 
 export class Credentials {
@@ -648,7 +628,6 @@ export class Credentials {
   static from_bytes(bytes: Uint8Array): Credentials;
   to_hex(): string;
   static from_hex(hex_str: string): Credentials;
-  static from_json(json: string): Credentials;
   static new(): Credentials;
   len(): number;
   get(index: number): Credential;
@@ -661,7 +640,6 @@ export class DNSRecordAorAAAA {
   static from_bytes(bytes: Uint8Array): DNSRecordAorAAAA;
   to_hex(): string;
   static from_hex(hex_str: string): DNSRecordAorAAAA;
-  static from_json(json: string): DNSRecordAorAAAA;
   static new(dns_name: string): DNSRecordAorAAAA;
   record(): string;
 }
@@ -672,7 +650,6 @@ export class DNSRecordSRV {
   static from_bytes(bytes: Uint8Array): DNSRecordSRV;
   to_hex(): string;
   static from_hex(hex_str: string): DNSRecordSRV;
-  static from_json(json: string): DNSRecordSRV;
   static new(dns_name: string): DNSRecordSRV;
   record(): string;
 }
@@ -683,7 +660,6 @@ export class DRep {
   static from_bytes(bytes: Uint8Array): DRep;
   to_hex(): string;
   static from_hex(hex_str: string): DRep;
-  static from_json(json: string): DRep;
   static new_key_hash(key_hash: Ed25519KeyHash): DRep;
   static new_script_hash(script_hash: ScriptHash): DRep;
   static new_always_abstain(): DRep;
@@ -702,7 +678,6 @@ export class DRepDeregistration {
   static from_bytes(bytes: Uint8Array): DRepDeregistration;
   to_hex(): string;
   static from_hex(hex_str: string): DRepDeregistration;
-  static from_json(json: string): DRepDeregistration;
   voting_credential(): Credential;
   coin(): BigNum;
   static new(voting_credential: Credential, coin: BigNum): DRepDeregistration;
@@ -715,7 +690,6 @@ export class DRepRegistration {
   static from_bytes(bytes: Uint8Array): DRepRegistration;
   to_hex(): string;
   static from_hex(hex_str: string): DRepRegistration;
-  static from_json(json: string): DRepRegistration;
   voting_credential(): Credential;
   coin(): BigNum;
   anchor(): Anchor | undefined;
@@ -730,7 +704,6 @@ export class DRepUpdate {
   static from_bytes(bytes: Uint8Array): DRepUpdate;
   to_hex(): string;
   static from_hex(hex_str: string): DRepUpdate;
-  static from_json(json: string): DRepUpdate;
   voting_credential(): Credential;
   anchor(): Anchor | undefined;
   static new(voting_credential: Credential): DRepUpdate;
@@ -744,7 +717,6 @@ export class DRepVotingThresholds {
   static from_bytes(bytes: Uint8Array): DRepVotingThresholds;
   to_hex(): string;
   static from_hex(hex_str: string): DRepVotingThresholds;
-  static from_json(json: string): DRepVotingThresholds;
   static new(motion_no_confidence: UnitInterval, committee_normal: UnitInterval, committee_no_confidence: UnitInterval, update_constitution: UnitInterval, hard_fork_initiation: UnitInterval, pp_network_group: UnitInterval, pp_economic_group: UnitInterval, pp_technical_group: UnitInterval, pp_governance_group: UnitInterval, treasury_withdrawal: UnitInterval): DRepVotingThresholds;
   set_motion_no_confidence(motion_no_confidence: UnitInterval): void;
   set_committee_normal(committee_normal: UnitInterval): void;
@@ -806,7 +778,6 @@ export class Ed25519KeyHashes {
   static from_bytes(bytes: Uint8Array): Ed25519KeyHashes;
   to_hex(): string;
   static from_hex(hex_str: string): Ed25519KeyHashes;
-  static from_json(json: string): Ed25519KeyHashes;
   static new(): Ed25519KeyHashes;
   len(): number;
   get(index: number): Ed25519KeyHash;
@@ -840,7 +811,6 @@ export class ExUnitPrices {
   static from_bytes(bytes: Uint8Array): ExUnitPrices;
   to_hex(): string;
   static from_hex(hex_str: string): ExUnitPrices;
-  static from_json(json: string): ExUnitPrices;
   mem_price(): UnitInterval;
   step_price(): UnitInterval;
   static new(mem_price: UnitInterval, step_price: UnitInterval): ExUnitPrices;
@@ -852,7 +822,6 @@ export class ExUnits {
   static from_bytes(bytes: Uint8Array): ExUnits;
   to_hex(): string;
   static from_hex(hex_str: string): ExUnits;
-  static from_json(json: string): ExUnits;
   mem(): BigNum;
   steps(): BigNum;
   static new(mem: BigNum, steps: BigNum): ExUnits;
@@ -939,7 +908,6 @@ export class GeneralTransactionMetadata {
   static from_bytes(bytes: Uint8Array): GeneralTransactionMetadata;
   to_hex(): string;
   static from_hex(hex_str: string): GeneralTransactionMetadata;
-  static from_json(json: string): GeneralTransactionMetadata;
   static new(): GeneralTransactionMetadata;
   len(): number;
   insert(key: BigNum, value: TransactionMetadatum): TransactionMetadatum | undefined;
@@ -973,7 +941,6 @@ export class GenesisHashes {
   static from_bytes(bytes: Uint8Array): GenesisHashes;
   to_hex(): string;
   static from_hex(hex_str: string): GenesisHashes;
-  static from_json(json: string): GenesisHashes;
   static new(): GenesisHashes;
   len(): number;
   get(index: number): GenesisHash;
@@ -986,7 +953,6 @@ export class GenesisKeyDelegation {
   static from_bytes(bytes: Uint8Array): GenesisKeyDelegation;
   to_hex(): string;
   static from_hex(hex_str: string): GenesisKeyDelegation;
-  static from_json(json: string): GenesisKeyDelegation;
   genesishash(): GenesisHash;
   genesis_delegate_hash(): GenesisDelegateHash;
   vrf_keyhash(): VRFKeyHash;
@@ -999,7 +965,6 @@ export class GovernanceAction {
   static from_bytes(bytes: Uint8Array): GovernanceAction;
   to_hex(): string;
   static from_hex(hex_str: string): GovernanceAction;
-  static from_json(json: string): GovernanceAction;
   static new_parameter_change_action(parameter_change_action: ParameterChangeAction): GovernanceAction;
   static new_hard_fork_initiation_action(hard_fork_initiation_action: HardForkInitiationAction): GovernanceAction;
   static new_treasury_withdrawals_action(treasury_withdrawals_action: TreasuryWithdrawalsAction): GovernanceAction;
@@ -1023,7 +988,6 @@ export class GovernanceActionId {
   static from_bytes(bytes: Uint8Array): GovernanceActionId;
   to_hex(): string;
   static from_hex(hex_str: string): GovernanceActionId;
-  static from_json(json: string): GovernanceActionId;
   transaction_id(): TransactionHash;
   index(): number;
   static new(transaction_id: TransactionHash, index: number): GovernanceActionId;
@@ -1031,7 +995,6 @@ export class GovernanceActionId {
 
 export class GovernanceActionIds {
   free(): void;
-  static from_json(json: string): GovernanceActionIds;
   static new(): GovernanceActionIds;
   add(governance_action_id: GovernanceActionId): void;
   get(index: number): GovernanceActionId | undefined;
@@ -1044,7 +1007,6 @@ export class HardForkInitiationAction {
   static from_bytes(bytes: Uint8Array): HardForkInitiationAction;
   to_hex(): string;
   static from_hex(hex_str: string): HardForkInitiationAction;
-  static from_json(json: string): HardForkInitiationAction;
   gov_action_id(): GovernanceActionId | undefined;
   protocol_version(): ProtocolVersion;
   static new(protocol_version: ProtocolVersion): HardForkInitiationAction;
@@ -1057,7 +1019,6 @@ export class Header {
   static from_bytes(bytes: Uint8Array): Header;
   to_hex(): string;
   static from_hex(hex_str: string): Header;
-  static from_json(json: string): Header;
   header_body(): HeaderBody;
   body_signature(): KESSignature;
   static new(header_body: HeaderBody, body_signature: KESSignature): Header;
@@ -1069,7 +1030,6 @@ export class HeaderBody {
   static from_bytes(bytes: Uint8Array): HeaderBody;
   to_hex(): string;
   static from_hex(hex_str: string): HeaderBody;
-  static from_json(json: string): HeaderBody;
   block_number(): number;
   slot(): number;
   slot_bignum(): BigNum;
@@ -1100,7 +1060,6 @@ export class Int {
   static from_bytes(bytes: Uint8Array): Int;
   to_hex(): string;
   static from_hex(hex_str: string): Int;
-  static from_json(json: string): Int;
   static new(x: BigNum): Int;
   static new_negative(x: BigNum): Int;
   static new_i32(x: number): Int;
@@ -1120,7 +1079,6 @@ export class Ipv4 {
   static from_bytes(bytes: Uint8Array): Ipv4;
   to_hex(): string;
   static from_hex(hex_str: string): Ipv4;
-  static from_json(json: string): Ipv4;
   static new(data: Uint8Array): Ipv4;
   ip(): Uint8Array;
 }
@@ -1131,7 +1089,6 @@ export class Ipv6 {
   static from_bytes(bytes: Uint8Array): Ipv6;
   to_hex(): string;
   static from_hex(hex_str: string): Ipv6;
-  static from_json(json: string): Ipv6;
   static new(data: Uint8Array): Ipv6;
   ip(): Uint8Array;
 }
@@ -1158,7 +1115,6 @@ export class Language {
   static from_bytes(bytes: Uint8Array): Language;
   to_hex(): string;
   static from_hex(hex_str: string): Language;
-  static from_json(json: string): Language;
   static new_plutus_v1(): Language;
   static new_plutus_v2(): Language;
   static new_plutus_v3(): Language;
@@ -1194,7 +1150,6 @@ export class MIRToStakeCredentials {
   static from_bytes(bytes: Uint8Array): MIRToStakeCredentials;
   to_hex(): string;
   static from_hex(hex_str: string): MIRToStakeCredentials;
-  static from_json(json: string): MIRToStakeCredentials;
   static new(): MIRToStakeCredentials;
   len(): number;
   insert(cred: Credential, delta: Int): Int | undefined;
@@ -1245,7 +1200,6 @@ export class Mint {
   static from_bytes(bytes: Uint8Array): Mint;
   to_hex(): string;
   static from_hex(hex_str: string): Mint;
-  static from_json(json: string): Mint;
   static new(): Mint;
   static new_from_entry(key: ScriptHash, value: MintAssets): Mint;
   len(): number;
@@ -1274,7 +1228,6 @@ export class MintWitness {
 
 export class MintsAssets {
   free(): void;
-  static from_json(json: string): MintsAssets;
   static new(): MintsAssets;
   add(mint_assets: MintAssets): void;
   get(index: number): MintAssets | undefined;
@@ -1287,7 +1240,6 @@ export class MoveInstantaneousReward {
   static from_bytes(bytes: Uint8Array): MoveInstantaneousReward;
   to_hex(): string;
   static from_hex(hex_str: string): MoveInstantaneousReward;
-  static from_json(json: string): MoveInstantaneousReward;
   static new_to_other_pot(pot: MIRPot, amount: BigNum): MoveInstantaneousReward;
   static new_to_stake_creds(pot: MIRPot, amounts: MIRToStakeCredentials): MoveInstantaneousReward;
   pot(): MIRPot;
@@ -1302,7 +1254,6 @@ export class MoveInstantaneousRewardsCert {
   static from_bytes(bytes: Uint8Array): MoveInstantaneousRewardsCert;
   to_hex(): string;
   static from_hex(hex_str: string): MoveInstantaneousRewardsCert;
-  static from_json(json: string): MoveInstantaneousRewardsCert;
   move_instantaneous_reward(): MoveInstantaneousReward;
   static new(move_instantaneous_reward: MoveInstantaneousReward): MoveInstantaneousRewardsCert;
 }
@@ -1313,7 +1264,6 @@ export class MultiAsset {
   static from_bytes(bytes: Uint8Array): MultiAsset;
   to_hex(): string;
   static from_hex(hex_str: string): MultiAsset;
-  static from_json(json: string): MultiAsset;
   static new(): MultiAsset;
   len(): number;
   insert(policy_id: ScriptHash, assets: Assets): Assets | undefined;
@@ -1330,7 +1280,6 @@ export class MultiHostName {
   static from_bytes(bytes: Uint8Array): MultiHostName;
   to_hex(): string;
   static from_hex(hex_str: string): MultiHostName;
-  static from_json(json: string): MultiHostName;
   dns_name(): DNSRecordSRV;
   static new(dns_name: DNSRecordSRV): MultiHostName;
 }
@@ -1341,7 +1290,6 @@ export class NativeScript {
   static from_bytes(bytes: Uint8Array): NativeScript;
   to_hex(): string;
   static from_hex(hex_str: string): NativeScript;
-  static from_json(json: string): NativeScript;
   hash(): ScriptHash;
   static new_script_pubkey(script_pubkey: ScriptPubkey): NativeScript;
   static new_script_all(script_all: ScriptAll): NativeScript;
@@ -1377,7 +1325,6 @@ export class NativeScripts {
   static from_bytes(bytes: Uint8Array): NativeScripts;
   to_hex(): string;
   static from_hex(hex_str: string): NativeScripts;
-  static from_json(json: string): NativeScripts;
 }
 
 export class NetworkId {
@@ -1386,7 +1333,6 @@ export class NetworkId {
   static from_bytes(bytes: Uint8Array): NetworkId;
   to_hex(): string;
   static from_hex(hex_str: string): NetworkId;
-  static from_json(json: string): NetworkId;
   static testnet(): NetworkId;
   static mainnet(): NetworkId;
   kind(): NetworkIdKind;
@@ -1408,7 +1354,6 @@ export class NewConstitutionAction {
   static from_bytes(bytes: Uint8Array): NewConstitutionAction;
   to_hex(): string;
   static from_hex(hex_str: string): NewConstitutionAction;
-  static from_json(json: string): NewConstitutionAction;
   gov_action_id(): GovernanceActionId | undefined;
   constitution(): Constitution;
   static new(constitution: Constitution): NewConstitutionAction;
@@ -1422,7 +1367,6 @@ export class NoConfidenceAction {
   static from_bytes(bytes: Uint8Array): NoConfidenceAction;
   to_hex(): string;
   static from_hex(hex_str: string): NoConfidenceAction;
-  static from_json(json: string): NoConfidenceAction;
   gov_action_id(): GovernanceActionId | undefined;
   static new(): NoConfidenceAction;
   static new_with_action_id(gov_action_id: GovernanceActionId): NoConfidenceAction;
@@ -1434,7 +1378,6 @@ export class Nonce {
   static from_bytes(bytes: Uint8Array): Nonce;
   to_hex(): string;
   static from_hex(hex_str: string): Nonce;
-  static from_json(json: string): Nonce;
   static new_identity(): Nonce;
   static new_from_hash(hash: Uint8Array): Nonce;
   get_hash(): Uint8Array | undefined;
@@ -1446,7 +1389,6 @@ export class OperationalCert {
   static from_bytes(bytes: Uint8Array): OperationalCert;
   to_hex(): string;
   static from_hex(hex_str: string): OperationalCert;
-  static from_json(json: string): OperationalCert;
   hot_vkey(): KESVKey;
   sequence_number(): number;
   kes_period(): number;
@@ -1468,7 +1410,6 @@ export class ParameterChangeAction {
   static from_bytes(bytes: Uint8Array): ParameterChangeAction;
   to_hex(): string;
   static from_hex(hex_str: string): ParameterChangeAction;
-  static from_json(json: string): ParameterChangeAction;
   gov_action_id(): GovernanceActionId | undefined;
   protocol_param_updates(): ProtocolParamUpdate;
   policy_hash(): ScriptHash | undefined;
@@ -1568,7 +1509,6 @@ export class PlutusScripts {
   static from_bytes(bytes: Uint8Array): PlutusScripts;
   to_hex(): string;
   static from_hex(hex_str: string): PlutusScripts;
-  static from_json(json: string): PlutusScripts;
   static new(): PlutusScripts;
   len(): number;
   get(index: number): PlutusScript;
@@ -1622,7 +1562,6 @@ export class PoolMetadata {
   static from_bytes(bytes: Uint8Array): PoolMetadata;
   to_hex(): string;
   static from_hex(hex_str: string): PoolMetadata;
-  static from_json(json: string): PoolMetadata;
   url(): URL;
   pool_metadata_hash(): PoolMetadataHash;
   static new(url: URL, pool_metadata_hash: PoolMetadataHash): PoolMetadata;
@@ -1644,7 +1583,6 @@ export class PoolParams {
   static from_bytes(bytes: Uint8Array): PoolParams;
   to_hex(): string;
   static from_hex(hex_str: string): PoolParams;
-  static from_json(json: string): PoolParams;
   operator(): Ed25519KeyHash;
   vrf_keyhash(): VRFKeyHash;
   pledge(): BigNum;
@@ -1663,7 +1601,6 @@ export class PoolRegistration {
   static from_bytes(bytes: Uint8Array): PoolRegistration;
   to_hex(): string;
   static from_hex(hex_str: string): PoolRegistration;
-  static from_json(json: string): PoolRegistration;
   pool_params(): PoolParams;
   static new(pool_params: PoolParams): PoolRegistration;
 }
@@ -1674,7 +1611,6 @@ export class PoolRetirement {
   static from_bytes(bytes: Uint8Array): PoolRetirement;
   to_hex(): string;
   static from_hex(hex_str: string): PoolRetirement;
-  static from_json(json: string): PoolRetirement;
   pool_keyhash(): Ed25519KeyHash;
   epoch(): number;
   static new(pool_keyhash: Ed25519KeyHash, epoch: number): PoolRetirement;
@@ -1686,7 +1622,6 @@ export class PoolVotingThresholds {
   static from_bytes(bytes: Uint8Array): PoolVotingThresholds;
   to_hex(): string;
   static from_hex(hex_str: string): PoolVotingThresholds;
-  static from_json(json: string): PoolVotingThresholds;
   static new(motion_no_confidence: UnitInterval, committee_normal: UnitInterval, committee_no_confidence: UnitInterval, hard_fork_initiation: UnitInterval, security_relevant_threshold: UnitInterval): PoolVotingThresholds;
   motion_no_confidence(): UnitInterval;
   committee_normal(): UnitInterval;
@@ -1716,7 +1651,6 @@ export class ProposedProtocolParameterUpdates {
   static from_bytes(bytes: Uint8Array): ProposedProtocolParameterUpdates;
   to_hex(): string;
   static from_hex(hex_str: string): ProposedProtocolParameterUpdates;
-  static from_json(json: string): ProposedProtocolParameterUpdates;
   static new(): ProposedProtocolParameterUpdates;
   len(): number;
   insert(key: GenesisHash, value: ProtocolParamUpdate): ProtocolParamUpdate | undefined;
@@ -1730,7 +1664,6 @@ export class ProtocolParamUpdate {
   static from_bytes(bytes: Uint8Array): ProtocolParamUpdate;
   to_hex(): string;
   static from_hex(hex_str: string): ProtocolParamUpdate;
-  static from_json(json: string): ProtocolParamUpdate;
   set_minfee_a(minfee_a: BigNum): void;
   minfee_a(): BigNum | undefined;
   set_minfee_b(minfee_b: BigNum): void;
@@ -1804,7 +1737,6 @@ export class ProtocolVersion {
   static from_bytes(bytes: Uint8Array): ProtocolVersion;
   to_hex(): string;
   static from_hex(hex_str: string): ProtocolVersion;
-  static from_json(json: string): ProtocolVersion;
   major(): number;
   minor(): number;
   static new(major: number, minor: number): ProtocolVersion;
@@ -1836,7 +1768,6 @@ export class Redeemer {
   static from_bytes(bytes: Uint8Array): Redeemer;
   to_hex(): string;
   static from_hex(hex_str: string): Redeemer;
-  static from_json(json: string): Redeemer;
   tag(): RedeemerTag;
   index(): BigNum;
   data(): PlutusData;
@@ -1850,7 +1781,6 @@ export class RedeemerTag {
   static from_bytes(bytes: Uint8Array): RedeemerTag;
   to_hex(): string;
   static from_hex(hex_str: string): RedeemerTag;
-  static from_json(json: string): RedeemerTag;
   static new_spend(): RedeemerTag;
   static new_mint(): RedeemerTag;
   static new_cert(): RedeemerTag;
@@ -1866,7 +1796,6 @@ export class Redeemers {
   static from_bytes(bytes: Uint8Array): Redeemers;
   to_hex(): string;
   static from_hex(hex_str: string): Redeemers;
-  static from_json(json: string): Redeemers;
   static new(): Redeemers;
   len(): number;
   get(index: number): Redeemer;
@@ -1880,7 +1809,6 @@ export class Relay {
   static from_bytes(bytes: Uint8Array): Relay;
   to_hex(): string;
   static from_hex(hex_str: string): Relay;
-  static from_json(json: string): Relay;
   static new_single_host_addr(single_host_addr: SingleHostAddr): Relay;
   static new_single_host_name(single_host_name: SingleHostName): Relay;
   static new_multi_host_name(multi_host_name: MultiHostName): Relay;
@@ -1896,7 +1824,6 @@ export class Relays {
   static from_bytes(bytes: Uint8Array): Relays;
   to_hex(): string;
   static from_hex(hex_str: string): Relays;
-  static from_json(json: string): Relays;
   static new(): Relays;
   len(): number;
   get(index: number): Relay;
@@ -1918,7 +1845,6 @@ export class RewardAddresses {
   static from_bytes(bytes: Uint8Array): RewardAddresses;
   to_hex(): string;
   static from_hex(hex_str: string): RewardAddresses;
-  static from_json(json: string): RewardAddresses;
   static new(): RewardAddresses;
   len(): number;
   get(index: number): RewardAddress;
@@ -1931,7 +1857,6 @@ export class ScriptAll {
   static from_bytes(bytes: Uint8Array): ScriptAll;
   to_hex(): string;
   static from_hex(hex_str: string): ScriptAll;
-  static from_json(json: string): ScriptAll;
   native_scripts(): NativeScripts;
   static new(native_scripts: NativeScripts): ScriptAll;
 }
@@ -1942,7 +1867,6 @@ export class ScriptAny {
   static from_bytes(bytes: Uint8Array): ScriptAny;
   to_hex(): string;
   static from_hex(hex_str: string): ScriptAny;
-  static from_json(json: string): ScriptAny;
   native_scripts(): NativeScripts;
   static new(native_scripts: NativeScripts): ScriptAny;
 }
@@ -1973,7 +1897,6 @@ export class ScriptHashes {
   static from_bytes(bytes: Uint8Array): ScriptHashes;
   to_hex(): string;
   static from_hex(hex_str: string): ScriptHashes;
-  static from_json(json: string): ScriptHashes;
   static new(): ScriptHashes;
   len(): number;
   get(index: number): ScriptHash;
@@ -1986,7 +1909,6 @@ export class ScriptNOfK {
   static from_bytes(bytes: Uint8Array): ScriptNOfK;
   to_hex(): string;
   static from_hex(hex_str: string): ScriptNOfK;
-  static from_json(json: string): ScriptNOfK;
   n(): number;
   native_scripts(): NativeScripts;
   static new(n: number, native_scripts: NativeScripts): ScriptNOfK;
@@ -1998,7 +1920,6 @@ export class ScriptPubkey {
   static from_bytes(bytes: Uint8Array): ScriptPubkey;
   to_hex(): string;
   static from_hex(hex_str: string): ScriptPubkey;
-  static from_json(json: string): ScriptPubkey;
   addr_keyhash(): Ed25519KeyHash;
   static new(addr_keyhash: Ed25519KeyHash): ScriptPubkey;
 }
@@ -2009,7 +1930,6 @@ export class ScriptRef {
   static from_bytes(bytes: Uint8Array): ScriptRef;
   to_hex(): string;
   static from_hex(hex_str: string): ScriptRef;
-  static from_json(json: string): ScriptRef;
   static new_native_script(native_script: NativeScript): ScriptRef;
   static new_plutus_script(plutus_script: PlutusScript): ScriptRef;
   is_native_script(): boolean;
@@ -2025,7 +1945,6 @@ export class SingleHostAddr {
   static from_bytes(bytes: Uint8Array): SingleHostAddr;
   to_hex(): string;
   static from_hex(hex_str: string): SingleHostAddr;
-  static from_json(json: string): SingleHostAddr;
   port(): number | undefined;
   ipv4(): Ipv4 | undefined;
   ipv6(): Ipv6 | undefined;
@@ -2038,7 +1957,6 @@ export class SingleHostName {
   static from_bytes(bytes: Uint8Array): SingleHostName;
   to_hex(): string;
   static from_hex(hex_str: string): SingleHostName;
-  static from_json(json: string): SingleHostName;
   port(): number | undefined;
   dns_name(): DNSRecordAorAAAA;
   static new(port: number | undefined, dns_name: DNSRecordAorAAAA): SingleHostName;
@@ -2050,7 +1968,6 @@ export class StakeAndVoteDelegation {
   static from_bytes(bytes: Uint8Array): StakeAndVoteDelegation;
   to_hex(): string;
   static from_hex(hex_str: string): StakeAndVoteDelegation;
-  static from_json(json: string): StakeAndVoteDelegation;
   stake_credential(): Credential;
   pool_keyhash(): Ed25519KeyHash;
   drep(): DRep;
@@ -2064,7 +1981,6 @@ export class StakeDelegation {
   static from_bytes(bytes: Uint8Array): StakeDelegation;
   to_hex(): string;
   static from_hex(hex_str: string): StakeDelegation;
-  static from_json(json: string): StakeDelegation;
   stake_credential(): Credential;
   pool_keyhash(): Ed25519KeyHash;
   static new(stake_credential: Credential, pool_keyhash: Ed25519KeyHash): StakeDelegation;
@@ -2077,7 +1993,6 @@ export class StakeDeregistration {
   static from_bytes(bytes: Uint8Array): StakeDeregistration;
   to_hex(): string;
   static from_hex(hex_str: string): StakeDeregistration;
-  static from_json(json: string): StakeDeregistration;
   stake_credential(): Credential;
   coin(): BigNum | undefined;
   static new(stake_credential: Credential): StakeDeregistration;
@@ -2091,7 +2006,6 @@ export class StakeRegistration {
   static from_bytes(bytes: Uint8Array): StakeRegistration;
   to_hex(): string;
   static from_hex(hex_str: string): StakeRegistration;
-  static from_json(json: string): StakeRegistration;
   stake_credential(): Credential;
   coin(): BigNum | undefined;
   static new(stake_credential: Credential): StakeRegistration;
@@ -2105,7 +2019,6 @@ export class StakeRegistrationAndDelegation {
   static from_bytes(bytes: Uint8Array): StakeRegistrationAndDelegation;
   to_hex(): string;
   static from_hex(hex_str: string): StakeRegistrationAndDelegation;
-  static from_json(json: string): StakeRegistrationAndDelegation;
   stake_credential(): Credential;
   pool_keyhash(): Ed25519KeyHash;
   coin(): BigNum;
@@ -2119,7 +2032,6 @@ export class StakeVoteRegistrationAndDelegation {
   static from_bytes(bytes: Uint8Array): StakeVoteRegistrationAndDelegation;
   to_hex(): string;
   static from_hex(hex_str: string): StakeVoteRegistrationAndDelegation;
-  static from_json(json: string): StakeVoteRegistrationAndDelegation;
   stake_credential(): Credential;
   pool_keyhash(): Ed25519KeyHash;
   drep(): DRep;
@@ -2142,7 +2054,6 @@ export class TimelockExpiry {
   static from_bytes(bytes: Uint8Array): TimelockExpiry;
   to_hex(): string;
   static from_hex(hex_str: string): TimelockExpiry;
-  static from_json(json: string): TimelockExpiry;
   slot(): number;
   slot_bignum(): BigNum;
   static new(slot: number): TimelockExpiry;
@@ -2155,7 +2066,6 @@ export class TimelockStart {
   static from_bytes(bytes: Uint8Array): TimelockStart;
   to_hex(): string;
   static from_hex(hex_str: string): TimelockStart;
-  static from_json(json: string): TimelockStart;
   slot(): number;
   slot_bignum(): BigNum;
   static new(slot: number): TimelockStart;
@@ -2168,7 +2078,6 @@ export class Transaction {
   static from_bytes(bytes: Uint8Array): Transaction;
   to_hex(): string;
   static from_hex(hex_str: string): Transaction;
-  static from_json(json: string): Transaction;
   body(): TransactionBody;
   witness_set(): TransactionWitnessSet;
   is_valid(): boolean;
@@ -2195,7 +2104,6 @@ export class TransactionBodies {
   static from_bytes(bytes: Uint8Array): TransactionBodies;
   to_hex(): string;
   static from_hex(hex_str: string): TransactionBodies;
-  static from_json(json: string): TransactionBodies;
   static new(): TransactionBodies;
   len(): number;
   get(index: number): TransactionBody;
@@ -2208,7 +2116,6 @@ export class TransactionBody {
   static from_bytes(bytes: Uint8Array): TransactionBody;
   to_hex(): string;
   static from_hex(hex_str: string): TransactionBody;
-  static from_json(json: string): TransactionBody;
   inputs(): TransactionInputs;
   outputs(): TransactionOutputs;
   fee(): BigNum;
@@ -2272,7 +2179,6 @@ export class TransactionInput {
   static from_bytes(bytes: Uint8Array): TransactionInput;
   to_hex(): string;
   static from_hex(hex_str: string): TransactionInput;
-  static from_json(json: string): TransactionInput;
   transaction_id(): TransactionHash;
   index(): number;
   static new(transaction_id: TransactionHash, index: number): TransactionInput;
@@ -2284,7 +2190,6 @@ export class TransactionInputs {
   static from_bytes(bytes: Uint8Array): TransactionInputs;
   to_hex(): string;
   static from_hex(hex_str: string): TransactionInputs;
-  static from_json(json: string): TransactionInputs;
   static new(): TransactionInputs;
   len(): number;
   get(index: number): TransactionInput;
@@ -2329,7 +2234,6 @@ export class TransactionOutput {
   static from_bytes(bytes: Uint8Array): TransactionOutput;
   to_hex(): string;
   static from_hex(hex_str: string): TransactionOutput;
-  static from_json(json: string): TransactionOutput;
   address(): Address;
   amount(): Value;
   data_hash(): DataHash | undefined;
@@ -2351,7 +2255,6 @@ export class TransactionOutputs {
   static from_bytes(bytes: Uint8Array): TransactionOutputs;
   to_hex(): string;
   static from_hex(hex_str: string): TransactionOutputs;
-  static from_json(json: string): TransactionOutputs;
   static new(): TransactionOutputs;
   len(): number;
   get(index: number): TransactionOutput;
@@ -2364,7 +2267,6 @@ export class TransactionUnspentOutput {
   static from_bytes(bytes: Uint8Array): TransactionUnspentOutput;
   to_hex(): string;
   static from_hex(hex_str: string): TransactionUnspentOutput;
-  static from_json(json: string): TransactionUnspentOutput;
   static new(input: TransactionInput, output: TransactionOutput): TransactionUnspentOutput;
   input(): TransactionInput;
   output(): TransactionOutput;
@@ -2372,7 +2274,6 @@ export class TransactionUnspentOutput {
 
 export class TransactionUnspentOutputs {
   free(): void;
-  static from_json(json: string): TransactionUnspentOutputs;
   static new(): TransactionUnspentOutputs;
   len(): number;
   get(index: number): TransactionUnspentOutput;
@@ -2385,7 +2286,6 @@ export class TransactionWitnessSet {
   static from_bytes(bytes: Uint8Array): TransactionWitnessSet;
   to_hex(): string;
   static from_hex(hex_str: string): TransactionWitnessSet;
-  static from_json(json: string): TransactionWitnessSet;
   set_vkeys(vkeys: Vkeywitnesses): void;
   vkeys(): Vkeywitnesses | undefined;
   set_native_scripts(native_scripts: NativeScripts): void;
@@ -2407,7 +2307,6 @@ export class TransactionWitnessSets {
   static from_bytes(bytes: Uint8Array): TransactionWitnessSets;
   to_hex(): string;
   static from_hex(hex_str: string): TransactionWitnessSets;
-  static from_json(json: string): TransactionWitnessSets;
   static new(): TransactionWitnessSets;
   len(): number;
   get(index: number): TransactionWitnessSet;
@@ -2416,7 +2315,6 @@ export class TransactionWitnessSets {
 
 export class TreasuryWithdrawals {
   free(): void;
-  static from_json(json: string): TreasuryWithdrawals;
   static new(): TreasuryWithdrawals;
   get(key: RewardAddress): BigNum | undefined;
   insert(key: RewardAddress, value: BigNum): void;
@@ -2430,7 +2328,6 @@ export class TreasuryWithdrawalsAction {
   static from_bytes(bytes: Uint8Array): TreasuryWithdrawalsAction;
   to_hex(): string;
   static from_hex(hex_str: string): TreasuryWithdrawalsAction;
-  static from_json(json: string): TreasuryWithdrawalsAction;
   withdrawals(): TreasuryWithdrawals;
   policy_hash(): ScriptHash | undefined;
   static new(withdrawals: TreasuryWithdrawals): TreasuryWithdrawalsAction;
@@ -2443,7 +2340,6 @@ export class URL {
   static from_bytes(bytes: Uint8Array): URL;
   to_hex(): string;
   static from_hex(hex_str: string): URL;
-  static from_json(json: string): URL;
   static new(url: string): URL;
   url(): string;
 }
@@ -2454,7 +2350,6 @@ export class UnitInterval {
   static from_bytes(bytes: Uint8Array): UnitInterval;
   to_hex(): string;
   static from_hex(hex_str: string): UnitInterval;
-  static from_json(json: string): UnitInterval;
   numerator(): BigNum;
   denominator(): BigNum;
   static new(numerator: BigNum, denominator: BigNum): UnitInterval;
@@ -2466,7 +2361,6 @@ export class Update {
   static from_bytes(bytes: Uint8Array): Update;
   to_hex(): string;
   static from_hex(hex_str: string): Update;
-  static from_json(json: string): Update;
   proposed_protocol_parameter_updates(): ProposedProtocolParameterUpdates;
   epoch(): number;
   static new(proposed_protocol_parameter_updates: ProposedProtocolParameterUpdates, epoch: number): Update;
@@ -2478,7 +2372,6 @@ export class UpdateCommitteeAction {
   static from_bytes(bytes: Uint8Array): UpdateCommitteeAction;
   to_hex(): string;
   static from_hex(hex_str: string): UpdateCommitteeAction;
-  static from_json(json: string): UpdateCommitteeAction;
   gov_action_id(): GovernanceActionId | undefined;
   committee(): Committee;
   members_to_remove(): Credentials;
@@ -2492,7 +2385,6 @@ export class VRFCert {
   static from_bytes(bytes: Uint8Array): VRFCert;
   to_hex(): string;
   static from_hex(hex_str: string): VRFCert;
-  static from_json(json: string): VRFCert;
   output(): Uint8Array;
   proof(): Uint8Array;
   static new(output: Uint8Array, proof: Uint8Array): VRFCert;
@@ -2524,7 +2416,6 @@ export class Value {
   static from_bytes(bytes: Uint8Array): Value;
   to_hex(): string;
   static from_hex(hex_str: string): Value;
-  static from_json(json: string): Value;
   static new(coin: BigNum): Value;
   static new_from_assets(multiasset: MultiAsset): Value;
   static new_with_assets(coin: BigNum, multiasset: MultiAsset): Value;
@@ -2546,7 +2437,6 @@ export class VersionedBlock {
   static from_bytes(bytes: Uint8Array): VersionedBlock;
   to_hex(): string;
   static from_hex(hex_str: string): VersionedBlock;
-  static from_json(json: string): VersionedBlock;
   static new(block: Block, era_code: number): VersionedBlock;
   block(): Block;
   era(): BlockEra;
@@ -2558,7 +2448,6 @@ export class Vkey {
   static from_bytes(bytes: Uint8Array): Vkey;
   to_hex(): string;
   static from_hex(hex_str: string): Vkey;
-  static from_json(json: string): Vkey;
   static new(pk: PublicKey): Vkey;
   public_key(): PublicKey;
 }
@@ -2577,7 +2466,6 @@ export class Vkeywitness {
   static from_bytes(bytes: Uint8Array): Vkeywitness;
   to_hex(): string;
   static from_hex(hex_str: string): Vkeywitness;
-  static from_json(json: string): Vkeywitness;
   static new(vkey: Vkey, signature: Ed25519Signature): Vkeywitness;
   vkey(): Vkey;
   signature(): Ed25519Signature;
@@ -2589,7 +2477,6 @@ export class Vkeywitnesses {
   static from_bytes(bytes: Uint8Array): Vkeywitnesses;
   to_hex(): string;
   static from_hex(hex_str: string): Vkeywitnesses;
-  static from_json(json: string): Vkeywitnesses;
   static new(): Vkeywitnesses;
   len(): number;
   get(index: number): Vkeywitness;
@@ -2602,7 +2489,6 @@ export class VoteDelegation {
   static from_bytes(bytes: Uint8Array): VoteDelegation;
   to_hex(): string;
   static from_hex(hex_str: string): VoteDelegation;
-  static from_json(json: string): VoteDelegation;
   stake_credential(): Credential;
   drep(): DRep;
   static new(stake_credential: Credential, drep: DRep): VoteDelegation;
@@ -2615,7 +2501,6 @@ export class VoteRegistrationAndDelegation {
   static from_bytes(bytes: Uint8Array): VoteRegistrationAndDelegation;
   to_hex(): string;
   static from_hex(hex_str: string): VoteRegistrationAndDelegation;
-  static from_json(json: string): VoteRegistrationAndDelegation;
   stake_credential(): Credential;
   drep(): DRep;
   coin(): BigNum;
@@ -2629,7 +2514,6 @@ export class Voter {
   static from_bytes(bytes: Uint8Array): Voter;
   to_hex(): string;
   static from_hex(hex_str: string): Voter;
-  static from_json(json: string): Voter;
   static new_constitutional_committee_hot_credential(cred: Credential): Voter;
   static new_drep_credential(cred: Credential): Voter;
   static new_stake_pool_key_hash(key_hash: Ed25519KeyHash): Voter;
@@ -2643,7 +2527,6 @@ export class Voter {
 
 export class Voters {
   free(): void;
-  static from_json(json: string): Voters;
   static new(): Voters;
   add(voter: Voter): void;
   get(index: number): Voter | undefined;
@@ -2656,7 +2539,6 @@ export class VotingProcedure {
   static from_bytes(bytes: Uint8Array): VotingProcedure;
   to_hex(): string;
   static from_hex(hex_str: string): VotingProcedure;
-  static from_json(json: string): VotingProcedure;
   static new(vote: VoteKind): VotingProcedure;
   static new_with_anchor(vote: VoteKind, anchor: Anchor): VotingProcedure;
   vote_kind(): VoteKind;
@@ -2669,7 +2551,6 @@ export class VotingProcedures {
   static from_bytes(bytes: Uint8Array): VotingProcedures;
   to_hex(): string;
   static from_hex(hex_str: string): VotingProcedures;
-  static from_json(json: string): VotingProcedures;
   static new(): VotingProcedures;
   insert(voter: Voter, governance_action_id: GovernanceActionId, voting_procedure: VotingProcedure): void;
   get(voter: Voter, governance_action_id: GovernanceActionId): VotingProcedure | undefined;
@@ -2683,7 +2564,6 @@ export class VotingProposal {
   static from_bytes(bytes: Uint8Array): VotingProposal;
   to_hex(): string;
   static from_hex(hex_str: string): VotingProposal;
-  static from_json(json: string): VotingProposal;
   governance_action(): GovernanceAction;
   anchor(): Anchor;
   reward_account(): RewardAddress;
@@ -2697,7 +2577,6 @@ export class VotingProposals {
   static from_bytes(bytes: Uint8Array): VotingProposals;
   to_hex(): string;
   static from_hex(hex_str: string): VotingProposals;
-  static from_json(json: string): VotingProposals;
   static new(): VotingProposals;
   len(): number;
   get(index: number): VotingProposal;
@@ -2710,7 +2589,6 @@ export class Withdrawals {
   static from_bytes(bytes: Uint8Array): Withdrawals;
   to_hex(): string;
   static from_hex(hex_str: string): Withdrawals;
-  static from_json(json: string): Withdrawals;
   static new(): Withdrawals;
   len(): number;
   insert(key: RewardAddress, value: BigNum): BigNum | undefined;
