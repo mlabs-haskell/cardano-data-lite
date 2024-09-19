@@ -91,9 +91,13 @@ export class GenNewtype extends CodeGeneratorBase {
   generateExtraMethods(): string {
     let itemJsType = this.itemJsType();
     return `
-      static new(inner: ${itemJsType}): ${this.name} {
-        return new ${this.name}(inner);
-      }
+      ${this.renameMethod(
+        "new",
+        (new_) => `
+        static ${new_}(inner: ${itemJsType}): ${this.name} {
+          return new ${this.name}(inner);
+        }`,
+      )}
 
       ${this.accessor}(): ${itemJsType} {
         return this.inner;
