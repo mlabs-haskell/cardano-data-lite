@@ -1,19 +1,51 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
-* @param {string} password
-* @param {string} salt
-* @param {string} nonce
-* @param {string} data
-* @returns {string}
+* @param {Transaction} tx
+* @param {LinearFee} linear_fee
+* @returns {BigNum}
 */
-export function encrypt_with_password(password: string, salt: string, nonce: string, data: string): string;
+export function min_fee(tx: Transaction, linear_fee: LinearFee): BigNum;
 /**
-* @param {string} password
-* @param {string} data
+* @param {ExUnits} ex_units
+* @param {ExUnitPrices} ex_unit_prices
+* @returns {BigNum}
+*/
+export function calculate_ex_units_ceil_cost(ex_units: ExUnits, ex_unit_prices: ExUnitPrices): BigNum;
+/**
+* @param {Transaction} tx
+* @param {ExUnitPrices} ex_unit_prices
+* @returns {BigNum}
+*/
+export function min_script_fee(tx: Transaction, ex_unit_prices: ExUnitPrices): BigNum;
+/**
+* @param {number} total_ref_scripts_size
+* @param {UnitInterval} ref_script_coins_per_byte
+* @returns {BigNum}
+*/
+export function min_ref_script_fee(total_ref_scripts_size: number, ref_script_coins_per_byte: UnitInterval): BigNum;
+/**
+* @param {Uint8Array} bytes
+* @returns {TransactionMetadatum}
+*/
+export function encode_arbitrary_bytes_as_metadatum(bytes: Uint8Array): TransactionMetadatum;
+/**
+* @param {TransactionMetadatum} metadata
+* @returns {Uint8Array}
+*/
+export function decode_arbitrary_bytes_from_metadatum(metadata: TransactionMetadatum): Uint8Array;
+/**
+* @param {string} json
+* @param {MetadataJsonSchema} schema
+* @returns {TransactionMetadatum}
+*/
+export function encode_json_str_to_metadatum(json: string, schema: MetadataJsonSchema): TransactionMetadatum;
+/**
+* @param {TransactionMetadatum} metadatum
+* @param {MetadataJsonSchema} schema
 * @returns {string}
 */
-export function decrypt_with_password(password: string, data: string): string;
+export function decode_metadatum_to_json_str(metadatum: TransactionMetadatum, schema: MetadataJsonSchema): string;
 /**
 * @param {TransactionHash} tx_body_hash
 * @param {ByronAddress} addr
@@ -52,7 +84,7 @@ export function hash_plutus_data(plutus_data: PlutusData): DataHash;
 /**
 * @param {Redeemers} redeemers
 * @param {Costmdls} cost_models
-* @param {PlutusList | undefined} datums
+* @param {PlutusList | undefined} [datums]
 * @returns {ScriptDataHash}
 */
 export function hash_script_data(redeemers: Redeemers, cost_models: Costmdls, datums?: PlutusList): ScriptDataHash;
@@ -78,16 +110,6 @@ export function get_deposit(txbody: TransactionBody, pool_deposit: BigNum, key_d
 */
 export function min_ada_for_output(output: TransactionOutput, data_cost: DataCost): BigNum;
 /**
-* !!! DEPRECATED !!!
-* This function uses outdated set of arguments.
-* Use `min_ada_for_output` instead
-* @param {Value} assets
-* @param {boolean} has_data_hash
-* @param {BigNum} coins_per_utxo_word
-* @returns {BigNum}
-*/
-export function min_ada_required(assets: Value, has_data_hash: boolean, coins_per_utxo_word: BigNum): BigNum;
-/**
 * Receives a script JSON string
 * and returns a NativeScript.
 * Cardano Wallet and Node styles are supported.
@@ -98,62 +120,10 @@ export function min_ada_required(assets: Value, has_data_hash: boolean, coins_pe
 * self_xpub is expected to be a Bip32PublicKey as hex-encoded bytes
 * @param {string} json
 * @param {string} self_xpub
-* @param {number} schema
+* @param {ScriptSchema} schema
 * @returns {NativeScript}
 */
-export function encode_json_str_to_native_script(json: string, self_xpub: string, schema: number): NativeScript;
-/**
-* @param {Uint8Array} bytes
-* @returns {TransactionMetadatum}
-*/
-export function encode_arbitrary_bytes_as_metadatum(bytes: Uint8Array): TransactionMetadatum;
-/**
-* @param {TransactionMetadatum} metadata
-* @returns {Uint8Array}
-*/
-export function decode_arbitrary_bytes_from_metadatum(metadata: TransactionMetadatum): Uint8Array;
-/**
-* @param {string} json
-* @param {number} schema
-* @returns {TransactionMetadatum}
-*/
-export function encode_json_str_to_metadatum(json: string, schema: number): TransactionMetadatum;
-/**
-* @param {TransactionMetadatum} metadatum
-* @param {number} schema
-* @returns {string}
-*/
-export function decode_metadatum_to_json_str(metadatum: TransactionMetadatum, schema: number): string;
-/**
-* @param {string} json
-* @param {number} schema
-* @returns {PlutusData}
-*/
-export function encode_json_str_to_plutus_datum(json: string, schema: number): PlutusData;
-/**
-* @param {PlutusData} datum
-* @param {number} schema
-* @returns {string}
-*/
-export function decode_plutus_datum_to_json_str(datum: PlutusData, schema: number): string;
-/**
-* @param {Transaction} tx
-* @param {LinearFee} linear_fee
-* @returns {BigNum}
-*/
-export function min_fee(tx: Transaction, linear_fee: LinearFee): BigNum;
-/**
-* @param {ExUnits} ex_units
-* @param {ExUnitPrices} ex_unit_prices
-* @returns {BigNum}
-*/
-export function calculate_ex_units_ceil_cost(ex_units: ExUnits, ex_unit_prices: ExUnitPrices): BigNum;
-/**
-* @param {Transaction} tx
-* @param {ExUnitPrices} ex_unit_prices
-* @returns {BigNum}
-*/
-export function min_script_fee(tx: Transaction, ex_unit_prices: ExUnitPrices): BigNum;
+export function encode_json_str_to_native_script(json: string, self_xpub: string, schema: ScriptSchema): NativeScript;
 /**
 * @param {Address} address
 * @param {TransactionUnspentOutputs} utxos
@@ -162,61 +132,37 @@ export function min_script_fee(tx: Transaction, ex_unit_prices: ExUnitPrices): B
 */
 export function create_send_all(address: Address, utxos: TransactionUnspentOutputs, config: TransactionBuilderConfig): TransactionBatchList;
 /**
+* @param {string} password
+* @param {string} salt
+* @param {string} nonce
+* @param {string} data
+* @returns {string}
 */
-export enum CertificateKind {
-  StakeRegistration = 0,
-  StakeDeregistration = 1,
-  StakeDelegation = 2,
-  PoolRegistration = 3,
-  PoolRetirement = 4,
-  GenesisKeyDelegation = 5,
-  MoveInstantaneousRewardsCert = 6,
-}
+export function encrypt_with_password(password: string, salt: string, nonce: string, data: string): string;
+/**
+* @param {string} password
+* @param {string} data
+* @returns {string}
+*/
+export function decrypt_with_password(password: string, data: string): string;
+/**
+* @param {string} json
+* @param {PlutusDatumSchema} schema
+* @returns {PlutusData}
+*/
+export function encode_json_str_to_plutus_datum(json: string, schema: PlutusDatumSchema): PlutusData;
+/**
+* @param {PlutusData} datum
+* @param {PlutusDatumSchema} schema
+* @returns {string}
+*/
+export function decode_plutus_datum_to_json_str(datum: PlutusData, schema: PlutusDatumSchema): string;
 /**
 */
-export enum MIRPot {
-  Reserves = 0,
-  Treasury = 1,
-}
-/**
-*/
-export enum MIRKind {
-  ToOtherPot = 0,
-  ToStakeCredentials = 1,
-}
-/**
-*/
-export enum RelayKind {
-  SingleHostAddr = 0,
-  SingleHostName = 1,
-  MultiHostName = 2,
-}
-/**
-*/
-export enum NativeScriptKind {
-  ScriptPubkey = 0,
-  ScriptAll = 1,
-  ScriptAny = 2,
-  ScriptNOfK = 3,
-  TimelockStart = 4,
-  TimelockExpiry = 5,
-}
-/**
-* Each new language uses a different namespace for hashing its script
-* This is because you could have a language where the same bytes have different semantics
-* So this avoids scripts in different languages mapping to the same hash
-* Note that the enum value here is different than the enum value for deciding the cost model of a script
-*/
-export enum ScriptHashNamespace {
-  NativeScript = 0,
-  PlutusScript = 1,
-  PlutusScriptV2 = 2,
-}
-/**
-*/
-export enum NetworkIdKind {
-  Testnet = 0,
-  Mainnet = 1,
+export enum LanguageKind {
+  PlutusV1 = 0,
+  PlutusV2 = 1,
+  PlutusV3 = 2,
 }
 /**
 * Used to choosed the schema for a script JSON string
@@ -227,42 +173,9 @@ export enum ScriptSchema {
 }
 /**
 */
-export enum TransactionMetadatumKind {
-  MetadataMap = 0,
-  MetadataList = 1,
-  Int = 2,
-  Bytes = 3,
-  Text = 4,
-}
-/**
-*/
-export enum MetadataJsonSchema {
-  NoConversions = 0,
-  BasicConversions = 1,
-  DetailedSchema = 2,
-}
-/**
-*/
-export enum LanguageKind {
-  PlutusV1 = 0,
-  PlutusV2 = 1,
-}
-/**
-*/
-export enum PlutusDataKind {
-  ConstrPlutusData = 0,
-  Map = 1,
-  List = 2,
-  Integer = 3,
-  Bytes = 4,
-}
-/**
-*/
-export enum RedeemerTagKind {
-  Spend = 0,
-  Mint = 1,
-  Cert = 2,
-  Reward = 3,
+export enum MIRKind {
+  ToOtherPot = 0,
+  ToStakeCredentials = 1,
 }
 /**
 * JSON <-> PlutusData conversion schemas.
@@ -318,6 +231,136 @@ export enum PlutusDatumSchema {
 }
 /**
 */
+export enum MIRPot {
+  Reserves = 0,
+  Treasury = 1,
+}
+/**
+*/
+export enum BlockEra {
+  Byron = 0,
+  Shelley = 1,
+  Allegra = 2,
+  Mary = 3,
+  Alonzo = 4,
+  Babbage = 5,
+  Conway = 6,
+  Unknown = 7,
+}
+/**
+*/
+export enum RelayKind {
+  SingleHostAddr = 0,
+  SingleHostName = 1,
+  MultiHostName = 2,
+}
+/**
+*/
+export enum RedeemerTagKind {
+  Spend = 0,
+  Mint = 1,
+  Cert = 2,
+  Reward = 3,
+  Vote = 4,
+  VotingProposal = 5,
+}
+/**
+*/
+export enum VoteKind {
+  No = 0,
+  Yes = 1,
+  Abstain = 2,
+}
+/**
+*/
+export enum NetworkIdKind {
+  Testnet = 0,
+  Mainnet = 1,
+}
+/**
+*/
+export enum AddressKind {
+  Base = 0,
+  Pointer = 1,
+  Enterprise = 2,
+  Reward = 3,
+  Byron = 4,
+  Malformed = 5,
+}
+/**
+*/
+export enum PlutusDataKind {
+  ConstrPlutusData = 0,
+  Map = 1,
+  List = 2,
+  Integer = 3,
+  Bytes = 4,
+}
+/**
+*/
+export enum CredKind {
+  Key = 0,
+  Script = 1,
+}
+/**
+*/
+export enum VoterKind {
+  ConstitutionalCommitteeHotKeyHash = 0,
+  ConstitutionalCommitteeHotScriptHash = 1,
+  DRepKeyHash = 2,
+  DRepScriptHash = 3,
+  StakingPoolKeyHash = 4,
+}
+/**
+*/
+export enum NativeScriptKind {
+  ScriptPubkey = 0,
+  ScriptAll = 1,
+  ScriptAny = 2,
+  ScriptNOfK = 3,
+  TimelockStart = 4,
+  TimelockExpiry = 5,
+}
+/**
+*/
+export enum TransactionMetadatumKind {
+  MetadataMap = 0,
+  MetadataList = 1,
+  Int = 2,
+  Bytes = 3,
+  Text = 4,
+}
+/**
+*/
+export enum DRepKind {
+  KeyHash = 0,
+  ScriptHash = 1,
+  AlwaysAbstain = 2,
+  AlwaysNoConfidence = 3,
+}
+/**
+*/
+export enum CertificateKind {
+  StakeRegistration = 0,
+  StakeDeregistration = 1,
+  StakeDelegation = 2,
+  PoolRegistration = 3,
+  PoolRetirement = 4,
+  GenesisKeyDelegation = 5,
+  MoveInstantaneousRewardsCert = 6,
+  CommitteeHotAuth = 7,
+  CommitteeColdResign = 8,
+  DRepDeregistration = 9,
+  DRepRegistration = 10,
+  DRepUpdate = 11,
+  StakeAndVoteDelegation = 12,
+  StakeRegistrationAndDelegation = 13,
+  StakeVoteRegistrationAndDelegation = 14,
+  VoteDelegation = 15,
+  VoteRegistrationAndDelegation = 16,
+}
+/**
+*/
 export enum CoinSelectionStrategyCIP2 {
 /**
 * Performs CIP2's Largest First ada-only selection. Will error if outputs contain non-ADA assets.
@@ -338,15 +381,39 @@ export enum CoinSelectionStrategyCIP2 {
 }
 /**
 */
+export enum MetadataJsonSchema {
+  NoConversions = 0,
+  BasicConversions = 1,
+  DetailedSchema = 2,
+}
+/**
+*/
 export enum CborContainerType {
   Array = 0,
   Map = 1,
 }
 /**
+* Each new language uses a different namespace for hashing its script
+* This is because you could have a language where the same bytes have different semantics
+* So this avoids scripts in different languages mapping to the same hash
+* Note that the enum value here is different than the enum value for deciding the cost model of a script
 */
-export enum StakeCredKind {
-  Key = 0,
-  Script = 1,
+export enum ScriptHashNamespace {
+  NativeScript = 0,
+  PlutusScript = 1,
+  PlutusScriptV2 = 2,
+  PlutusScriptV3 = 3,
+}
+/**
+*/
+export enum GovernanceActionKind {
+  ParameterChangeAction = 0,
+  HardForkInitiationAction = 1,
+  TreasuryWithdrawalsAction = 2,
+  NoConfidenceAction = 3,
+  UpdateCommitteeAction = 4,
+  NewConstitutionAction = 5,
+  InfoAction = 6,
 }
 /**
 */
@@ -371,6 +438,18 @@ export class Address {
 */
   static from_json(json: string): Address;
 /**
+* @returns {AddressKind}
+*/
+  kind(): AddressKind;
+/**
+* @returns {Credential | undefined}
+*/
+  payment_cred(): Credential | undefined;
+/**
+* @returns {boolean}
+*/
+  is_malformed(): boolean;
+/**
 * @returns {string}
 */
   to_hex(): string;
@@ -384,7 +463,7 @@ export class Address {
 */
   to_bytes(): Uint8Array;
 /**
-* @param {string | undefined} prefix
+* @param {string | undefined} [prefix]
 * @returns {string}
 */
   to_bech32(prefix?: string): string;
@@ -397,6 +476,89 @@ export class Address {
 * @returns {number}
 */
   network_id(): number;
+}
+/**
+*/
+export class Anchor {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {Anchor}
+*/
+  static from_bytes(bytes: Uint8Array): Anchor;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {Anchor}
+*/
+  static from_hex(hex_str: string): Anchor;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {AnchorJSON}
+*/
+  to_js_value(): AnchorJSON;
+/**
+* @param {string} json
+* @returns {Anchor}
+*/
+  static from_json(json: string): Anchor;
+/**
+* @returns {URL}
+*/
+  url(): URL;
+/**
+* @returns {AnchorDataHash}
+*/
+  anchor_data_hash(): AnchorDataHash;
+/**
+* @param {URL} anchor_url
+* @param {AnchorDataHash} anchor_data_hash
+* @returns {Anchor}
+*/
+  static new(anchor_url: URL, anchor_data_hash: AnchorDataHash): Anchor;
+}
+/**
+*/
+export class AnchorDataHash {
+  free(): void;
+/**
+* @param {Uint8Array} bytes
+* @returns {AnchorDataHash}
+*/
+  static from_bytes(bytes: Uint8Array): AnchorDataHash;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {string} prefix
+* @returns {string}
+*/
+  to_bech32(prefix: string): string;
+/**
+* @param {string} bech_str
+* @returns {AnchorDataHash}
+*/
+  static from_bech32(bech_str: string): AnchorDataHash;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex
+* @returns {AnchorDataHash}
+*/
+  static from_hex(hex: string): AnchorDataHash;
 }
 /**
 */
@@ -694,19 +856,19 @@ export class BaseAddress {
   free(): void;
 /**
 * @param {number} network
-* @param {StakeCredential} payment
-* @param {StakeCredential} stake
+* @param {Credential} payment
+* @param {Credential} stake
 * @returns {BaseAddress}
 */
-  static new(network: number, payment: StakeCredential, stake: StakeCredential): BaseAddress;
+  static new(network: number, payment: Credential, stake: Credential): BaseAddress;
 /**
-* @returns {StakeCredential}
+* @returns {Credential}
 */
-  payment_cred(): StakeCredential;
+  payment_cred(): Credential;
 /**
-* @returns {StakeCredential}
+* @returns {Credential}
 */
-  stake_cred(): StakeCredential;
+  stake_cred(): Credential;
 /**
 * @returns {Address}
 */
@@ -716,6 +878,10 @@ export class BaseAddress {
 * @returns {BaseAddress | undefined}
 */
   static from_address(addr: Address): BaseAddress | undefined;
+/**
+* @returns {number}
+*/
+  network_id(): number;
 }
 /**
 */
@@ -782,11 +948,29 @@ export class BigInt {
 * @param {BigInt} other
 * @returns {BigInt}
 */
+  sub(other: BigInt): BigInt;
+/**
+* @param {BigInt} other
+* @returns {BigInt}
+*/
   mul(other: BigInt): BigInt;
+/**
+* @param {number} exp
+* @returns {BigInt}
+*/
+  pow(exp: number): BigInt;
 /**
 * @returns {BigInt}
 */
   static one(): BigInt;
+/**
+* @returns {BigInt}
+*/
+  static zero(): BigInt;
+/**
+* @returns {BigInt}
+*/
+  abs(): BigInt;
 /**
 * @returns {BigInt}
 */
@@ -796,6 +980,11 @@ export class BigInt {
 * @returns {BigInt}
 */
   div_ceil(other: BigInt): BigInt;
+/**
+* @param {BigInt} other
+* @returns {BigInt}
+*/
+  div_floor(other: BigInt): BigInt;
 }
 /**
 */
@@ -1000,6 +1189,41 @@ export class Bip32PrivateKey {
 export class Bip32PublicKey {
   free(): void;
 /**
+* @param {string} hex_str
+* @returns {Bip32PublicKey}
+*/
+  static from_hex(hex_str: string): Bip32PublicKey;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @returns {Uint8Array}
+*/
+  chaincode(): Uint8Array;
+/**
+* @returns {string}
+*/
+  to_bech32(): string;
+/**
+* @param {string} bech32_str
+* @returns {Bip32PublicKey}
+*/
+  static from_bech32(bech32_str: string): Bip32PublicKey;
+/**
+* @returns {Uint8Array}
+*/
+  as_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {Bip32PublicKey}
+*/
+  static from_bytes(bytes: Uint8Array): Bip32PublicKey;
+/**
+* @returns {PublicKey}
+*/
+  to_raw_key(): PublicKey;
+/**
 * derive this public key with the given index.
 *
 * # Errors
@@ -1027,41 +1251,6 @@ export class Bip32PublicKey {
 * @returns {Bip32PublicKey}
 */
   derive(index: number): Bip32PublicKey;
-/**
-* @returns {PublicKey}
-*/
-  to_raw_key(): PublicKey;
-/**
-* @param {Uint8Array} bytes
-* @returns {Bip32PublicKey}
-*/
-  static from_bytes(bytes: Uint8Array): Bip32PublicKey;
-/**
-* @returns {Uint8Array}
-*/
-  as_bytes(): Uint8Array;
-/**
-* @param {string} bech32_str
-* @returns {Bip32PublicKey}
-*/
-  static from_bech32(bech32_str: string): Bip32PublicKey;
-/**
-* @returns {string}
-*/
-  to_bech32(): string;
-/**
-* @returns {Uint8Array}
-*/
-  chaincode(): Uint8Array;
-/**
-* @returns {string}
-*/
-  to_hex(): string;
-/**
-* @param {string} hex_str
-* @returns {Bip32PublicKey}
-*/
-  static from_hex(hex_str: string): Bip32PublicKey;
 }
 /**
 */
@@ -1226,6 +1415,37 @@ export class BootstrapWitness {
 export class BootstrapWitnesses {
   free(): void;
 /**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {BootstrapWitnesses}
+*/
+  static from_bytes(bytes: Uint8Array): BootstrapWitnesses;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {BootstrapWitnesses}
+*/
+  static from_hex(hex_str: string): BootstrapWitnesses;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {BootstrapWitnessesJSON}
+*/
+  to_js_value(): BootstrapWitnessesJSON;
+/**
+* @param {string} json
+* @returns {BootstrapWitnesses}
+*/
+  static from_json(json: string): BootstrapWitnesses;
+/**
 * @returns {BootstrapWitnesses}
 */
   static new(): BootstrapWitnesses;
@@ -1239,9 +1459,12 @@ export class BootstrapWitnesses {
 */
   get(index: number): BootstrapWitness;
 /**
+* Add a new `BootstrapWitness` to the set.
+* Returns `true` if the element was not already present in the set.
 * @param {BootstrapWitness} elem
+* @returns {boolean}
 */
-  add(elem: BootstrapWitness): void;
+  add(elem: BootstrapWitness): boolean;
 }
 /**
 */
@@ -1341,10 +1564,26 @@ export class Certificate {
 */
   static new_stake_registration(stake_registration: StakeRegistration): Certificate;
 /**
+* Since StakeRegistration can represent stake_registration certificate or reg_cert certificate, because both certificates have the same semantics.
+* And in some cases you want to create a reg_cert, this function is used to create a reg_cert.
+* The function will return an error if StakeRegistration represents a stake_registration certificate.
+* @param {StakeRegistration} stake_registration
+* @returns {Certificate}
+*/
+  static new_reg_cert(stake_registration: StakeRegistration): Certificate;
+/**
 * @param {StakeDeregistration} stake_deregistration
 * @returns {Certificate}
 */
   static new_stake_deregistration(stake_deregistration: StakeDeregistration): Certificate;
+/**
+* Since StakeDeregistration can represent stake_deregistration certificate or unreg_cert certificate, because both certificates have the same semantics.
+* And in some cases you want to create an unreg_cert, this function is used to create an unreg_cert.
+* The function will return an error if StakeDeregistration represents a stake_deregistration certificate.
+* @param {StakeDeregistration} stake_deregistration
+* @returns {Certificate}
+*/
+  static new_unreg_cert(stake_deregistration: StakeDeregistration): Certificate;
 /**
 * @param {StakeDelegation} stake_delegation
 * @returns {Certificate}
@@ -1371,17 +1610,81 @@ export class Certificate {
 */
   static new_move_instantaneous_rewards_cert(move_instantaneous_rewards_cert: MoveInstantaneousRewardsCert): Certificate;
 /**
-* @returns {number}
+* @param {CommitteeHotAuth} committee_hot_auth
+* @returns {Certificate}
 */
-  kind(): number;
+  static new_committee_hot_auth(committee_hot_auth: CommitteeHotAuth): Certificate;
+/**
+* @param {CommitteeColdResign} committee_cold_resign
+* @returns {Certificate}
+*/
+  static new_committee_cold_resign(committee_cold_resign: CommitteeColdResign): Certificate;
+/**
+* @param {DRepDeregistration} drep_deregistration
+* @returns {Certificate}
+*/
+  static new_drep_deregistration(drep_deregistration: DRepDeregistration): Certificate;
+/**
+* @param {DRepRegistration} drep_registration
+* @returns {Certificate}
+*/
+  static new_drep_registration(drep_registration: DRepRegistration): Certificate;
+/**
+* @param {DRepUpdate} drep_update
+* @returns {Certificate}
+*/
+  static new_drep_update(drep_update: DRepUpdate): Certificate;
+/**
+* @param {StakeAndVoteDelegation} stake_and_vote_delegation
+* @returns {Certificate}
+*/
+  static new_stake_and_vote_delegation(stake_and_vote_delegation: StakeAndVoteDelegation): Certificate;
+/**
+* @param {StakeRegistrationAndDelegation} stake_registration_and_delegation
+* @returns {Certificate}
+*/
+  static new_stake_registration_and_delegation(stake_registration_and_delegation: StakeRegistrationAndDelegation): Certificate;
+/**
+* @param {StakeVoteRegistrationAndDelegation} stake_vote_registration_and_delegation
+* @returns {Certificate}
+*/
+  static new_stake_vote_registration_and_delegation(stake_vote_registration_and_delegation: StakeVoteRegistrationAndDelegation): Certificate;
+/**
+* @param {VoteDelegation} vote_delegation
+* @returns {Certificate}
+*/
+  static new_vote_delegation(vote_delegation: VoteDelegation): Certificate;
+/**
+* @param {VoteRegistrationAndDelegation} vote_registration_and_delegation
+* @returns {Certificate}
+*/
+  static new_vote_registration_and_delegation(vote_registration_and_delegation: VoteRegistrationAndDelegation): Certificate;
+/**
+* @returns {CertificateKind}
+*/
+  kind(): CertificateKind;
 /**
 * @returns {StakeRegistration | undefined}
 */
   as_stake_registration(): StakeRegistration | undefined;
 /**
+* Since StakeRegistration can represent stake_registration certificate or reg_cert certificate, because both certificates have the same semantics.
+* And in some cases you want to get a reg_cert, this function is used to get a reg_cert.
+* The function will return None if StakeRegistration represents a stake_registration certificate or Certificate is not a StakeRegistration.
+* @returns {StakeRegistration | undefined}
+*/
+  as_reg_cert(): StakeRegistration | undefined;
+/**
 * @returns {StakeDeregistration | undefined}
 */
   as_stake_deregistration(): StakeDeregistration | undefined;
+/**
+* Since StakeDeregistration can represent stake_deregistration certificate or unreg_cert certificate, because both certificates have the same semantics.
+* And in some cases you want to get an unreg_cert, this function is used to get an unreg_cert.
+* The function will return None if StakeDeregistration represents a stake_deregistration certificate or Certificate is not a StakeDeregistration.
+* @returns {StakeDeregistration | undefined}
+*/
+  as_unreg_cert(): StakeDeregistration | undefined;
 /**
 * @returns {StakeDelegation | undefined}
 */
@@ -1402,6 +1705,50 @@ export class Certificate {
 * @returns {MoveInstantaneousRewardsCert | undefined}
 */
   as_move_instantaneous_rewards_cert(): MoveInstantaneousRewardsCert | undefined;
+/**
+* @returns {CommitteeHotAuth | undefined}
+*/
+  as_committee_hot_auth(): CommitteeHotAuth | undefined;
+/**
+* @returns {CommitteeColdResign | undefined}
+*/
+  as_committee_cold_resign(): CommitteeColdResign | undefined;
+/**
+* @returns {DRepDeregistration | undefined}
+*/
+  as_drep_deregistration(): DRepDeregistration | undefined;
+/**
+* @returns {DRepRegistration | undefined}
+*/
+  as_drep_registration(): DRepRegistration | undefined;
+/**
+* @returns {DRepUpdate | undefined}
+*/
+  as_drep_update(): DRepUpdate | undefined;
+/**
+* @returns {StakeAndVoteDelegation | undefined}
+*/
+  as_stake_and_vote_delegation(): StakeAndVoteDelegation | undefined;
+/**
+* @returns {StakeRegistrationAndDelegation | undefined}
+*/
+  as_stake_registration_and_delegation(): StakeRegistrationAndDelegation | undefined;
+/**
+* @returns {StakeVoteRegistrationAndDelegation | undefined}
+*/
+  as_stake_vote_registration_and_delegation(): StakeVoteRegistrationAndDelegation | undefined;
+/**
+* @returns {VoteDelegation | undefined}
+*/
+  as_vote_delegation(): VoteDelegation | undefined;
+/**
+* @returns {VoteRegistrationAndDelegation | undefined}
+*/
+  as_vote_registration_and_delegation(): VoteRegistrationAndDelegation | undefined;
+/**
+* @returns {boolean}
+*/
+  has_required_script_witness(): boolean;
 }
 /**
 */
@@ -1452,9 +1799,319 @@ export class Certificates {
 */
   get(index: number): Certificate;
 /**
+* Add a new `Certificate` to the set.
+* Returns `true` if the element was not already present in the set.
 * @param {Certificate} elem
+* @returns {boolean}
 */
-  add(elem: Certificate): void;
+  add(elem: Certificate): boolean;
+}
+/**
+*/
+export class CertificatesBuilder {
+  free(): void;
+/**
+* @returns {CertificatesBuilder}
+*/
+  static new(): CertificatesBuilder;
+/**
+* @param {Certificate} cert
+*/
+  add(cert: Certificate): void;
+/**
+* @param {Certificate} cert
+* @param {PlutusWitness} witness
+*/
+  add_with_plutus_witness(cert: Certificate, witness: PlutusWitness): void;
+/**
+* @param {Certificate} cert
+* @param {NativeScriptSource} native_script_source
+*/
+  add_with_native_script(cert: Certificate, native_script_source: NativeScriptSource): void;
+/**
+* @returns {PlutusWitnesses}
+*/
+  get_plutus_witnesses(): PlutusWitnesses;
+/**
+* @returns {TransactionInputs}
+*/
+  get_ref_inputs(): TransactionInputs;
+/**
+* @returns {NativeScripts}
+*/
+  get_native_scripts(): NativeScripts;
+/**
+* @param {BigNum} pool_deposit
+* @param {BigNum} key_deposit
+* @returns {Value}
+*/
+  get_certificates_refund(pool_deposit: BigNum, key_deposit: BigNum): Value;
+/**
+* @param {BigNum} pool_deposit
+* @param {BigNum} key_deposit
+* @returns {BigNum}
+*/
+  get_certificates_deposit(pool_deposit: BigNum, key_deposit: BigNum): BigNum;
+/**
+* @returns {boolean}
+*/
+  has_plutus_scripts(): boolean;
+/**
+* @returns {Certificates}
+*/
+  build(): Certificates;
+}
+/**
+*/
+export class ChangeConfig {
+  free(): void;
+/**
+* @param {Address} address
+* @returns {ChangeConfig}
+*/
+  static new(address: Address): ChangeConfig;
+/**
+* @param {Address} address
+* @returns {ChangeConfig}
+*/
+  change_address(address: Address): ChangeConfig;
+/**
+* @param {OutputDatum} plutus_data
+* @returns {ChangeConfig}
+*/
+  change_plutus_data(plutus_data: OutputDatum): ChangeConfig;
+/**
+* @param {ScriptRef} script_ref
+* @returns {ChangeConfig}
+*/
+  change_script_ref(script_ref: ScriptRef): ChangeConfig;
+}
+/**
+*/
+export class Committee {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {Committee}
+*/
+  static from_bytes(bytes: Uint8Array): Committee;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {Committee}
+*/
+  static from_hex(hex_str: string): Committee;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {CommitteeJSON}
+*/
+  to_js_value(): CommitteeJSON;
+/**
+* @param {string} json
+* @returns {Committee}
+*/
+  static from_json(json: string): Committee;
+/**
+* @param {UnitInterval} quorum_threshold
+* @returns {Committee}
+*/
+  static new(quorum_threshold: UnitInterval): Committee;
+/**
+* @returns {Credentials}
+*/
+  members_keys(): Credentials;
+/**
+* @returns {UnitInterval}
+*/
+  quorum_threshold(): UnitInterval;
+/**
+* @param {Credential} committee_cold_credential
+* @param {number} epoch
+*/
+  add_member(committee_cold_credential: Credential, epoch: number): void;
+/**
+* @param {Credential} committee_cold_credential
+* @returns {number | undefined}
+*/
+  get_member_epoch(committee_cold_credential: Credential): number | undefined;
+}
+/**
+*/
+export class CommitteeColdResign {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {CommitteeColdResign}
+*/
+  static from_bytes(bytes: Uint8Array): CommitteeColdResign;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {CommitteeColdResign}
+*/
+  static from_hex(hex_str: string): CommitteeColdResign;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {CommitteeColdResignJSON}
+*/
+  to_js_value(): CommitteeColdResignJSON;
+/**
+* @param {string} json
+* @returns {CommitteeColdResign}
+*/
+  static from_json(json: string): CommitteeColdResign;
+/**
+* @returns {Credential}
+*/
+  committee_cold_credential(): Credential;
+/**
+* @returns {Anchor | undefined}
+*/
+  anchor(): Anchor | undefined;
+/**
+* @param {Credential} committee_cold_credential
+* @returns {CommitteeColdResign}
+*/
+  static new(committee_cold_credential: Credential): CommitteeColdResign;
+/**
+* @param {Credential} committee_cold_credential
+* @param {Anchor} anchor
+* @returns {CommitteeColdResign}
+*/
+  static new_with_anchor(committee_cold_credential: Credential, anchor: Anchor): CommitteeColdResign;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
+}
+/**
+*/
+export class CommitteeHotAuth {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {CommitteeHotAuth}
+*/
+  static from_bytes(bytes: Uint8Array): CommitteeHotAuth;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {CommitteeHotAuth}
+*/
+  static from_hex(hex_str: string): CommitteeHotAuth;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {CommitteeHotAuthJSON}
+*/
+  to_js_value(): CommitteeHotAuthJSON;
+/**
+* @param {string} json
+* @returns {CommitteeHotAuth}
+*/
+  static from_json(json: string): CommitteeHotAuth;
+/**
+* @returns {Credential}
+*/
+  committee_cold_credential(): Credential;
+/**
+* @returns {Credential}
+*/
+  committee_hot_credential(): Credential;
+/**
+* @param {Credential} committee_cold_credential
+* @param {Credential} committee_hot_credential
+* @returns {CommitteeHotAuth}
+*/
+  static new(committee_cold_credential: Credential, committee_hot_credential: Credential): CommitteeHotAuth;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
+}
+/**
+*/
+export class Constitution {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {Constitution}
+*/
+  static from_bytes(bytes: Uint8Array): Constitution;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {Constitution}
+*/
+  static from_hex(hex_str: string): Constitution;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {ConstitutionJSON}
+*/
+  to_js_value(): ConstitutionJSON;
+/**
+* @param {string} json
+* @returns {Constitution}
+*/
+  static from_json(json: string): Constitution;
+/**
+* @returns {Anchor}
+*/
+  anchor(): Anchor;
+/**
+* @returns {ScriptHash | undefined}
+*/
+  script_hash(): ScriptHash | undefined;
+/**
+* @param {Anchor} anchor
+* @returns {Constitution}
+*/
+  static new(anchor: Anchor): Constitution;
+/**
+* @param {Anchor} anchor
+* @param {ScriptHash} script_hash
+* @returns {Constitution}
+*/
+  static new_with_script_hash(anchor: Anchor, script_hash: ScriptHash): Constitution;
 }
 /**
 */
@@ -1618,6 +2275,124 @@ export class Costmdls {
 }
 /**
 */
+export class Credential {
+  free(): void;
+/**
+* @param {Ed25519KeyHash} hash
+* @returns {Credential}
+*/
+  static from_keyhash(hash: Ed25519KeyHash): Credential;
+/**
+* @param {ScriptHash} hash
+* @returns {Credential}
+*/
+  static from_scripthash(hash: ScriptHash): Credential;
+/**
+* @returns {Ed25519KeyHash | undefined}
+*/
+  to_keyhash(): Ed25519KeyHash | undefined;
+/**
+* @returns {ScriptHash | undefined}
+*/
+  to_scripthash(): ScriptHash | undefined;
+/**
+* @returns {CredKind}
+*/
+  kind(): CredKind;
+/**
+* @returns {boolean}
+*/
+  has_script_hash(): boolean;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {Credential}
+*/
+  static from_bytes(bytes: Uint8Array): Credential;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {Credential}
+*/
+  static from_hex(hex_str: string): Credential;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {CredentialJSON}
+*/
+  to_js_value(): CredentialJSON;
+/**
+* @param {string} json
+* @returns {Credential}
+*/
+  static from_json(json: string): Credential;
+}
+/**
+*/
+export class Credentials {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {Credentials}
+*/
+  static from_bytes(bytes: Uint8Array): Credentials;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {Credentials}
+*/
+  static from_hex(hex_str: string): Credentials;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {CredentialsJSON}
+*/
+  to_js_value(): CredentialsJSON;
+/**
+* @param {string} json
+* @returns {Credentials}
+*/
+  static from_json(json: string): Credentials;
+/**
+* @returns {Credentials}
+*/
+  static new(): Credentials;
+/**
+* @returns {number}
+*/
+  len(): number;
+/**
+* @param {number} index
+* @returns {Credential}
+*/
+  get(index: number): Credential;
+/**
+* Add a new `Credential` to the set.
+* Returns `true` if the element was not already present in the set.
+* @param {Credential} elem
+* @returns {boolean}
+*/
+  add(elem: Credential): boolean;
+}
+/**
+*/
 export class DNSRecordAorAAAA {
   free(): void;
 /**
@@ -1708,15 +2483,396 @@ export class DNSRecordSRV {
 }
 /**
 */
-export class DataCost {
+export class DRep {
   free(): void;
 /**
-* !!! DEPRECATED !!!
-* Since babbage era we should use coins per byte. Use `.new_coins_per_byte` instead.
-* @param {BigNum} coins_per_word
-* @returns {DataCost}
+* @returns {Uint8Array}
 */
-  static new_coins_per_word(coins_per_word: BigNum): DataCost;
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {DRep}
+*/
+  static from_bytes(bytes: Uint8Array): DRep;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {DRep}
+*/
+  static from_hex(hex_str: string): DRep;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {DRepJSON}
+*/
+  to_js_value(): DRepJSON;
+/**
+* @param {string} json
+* @returns {DRep}
+*/
+  static from_json(json: string): DRep;
+/**
+* @param {Ed25519KeyHash} key_hash
+* @returns {DRep}
+*/
+  static new_key_hash(key_hash: Ed25519KeyHash): DRep;
+/**
+* @param {ScriptHash} script_hash
+* @returns {DRep}
+*/
+  static new_script_hash(script_hash: ScriptHash): DRep;
+/**
+* @returns {DRep}
+*/
+  static new_always_abstain(): DRep;
+/**
+* @returns {DRep}
+*/
+  static new_always_no_confidence(): DRep;
+/**
+* @param {Credential} cred
+* @returns {DRep}
+*/
+  static new_from_credential(cred: Credential): DRep;
+/**
+* @returns {DRepKind}
+*/
+  kind(): DRepKind;
+/**
+* @returns {Ed25519KeyHash | undefined}
+*/
+  to_key_hash(): Ed25519KeyHash | undefined;
+/**
+* @returns {ScriptHash | undefined}
+*/
+  to_script_hash(): ScriptHash | undefined;
+/**
+* @returns {string}
+*/
+  to_bech32(): string;
+/**
+* @param {string} bech32_str
+* @returns {DRep}
+*/
+  static from_bech32(bech32_str: string): DRep;
+}
+/**
+*/
+export class DRepDeregistration {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {DRepDeregistration}
+*/
+  static from_bytes(bytes: Uint8Array): DRepDeregistration;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {DRepDeregistration}
+*/
+  static from_hex(hex_str: string): DRepDeregistration;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {DRepDeregistrationJSON}
+*/
+  to_js_value(): DRepDeregistrationJSON;
+/**
+* @param {string} json
+* @returns {DRepDeregistration}
+*/
+  static from_json(json: string): DRepDeregistration;
+/**
+* @returns {Credential}
+*/
+  voting_credential(): Credential;
+/**
+* @returns {BigNum}
+*/
+  coin(): BigNum;
+/**
+* @param {Credential} voting_credential
+* @param {BigNum} coin
+* @returns {DRepDeregistration}
+*/
+  static new(voting_credential: Credential, coin: BigNum): DRepDeregistration;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
+}
+/**
+*/
+export class DRepRegistration {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {DRepRegistration}
+*/
+  static from_bytes(bytes: Uint8Array): DRepRegistration;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {DRepRegistration}
+*/
+  static from_hex(hex_str: string): DRepRegistration;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {DRepRegistrationJSON}
+*/
+  to_js_value(): DRepRegistrationJSON;
+/**
+* @param {string} json
+* @returns {DRepRegistration}
+*/
+  static from_json(json: string): DRepRegistration;
+/**
+* @returns {Credential}
+*/
+  voting_credential(): Credential;
+/**
+* @returns {BigNum}
+*/
+  coin(): BigNum;
+/**
+* @returns {Anchor | undefined}
+*/
+  anchor(): Anchor | undefined;
+/**
+* @param {Credential} voting_credential
+* @param {BigNum} coin
+* @returns {DRepRegistration}
+*/
+  static new(voting_credential: Credential, coin: BigNum): DRepRegistration;
+/**
+* @param {Credential} voting_credential
+* @param {BigNum} coin
+* @param {Anchor} anchor
+* @returns {DRepRegistration}
+*/
+  static new_with_anchor(voting_credential: Credential, coin: BigNum, anchor: Anchor): DRepRegistration;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
+}
+/**
+*/
+export class DRepUpdate {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {DRepUpdate}
+*/
+  static from_bytes(bytes: Uint8Array): DRepUpdate;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {DRepUpdate}
+*/
+  static from_hex(hex_str: string): DRepUpdate;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {DRepUpdateJSON}
+*/
+  to_js_value(): DRepUpdateJSON;
+/**
+* @param {string} json
+* @returns {DRepUpdate}
+*/
+  static from_json(json: string): DRepUpdate;
+/**
+* @returns {Credential}
+*/
+  voting_credential(): Credential;
+/**
+* @returns {Anchor | undefined}
+*/
+  anchor(): Anchor | undefined;
+/**
+* @param {Credential} voting_credential
+* @returns {DRepUpdate}
+*/
+  static new(voting_credential: Credential): DRepUpdate;
+/**
+* @param {Credential} voting_credential
+* @param {Anchor} anchor
+* @returns {DRepUpdate}
+*/
+  static new_with_anchor(voting_credential: Credential, anchor: Anchor): DRepUpdate;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
+}
+/**
+*/
+export class DRepVotingThresholds {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {DRepVotingThresholds}
+*/
+  static from_bytes(bytes: Uint8Array): DRepVotingThresholds;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {DRepVotingThresholds}
+*/
+  static from_hex(hex_str: string): DRepVotingThresholds;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {DRepVotingThresholdsJSON}
+*/
+  to_js_value(): DRepVotingThresholdsJSON;
+/**
+* @param {string} json
+* @returns {DRepVotingThresholds}
+*/
+  static from_json(json: string): DRepVotingThresholds;
+/**
+* @param {UnitInterval} motion_no_confidence
+* @param {UnitInterval} committee_normal
+* @param {UnitInterval} committee_no_confidence
+* @param {UnitInterval} update_constitution
+* @param {UnitInterval} hard_fork_initiation
+* @param {UnitInterval} pp_network_group
+* @param {UnitInterval} pp_economic_group
+* @param {UnitInterval} pp_technical_group
+* @param {UnitInterval} pp_governance_group
+* @param {UnitInterval} treasury_withdrawal
+* @returns {DRepVotingThresholds}
+*/
+  static new(motion_no_confidence: UnitInterval, committee_normal: UnitInterval, committee_no_confidence: UnitInterval, update_constitution: UnitInterval, hard_fork_initiation: UnitInterval, pp_network_group: UnitInterval, pp_economic_group: UnitInterval, pp_technical_group: UnitInterval, pp_governance_group: UnitInterval, treasury_withdrawal: UnitInterval): DRepVotingThresholds;
+/**
+* @param {UnitInterval} motion_no_confidence
+*/
+  set_motion_no_confidence(motion_no_confidence: UnitInterval): void;
+/**
+* @param {UnitInterval} committee_normal
+*/
+  set_committee_normal(committee_normal: UnitInterval): void;
+/**
+* @param {UnitInterval} committee_no_confidence
+*/
+  set_committee_no_confidence(committee_no_confidence: UnitInterval): void;
+/**
+* @param {UnitInterval} update_constitution
+*/
+  set_update_constitution(update_constitution: UnitInterval): void;
+/**
+* @param {UnitInterval} hard_fork_initiation
+*/
+  set_hard_fork_initiation(hard_fork_initiation: UnitInterval): void;
+/**
+* @param {UnitInterval} pp_network_group
+*/
+  set_pp_network_group(pp_network_group: UnitInterval): void;
+/**
+* @param {UnitInterval} pp_economic_group
+*/
+  set_pp_economic_group(pp_economic_group: UnitInterval): void;
+/**
+* @param {UnitInterval} pp_technical_group
+*/
+  set_pp_technical_group(pp_technical_group: UnitInterval): void;
+/**
+* @param {UnitInterval} pp_governance_group
+*/
+  set_pp_governance_group(pp_governance_group: UnitInterval): void;
+/**
+* @param {UnitInterval} treasury_withdrawal
+*/
+  set_treasury_withdrawal(treasury_withdrawal: UnitInterval): void;
+/**
+* @returns {UnitInterval}
+*/
+  motion_no_confidence(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  committee_normal(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  committee_no_confidence(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  update_constitution(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  hard_fork_initiation(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  pp_network_group(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  pp_economic_group(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  pp_technical_group(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  pp_governance_group(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  treasury_withdrawal(): UnitInterval;
+}
+/**
+*/
+export class DataCost {
+  free(): void;
 /**
 * @param {BigNum} coins_per_byte
 * @returns {DataCost}
@@ -1857,9 +3013,17 @@ export class Ed25519KeyHashes {
 */
   get(index: number): Ed25519KeyHash;
 /**
+* Add a new `Ed25519KeyHash` to the set.
+* Returns `true` if the element was not already present in the set.
 * @param {Ed25519KeyHash} elem
+* @returns {boolean}
 */
-  add(elem: Ed25519KeyHash): void;
+  add(elem: Ed25519KeyHash): boolean;
+/**
+* @param {Ed25519KeyHash} elem
+* @returns {boolean}
+*/
+  contains(elem: Ed25519KeyHash): boolean;
 /**
 * @returns {Ed25519KeyHashes | undefined}
 */
@@ -1903,14 +3067,14 @@ export class EnterpriseAddress {
   free(): void;
 /**
 * @param {number} network
-* @param {StakeCredential} payment
+* @param {Credential} payment
 * @returns {EnterpriseAddress}
 */
-  static new(network: number, payment: StakeCredential): EnterpriseAddress;
+  static new(network: number, payment: Credential): EnterpriseAddress;
 /**
-* @returns {StakeCredential}
+* @returns {Credential}
 */
-  payment_cred(): StakeCredential;
+  payment_cred(): Credential;
 /**
 * @returns {Address}
 */
@@ -1920,6 +3084,10 @@ export class EnterpriseAddress {
 * @returns {EnterpriseAddress | undefined}
 */
   static from_address(addr: Address): EnterpriseAddress | undefined;
+/**
+* @returns {number}
+*/
+  network_id(): number;
 }
 /**
 */
@@ -2022,6 +3190,47 @@ export class ExUnits {
   static new(mem: BigNum, steps: BigNum): ExUnits;
 }
 /**
+* Read only view of a block with more strict structs for hash sensitive structs.
+* Warning: This is experimental and may be removed or changed in the future.
+*/
+export class FixedBlock {
+  free(): void;
+/**
+* @param {Uint8Array} bytes
+* @returns {FixedBlock}
+*/
+  static from_bytes(bytes: Uint8Array): FixedBlock;
+/**
+* @param {string} hex_str
+* @returns {FixedBlock}
+*/
+  static from_hex(hex_str: string): FixedBlock;
+/**
+* @returns {Header}
+*/
+  header(): Header;
+/**
+* @returns {FixedTransactionBodies}
+*/
+  transaction_bodies(): FixedTransactionBodies;
+/**
+* @returns {TransactionWitnessSets}
+*/
+  transaction_witness_sets(): TransactionWitnessSets;
+/**
+* @returns {AuxiliaryDataSet}
+*/
+  auxiliary_data_set(): AuxiliaryDataSet;
+/**
+* @returns {Uint32Array}
+*/
+  invalid_transactions(): Uint32Array;
+/**
+* @returns {BlockHash}
+*/
+  block_hash(): BlockHash;
+}
+/**
 */
 export class FixedTransaction {
   free(): void;
@@ -2071,6 +3280,9 @@ export class FixedTransaction {
 */
   set_body(raw_body: Uint8Array): void;
 /**
+* We do not recommend using this function, since it might lead to script integrity hash.
+* The only purpose of this struct is to sign the transaction from third-party sources.
+* Use `.sign_and_add_vkey_signature` or `.sign_and_add_icarus_bootstrap_signature` or `.sign_and_add_daedalus_bootstrap_signature` instead.
 * @param {Uint8Array} raw_witness_set
 */
   set_witness_set(raw_witness_set: Uint8Array): void;
@@ -2102,6 +3314,149 @@ export class FixedTransaction {
 * @returns {Uint8Array | undefined}
 */
   raw_auxiliary_data(): Uint8Array | undefined;
+/**
+* @returns {TransactionHash}
+*/
+  transaction_hash(): TransactionHash;
+/**
+* @param {Vkeywitness} vkey_witness
+*/
+  add_vkey_witness(vkey_witness: Vkeywitness): void;
+/**
+* @param {BootstrapWitness} bootstrap_witness
+*/
+  add_bootstrap_witness(bootstrap_witness: BootstrapWitness): void;
+/**
+* @param {PrivateKey} private_key
+*/
+  sign_and_add_vkey_signature(private_key: PrivateKey): void;
+/**
+* @param {ByronAddress} addr
+* @param {Bip32PrivateKey} private_key
+*/
+  sign_and_add_icarus_bootstrap_signature(addr: ByronAddress, private_key: Bip32PrivateKey): void;
+/**
+* @param {ByronAddress} addr
+* @param {LegacyDaedalusPrivateKey} private_key
+*/
+  sign_and_add_daedalus_bootstrap_signature(addr: ByronAddress, private_key: LegacyDaedalusPrivateKey): void;
+}
+/**
+* Warning: This is experimental and may be removed or changed in the future.
+*/
+export class FixedTransactionBodies {
+  free(): void;
+/**
+* @param {Uint8Array} bytes
+* @returns {FixedTransactionBodies}
+*/
+  static from_bytes(bytes: Uint8Array): FixedTransactionBodies;
+/**
+* @param {string} hex_str
+* @returns {FixedTransactionBodies}
+*/
+  static from_hex(hex_str: string): FixedTransactionBodies;
+/**
+* @returns {FixedTransactionBodies}
+*/
+  static new(): FixedTransactionBodies;
+/**
+* @returns {number}
+*/
+  len(): number;
+/**
+* @param {number} index
+* @returns {FixedTransactionBody}
+*/
+  get(index: number): FixedTransactionBody;
+/**
+* @param {FixedTransactionBody} elem
+*/
+  add(elem: FixedTransactionBody): void;
+}
+/**
+* Read-only view of a transaction body. With correct hash and original bytes.
+* Warning: This is experimental and may be removed in the future.
+*/
+export class FixedTransactionBody {
+  free(): void;
+/**
+* @param {Uint8Array} bytes
+* @returns {FixedTransactionBody}
+*/
+  static from_bytes(bytes: Uint8Array): FixedTransactionBody;
+/**
+* @param {string} hex_str
+* @returns {FixedTransactionBody}
+*/
+  static from_hex(hex_str: string): FixedTransactionBody;
+/**
+* @returns {TransactionBody}
+*/
+  transaction_body(): TransactionBody;
+/**
+* @returns {TransactionHash}
+*/
+  tx_hash(): TransactionHash;
+/**
+* @returns {Uint8Array}
+*/
+  original_bytes(): Uint8Array;
+}
+/**
+* A set of witnesses for a transaction.
+* Keeps original bytes to allow for safe roundtrip serialization.
+* That helps to avoid incorrect script data hash after adding a  vkey or bootstrap witness.
+* You can add a vkey witness or a bootstrap witness to the set.
+* Or get TransactionWitnessSet to read fields.
+*/
+export class FixedTxWitnessesSet {
+  free(): void;
+/**
+* @returns {TransactionWitnessSet}
+*/
+  tx_witnesses_set(): TransactionWitnessSet;
+/**
+* @param {Vkeywitness} vkey_witness
+*/
+  add_vkey_witness(vkey_witness: Vkeywitness): void;
+/**
+* @param {BootstrapWitness} bootstrap_witness
+*/
+  add_bootstrap_witness(bootstrap_witness: BootstrapWitness): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} data
+* @returns {FixedTxWitnessesSet}
+*/
+  static from_bytes(data: Uint8Array): FixedTxWitnessesSet;
+}
+/**
+* Warning: This is experimental and may be removed in the future.
+*/
+export class FixedVersionedBlock {
+  free(): void;
+/**
+* @param {Uint8Array} bytes
+* @returns {FixedVersionedBlock}
+*/
+  static from_bytes(bytes: Uint8Array): FixedVersionedBlock;
+/**
+* @param {string} hex_str
+* @returns {FixedVersionedBlock}
+*/
+  static from_hex(hex_str: string): FixedVersionedBlock;
+/**
+* @returns {FixedBlock}
+*/
+  block(): FixedBlock;
+/**
+* @returns {BlockEra}
+*/
+  era(): BlockEra;
 }
 /**
 */
@@ -2338,6 +3693,249 @@ export class GenesisKeyDelegation {
 }
 /**
 */
+export class GovernanceAction {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {GovernanceAction}
+*/
+  static from_bytes(bytes: Uint8Array): GovernanceAction;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {GovernanceAction}
+*/
+  static from_hex(hex_str: string): GovernanceAction;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {GovernanceActionJSON}
+*/
+  to_js_value(): GovernanceActionJSON;
+/**
+* @param {string} json
+* @returns {GovernanceAction}
+*/
+  static from_json(json: string): GovernanceAction;
+/**
+* @param {ParameterChangeAction} parameter_change_action
+* @returns {GovernanceAction}
+*/
+  static new_parameter_change_action(parameter_change_action: ParameterChangeAction): GovernanceAction;
+/**
+* @param {HardForkInitiationAction} hard_fork_initiation_action
+* @returns {GovernanceAction}
+*/
+  static new_hard_fork_initiation_action(hard_fork_initiation_action: HardForkInitiationAction): GovernanceAction;
+/**
+* @param {TreasuryWithdrawalsAction} treasury_withdrawals_action
+* @returns {GovernanceAction}
+*/
+  static new_treasury_withdrawals_action(treasury_withdrawals_action: TreasuryWithdrawalsAction): GovernanceAction;
+/**
+* @param {NoConfidenceAction} no_confidence_action
+* @returns {GovernanceAction}
+*/
+  static new_no_confidence_action(no_confidence_action: NoConfidenceAction): GovernanceAction;
+/**
+* @param {UpdateCommitteeAction} new_committee_action
+* @returns {GovernanceAction}
+*/
+  static new_new_committee_action(new_committee_action: UpdateCommitteeAction): GovernanceAction;
+/**
+* @param {NewConstitutionAction} new_constitution_action
+* @returns {GovernanceAction}
+*/
+  static new_new_constitution_action(new_constitution_action: NewConstitutionAction): GovernanceAction;
+/**
+* @param {InfoAction} info_action
+* @returns {GovernanceAction}
+*/
+  static new_info_action(info_action: InfoAction): GovernanceAction;
+/**
+* @returns {GovernanceActionKind}
+*/
+  kind(): GovernanceActionKind;
+/**
+* @returns {ParameterChangeAction | undefined}
+*/
+  as_parameter_change_action(): ParameterChangeAction | undefined;
+/**
+* @returns {HardForkInitiationAction | undefined}
+*/
+  as_hard_fork_initiation_action(): HardForkInitiationAction | undefined;
+/**
+* @returns {TreasuryWithdrawalsAction | undefined}
+*/
+  as_treasury_withdrawals_action(): TreasuryWithdrawalsAction | undefined;
+/**
+* @returns {NoConfidenceAction | undefined}
+*/
+  as_no_confidence_action(): NoConfidenceAction | undefined;
+/**
+* @returns {UpdateCommitteeAction | undefined}
+*/
+  as_new_committee_action(): UpdateCommitteeAction | undefined;
+/**
+* @returns {NewConstitutionAction | undefined}
+*/
+  as_new_constitution_action(): NewConstitutionAction | undefined;
+/**
+* @returns {InfoAction | undefined}
+*/
+  as_info_action(): InfoAction | undefined;
+}
+/**
+*/
+export class GovernanceActionId {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {GovernanceActionId}
+*/
+  static from_bytes(bytes: Uint8Array): GovernanceActionId;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {GovernanceActionId}
+*/
+  static from_hex(hex_str: string): GovernanceActionId;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {GovernanceActionIdJSON}
+*/
+  to_js_value(): GovernanceActionIdJSON;
+/**
+* @param {string} json
+* @returns {GovernanceActionId}
+*/
+  static from_json(json: string): GovernanceActionId;
+/**
+* @returns {TransactionHash}
+*/
+  transaction_id(): TransactionHash;
+/**
+* @returns {number}
+*/
+  index(): number;
+/**
+* @param {TransactionHash} transaction_id
+* @param {number} index
+* @returns {GovernanceActionId}
+*/
+  static new(transaction_id: TransactionHash, index: number): GovernanceActionId;
+}
+/**
+*/
+export class GovernanceActionIds {
+  free(): void;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {GovernanceActionIdsJSON}
+*/
+  to_js_value(): GovernanceActionIdsJSON;
+/**
+* @param {string} json
+* @returns {GovernanceActionIds}
+*/
+  static from_json(json: string): GovernanceActionIds;
+/**
+* @returns {GovernanceActionIds}
+*/
+  static new(): GovernanceActionIds;
+/**
+* @param {GovernanceActionId} governance_action_id
+*/
+  add(governance_action_id: GovernanceActionId): void;
+/**
+* @param {number} index
+* @returns {GovernanceActionId | undefined}
+*/
+  get(index: number): GovernanceActionId | undefined;
+/**
+* @returns {number}
+*/
+  len(): number;
+}
+/**
+*/
+export class HardForkInitiationAction {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {HardForkInitiationAction}
+*/
+  static from_bytes(bytes: Uint8Array): HardForkInitiationAction;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {HardForkInitiationAction}
+*/
+  static from_hex(hex_str: string): HardForkInitiationAction;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {HardForkInitiationActionJSON}
+*/
+  to_js_value(): HardForkInitiationActionJSON;
+/**
+* @param {string} json
+* @returns {HardForkInitiationAction}
+*/
+  static from_json(json: string): HardForkInitiationAction;
+/**
+* @returns {GovernanceActionId | undefined}
+*/
+  gov_action_id(): GovernanceActionId | undefined;
+/**
+* @returns {ProtocolVersion}
+*/
+  protocol_version(): ProtocolVersion;
+/**
+* @param {ProtocolVersion} protocol_version
+* @returns {HardForkInitiationAction}
+*/
+  static new(protocol_version: ProtocolVersion): HardForkInitiationAction;
+/**
+* @param {GovernanceActionId} gov_action_id
+* @param {ProtocolVersion} protocol_version
+* @returns {HardForkInitiationAction}
+*/
+  static new_with_action_id(gov_action_id: GovernanceActionId, protocol_version: ProtocolVersion): HardForkInitiationAction;
+}
+/**
+*/
 export class Header {
   free(): void;
 /**
@@ -2526,46 +4124,12 @@ export class HeaderBody {
 }
 /**
 */
-export class InputWithScriptWitness {
+export class InfoAction {
   free(): void;
 /**
-* @param {TransactionInput} input
-* @param {NativeScript} witness
-* @returns {InputWithScriptWitness}
+* @returns {InfoAction}
 */
-  static new_with_native_script_witness(input: TransactionInput, witness: NativeScript): InputWithScriptWitness;
-/**
-* @param {TransactionInput} input
-* @param {PlutusWitness} witness
-* @returns {InputWithScriptWitness}
-*/
-  static new_with_plutus_witness(input: TransactionInput, witness: PlutusWitness): InputWithScriptWitness;
-/**
-* @returns {TransactionInput}
-*/
-  input(): TransactionInput;
-}
-/**
-*/
-export class InputsWithScriptWitness {
-  free(): void;
-/**
-* @returns {InputsWithScriptWitness}
-*/
-  static new(): InputsWithScriptWitness;
-/**
-* @param {InputWithScriptWitness} input
-*/
-  add(input: InputWithScriptWitness): void;
-/**
-* @param {number} index
-* @returns {InputWithScriptWitness}
-*/
-  get(index: number): InputWithScriptWitness;
-/**
-* @returns {number}
-*/
-  len(): number;
+  static new(): InfoAction;
 }
 /**
 */
@@ -2853,9 +4417,13 @@ export class Language {
 */
   static new_plutus_v2(): Language;
 /**
-* @returns {number}
+* @returns {Language}
 */
-  kind(): number;
+  static new_plutus_v3(): Language;
+/**
+* @returns {LanguageKind}
+*/
+  kind(): LanguageKind;
 }
 /**
 */
@@ -2964,20 +4532,38 @@ export class MIRToStakeCredentials {
 */
   len(): number;
 /**
-* @param {StakeCredential} cred
+* @param {Credential} cred
 * @param {Int} delta
 * @returns {Int | undefined}
 */
-  insert(cred: StakeCredential, delta: Int): Int | undefined;
+  insert(cred: Credential, delta: Int): Int | undefined;
 /**
-* @param {StakeCredential} cred
+* @param {Credential} cred
 * @returns {Int | undefined}
 */
-  get(cred: StakeCredential): Int | undefined;
+  get(cred: Credential): Int | undefined;
 /**
-* @returns {StakeCredentials}
+* @returns {Credentials}
 */
-  keys(): StakeCredentials;
+  keys(): Credentials;
+}
+/**
+*/
+export class MalformedAddress {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  original_bytes(): Uint8Array;
+/**
+* @returns {Address}
+*/
+  to_address(): Address;
+/**
+* @param {Address} addr
+* @returns {MalformedAddress | undefined}
+*/
+  static from_address(addr: Address): MalformedAddress | undefined;
 }
 /**
 */
@@ -3148,18 +4734,10 @@ export class Mint {
 */
   insert(key: ScriptHash, value: MintAssets): MintAssets | undefined;
 /**
-* !!! DEPRECATED !!!
-* Mint can store multiple entries for the same policy id.
-* Use `.get_all` instead.
-* @param {ScriptHash} key
-* @returns {MintAssets | undefined}
-*/
-  get(key: ScriptHash): MintAssets | undefined;
-/**
 * @param {ScriptHash} key
 * @returns {MintsAssets | undefined}
 */
-  get_all(key: ScriptHash): MintsAssets | undefined;
+  get(key: ScriptHash): MintsAssets | undefined;
 /**
 * @returns {ScriptHashes}
 */
@@ -3248,7 +4826,7 @@ export class MintBuilder {
 /**
 * @returns {Redeemers}
 */
-  get_redeeemers(): Redeemers;
+  get_redeemers(): Redeemers;
 /**
 * @returns {boolean}
 */
@@ -3263,10 +4841,10 @@ export class MintBuilder {
 export class MintWitness {
   free(): void;
 /**
-* @param {NativeScript} native_script
+* @param {NativeScriptSource} native_script
 * @returns {MintWitness}
 */
-  static new_native_script(native_script: NativeScript): MintWitness;
+  static new_native_script(native_script: NativeScriptSource): MintWitness;
 /**
 * @param {PlutusScriptSource} plutus_script
 * @param {Redeemer} redeemer
@@ -3278,6 +4856,36 @@ export class MintWitness {
 */
 export class MintsAssets {
   free(): void;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {MintsAssetsJSON}
+*/
+  to_js_value(): MintsAssetsJSON;
+/**
+* @param {string} json
+* @returns {MintsAssets}
+*/
+  static from_json(json: string): MintsAssets;
+/**
+* @returns {MintsAssets}
+*/
+  static new(): MintsAssets;
+/**
+* @param {MintAssets} mint_assets
+*/
+  add(mint_assets: MintAssets): void;
+/**
+* @param {number} index
+* @returns {MintAssets | undefined}
+*/
+  get(index: number): MintAssets | undefined;
+/**
+* @returns {number}
+*/
+  len(): number;
 }
 /**
 */
@@ -3315,25 +4923,25 @@ export class MoveInstantaneousReward {
 */
   static from_json(json: string): MoveInstantaneousReward;
 /**
-* @param {number} pot
+* @param {MIRPot} pot
 * @param {BigNum} amount
 * @returns {MoveInstantaneousReward}
 */
-  static new_to_other_pot(pot: number, amount: BigNum): MoveInstantaneousReward;
+  static new_to_other_pot(pot: MIRPot, amount: BigNum): MoveInstantaneousReward;
 /**
-* @param {number} pot
+* @param {MIRPot} pot
 * @param {MIRToStakeCredentials} amounts
 * @returns {MoveInstantaneousReward}
 */
-  static new_to_stake_creds(pot: number, amounts: MIRToStakeCredentials): MoveInstantaneousReward;
+  static new_to_stake_creds(pot: MIRPot, amounts: MIRToStakeCredentials): MoveInstantaneousReward;
 /**
-* @returns {number}
+* @returns {MIRPot}
 */
-  pot(): number;
+  pot(): MIRPot;
 /**
-* @returns {number}
+* @returns {MIRKind}
 */
-  kind(): number;
+  kind(): MIRKind;
 /**
 * @returns {BigNum | undefined}
 */
@@ -3590,9 +5198,9 @@ export class NativeScript {
 */
   static new_timelock_expiry(timelock_expiry: TimelockExpiry): NativeScript;
 /**
-* @returns {number}
+* @returns {NativeScriptKind}
 */
-  kind(): number;
+  kind(): NativeScriptKind;
 /**
 * @returns {ScriptPubkey | undefined}
 */
@@ -3618,12 +5226,37 @@ export class NativeScript {
 */
   as_timelock_expiry(): TimelockExpiry | undefined;
 /**
-* Returns an array of unique Ed25519KeyHashes
+* Returns a set of Ed25519KeyHashes
 * contained within this script recursively on any depth level.
 * The order of the keys in the result is not determined in any way.
 * @returns {Ed25519KeyHashes}
 */
   get_required_signers(): Ed25519KeyHashes;
+}
+/**
+*/
+export class NativeScriptSource {
+  free(): void;
+/**
+* @param {NativeScript} script
+* @returns {NativeScriptSource}
+*/
+  static new(script: NativeScript): NativeScriptSource;
+/**
+* @param {ScriptHash} script_hash
+* @param {TransactionInput} input
+* @param {number} script_size
+* @returns {NativeScriptSource}
+*/
+  static new_ref_input(script_hash: ScriptHash, input: TransactionInput, script_size: number): NativeScriptSource;
+/**
+* @param {Ed25519KeyHashes} key_hashes
+*/
+  set_required_signers(key_hashes: Ed25519KeyHashes): void;
+/**
+* @returns {number | undefined}
+*/
+  get_ref_script_size(): number | undefined;
 }
 /**
 */
@@ -3646,6 +5279,37 @@ export class NativeScripts {
 * @param {NativeScript} elem
 */
   add(elem: NativeScript): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {NativeScripts}
+*/
+  static from_bytes(bytes: Uint8Array): NativeScripts;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {NativeScripts}
+*/
+  static from_hex(hex_str: string): NativeScripts;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {NativeScriptsJSON}
+*/
+  to_js_value(): NativeScriptsJSON;
+/**
+* @param {string} json
+* @returns {NativeScripts}
+*/
+  static from_json(json: string): NativeScripts;
 }
 /**
 */
@@ -3691,9 +5355,9 @@ export class NetworkId {
 */
   static mainnet(): NetworkId;
 /**
-* @returns {number}
+* @returns {NetworkIdKind}
 */
-  kind(): number;
+  kind(): NetworkIdKind;
 }
 /**
 */
@@ -3722,15 +5386,117 @@ export class NetworkInfo {
 */
   static testnet_preprod(): NetworkInfo;
 /**
-* !!! DEPRECATED !!!
-* This network does not exist anymore. Use `.testnet_preview()` or `.testnet_preprod()`
-* @returns {NetworkInfo}
-*/
-  static testnet(): NetworkInfo;
-/**
 * @returns {NetworkInfo}
 */
   static mainnet(): NetworkInfo;
+}
+/**
+*/
+export class NewConstitutionAction {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {NewConstitutionAction}
+*/
+  static from_bytes(bytes: Uint8Array): NewConstitutionAction;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {NewConstitutionAction}
+*/
+  static from_hex(hex_str: string): NewConstitutionAction;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {NewConstitutionActionJSON}
+*/
+  to_js_value(): NewConstitutionActionJSON;
+/**
+* @param {string} json
+* @returns {NewConstitutionAction}
+*/
+  static from_json(json: string): NewConstitutionAction;
+/**
+* @returns {GovernanceActionId | undefined}
+*/
+  gov_action_id(): GovernanceActionId | undefined;
+/**
+* @returns {Constitution}
+*/
+  constitution(): Constitution;
+/**
+* @param {Constitution} constitution
+* @returns {NewConstitutionAction}
+*/
+  static new(constitution: Constitution): NewConstitutionAction;
+/**
+* @param {GovernanceActionId} gov_action_id
+* @param {Constitution} constitution
+* @returns {NewConstitutionAction}
+*/
+  static new_with_action_id(gov_action_id: GovernanceActionId, constitution: Constitution): NewConstitutionAction;
+/**
+* @returns {boolean}
+*/
+  has_script_hash(): boolean;
+}
+/**
+*/
+export class NoConfidenceAction {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {NoConfidenceAction}
+*/
+  static from_bytes(bytes: Uint8Array): NoConfidenceAction;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {NoConfidenceAction}
+*/
+  static from_hex(hex_str: string): NoConfidenceAction;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {NoConfidenceActionJSON}
+*/
+  to_js_value(): NoConfidenceActionJSON;
+/**
+* @param {string} json
+* @returns {NoConfidenceAction}
+*/
+  static from_json(json: string): NoConfidenceAction;
+/**
+* @returns {GovernanceActionId | undefined}
+*/
+  gov_action_id(): GovernanceActionId | undefined;
+/**
+* @returns {NoConfidenceAction}
+*/
+  static new(): NoConfidenceAction;
+/**
+* @param {GovernanceActionId} gov_action_id
+* @returns {NoConfidenceAction}
+*/
+  static new_with_action_id(gov_action_id: GovernanceActionId): NoConfidenceAction;
 }
 /**
 */
@@ -3866,6 +5632,78 @@ export class OutputDatum {
 }
 /**
 */
+export class ParameterChangeAction {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {ParameterChangeAction}
+*/
+  static from_bytes(bytes: Uint8Array): ParameterChangeAction;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {ParameterChangeAction}
+*/
+  static from_hex(hex_str: string): ParameterChangeAction;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {ParameterChangeActionJSON}
+*/
+  to_js_value(): ParameterChangeActionJSON;
+/**
+* @param {string} json
+* @returns {ParameterChangeAction}
+*/
+  static from_json(json: string): ParameterChangeAction;
+/**
+* @returns {GovernanceActionId | undefined}
+*/
+  gov_action_id(): GovernanceActionId | undefined;
+/**
+* @returns {ProtocolParamUpdate}
+*/
+  protocol_param_updates(): ProtocolParamUpdate;
+/**
+* @returns {ScriptHash | undefined}
+*/
+  policy_hash(): ScriptHash | undefined;
+/**
+* @param {ProtocolParamUpdate} protocol_param_updates
+* @returns {ParameterChangeAction}
+*/
+  static new(protocol_param_updates: ProtocolParamUpdate): ParameterChangeAction;
+/**
+* @param {GovernanceActionId} gov_action_id
+* @param {ProtocolParamUpdate} protocol_param_updates
+* @returns {ParameterChangeAction}
+*/
+  static new_with_action_id(gov_action_id: GovernanceActionId, protocol_param_updates: ProtocolParamUpdate): ParameterChangeAction;
+/**
+* @param {ProtocolParamUpdate} protocol_param_updates
+* @param {ScriptHash} policy_hash
+* @returns {ParameterChangeAction}
+*/
+  static new_with_policy_hash(protocol_param_updates: ProtocolParamUpdate, policy_hash: ScriptHash): ParameterChangeAction;
+/**
+* @param {GovernanceActionId} gov_action_id
+* @param {ProtocolParamUpdate} protocol_param_updates
+* @param {ScriptHash} policy_hash
+* @returns {ParameterChangeAction}
+*/
+  static new_with_policy_hash_and_action_id(gov_action_id: GovernanceActionId, protocol_param_updates: ProtocolParamUpdate, policy_hash: ScriptHash): ParameterChangeAction;
+}
+/**
+*/
 export class PlutusData {
   free(): void;
 /**
@@ -3924,9 +5762,9 @@ export class PlutusData {
 */
   static new_bytes(bytes: Uint8Array): PlutusData;
 /**
-* @returns {number}
+* @returns {PlutusDataKind}
 */
-  kind(): number;
+  kind(): PlutusDataKind;
 /**
 * @returns {ConstrPlutusData | undefined}
 */
@@ -3948,16 +5786,16 @@ export class PlutusData {
 */
   as_bytes(): Uint8Array | undefined;
 /**
-* @param {number} schema
+* @param {PlutusDatumSchema} schema
 * @returns {string}
 */
-  to_json(schema: number): string;
+  to_json(schema: PlutusDatumSchema): string;
 /**
 * @param {string} json
-* @param {number} schema
+* @param {PlutusDatumSchema} schema
 * @returns {PlutusData}
 */
-  static from_json(json: string, schema: number): PlutusData;
+  static from_json(json: string, schema: PlutusDatumSchema): PlutusData;
 /**
 * @param {Address} address
 * @returns {PlutusData}
@@ -4031,24 +5869,49 @@ export class PlutusMap {
 */
   static new(): PlutusMap;
 /**
+* Return count ok different keys in the map.
 * @returns {number}
 */
   len(): number;
 /**
+* Returns the previous value associated with the key, if any.
+* Replace the values associated with the key.
 * @param {PlutusData} key
-* @param {PlutusData} value
-* @returns {PlutusData | undefined}
+* @param {PlutusMapValues} values
+* @returns {PlutusMapValues | undefined}
 */
-  insert(key: PlutusData, value: PlutusData): PlutusData | undefined;
+  insert(key: PlutusData, values: PlutusMapValues): PlutusMapValues | undefined;
 /**
 * @param {PlutusData} key
-* @returns {PlutusData | undefined}
+* @returns {PlutusMapValues | undefined}
 */
-  get(key: PlutusData): PlutusData | undefined;
+  get(key: PlutusData): PlutusMapValues | undefined;
 /**
 * @returns {PlutusList}
 */
   keys(): PlutusList;
+}
+/**
+*/
+export class PlutusMapValues {
+  free(): void;
+/**
+* @returns {PlutusMapValues}
+*/
+  static new(): PlutusMapValues;
+/**
+* @returns {number}
+*/
+  len(): number;
+/**
+* @param {number} index
+* @returns {PlutusData | undefined}
+*/
+  get(index: number): PlutusData | undefined;
+/**
+* @param {PlutusData} elem
+*/
+  add(elem: PlutusData): void;
 }
 /**
 */
@@ -4099,6 +5962,16 @@ export class PlutusScript {
 *     * If you creating this from those you should use PlutusScript::from_bytes() instead.
 *     
 * @param {Uint8Array} bytes
+* @returns {PlutusScript}
+*/
+  static new_v3(bytes: Uint8Array): PlutusScript;
+/**
+*
+*     * Creates a new Plutus script from the RAW bytes of the compiled script.
+*     * This does NOT include any CBOR encoding around these bytes (e.g. from "cborBytes" in cardano-cli)
+*     * If you creating this from those you should use PlutusScript::from_bytes() instead.
+*     
+* @param {Uint8Array} bytes
 * @param {Language} language
 * @returns {PlutusScript}
 */
@@ -4117,6 +5990,12 @@ export class PlutusScript {
 * @returns {PlutusScript}
 */
   static from_bytes_v2(bytes: Uint8Array): PlutusScript;
+/**
+* Same as `.from_bytes` but will consider the script as requiring the Plutus Language V3
+* @param {Uint8Array} bytes
+* @returns {PlutusScript}
+*/
+  static from_bytes_v3(bytes: Uint8Array): PlutusScript;
 /**
 * Same as `.from_bytes` but will consider the script as requiring the specified language version
 * @param {Uint8Array} bytes
@@ -4150,22 +6029,21 @@ export class PlutusScriptSource {
 */
   static new(script: PlutusScript): PlutusScriptSource;
 /**
-* !!! DEPRECATED !!!
-* This constructor has missed information about plutus script language vesrion. That can affect
-* the script data hash calculation.
-* Use `.new_ref_input_with_lang_ver` instead
-* @param {ScriptHash} script_hash
-* @param {TransactionInput} input
-* @returns {PlutusScriptSource}
-*/
-  static new_ref_input(script_hash: ScriptHash, input: TransactionInput): PlutusScriptSource;
-/**
 * @param {ScriptHash} script_hash
 * @param {TransactionInput} input
 * @param {Language} lang_ver
+* @param {number} script_size
 * @returns {PlutusScriptSource}
 */
-  static new_ref_input_with_lang_ver(script_hash: ScriptHash, input: TransactionInput, lang_ver: Language): PlutusScriptSource;
+  static new_ref_input(script_hash: ScriptHash, input: TransactionInput, lang_ver: Language, script_size: number): PlutusScriptSource;
+/**
+* @param {Ed25519KeyHashes} key_hashes
+*/
+  set_required_signers(key_hashes: Ed25519KeyHashes): void;
+/**
+* @returns {number | undefined}
+*/
+  get_ref_script_size(): number | undefined;
 }
 /**
 */
@@ -4337,15 +6215,15 @@ export class PointerAddress {
   free(): void;
 /**
 * @param {number} network
-* @param {StakeCredential} payment
+* @param {Credential} payment
 * @param {Pointer} stake
 * @returns {PointerAddress}
 */
-  static new(network: number, payment: StakeCredential, stake: Pointer): PointerAddress;
+  static new(network: number, payment: Credential, stake: Pointer): PointerAddress;
 /**
-* @returns {StakeCredential}
+* @returns {Credential}
 */
-  payment_cred(): StakeCredential;
+  payment_cred(): Credential;
 /**
 * @returns {Pointer}
 */
@@ -4359,6 +6237,10 @@ export class PointerAddress {
 * @returns {PointerAddress | undefined}
 */
   static from_address(addr: Address): PointerAddress | undefined;
+/**
+* @returns {number}
+*/
+  network_id(): number;
 }
 /**
 */
@@ -4523,7 +6405,7 @@ export class PoolParams {
 * @param {RewardAddress} reward_account
 * @param {Ed25519KeyHashes} pool_owners
 * @param {Relays} relays
-* @param {PoolMetadata | undefined} pool_metadata
+* @param {PoolMetadata | undefined} [pool_metadata]
 * @returns {PoolParams}
 */
   static new(operator: Ed25519KeyHash, vrf_keyhash: VRFKeyHash, pledge: BigNum, cost: BigNum, margin: UnitInterval, reward_account: RewardAddress, pool_owners: Ed25519KeyHashes, relays: Relays, pool_metadata?: PoolMetadata): PoolParams;
@@ -4625,20 +6507,105 @@ export class PoolRetirement {
 }
 /**
 */
+export class PoolVotingThresholds {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {PoolVotingThresholds}
+*/
+  static from_bytes(bytes: Uint8Array): PoolVotingThresholds;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {PoolVotingThresholds}
+*/
+  static from_hex(hex_str: string): PoolVotingThresholds;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {PoolVotingThresholdsJSON}
+*/
+  to_js_value(): PoolVotingThresholdsJSON;
+/**
+* @param {string} json
+* @returns {PoolVotingThresholds}
+*/
+  static from_json(json: string): PoolVotingThresholds;
+/**
+* @param {UnitInterval} motion_no_confidence
+* @param {UnitInterval} committee_normal
+* @param {UnitInterval} committee_no_confidence
+* @param {UnitInterval} hard_fork_initiation
+* @param {UnitInterval} security_relevant_threshold
+* @returns {PoolVotingThresholds}
+*/
+  static new(motion_no_confidence: UnitInterval, committee_normal: UnitInterval, committee_no_confidence: UnitInterval, hard_fork_initiation: UnitInterval, security_relevant_threshold: UnitInterval): PoolVotingThresholds;
+/**
+* @returns {UnitInterval}
+*/
+  motion_no_confidence(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  committee_normal(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  committee_no_confidence(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  hard_fork_initiation(): UnitInterval;
+/**
+* @returns {UnitInterval}
+*/
+  security_relevant_threshold(): UnitInterval;
+}
+/**
+*/
 export class PrivateKey {
   free(): void;
 /**
-* @returns {PublicKey}
-*/
-  to_public(): PublicKey;
-/**
+* @param {string} hex_str
 * @returns {PrivateKey}
 */
-  static generate_ed25519(): PrivateKey;
+  static from_hex(hex_str: string): PrivateKey;
 /**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {Uint8Array} message
+* @returns {Ed25519Signature}
+*/
+  sign(message: Uint8Array): Ed25519Signature;
+/**
+* @param {Uint8Array} bytes
 * @returns {PrivateKey}
 */
-  static generate_ed25519extended(): PrivateKey;
+  static from_normal_bytes(bytes: Uint8Array): PrivateKey;
+/**
+* @param {Uint8Array} bytes
+* @returns {PrivateKey}
+*/
+  static from_extended_bytes(bytes: Uint8Array): PrivateKey;
+/**
+* @returns {Uint8Array}
+*/
+  as_bytes(): Uint8Array;
+/**
+* @returns {string}
+*/
+  to_bech32(): string;
 /**
 * Get private key from its bech32 representation
 * ```javascript
@@ -4653,37 +6620,17 @@ export class PrivateKey {
 */
   static from_bech32(bech32_str: string): PrivateKey;
 /**
-* @returns {string}
-*/
-  to_bech32(): string;
-/**
-* @returns {Uint8Array}
-*/
-  as_bytes(): Uint8Array;
-/**
-* @param {Uint8Array} bytes
 * @returns {PrivateKey}
 */
-  static from_extended_bytes(bytes: Uint8Array): PrivateKey;
+  static generate_ed25519extended(): PrivateKey;
 /**
-* @param {Uint8Array} bytes
 * @returns {PrivateKey}
 */
-  static from_normal_bytes(bytes: Uint8Array): PrivateKey;
+  static generate_ed25519(): PrivateKey;
 /**
-* @param {Uint8Array} message
-* @returns {Ed25519Signature}
+* @returns {PublicKey}
 */
-  sign(message: Uint8Array): Ed25519Signature;
-/**
-* @returns {string}
-*/
-  to_hex(): string;
-/**
-* @param {string} hex_str
-* @returns {PrivateKey}
-*/
-  static from_hex(hex_str: string): PrivateKey;
+  to_public(): PublicKey;
 }
 /**
 */
@@ -4888,6 +6835,8 @@ export class ProtocolParamUpdate {
 */
   extra_entropy(): Nonce | undefined;
 /**
+* !!! DEPRECATED !!!
+* Since conway era this param is outdated. But this param you can meet in a pre-conway block.
 * @param {ProtocolVersion} protocol_version
 */
   set_protocol_version(protocol_version: ProtocolVersion): void;
@@ -4968,6 +6917,78 @@ export class ProtocolParamUpdate {
 */
   max_collateral_inputs(): number | undefined;
 /**
+* @param {PoolVotingThresholds} pool_voting_thresholds
+*/
+  set_pool_voting_thresholds(pool_voting_thresholds: PoolVotingThresholds): void;
+/**
+* @returns {PoolVotingThresholds | undefined}
+*/
+  pool_voting_thresholds(): PoolVotingThresholds | undefined;
+/**
+* @param {DRepVotingThresholds} drep_voting_thresholds
+*/
+  set_drep_voting_thresholds(drep_voting_thresholds: DRepVotingThresholds): void;
+/**
+* @returns {DRepVotingThresholds | undefined}
+*/
+  drep_voting_thresholds(): DRepVotingThresholds | undefined;
+/**
+* @param {number} min_committee_size
+*/
+  set_min_committee_size(min_committee_size: number): void;
+/**
+* @returns {number | undefined}
+*/
+  min_committee_size(): number | undefined;
+/**
+* @param {number} committee_term_limit
+*/
+  set_committee_term_limit(committee_term_limit: number): void;
+/**
+* @returns {number | undefined}
+*/
+  committee_term_limit(): number | undefined;
+/**
+* @param {number} governance_action_validity_period
+*/
+  set_governance_action_validity_period(governance_action_validity_period: number): void;
+/**
+* @returns {number | undefined}
+*/
+  governance_action_validity_period(): number | undefined;
+/**
+* @param {BigNum} governance_action_deposit
+*/
+  set_governance_action_deposit(governance_action_deposit: BigNum): void;
+/**
+* @returns {BigNum | undefined}
+*/
+  governance_action_deposit(): BigNum | undefined;
+/**
+* @param {BigNum} drep_deposit
+*/
+  set_drep_deposit(drep_deposit: BigNum): void;
+/**
+* @returns {BigNum | undefined}
+*/
+  drep_deposit(): BigNum | undefined;
+/**
+* @param {number} drep_inactivity_period
+*/
+  set_drep_inactivity_period(drep_inactivity_period: number): void;
+/**
+* @returns {number | undefined}
+*/
+  drep_inactivity_period(): number | undefined;
+/**
+* @param {UnitInterval} ref_script_coins_per_byte
+*/
+  set_ref_script_coins_per_byte(ref_script_coins_per_byte: UnitInterval): void;
+/**
+* @returns {UnitInterval | undefined}
+*/
+  ref_script_coins_per_byte(): UnitInterval | undefined;
+/**
 * @returns {ProtocolParamUpdate}
 */
   static new(): ProtocolParamUpdate;
@@ -5028,6 +7049,38 @@ export class ProtocolVersion {
 export class PublicKey {
   free(): void;
 /**
+* @param {string} hex_str
+* @returns {PublicKey}
+*/
+  static from_hex(hex_str: string): PublicKey;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @returns {Ed25519KeyHash}
+*/
+  hash(): Ed25519KeyHash;
+/**
+* @param {Uint8Array} data
+* @param {Ed25519Signature} signature
+* @returns {boolean}
+*/
+  verify(data: Uint8Array, signature: Ed25519Signature): boolean;
+/**
+* @param {Uint8Array} bytes
+* @returns {PublicKey}
+*/
+  static from_bytes(bytes: Uint8Array): PublicKey;
+/**
+* @returns {Uint8Array}
+*/
+  as_bytes(): Uint8Array;
+/**
+* @returns {string}
+*/
+  to_bech32(): string;
+/**
 * Get public key from its bech32 representation
 * Example:
 * ```javascript
@@ -5037,38 +7090,6 @@ export class PublicKey {
 * @returns {PublicKey}
 */
   static from_bech32(bech32_str: string): PublicKey;
-/**
-* @returns {string}
-*/
-  to_bech32(): string;
-/**
-* @returns {Uint8Array}
-*/
-  as_bytes(): Uint8Array;
-/**
-* @param {Uint8Array} bytes
-* @returns {PublicKey}
-*/
-  static from_bytes(bytes: Uint8Array): PublicKey;
-/**
-* @param {Uint8Array} data
-* @param {Ed25519Signature} signature
-* @returns {boolean}
-*/
-  verify(data: Uint8Array, signature: Ed25519Signature): boolean;
-/**
-* @returns {Ed25519KeyHash}
-*/
-  hash(): Ed25519KeyHash;
-/**
-* @returns {string}
-*/
-  to_hex(): string;
-/**
-* @param {string} hex_str
-* @returns {PublicKey}
-*/
-  static from_hex(hex_str: string): PublicKey;
 }
 /**
 */
@@ -5203,9 +7224,17 @@ export class RedeemerTag {
 */
   static new_reward(): RedeemerTag;
 /**
-* @returns {number}
+* @returns {RedeemerTag}
 */
-  kind(): number;
+  static new_vote(): RedeemerTag;
+/**
+* @returns {RedeemerTag}
+*/
+  static new_voting_proposal(): RedeemerTag;
+/**
+* @returns {RedeemerTagKind}
+*/
+  kind(): RedeemerTagKind;
 }
 /**
 */
@@ -5315,9 +7344,9 @@ export class Relay {
 */
   static new_multi_host_name(multi_host_name: MultiHostName): Relay;
 /**
-* @returns {number}
+* @returns {RelayKind}
 */
-  kind(): number;
+  kind(): RelayKind;
 /**
 * @returns {SingleHostAddr | undefined}
 */
@@ -5390,14 +7419,14 @@ export class RewardAddress {
   free(): void;
 /**
 * @param {number} network
-* @param {StakeCredential} payment
+* @param {Credential} payment
 * @returns {RewardAddress}
 */
-  static new(network: number, payment: StakeCredential): RewardAddress;
+  static new(network: number, payment: Credential): RewardAddress;
 /**
-* @returns {StakeCredential}
+* @returns {Credential}
 */
-  payment_cred(): StakeCredential;
+  payment_cred(): Credential;
 /**
 * @returns {Address}
 */
@@ -5407,6 +7436,10 @@ export class RewardAddress {
 * @returns {RewardAddress | undefined}
 */
   static from_address(addr: Address): RewardAddress | undefined;
+/**
+* @returns {number}
+*/
+  network_id(): number;
 }
 /**
 */
@@ -5826,6 +7859,13 @@ export class ScriptRef {
 * @returns {PlutusScript | undefined}
 */
   plutus_script(): PlutusScript | undefined;
+/**
+* Return bytes array of script ref struct but without wrapping into CBOR array under the tag
+* to_bytes returns "#6.24(bytes .cbor script)" from CDDL
+* to_unwrapped_bytes return "script" from CDDL
+* @returns {Uint8Array}
+*/
+  to_unwrapped_bytes(): Uint8Array;
 }
 /**
 */
@@ -5875,9 +7915,9 @@ export class SingleHostAddr {
 */
   ipv6(): Ipv6 | undefined;
 /**
-* @param {number | undefined} port
-* @param {Ipv4 | undefined} ipv4
-* @param {Ipv6 | undefined} ipv6
+* @param {number | undefined} [port]
+* @param {Ipv4 | undefined} [ipv4]
+* @param {Ipv6 | undefined} [ipv6]
 * @returns {SingleHostAddr}
 */
   static new(port?: number, ipv4?: Ipv4, ipv6?: Ipv6): SingleHostAddr;
@@ -5934,65 +7974,7 @@ export class SingleHostName {
 }
 /**
 */
-export class StakeCredential {
-  free(): void;
-/**
-* @param {Ed25519KeyHash} hash
-* @returns {StakeCredential}
-*/
-  static from_keyhash(hash: Ed25519KeyHash): StakeCredential;
-/**
-* @param {ScriptHash} hash
-* @returns {StakeCredential}
-*/
-  static from_scripthash(hash: ScriptHash): StakeCredential;
-/**
-* @returns {Ed25519KeyHash | undefined}
-*/
-  to_keyhash(): Ed25519KeyHash | undefined;
-/**
-* @returns {ScriptHash | undefined}
-*/
-  to_scripthash(): ScriptHash | undefined;
-/**
-* @returns {number}
-*/
-  kind(): number;
-/**
-* @returns {Uint8Array}
-*/
-  to_bytes(): Uint8Array;
-/**
-* @param {Uint8Array} bytes
-* @returns {StakeCredential}
-*/
-  static from_bytes(bytes: Uint8Array): StakeCredential;
-/**
-* @returns {string}
-*/
-  to_hex(): string;
-/**
-* @param {string} hex_str
-* @returns {StakeCredential}
-*/
-  static from_hex(hex_str: string): StakeCredential;
-/**
-* @returns {string}
-*/
-  to_json(): string;
-/**
-* @returns {StakeCredentialJSON}
-*/
-  to_js_value(): StakeCredentialJSON;
-/**
-* @param {string} json
-* @returns {StakeCredential}
-*/
-  static from_json(json: string): StakeCredential;
-}
-/**
-*/
-export class StakeCredentials {
+export class StakeAndVoteDelegation {
   free(): void;
 /**
 * @returns {Uint8Array}
@@ -6000,48 +7982,54 @@ export class StakeCredentials {
   to_bytes(): Uint8Array;
 /**
 * @param {Uint8Array} bytes
-* @returns {StakeCredentials}
+* @returns {StakeAndVoteDelegation}
 */
-  static from_bytes(bytes: Uint8Array): StakeCredentials;
+  static from_bytes(bytes: Uint8Array): StakeAndVoteDelegation;
 /**
 * @returns {string}
 */
   to_hex(): string;
 /**
 * @param {string} hex_str
-* @returns {StakeCredentials}
+* @returns {StakeAndVoteDelegation}
 */
-  static from_hex(hex_str: string): StakeCredentials;
+  static from_hex(hex_str: string): StakeAndVoteDelegation;
 /**
 * @returns {string}
 */
   to_json(): string;
 /**
-* @returns {StakeCredentialsJSON}
+* @returns {StakeAndVoteDelegationJSON}
 */
-  to_js_value(): StakeCredentialsJSON;
+  to_js_value(): StakeAndVoteDelegationJSON;
 /**
 * @param {string} json
-* @returns {StakeCredentials}
+* @returns {StakeAndVoteDelegation}
 */
-  static from_json(json: string): StakeCredentials;
+  static from_json(json: string): StakeAndVoteDelegation;
 /**
-* @returns {StakeCredentials}
+* @returns {Credential}
 */
-  static new(): StakeCredentials;
+  stake_credential(): Credential;
 /**
-* @returns {number}
+* @returns {Ed25519KeyHash}
 */
-  len(): number;
+  pool_keyhash(): Ed25519KeyHash;
 /**
-* @param {number} index
-* @returns {StakeCredential}
+* @returns {DRep}
 */
-  get(index: number): StakeCredential;
+  drep(): DRep;
 /**
-* @param {StakeCredential} elem
+* @param {Credential} stake_credential
+* @param {Ed25519KeyHash} pool_keyhash
+* @param {DRep} drep
+* @returns {StakeAndVoteDelegation}
 */
-  add(elem: StakeCredential): void;
+  static new(stake_credential: Credential, pool_keyhash: Ed25519KeyHash, drep: DRep): StakeAndVoteDelegation;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
 }
 /**
 */
@@ -6079,19 +8067,23 @@ export class StakeDelegation {
 */
   static from_json(json: string): StakeDelegation;
 /**
-* @returns {StakeCredential}
+* @returns {Credential}
 */
-  stake_credential(): StakeCredential;
+  stake_credential(): Credential;
 /**
 * @returns {Ed25519KeyHash}
 */
   pool_keyhash(): Ed25519KeyHash;
 /**
-* @param {StakeCredential} stake_credential
+* @param {Credential} stake_credential
 * @param {Ed25519KeyHash} pool_keyhash
 * @returns {StakeDelegation}
 */
-  static new(stake_credential: StakeCredential, pool_keyhash: Ed25519KeyHash): StakeDelegation;
+  static new(stake_credential: Credential, pool_keyhash: Ed25519KeyHash): StakeDelegation;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
 }
 /**
 */
@@ -6129,14 +8121,28 @@ export class StakeDeregistration {
 */
   static from_json(json: string): StakeDeregistration;
 /**
-* @returns {StakeCredential}
+* @returns {Credential}
 */
-  stake_credential(): StakeCredential;
+  stake_credential(): Credential;
 /**
-* @param {StakeCredential} stake_credential
+* @returns {BigNum | undefined}
+*/
+  coin(): BigNum | undefined;
+/**
+* @param {Credential} stake_credential
 * @returns {StakeDeregistration}
 */
-  static new(stake_credential: StakeCredential): StakeDeregistration;
+  static new(stake_credential: Credential): StakeDeregistration;
+/**
+* @param {Credential} stake_credential
+* @param {BigNum} coin
+* @returns {StakeDeregistration}
+*/
+  static new_with_explicit_refund(stake_credential: Credential, coin: BigNum): StakeDeregistration;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
 }
 /**
 */
@@ -6174,14 +8180,151 @@ export class StakeRegistration {
 */
   static from_json(json: string): StakeRegistration;
 /**
-* @returns {StakeCredential}
+* @returns {Credential}
 */
-  stake_credential(): StakeCredential;
+  stake_credential(): Credential;
 /**
-* @param {StakeCredential} stake_credential
+* @returns {BigNum | undefined}
+*/
+  coin(): BigNum | undefined;
+/**
+* @param {Credential} stake_credential
 * @returns {StakeRegistration}
 */
-  static new(stake_credential: StakeCredential): StakeRegistration;
+  static new(stake_credential: Credential): StakeRegistration;
+/**
+* @param {Credential} stake_credential
+* @param {BigNum} coin
+* @returns {StakeRegistration}
+*/
+  static new_with_explicit_deposit(stake_credential: Credential, coin: BigNum): StakeRegistration;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
+}
+/**
+*/
+export class StakeRegistrationAndDelegation {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {StakeRegistrationAndDelegation}
+*/
+  static from_bytes(bytes: Uint8Array): StakeRegistrationAndDelegation;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {StakeRegistrationAndDelegation}
+*/
+  static from_hex(hex_str: string): StakeRegistrationAndDelegation;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {StakeRegistrationAndDelegationJSON}
+*/
+  to_js_value(): StakeRegistrationAndDelegationJSON;
+/**
+* @param {string} json
+* @returns {StakeRegistrationAndDelegation}
+*/
+  static from_json(json: string): StakeRegistrationAndDelegation;
+/**
+* @returns {Credential}
+*/
+  stake_credential(): Credential;
+/**
+* @returns {Ed25519KeyHash}
+*/
+  pool_keyhash(): Ed25519KeyHash;
+/**
+* @returns {BigNum}
+*/
+  coin(): BigNum;
+/**
+* @param {Credential} stake_credential
+* @param {Ed25519KeyHash} pool_keyhash
+* @param {BigNum} coin
+* @returns {StakeRegistrationAndDelegation}
+*/
+  static new(stake_credential: Credential, pool_keyhash: Ed25519KeyHash, coin: BigNum): StakeRegistrationAndDelegation;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
+}
+/**
+*/
+export class StakeVoteRegistrationAndDelegation {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {StakeVoteRegistrationAndDelegation}
+*/
+  static from_bytes(bytes: Uint8Array): StakeVoteRegistrationAndDelegation;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {StakeVoteRegistrationAndDelegation}
+*/
+  static from_hex(hex_str: string): StakeVoteRegistrationAndDelegation;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {StakeVoteRegistrationAndDelegationJSON}
+*/
+  to_js_value(): StakeVoteRegistrationAndDelegationJSON;
+/**
+* @param {string} json
+* @returns {StakeVoteRegistrationAndDelegation}
+*/
+  static from_json(json: string): StakeVoteRegistrationAndDelegation;
+/**
+* @returns {Credential}
+*/
+  stake_credential(): Credential;
+/**
+* @returns {Ed25519KeyHash}
+*/
+  pool_keyhash(): Ed25519KeyHash;
+/**
+* @returns {DRep}
+*/
+  drep(): DRep;
+/**
+* @returns {BigNum}
+*/
+  coin(): BigNum;
+/**
+* @param {Credential} stake_credential
+* @param {Ed25519KeyHash} pool_keyhash
+* @param {DRep} drep
+* @param {BigNum} coin
+* @returns {StakeVoteRegistrationAndDelegation}
+*/
+  static new(stake_credential: Credential, pool_keyhash: Ed25519KeyHash, drep: DRep, coin: BigNum): StakeVoteRegistrationAndDelegation;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
 }
 /**
 */
@@ -6381,7 +8524,7 @@ export class Transaction {
 /**
 * @param {TransactionBody} body
 * @param {TransactionWitnessSet} witness_set
-* @param {AuxiliaryData | undefined} auxiliary_data
+* @param {AuxiliaryData | undefined} [auxiliary_data]
 * @returns {Transaction}
 */
   static new(body: TransactionBody, witness_set: TransactionWitnessSet, auxiliary_data?: AuxiliaryData): Transaction;
@@ -6595,12 +8738,6 @@ export class TransactionBody {
 */
   mint(): Mint | undefined;
 /**
-* This function returns the mint value of the transaction
-* Use `.mint()` instead.
-* @returns {Mint | undefined}
-*/
-  multiassets(): Mint | undefined;
-/**
 * @param {TransactionInputs} reference_inputs
 */
   set_reference_inputs(reference_inputs: TransactionInputs): void;
@@ -6657,13 +8794,45 @@ export class TransactionBody {
 */
   total_collateral(): BigNum | undefined;
 /**
+* @param {VotingProcedures} voting_procedures
+*/
+  set_voting_procedures(voting_procedures: VotingProcedures): void;
+/**
+* @returns {VotingProcedures | undefined}
+*/
+  voting_procedures(): VotingProcedures | undefined;
+/**
+* @param {VotingProposals} voting_proposals
+*/
+  set_voting_proposals(voting_proposals: VotingProposals): void;
+/**
+* @returns {VotingProposals | undefined}
+*/
+  voting_proposals(): VotingProposals | undefined;
+/**
+* @param {BigNum} donation
+*/
+  set_donation(donation: BigNum): void;
+/**
+* @returns {BigNum | undefined}
+*/
+  donation(): BigNum | undefined;
+/**
+* @param {BigNum} current_treasury_value
+*/
+  set_current_treasury_value(current_treasury_value: BigNum): void;
+/**
+* @returns {BigNum | undefined}
+*/
+  current_treasury_value(): BigNum | undefined;
+/**
 * !!! DEPRECATED !!!
 * This constructor uses outdated slot number format for the ttl value.
 * Use `.new_tx_body` and then `.set_ttl` instead
 * @param {TransactionInputs} inputs
 * @param {TransactionOutputs} outputs
 * @param {BigNum} fee
-* @param {number | undefined} ttl
+* @param {number | undefined} [ttl]
 * @returns {TransactionBody}
 */
   static new(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum, ttl?: number): TransactionBody;
@@ -6691,9 +8860,9 @@ export class TransactionBuilder {
 * This function, diverging from CIP2, takes into account fees and will attempt to add additional
 * inputs to cover the minimum fees. This does not, however, set the txbuilder's fee.
 * @param {TransactionUnspentOutputs} inputs
-* @param {number} strategy
+* @param {CoinSelectionStrategyCIP2} strategy
 */
-  add_inputs_from(inputs: TransactionUnspentOutputs, strategy: number): void;
+  add_inputs_from(inputs: TransactionUnspentOutputs, strategy: CoinSelectionStrategyCIP2): void;
 /**
 * @param {TxInputsBuilder} inputs
 */
@@ -6707,6 +8876,9 @@ export class TransactionBuilder {
 */
   set_collateral_return(collateral_return: TransactionOutput): void;
 /**
+*/
+  remove_collateral_return(): void;
+/**
 * This function will set the collateral-return value and then auto-calculate and assign
 * the total collateral coin value. Will raise an error in case no collateral inputs are set
 * or in case the total collateral value will have any assets in it except coin.
@@ -6717,6 +8889,9 @@ export class TransactionBuilder {
 * @param {BigNum} total_collateral
 */
   set_total_collateral(total_collateral: BigNum): void;
+/**
+*/
+  remove_total_collateral(): void;
 /**
 * This function will set the total-collateral coin and then auto-calculate and assign
 * the collateral return value. Will raise an error in case no collateral inputs are set.
@@ -6730,6 +8905,11 @@ export class TransactionBuilder {
 */
   add_reference_input(reference_input: TransactionInput): void;
 /**
+* @param {TransactionInput} reference_input
+* @param {number} script_size
+*/
+  add_script_reference_input(reference_input: TransactionInput, script_size: number): void;
+/**
 * We have to know what kind of inputs these are to know what kind of mock witnesses to create since
 * 1) mock witnesses have different lengths depending on the type which changes the expecting fee
 * 2) Witnesses are a set so we need to get rid of duplicates to avoid over-estimating the fee
@@ -6738,19 +8918,6 @@ export class TransactionBuilder {
 * @param {Value} amount
 */
   add_key_input(hash: Ed25519KeyHash, input: TransactionInput, amount: Value): void;
-/**
-* This method adds the input to the builder BUT leaves a missing spot for the witness native script
-*
-* After adding the input with this method, use `.add_required_native_input_scripts`
-* and `.add_required_plutus_input_scripts` to add the witness scripts
-*
-* Or instead use `.add_native_script_input` and `.add_plutus_script_input`
-* to add inputs right along with the script, instead of the script hash
-* @param {ScriptHash} hash
-* @param {TransactionInput} input
-* @param {Value} amount
-*/
-  add_script_input(hash: ScriptHash, input: TransactionInput, amount: Value): void;
 /**
 * This method will add the input to the builder and also register the required native script witness
 * @param {NativeScript} script
@@ -6772,38 +8939,29 @@ export class TransactionBuilder {
 */
   add_bootstrap_input(hash: ByronAddress, input: TransactionInput, amount: Value): void;
 /**
-* Note that for script inputs this method will use underlying generic `.add_script_input`
-* which leaves a required empty spot for the script witness (or witnesses in case of Plutus).
-* You can use `.add_native_script_input` or `.add_plutus_script_input` directly to register the input along with the witness.
+* This function is replace for previous one add_input.
+* The functions adds a non script input, if it is a script input it returns an error.
+* To add script input you need to use add_native_script_input or add_plutus_script_input.
+* Also we recommend to use TxInputsBuilder and .set_inputs, because all add_*_input functions might be removed from transaction builder.
 * @param {Address} address
 * @param {TransactionInput} input
 * @param {Value} amount
 */
-  add_input(address: Address, input: TransactionInput, amount: Value): void;
+  add_regular_input(address: Address, input: TransactionInput, amount: Value): void;
 /**
-* Returns the number of still missing input scripts (either native or plutus)
-* Use `.add_required_native_input_scripts` or `.add_required_plutus_input_scripts` to add the missing scripts
-* @returns {number}
+* @param {TransactionUnspentOutputs} inputs
+* @param {CoinSelectionStrategyCIP2} strategy
+* @param {ChangeConfig} change_config
+* @returns {boolean}
 */
-  count_missing_input_scripts(): number;
+  add_inputs_from_and_change(inputs: TransactionUnspentOutputs, strategy: CoinSelectionStrategyCIP2, change_config: ChangeConfig): boolean;
 /**
-* Try adding the specified scripts as witnesses for ALREADY ADDED script inputs
-* Any scripts that don't match any of the previously added inputs will be ignored
-* Returns the number of remaining required missing witness scripts
-* Use `.count_missing_input_scripts` to find the number of still missing scripts
-* @param {NativeScripts} scripts
-* @returns {number}
+* @param {TransactionUnspentOutputs} inputs
+* @param {CoinSelectionStrategyCIP2} strategy
+* @param {ChangeConfig} change_config
+* @param {BigNum} collateral_percentage
 */
-  add_required_native_input_scripts(scripts: NativeScripts): number;
-/**
-* Try adding the specified scripts as witnesses for ALREADY ADDED script inputs
-* Any scripts that don't match any of the previously added inputs will be ignored
-* Returns the number of remaining required missing witness scripts
-* Use `.count_missing_input_scripts` to find the number of still missing scripts
-* @param {PlutusWitnesses} scripts
-* @returns {number}
-*/
-  add_required_plutus_input_scripts(scripts: PlutusWitnesses): number;
+  add_inputs_from_and_change_with_collateral_return(inputs: TransactionUnspentOutputs, strategy: CoinSelectionStrategyCIP2, change_config: ChangeConfig, collateral_percentage: BigNum): void;
 /**
 * Returns a copy of the current script input witness scripts in the builder
 * @returns {NativeScripts | undefined}
@@ -6849,6 +9007,9 @@ export class TransactionBuilder {
 */
   set_ttl_bignum(ttl: BigNum): void;
 /**
+*/
+  remove_ttl(): void;
+/**
 * !!! DEPRECATED !!!
 * Uses outdated slot number format.
 * @param {number} validity_start_interval
@@ -6859,13 +9020,44 @@ export class TransactionBuilder {
 */
   set_validity_start_interval_bignum(validity_start_interval: BigNum): void;
 /**
+*/
+  remove_validity_start_interval(): void;
+/**
+* !!! DEPRECATED !!!
+* Can emit error if add a cert with script credential.
+* Use set_certs_builder instead.
 * @param {Certificates} certs
 */
   set_certs(certs: Certificates): void;
 /**
+*/
+  remove_certs(): void;
+/**
+* @param {CertificatesBuilder} certs
+*/
+  set_certs_builder(certs: CertificatesBuilder): void;
+/**
+* !!! DEPRECATED !!!
+* Can emit error if add a withdrawal with script credential.
+* Use set_withdrawals_builder instead.
 * @param {Withdrawals} withdrawals
 */
   set_withdrawals(withdrawals: Withdrawals): void;
+/**
+* @param {WithdrawalsBuilder} withdrawals
+*/
+  set_withdrawals_builder(withdrawals: WithdrawalsBuilder): void;
+/**
+* @param {VotingBuilder} voting_builder
+*/
+  set_voting_builder(voting_builder: VotingBuilder): void;
+/**
+* @param {VotingProposalBuilder} voting_proposal_builder
+*/
+  set_voting_proposal_builder(voting_proposal_builder: VotingProposalBuilder): void;
+/**
+*/
+  remove_withdrawals(): void;
 /**
 * @returns {AuxiliaryData | undefined}
 */
@@ -6876,6 +9068,9 @@ export class TransactionBuilder {
 * @param {AuxiliaryData} auxiliary_data
 */
   set_auxiliary_data(auxiliary_data: AuxiliaryData): void;
+/**
+*/
+  remove_auxiliary_data(): void;
 /**
 * Set metadata using a GeneralTransactionMetadata object
 * It will be set to the existing or new auxiliary data in this builder
@@ -6901,13 +9096,16 @@ export class TransactionBuilder {
 * It will be securely added to existing or new metadata in this builder
 * @param {BigNum} key
 * @param {string} val
-* @param {number} schema
+* @param {MetadataJsonSchema} schema
 */
-  add_json_metadatum_with_schema(key: BigNum, val: string, schema: number): void;
+  add_json_metadatum_with_schema(key: BigNum, val: string, schema: MetadataJsonSchema): void;
 /**
 * @param {MintBuilder} mint_builder
 */
   set_mint_builder(mint_builder: MintBuilder): void;
+/**
+*/
+  remove_mint_builder(): void;
 /**
 * @returns {MintBuilder | undefined}
 */
@@ -6983,6 +9181,30 @@ export class TransactionBuilder {
 * @param {TransactionOutputAmountBuilder} output_builder
 */
   add_mint_asset_and_output_min_required_coin(policy_script: NativeScript, asset_name: AssetName, amount: Int, output_builder: TransactionOutputAmountBuilder): void;
+/**
+* @param {PlutusData} datum
+*/
+  add_extra_witness_datum(datum: PlutusData): void;
+/**
+* @returns {PlutusList | undefined}
+*/
+  get_extra_witness_datums(): PlutusList | undefined;
+/**
+* @param {BigNum} donation
+*/
+  set_donation(donation: BigNum): void;
+/**
+* @returns {BigNum | undefined}
+*/
+  get_donation(): BigNum | undefined;
+/**
+* @param {BigNum} current_treasury_value
+*/
+  set_current_treasury_value(current_treasury_value: BigNum): void;
+/**
+* @returns {BigNum | undefined}
+*/
+  get_current_treasury_value(): BigNum | undefined;
 /**
 * @param {TransactionBuilderConfig} cfg
 * @returns {TransactionBuilder}
@@ -7124,13 +9346,6 @@ export class TransactionBuilderConfigBuilder {
 */
   fee_algo(fee_algo: LinearFee): TransactionBuilderConfigBuilder;
 /**
-* !!! DEPRECATED !!!
-* Since babbage era cardano nodes use coins per byte. Use '.coins_per_utxo_byte' instead.
-* @param {BigNum} coins_per_utxo_word
-* @returns {TransactionBuilderConfigBuilder}
-*/
-  coins_per_utxo_word(coins_per_utxo_word: BigNum): TransactionBuilderConfigBuilder;
-/**
 * @param {BigNum} coins_per_utxo_byte
 * @returns {TransactionBuilderConfigBuilder}
 */
@@ -7161,10 +9376,21 @@ export class TransactionBuilderConfigBuilder {
 */
   max_tx_size(max_tx_size: number): TransactionBuilderConfigBuilder;
 /**
+* @param {UnitInterval} ref_script_coins_per_byte
+* @returns {TransactionBuilderConfigBuilder}
+*/
+  ref_script_coins_per_byte(ref_script_coins_per_byte: UnitInterval): TransactionBuilderConfigBuilder;
+/**
 * @param {boolean} prefer_pure_change
 * @returns {TransactionBuilderConfigBuilder}
 */
   prefer_pure_change(prefer_pure_change: boolean): TransactionBuilderConfigBuilder;
+/**
+*Removes a ref input (that was set via set_reference_inputs) if the ref inputs was presented in regular tx inputs
+* @param {boolean} deduplicate_explicit_ref_inputs_with_regular_inputs
+* @returns {TransactionBuilderConfigBuilder}
+*/
+  deduplicate_explicit_ref_inputs_with_regular_inputs(deduplicate_explicit_ref_inputs_with_regular_inputs: boolean): TransactionBuilderConfigBuilder;
 /**
 * @returns {TransactionBuilderConfig}
 */
@@ -7302,9 +9528,13 @@ export class TransactionInputs {
 */
   get(index: number): TransactionInput;
 /**
+* Add a new `TransactionInput` to the set.
+* Returns `true` if the element was not already present in the set.
+* Note that the `TransactionInput` is added to the set only if it is not already present.
 * @param {TransactionInput} elem
+* @returns {boolean}
 */
-  add(elem: TransactionInput): void;
+  add(elem: TransactionInput): boolean;
 /**
 * @returns {TransactionInputs | undefined}
 */
@@ -7358,9 +9588,9 @@ export class TransactionMetadatum {
 */
   static new_text(text: string): TransactionMetadatum;
 /**
-* @returns {number}
+* @returns {TransactionMetadatumKind}
 */
-  kind(): number;
+  kind(): TransactionMetadatumKind;
 /**
 * @returns {MetadataMap}
 */
@@ -7508,9 +9738,9 @@ export class TransactionOutput {
 */
   static new(address: Address, amount: Value): TransactionOutput;
 /**
-* @returns {number | undefined}
+* @returns {CborContainerType | undefined}
 */
-  serialization_format(): number | undefined;
+  serialization_format(): CborContainerType | undefined;
 }
 /**
 */
@@ -7532,14 +9762,6 @@ export class TransactionOutputAmountBuilder {
 * @returns {TransactionOutputAmountBuilder}
 */
   with_coin_and_asset(coin: BigNum, multiasset: MultiAsset): TransactionOutputAmountBuilder;
-/**
-* !!! DEPRECATED !!!
-* Since babbage era cardano nodes use coins per byte. Use '.with_asset_and_min_required_coin_by_utxo_cost' instead.
-* @param {MultiAsset} multiasset
-* @param {BigNum} coins_per_utxo_word
-* @returns {TransactionOutputAmountBuilder}
-*/
-  with_asset_and_min_required_coin(multiasset: MultiAsset, coins_per_utxo_word: BigNum): TransactionOutputAmountBuilder;
 /**
 * @param {MultiAsset} multiasset
 * @param {DataCost} data_cost
@@ -7870,6 +10092,101 @@ export class TransactionWitnessSets {
 }
 /**
 */
+export class TreasuryWithdrawals {
+  free(): void;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {TreasuryWithdrawalsJSON}
+*/
+  to_js_value(): TreasuryWithdrawalsJSON;
+/**
+* @param {string} json
+* @returns {TreasuryWithdrawals}
+*/
+  static from_json(json: string): TreasuryWithdrawals;
+/**
+* @returns {TreasuryWithdrawals}
+*/
+  static new(): TreasuryWithdrawals;
+/**
+* @param {RewardAddress} key
+* @returns {BigNum | undefined}
+*/
+  get(key: RewardAddress): BigNum | undefined;
+/**
+* @param {RewardAddress} key
+* @param {BigNum} value
+*/
+  insert(key: RewardAddress, value: BigNum): void;
+/**
+* @returns {RewardAddresses}
+*/
+  keys(): RewardAddresses;
+/**
+* @returns {number}
+*/
+  len(): number;
+}
+/**
+*/
+export class TreasuryWithdrawalsAction {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {TreasuryWithdrawalsAction}
+*/
+  static from_bytes(bytes: Uint8Array): TreasuryWithdrawalsAction;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {TreasuryWithdrawalsAction}
+*/
+  static from_hex(hex_str: string): TreasuryWithdrawalsAction;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {TreasuryWithdrawalsActionJSON}
+*/
+  to_js_value(): TreasuryWithdrawalsActionJSON;
+/**
+* @param {string} json
+* @returns {TreasuryWithdrawalsAction}
+*/
+  static from_json(json: string): TreasuryWithdrawalsAction;
+/**
+* @returns {TreasuryWithdrawals}
+*/
+  withdrawals(): TreasuryWithdrawals;
+/**
+* @returns {ScriptHash | undefined}
+*/
+  policy_hash(): ScriptHash | undefined;
+/**
+* @param {TreasuryWithdrawals} withdrawals
+* @returns {TreasuryWithdrawalsAction}
+*/
+  static new(withdrawals: TreasuryWithdrawals): TreasuryWithdrawalsAction;
+/**
+* @param {TreasuryWithdrawals} withdrawals
+* @param {ScriptHash} policy_hash
+* @returns {TreasuryWithdrawalsAction}
+*/
+  static new_with_policy_hash(withdrawals: TreasuryWithdrawals, policy_hash: ScriptHash): TreasuryWithdrawalsAction;
+}
+/**
+*/
 export class TxBuilderConstants {
   free(): void;
 /**
@@ -7884,6 +10201,10 @@ export class TxBuilderConstants {
 * @returns {Costmdls}
 */
   static plutus_vasil_cost_models(): Costmdls;
+/**
+* @returns {Costmdls}
+*/
+  static plutus_conway_cost_models(): Costmdls;
 }
 /**
 */
@@ -7903,27 +10224,12 @@ export class TxInputsBuilder {
 */
   add_key_input(hash: Ed25519KeyHash, input: TransactionInput, amount: Value): void;
 /**
-* !!! DEPRECATED !!!
-* This function can make a mistake in choosing right input index. Use `.add_native_script_input` or `.add_plutus_script_input` instead.
-* This method adds the input to the builder BUT leaves a missing spot for the witness native script
-*
-* After adding the input with this method, use `.add_required_native_input_scripts`
-* and `.add_required_plutus_input_scripts` to add the witness scripts
-*
-* Or instead use `.add_native_script_input` and `.add_plutus_script_input`
-* to add inputs right along with the script, instead of the script hash
-* @param {ScriptHash} hash
-* @param {TransactionInput} input
-* @param {Value} amount
-*/
-  add_script_input(hash: ScriptHash, input: TransactionInput, amount: Value): void;
-/**
 * This method will add the input to the builder and also register the required native script witness
-* @param {NativeScript} script
+* @param {NativeScriptSource} script
 * @param {TransactionInput} input
 * @param {Value} amount
 */
-  add_native_script_input(script: NativeScript, input: TransactionInput, amount: Value): void;
+  add_native_script_input(script: NativeScriptSource, input: TransactionInput, amount: Value): void;
 /**
 * This method will add the input to the builder and also register the required plutus witness
 * @param {PlutusWitness} witness
@@ -7932,55 +10238,18 @@ export class TxInputsBuilder {
 */
   add_plutus_script_input(witness: PlutusWitness, input: TransactionInput, amount: Value): void;
 /**
-* @param {ByronAddress} hash
+* @param {ByronAddress} address
 * @param {TransactionInput} input
 * @param {Value} amount
 */
-  add_bootstrap_input(hash: ByronAddress, input: TransactionInput, amount: Value): void;
+  add_bootstrap_input(address: ByronAddress, input: TransactionInput, amount: Value): void;
 /**
-* Note that for script inputs this method will use underlying generic `.add_script_input`
-* which leaves a required empty spot for the script witness (or witnesses in case of Plutus).
-* You can use `.add_native_script_input` or `.add_plutus_script_input` directly to register the input along with the witness.
+* Adds non script input, in case of script or reward address input it will return an error
 * @param {Address} address
 * @param {TransactionInput} input
 * @param {Value} amount
 */
-  add_input(address: Address, input: TransactionInput, amount: Value): void;
-/**
-* Returns the number of still missing input scripts (either native or plutus)
-* Use `.add_required_native_input_scripts` or `.add_required_plutus_input_scripts` to add the missing scripts
-* @returns {number}
-*/
-  count_missing_input_scripts(): number;
-/**
-* Try adding the specified scripts as witnesses for ALREADY ADDED script inputs
-* Any scripts that don't match any of the previously added inputs will be ignored
-* Returns the number of remaining required missing witness scripts
-* Use `.count_missing_input_scripts` to find the number of still missing scripts
-* @param {NativeScripts} scripts
-* @returns {number}
-*/
-  add_required_native_input_scripts(scripts: NativeScripts): number;
-/**
-* !!! DEPRECATED !!!
-* This function can make a mistake in choosing right input index. Use `.add_required_script_input_witnesses` instead.
-* Try adding the specified scripts as witnesses for ALREADY ADDED script inputs
-* Any scripts that don't match any of the previously added inputs will be ignored
-* Returns the number of remaining required missing witness scripts
-* Use `.count_missing_input_scripts` to find the number of still missing scripts
-* @param {PlutusWitnesses} scripts
-* @returns {number}
-*/
-  add_required_plutus_input_scripts(scripts: PlutusWitnesses): number;
-/**
-* Try adding the specified scripts as witnesses for ALREADY ADDED script inputs
-* Any scripts that don't match any of the previously added inputs will be ignored
-* Returns the number of remaining required missing witness scripts
-* Use `.count_missing_input_scripts` to find the number of still missing scripts
-* @param {InputsWithScriptWitness} inputs_with_wit
-* @returns {number}
-*/
-  add_required_script_input_witnesses(inputs_with_wit: InputsWithScriptWitness): number;
+  add_regular_input(address: Address, input: TransactionInput, amount: Value): void;
 /**
 * @returns {TransactionInputs}
 */
@@ -8165,6 +10434,67 @@ export class Update {
 * @returns {Update}
 */
   static new(proposed_protocol_parameter_updates: ProposedProtocolParameterUpdates, epoch: number): Update;
+}
+/**
+*/
+export class UpdateCommitteeAction {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {UpdateCommitteeAction}
+*/
+  static from_bytes(bytes: Uint8Array): UpdateCommitteeAction;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {UpdateCommitteeAction}
+*/
+  static from_hex(hex_str: string): UpdateCommitteeAction;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {UpdateCommitteeActionJSON}
+*/
+  to_js_value(): UpdateCommitteeActionJSON;
+/**
+* @param {string} json
+* @returns {UpdateCommitteeAction}
+*/
+  static from_json(json: string): UpdateCommitteeAction;
+/**
+* @returns {GovernanceActionId | undefined}
+*/
+  gov_action_id(): GovernanceActionId | undefined;
+/**
+* @returns {Committee}
+*/
+  committee(): Committee;
+/**
+* @returns {Credentials}
+*/
+  members_to_remove(): Credentials;
+/**
+* @param {Committee} committee
+* @param {Credentials} members_to_remove
+* @returns {UpdateCommitteeAction}
+*/
+  static new(committee: Committee, members_to_remove: Credentials): UpdateCommitteeAction;
+/**
+* @param {GovernanceActionId} gov_action_id
+* @param {Committee} committee
+* @param {Credentials} members_to_remove
+* @returns {UpdateCommitteeAction}
+*/
+  static new_with_action_id(gov_action_id: GovernanceActionId, committee: Committee, members_to_remove: Credentials): UpdateCommitteeAction;
 }
 /**
 */
@@ -8381,6 +10711,56 @@ export class Value {
 }
 /**
 */
+export class VersionedBlock {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {VersionedBlock}
+*/
+  static from_bytes(bytes: Uint8Array): VersionedBlock;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {VersionedBlock}
+*/
+  static from_hex(hex_str: string): VersionedBlock;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {VersionedBlockJSON}
+*/
+  to_js_value(): VersionedBlockJSON;
+/**
+* @param {string} json
+* @returns {VersionedBlock}
+*/
+  static from_json(json: string): VersionedBlock;
+/**
+* @param {Block} block
+* @param {number} era_code
+* @returns {VersionedBlock}
+*/
+  static new(block: Block, era_code: number): VersionedBlock;
+/**
+* @returns {Block}
+*/
+  block(): Block;
+/**
+* @returns {BlockEra}
+*/
+  era(): BlockEra;
+}
+/**
+*/
 export class Vkey {
   free(): void;
 /**
@@ -8545,9 +10925,550 @@ export class Vkeywitnesses {
 */
   get(index: number): Vkeywitness;
 /**
+* Add a new `Vkeywitness` to the set.
+* Returns `true` if the element was not already present in the set.
 * @param {Vkeywitness} elem
+* @returns {boolean}
 */
-  add(elem: Vkeywitness): void;
+  add(elem: Vkeywitness): boolean;
+}
+/**
+*/
+export class VoteDelegation {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {VoteDelegation}
+*/
+  static from_bytes(bytes: Uint8Array): VoteDelegation;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {VoteDelegation}
+*/
+  static from_hex(hex_str: string): VoteDelegation;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {VoteDelegationJSON}
+*/
+  to_js_value(): VoteDelegationJSON;
+/**
+* @param {string} json
+* @returns {VoteDelegation}
+*/
+  static from_json(json: string): VoteDelegation;
+/**
+* @returns {Credential}
+*/
+  stake_credential(): Credential;
+/**
+* @returns {DRep}
+*/
+  drep(): DRep;
+/**
+* @param {Credential} stake_credential
+* @param {DRep} drep
+* @returns {VoteDelegation}
+*/
+  static new(stake_credential: Credential, drep: DRep): VoteDelegation;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
+}
+/**
+*/
+export class VoteRegistrationAndDelegation {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {VoteRegistrationAndDelegation}
+*/
+  static from_bytes(bytes: Uint8Array): VoteRegistrationAndDelegation;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {VoteRegistrationAndDelegation}
+*/
+  static from_hex(hex_str: string): VoteRegistrationAndDelegation;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {VoteRegistrationAndDelegationJSON}
+*/
+  to_js_value(): VoteRegistrationAndDelegationJSON;
+/**
+* @param {string} json
+* @returns {VoteRegistrationAndDelegation}
+*/
+  static from_json(json: string): VoteRegistrationAndDelegation;
+/**
+* @returns {Credential}
+*/
+  stake_credential(): Credential;
+/**
+* @returns {DRep}
+*/
+  drep(): DRep;
+/**
+* @returns {BigNum}
+*/
+  coin(): BigNum;
+/**
+* @param {Credential} stake_credential
+* @param {DRep} drep
+* @param {BigNum} coin
+* @returns {VoteRegistrationAndDelegation}
+*/
+  static new(stake_credential: Credential, drep: DRep, coin: BigNum): VoteRegistrationAndDelegation;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
+}
+/**
+*/
+export class Voter {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {Voter}
+*/
+  static from_bytes(bytes: Uint8Array): Voter;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {Voter}
+*/
+  static from_hex(hex_str: string): Voter;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {VoterJSON}
+*/
+  to_js_value(): VoterJSON;
+/**
+* @param {string} json
+* @returns {Voter}
+*/
+  static from_json(json: string): Voter;
+/**
+* @param {Credential} cred
+* @returns {Voter}
+*/
+  static new_constitutional_committee_hot_credential(cred: Credential): Voter;
+/**
+* @param {Credential} cred
+* @returns {Voter}
+*/
+  static new_drep_credential(cred: Credential): Voter;
+/**
+* @param {Ed25519KeyHash} key_hash
+* @returns {Voter}
+*/
+  static new_stake_pool_key_hash(key_hash: Ed25519KeyHash): Voter;
+/**
+* @returns {VoterKind}
+*/
+  kind(): VoterKind;
+/**
+* @returns {Credential | undefined}
+*/
+  to_constitutional_committee_hot_credential(): Credential | undefined;
+/**
+* @returns {Credential | undefined}
+*/
+  to_drep_credential(): Credential | undefined;
+/**
+* @returns {Ed25519KeyHash | undefined}
+*/
+  to_stake_pool_key_hash(): Ed25519KeyHash | undefined;
+/**
+* @returns {boolean}
+*/
+  has_script_credentials(): boolean;
+/**
+* @returns {Ed25519KeyHash | undefined}
+*/
+  to_key_hash(): Ed25519KeyHash | undefined;
+}
+/**
+*/
+export class Voters {
+  free(): void;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {VotersJSON}
+*/
+  to_js_value(): VotersJSON;
+/**
+* @param {string} json
+* @returns {Voters}
+*/
+  static from_json(json: string): Voters;
+/**
+* @returns {Voters}
+*/
+  static new(): Voters;
+/**
+* @param {Voter} voter
+*/
+  add(voter: Voter): void;
+/**
+* @param {number} index
+* @returns {Voter | undefined}
+*/
+  get(index: number): Voter | undefined;
+/**
+* @returns {number}
+*/
+  len(): number;
+}
+/**
+*/
+export class VotingBuilder {
+  free(): void;
+/**
+* @returns {VotingBuilder}
+*/
+  static new(): VotingBuilder;
+/**
+* @param {Voter} voter
+* @param {GovernanceActionId} gov_action_id
+* @param {VotingProcedure} voting_procedure
+*/
+  add(voter: Voter, gov_action_id: GovernanceActionId, voting_procedure: VotingProcedure): void;
+/**
+* @param {Voter} voter
+* @param {GovernanceActionId} gov_action_id
+* @param {VotingProcedure} voting_procedure
+* @param {PlutusWitness} witness
+*/
+  add_with_plutus_witness(voter: Voter, gov_action_id: GovernanceActionId, voting_procedure: VotingProcedure, witness: PlutusWitness): void;
+/**
+* @param {Voter} voter
+* @param {GovernanceActionId} gov_action_id
+* @param {VotingProcedure} voting_procedure
+* @param {NativeScriptSource} native_script_source
+*/
+  add_with_native_script(voter: Voter, gov_action_id: GovernanceActionId, voting_procedure: VotingProcedure, native_script_source: NativeScriptSource): void;
+/**
+* @returns {PlutusWitnesses}
+*/
+  get_plutus_witnesses(): PlutusWitnesses;
+/**
+* @returns {TransactionInputs}
+*/
+  get_ref_inputs(): TransactionInputs;
+/**
+* @returns {NativeScripts}
+*/
+  get_native_scripts(): NativeScripts;
+/**
+* @returns {boolean}
+*/
+  has_plutus_scripts(): boolean;
+/**
+* @returns {VotingProcedures}
+*/
+  build(): VotingProcedures;
+}
+/**
+*/
+export class VotingProcedure {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {VotingProcedure}
+*/
+  static from_bytes(bytes: Uint8Array): VotingProcedure;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {VotingProcedure}
+*/
+  static from_hex(hex_str: string): VotingProcedure;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {VotingProcedureJSON}
+*/
+  to_js_value(): VotingProcedureJSON;
+/**
+* @param {string} json
+* @returns {VotingProcedure}
+*/
+  static from_json(json: string): VotingProcedure;
+/**
+* @param {VoteKind} vote
+* @returns {VotingProcedure}
+*/
+  static new(vote: VoteKind): VotingProcedure;
+/**
+* @param {VoteKind} vote
+* @param {Anchor} anchor
+* @returns {VotingProcedure}
+*/
+  static new_with_anchor(vote: VoteKind, anchor: Anchor): VotingProcedure;
+/**
+* @returns {VoteKind}
+*/
+  vote_kind(): VoteKind;
+/**
+* @returns {Anchor | undefined}
+*/
+  anchor(): Anchor | undefined;
+}
+/**
+*/
+export class VotingProcedures {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {VotingProcedures}
+*/
+  static from_bytes(bytes: Uint8Array): VotingProcedures;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {VotingProcedures}
+*/
+  static from_hex(hex_str: string): VotingProcedures;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {VotingProceduresJSON}
+*/
+  to_js_value(): VotingProceduresJSON;
+/**
+* @param {string} json
+* @returns {VotingProcedures}
+*/
+  static from_json(json: string): VotingProcedures;
+/**
+* @returns {VotingProcedures}
+*/
+  static new(): VotingProcedures;
+/**
+* @param {Voter} voter
+* @param {GovernanceActionId} governance_action_id
+* @param {VotingProcedure} voting_procedure
+*/
+  insert(voter: Voter, governance_action_id: GovernanceActionId, voting_procedure: VotingProcedure): void;
+/**
+* @param {Voter} voter
+* @param {GovernanceActionId} governance_action_id
+* @returns {VotingProcedure | undefined}
+*/
+  get(voter: Voter, governance_action_id: GovernanceActionId): VotingProcedure | undefined;
+/**
+* @returns {Voters}
+*/
+  get_voters(): Voters;
+/**
+* @param {Voter} voter
+* @returns {GovernanceActionIds}
+*/
+  get_governance_action_ids_by_voter(voter: Voter): GovernanceActionIds;
+}
+/**
+*/
+export class VotingProposal {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {VotingProposal}
+*/
+  static from_bytes(bytes: Uint8Array): VotingProposal;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {VotingProposal}
+*/
+  static from_hex(hex_str: string): VotingProposal;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {VotingProposalJSON}
+*/
+  to_js_value(): VotingProposalJSON;
+/**
+* @param {string} json
+* @returns {VotingProposal}
+*/
+  static from_json(json: string): VotingProposal;
+/**
+* @returns {GovernanceAction}
+*/
+  governance_action(): GovernanceAction;
+/**
+* @returns {Anchor}
+*/
+  anchor(): Anchor;
+/**
+* @returns {RewardAddress}
+*/
+  reward_account(): RewardAddress;
+/**
+* @returns {BigNum}
+*/
+  deposit(): BigNum;
+/**
+* @param {GovernanceAction} governance_action
+* @param {Anchor} anchor
+* @param {RewardAddress} reward_account
+* @param {BigNum} deposit
+* @returns {VotingProposal}
+*/
+  static new(governance_action: GovernanceAction, anchor: Anchor, reward_account: RewardAddress, deposit: BigNum): VotingProposal;
+}
+/**
+*/
+export class VotingProposalBuilder {
+  free(): void;
+/**
+* @returns {VotingProposalBuilder}
+*/
+  static new(): VotingProposalBuilder;
+/**
+* @param {VotingProposal} proposal
+*/
+  add(proposal: VotingProposal): void;
+/**
+* @param {VotingProposal} proposal
+* @param {PlutusWitness} witness
+*/
+  add_with_plutus_witness(proposal: VotingProposal, witness: PlutusWitness): void;
+/**
+* @returns {PlutusWitnesses}
+*/
+  get_plutus_witnesses(): PlutusWitnesses;
+/**
+* @returns {TransactionInputs}
+*/
+  get_ref_inputs(): TransactionInputs;
+/**
+* @returns {boolean}
+*/
+  has_plutus_scripts(): boolean;
+/**
+* @returns {VotingProposals}
+*/
+  build(): VotingProposals;
+}
+/**
+*/
+export class VotingProposals {
+  free(): void;
+/**
+* @returns {Uint8Array}
+*/
+  to_bytes(): Uint8Array;
+/**
+* @param {Uint8Array} bytes
+* @returns {VotingProposals}
+*/
+  static from_bytes(bytes: Uint8Array): VotingProposals;
+/**
+* @returns {string}
+*/
+  to_hex(): string;
+/**
+* @param {string} hex_str
+* @returns {VotingProposals}
+*/
+  static from_hex(hex_str: string): VotingProposals;
+/**
+* @returns {string}
+*/
+  to_json(): string;
+/**
+* @returns {VotingProposalsJSON}
+*/
+  to_js_value(): VotingProposalsJSON;
+/**
+* @param {string} json
+* @returns {VotingProposals}
+*/
+  static from_json(json: string): VotingProposals;
+/**
+* @returns {VotingProposals}
+*/
+  static new(): VotingProposals;
+/**
+* @returns {number}
+*/
+  len(): number;
+/**
+* @param {number} index
+* @returns {VotingProposal}
+*/
+  get(index: number): VotingProposal;
+/**
+* Add a proposal to the set of proposals
+* Returns true if the proposal was added, false if it was already present
+* @param {VotingProposal} proposal
+* @returns {boolean}
+*/
+  add(proposal: VotingProposal): boolean;
 }
 /**
 */
@@ -8608,13 +11529,92 @@ export class Withdrawals {
 */
   keys(): RewardAddresses;
 }
+/**
+*/
+export class WithdrawalsBuilder {
+  free(): void;
+/**
+* @returns {WithdrawalsBuilder}
+*/
+  static new(): WithdrawalsBuilder;
+/**
+* @param {RewardAddress} address
+* @param {BigNum} coin
+*/
+  add(address: RewardAddress, coin: BigNum): void;
+/**
+* @param {RewardAddress} address
+* @param {BigNum} coin
+* @param {PlutusWitness} witness
+*/
+  add_with_plutus_witness(address: RewardAddress, coin: BigNum, witness: PlutusWitness): void;
+/**
+* @param {RewardAddress} address
+* @param {BigNum} coin
+* @param {NativeScriptSource} native_script_source
+*/
+  add_with_native_script(address: RewardAddress, coin: BigNum, native_script_source: NativeScriptSource): void;
+/**
+* @returns {PlutusWitnesses}
+*/
+  get_plutus_witnesses(): PlutusWitnesses;
+/**
+* @returns {TransactionInputs}
+*/
+  get_ref_inputs(): TransactionInputs;
+/**
+* @returns {NativeScripts}
+*/
+  get_native_scripts(): NativeScripts;
+/**
+* @returns {Value}
+*/
+  get_total_withdrawals(): Value;
+/**
+* @returns {boolean}
+*/
+  has_plutus_scripts(): boolean;
+/**
+* @returns {Withdrawals}
+*/
+  build(): Withdrawals;
+}
 
 export type AddressJSON = string;
+export type URLJSON = string;
+
+export interface AnchorJSON {
+  anchor_data_hash: string;
+  anchor_url: URLJSON;
+}
+export type AnchorDataHashJSON = string;
 export type AssetNameJSON = string;
 export type AssetNamesJSON = string[];
 export interface AssetsJSON {
   [k: string]: string;
 }
+export type NativeScriptJSON =
+  | {
+      ScriptPubkey: ScriptPubkeyJSON;
+    }
+  | {
+      ScriptAll: ScriptAllJSON;
+    }
+  | {
+      ScriptAny: ScriptAnyJSON;
+    }
+  | {
+      ScriptNOfK: ScriptNOfKJSON;
+    }
+  | {
+      TimelockStart: TimelockStartJSON;
+    }
+  | {
+      TimelockExpiry: TimelockExpiryJSON;
+    };
+export type NativeScriptsJSON = NativeScriptJSON[];
+export type PlutusScriptsJSON = string[];
+
 export interface AuxiliaryDataJSON {
   metadata?: {
     [k: string]: string;
@@ -8623,114 +11623,121 @@ export interface AuxiliaryDataJSON {
   plutus_scripts?: PlutusScriptsJSON | null;
   prefer_alonzo_format: boolean;
 }
+export interface ScriptPubkeyJSON {
+  addr_keyhash: string;
+}
+export interface ScriptAllJSON {
+  native_scripts: NativeScriptsJSON;
+}
+export interface ScriptAnyJSON {
+  native_scripts: NativeScriptsJSON;
+}
+export interface ScriptNOfKJSON {
+  n: number;
+  native_scripts: NativeScriptsJSON;
+}
+export interface TimelockStartJSON {
+  slot: string;
+}
+export interface TimelockExpiryJSON {
+  slot: string;
+}
 export type AuxiliaryDataHashJSON = string;
 export interface AuxiliaryDataSetJSON {
   [k: string]: AuxiliaryDataJSON;
 }
 export type BigIntJSON = string;
 export type BigNumJSON = string;
-export interface BlockJSON {
-  auxiliary_data_set: {
-    [k: string]: AuxiliaryDataJSON;
-  };
-  header: HeaderJSON;
-  invalid_transactions: number[];
-  transaction_bodies: TransactionBodiesJSON;
-  transaction_witness_sets: TransactionWitnessSetsJSON;
-}
-export type BlockHashJSON = string;
-export interface BootstrapWitnessJSON {
-  attributes: number[];
-  chain_code: number[];
-  signature: string;
-  vkey: VkeyJSON;
-}
-export type BootstrapWitnessesJSON = BootstrapWitnessJSON[];
-export type CertificateJSON = CertificateEnumJSON;
-export type CertificateEnumJSON =
-  | {
-      StakeRegistrationJSON: StakeRegistration;
-    }
-  | {
-      StakeDeregistrationJSON: StakeDeregistration;
-    }
-  | {
-      StakeDelegationJSON: StakeDelegation;
-    }
-  | {
-      PoolRegistrationJSON: PoolRegistration;
-    }
-  | {
-      PoolRetirementJSON: PoolRetirement;
-    }
-  | {
-      GenesisKeyDelegationJSON: GenesisKeyDelegation;
-    }
-  | {
-      MoveInstantaneousRewardsCertJSON: MoveInstantaneousRewardsCert;
-    };
-export type CertificatesJSON = CertificateJSON[];
-export type CostModelJSON = string[];
-export interface CostmdlsJSON {
-  [k: string]: CostModelJSON;
-}
-export type DNSRecordAorAAAAJSON = string;
-export type DNSRecordSRVJSON = string;
-export type DataHashJSON = string;
-export type DataOptionJSON =
-  | {
-      DataHashJSON: string;
-    }
-  | {
-      Data: string;
-    };
-export type Ed25519KeyHashJSON = string;
-export type Ed25519KeyHashesJSON = string[];
-export type Ed25519SignatureJSON = string;
-export interface ExUnitPricesJSON {
-  mem_price: UnitIntervalJSON;
-  step_price: UnitIntervalJSON;
-}
-export interface ExUnitsJSON {
-  mem: string;
-  steps: string;
-}
-export interface GeneralTransactionMetadataJSON {
-  [k: string]: string;
-}
-export type GenesisDelegateHashJSON = string;
-export type GenesisHashJSON = string;
-export type GenesisHashesJSON = string[];
-export interface GenesisKeyDelegationJSON {
-  genesis_delegate_hash: string;
-  genesishash: string;
-  vrf_keyhash: string;
-}
-export interface HeaderJSON {
-  body_signature: string;
-  header_body: HeaderBodyJSON;
-}
-export interface HeaderBodyJSON {
-  block_body_hash: string;
-  block_body_size: number;
-  block_number: number;
-  issuer_vkey: VkeyJSON;
-  leader_cert: HeaderLeaderCertEnumJSON;
-  operational_cert: OperationalCertJSON;
-  prev_hash?: string | null;
-  protocol_version: ProtocolVersionJSON;
-  slot: string;
-  vrf_vkey: string;
-}
+export type VkeyJSON = string;
 export type HeaderLeaderCertEnumJSON =
   | {
-      NonceAndLeader: [VRFCertJSON, VRFCert];
+      /**
+       * @minItems 2
+       * @maxItems 2
+       */
+      NonceAndLeader: [VRFCertJSON, VRFCertJSON];
     }
   | {
       VrfResult: VRFCertJSON;
     };
-export type IntJSON = string;
+export type CertificateJSON =
+  | {
+      StakeRegistration: StakeRegistrationJSON;
+    }
+  | {
+      StakeDeregistration: StakeDeregistrationJSON;
+    }
+  | {
+      StakeDelegation: StakeDelegationJSON;
+    }
+  | {
+      PoolRegistration: PoolRegistrationJSON;
+    }
+  | {
+      PoolRetirement: PoolRetirementJSON;
+    }
+  | {
+      GenesisKeyDelegation: GenesisKeyDelegationJSON;
+    }
+  | {
+      MoveInstantaneousRewardsCert: MoveInstantaneousRewardsCertJSON;
+    }
+  | {
+      CommitteeHotAuth: CommitteeHotAuthJSON;
+    }
+  | {
+      CommitteeColdResign: CommitteeColdResignJSON;
+    }
+  | {
+      DRepDeregistration: DRepDeregistrationJSON;
+    }
+  | {
+      DRepRegistration: DRepRegistrationJSON;
+    }
+  | {
+      DRepUpdate: DRepUpdateJSON;
+    }
+  | {
+      StakeAndVoteDelegation: StakeAndVoteDelegationJSON;
+    }
+  | {
+      StakeRegistrationAndDelegation: StakeRegistrationAndDelegationJSON;
+    }
+  | {
+      StakeVoteRegistrationAndDelegation: StakeVoteRegistrationAndDelegationJSON;
+    }
+  | {
+      VoteDelegation: VoteDelegationJSON;
+    }
+  | {
+      VoteRegistrationAndDelegation: VoteRegistrationAndDelegationJSON;
+    };
+export type CredTypeJSON =
+  | {
+      Key: string;
+    }
+  | {
+      Script: string;
+    };
+export type RelayJSON =
+  | {
+      SingleHostAddr: SingleHostAddrJSON;
+    }
+  | {
+      SingleHostName: SingleHostNameJSON;
+    }
+  | {
+      MultiHostName: MultiHostNameJSON;
+    };
+/**
+ * @minItems 4
+ * @maxItems 4
+ */
 export type Ipv4JSON = [number, number, number, number];
+/**
+ * @minItems 16
+ * @maxItems 16
+ */
 export type Ipv6JSON = [
   number,
   number,
@@ -8749,64 +11756,346 @@ export type Ipv6JSON = [
   number,
   number
 ];
-export type KESVKeyJSON = string;
-export type LanguageJSON = LanguageKindJSON;
-export type LanguageKindJSON = "PlutusV1" | "PlutusV2";
-export type LanguagesJSON = LanguageJSON[];
+export type DNSRecordAorAAAAJSON = string;
+export type DNSRecordSRVJSON = string;
+export type RelaysJSON = RelayJSON[];
+export type MIRPotJSON = "Reserves" | "Treasury";
 export type MIREnumJSON =
   | {
       ToOtherPot: string;
     }
   | {
-      ToStakeCredentials: {
-        [k: string]: ProtocolParamUpdateJSON;
-      };
+      ToStakeCredentials: StakeToCoinJSON[];
     };
-export type MIRPotJSON = "Reserves" | "Treasury";
-export interface MIRToStakeCredentialsJSON {
-  [k: string]: ProtocolParamUpdateJSON;
-}
+export type DRepJSON =
+  | ("AlwaysAbstain" | "AlwaysNoConfidence")
+  | {
+      KeyHash: string;
+    }
+  | {
+      ScriptHash: string;
+    };
+export type DataOptionJSON =
+  | {
+      DataHash: string;
+    }
+  | {
+      Data: string;
+    };
+export type ScriptRefJSON =
+  | {
+      NativeScript: NativeScriptJSON;
+    }
+  | {
+      PlutusScript: string;
+    };
 export type MintJSON = [string, MintAssetsJSON][];
-export interface MintAssetsJSON {
-  [k: string]: string;
+export type NetworkIdJSON = "Testnet" | "Mainnet";
+export type TransactionOutputsJSON = TransactionOutputJSON[];
+export type CostModelJSON = string[];
+export type VoterJSON =
+  | {
+      ConstitutionalCommitteeHotCred: CredTypeJSON;
+    }
+  | {
+      DRep: CredTypeJSON;
+    }
+  | {
+      StakingPool: string;
+    };
+export type VoteKindJSON = "No" | "Yes" | "Abstain";
+export type GovernanceActionJSON =
+  | {
+      ParameterChangeAction: ParameterChangeActionJSON;
+    }
+  | {
+      HardForkInitiationAction: HardForkInitiationActionJSON;
+    }
+  | {
+      TreasuryWithdrawalsAction: TreasuryWithdrawalsActionJSON;
+    }
+  | {
+      NoConfidenceAction: NoConfidenceActionJSON;
+    }
+  | {
+      UpdateCommitteeAction: UpdateCommitteeActionJSON;
+    }
+  | {
+      NewConstitutionAction: NewConstitutionActionJSON;
+    }
+  | {
+      InfoAction: InfoActionJSON;
+    };
+/**
+ * @minItems 0
+ * @maxItems 0
+ */
+export type InfoActionJSON = [];
+export type TransactionBodiesJSON = TransactionBodyJSON[];
+export type RedeemerTagJSON = "Spend" | "Mint" | "Cert" | "Reward" | "Vote" | "VotingProposal";
+export type TransactionWitnessSetsJSON = TransactionWitnessSetJSON[];
+
+export interface BlockJSON {
+  auxiliary_data_set: {
+    [k: string]: AuxiliaryDataJSON;
+  };
+  header: HeaderJSON;
+  invalid_transactions: number[];
+  transaction_bodies: TransactionBodiesJSON;
+  transaction_witness_sets: TransactionWitnessSetsJSON;
+}
+export interface HeaderJSON {
+  body_signature: string;
+  header_body: HeaderBodyJSON;
+}
+export interface HeaderBodyJSON {
+  block_body_hash: string;
+  block_body_size: number;
+  block_number: number;
+  issuer_vkey: VkeyJSON;
+  leader_cert: HeaderLeaderCertEnumJSON;
+  operational_cert: OperationalCertJSON;
+  prev_hash?: string | null;
+  protocol_version: ProtocolVersionJSON;
+  slot: string;
+  vrf_vkey: string;
+}
+export interface VRFCertJSON {
+  output: number[];
+  proof: number[];
+}
+export interface OperationalCertJSON {
+  hot_vkey: string;
+  kes_period: number;
+  sequence_number: number;
+  sigma: string;
+}
+export interface ProtocolVersionJSON {
+  major: number;
+  minor: number;
+}
+export interface TransactionBodyJSON {
+  auxiliary_data_hash?: string | null;
+  certs?: CertificateJSON[] | null;
+  collateral?: TransactionInputJSON[] | null;
+  collateral_return?: TransactionOutputJSON | null;
+  current_treasury_value?: string | null;
+  donation?: string | null;
+  fee: string;
+  inputs: TransactionInputJSON[];
+  mint?: MintJSON | null;
+  network_id?: NetworkIdJSON | null;
+  outputs: TransactionOutputsJSON;
+  reference_inputs?: TransactionInputJSON[] | null;
+  required_signers?: string[] | null;
+  script_data_hash?: string | null;
+  total_collateral?: string | null;
+  ttl?: string | null;
+  update?: UpdateJSON | null;
+  validity_start_interval?: string | null;
+  voting_procedures?: VoterVotesJSON[] | null;
+  voting_proposals?: VotingProposalJSON[] | null;
+  withdrawals?: {
+    [k: string]: string;
+  } | null;
+}
+export interface StakeRegistrationJSON {
+  coin?: string | null;
+  stake_credential: CredTypeJSON;
+}
+export interface StakeDeregistrationJSON {
+  coin?: string | null;
+  stake_credential: CredTypeJSON;
+}
+export interface StakeDelegationJSON {
+  pool_keyhash: string;
+  stake_credential: CredTypeJSON;
+}
+export interface PoolRegistrationJSON {
+  pool_params: PoolParamsJSON;
+}
+export interface PoolParamsJSON {
+  cost: string;
+  margin: UnitIntervalJSON;
+  operator: string;
+  pledge: string;
+  pool_metadata?: PoolMetadataJSON | null;
+  pool_owners: string[];
+  relays: RelaysJSON;
+  reward_account: string;
+  vrf_keyhash: string;
+}
+export interface UnitIntervalJSON {
+  denominator: string;
+  numerator: string;
+}
+export interface PoolMetadataJSON {
+  pool_metadata_hash: string;
+  url: URLJSON;
+}
+export interface SingleHostAddrJSON {
+  ipv4?: Ipv4JSON | null;
+  ipv6?: Ipv6JSON | null;
+  port?: number | null;
+}
+export interface SingleHostNameJSON {
+  dns_name: DNSRecordAorAAAAJSON;
+  port?: number | null;
+}
+export interface MultiHostNameJSON {
+  dns_name: DNSRecordSRVJSON;
+}
+export interface PoolRetirementJSON {
+  epoch: number;
+  pool_keyhash: string;
+}
+export interface GenesisKeyDelegationJSON {
+  genesis_delegate_hash: string;
+  genesishash: string;
+  vrf_keyhash: string;
+}
+export interface MoveInstantaneousRewardsCertJSON {
+  move_instantaneous_reward: MoveInstantaneousRewardJSON;
 }
 export interface MoveInstantaneousRewardJSON {
   pot: MIRPotJSON;
   variant: MIREnumJSON;
 }
-export interface MoveInstantaneousRewardsCertJSON {
-  move_instantaneous_reward: MoveInstantaneousRewardJSON;
+export interface StakeToCoinJSON {
+  amount: string;
+  stake_cred: CredTypeJSON;
+}
+export interface CommitteeHotAuthJSON {
+  committee_cold_credential: CredTypeJSON;
+  committee_hot_credential: CredTypeJSON;
+}
+export interface CommitteeColdResignJSON {
+  anchor?: AnchorJSON | null;
+  committee_cold_credential: CredTypeJSON;
+}
+export interface DRepDeregistrationJSON {
+  coin: string;
+  voting_credential: CredTypeJSON;
+}
+export interface DRepRegistrationJSON {
+  anchor?: AnchorJSON | null;
+  coin: string;
+  voting_credential: CredTypeJSON;
+}
+export interface DRepUpdateJSON {
+  anchor?: AnchorJSON | null;
+  voting_credential: CredTypeJSON;
+}
+export interface StakeAndVoteDelegationJSON {
+  drep: DRepJSON;
+  pool_keyhash: string;
+  stake_credential: CredTypeJSON;
+}
+export interface StakeRegistrationAndDelegationJSON {
+  coin: string;
+  pool_keyhash: string;
+  stake_credential: CredTypeJSON;
+}
+export interface StakeVoteRegistrationAndDelegationJSON {
+  coin: string;
+  drep: DRepJSON;
+  pool_keyhash: string;
+  stake_credential: CredTypeJSON;
+}
+export interface VoteDelegationJSON {
+  drep: DRepJSON;
+  stake_credential: CredTypeJSON;
+}
+export interface VoteRegistrationAndDelegationJSON {
+  coin: string;
+  drep: DRepJSON;
+  stake_credential: CredTypeJSON;
+}
+export interface TransactionInputJSON {
+  index: number;
+  transaction_id: string;
+}
+export interface TransactionOutputJSON {
+  address: string;
+  amount: ValueJSON;
+  plutus_data?: DataOptionJSON | null;
+  script_ref?: ScriptRefJSON | null;
+}
+export interface ValueJSON {
+  coin: string;
+  multiasset?: MultiAssetJSON | null;
 }
 export interface MultiAssetJSON {
   [k: string]: AssetsJSON;
 }
-export interface MultiHostNameJSON {
-  dns_name: DNSRecordSRVJSON;
+export interface MintAssetsJSON {
+  [k: string]: string;
 }
-export type NativeScriptJSON = NativeScript1JSON;
-export type NativeScript1JSON =
-  | {
-      ScriptPubkeyJSON: ScriptPubkey;
-    }
-  | {
-      ScriptAllJSON: ScriptAll;
-    }
-  | {
-      ScriptAnyJSON: ScriptAny;
-    }
-  | {
-      ScriptNOfKJSON: ScriptNOfK;
-    }
-  | {
-      TimelockStartJSON: TimelockStart;
-    }
-  | {
-      TimelockExpiryJSON: TimelockExpiry;
-    };
-export type NativeScriptsJSON = NativeScriptJSON[];
-export type NetworkIdJSON = NetworkIdKindJSON;
-export type NetworkIdKindJSON = "Testnet" | "Mainnet";
+export interface UpdateJSON {
+  epoch: number;
+  proposed_protocol_parameter_updates: {
+    [k: string]: ProtocolParamUpdateJSON;
+  };
+}
+export interface ProtocolParamUpdateJSON {
+  ada_per_utxo_byte?: string | null;
+  collateral_percentage?: number | null;
+  committee_term_limit?: number | null;
+  cost_models?: CostmdlsJSON | null;
+  d?: UnitIntervalJSON | null;
+  drep_deposit?: string | null;
+  drep_inactivity_period?: number | null;
+  drep_voting_thresholds?: DRepVotingThresholdsJSON | null;
+  execution_costs?: ExUnitPricesJSON | null;
+  expansion_rate?: UnitIntervalJSON | null;
+  extra_entropy?: NonceJSON | null;
+  governance_action_deposit?: string | null;
+  governance_action_validity_period?: number | null;
+  key_deposit?: string | null;
+  max_block_body_size?: number | null;
+  max_block_ex_units?: ExUnitsJSON | null;
+  max_block_header_size?: number | null;
+  max_collateral_inputs?: number | null;
+  max_epoch?: number | null;
+  max_tx_ex_units?: ExUnitsJSON | null;
+  max_tx_size?: number | null;
+  max_value_size?: number | null;
+  min_committee_size?: number | null;
+  min_pool_cost?: string | null;
+  minfee_a?: string | null;
+  minfee_b?: string | null;
+  n_opt?: number | null;
+  pool_deposit?: string | null;
+  pool_pledge_influence?: UnitIntervalJSON | null;
+  pool_voting_thresholds?: PoolVotingThresholdsJSON | null;
+  protocol_version?: ProtocolVersionJSON | null;
+  ref_script_coins_per_byte?: UnitIntervalJSON | null;
+  treasury_growth_rate?: UnitIntervalJSON | null;
+}
+export interface CostmdlsJSON {
+  [k: string]: CostModelJSON;
+}
+export interface DRepVotingThresholdsJSON {
+  committee_no_confidence: UnitIntervalJSON;
+  committee_normal: UnitIntervalJSON;
+  hard_fork_initiation: UnitIntervalJSON;
+  motion_no_confidence: UnitIntervalJSON;
+  pp_economic_group: UnitIntervalJSON;
+  pp_governance_group: UnitIntervalJSON;
+  pp_network_group: UnitIntervalJSON;
+  pp_technical_group: UnitIntervalJSON;
+  treasury_withdrawal: UnitIntervalJSON;
+  update_constitution: UnitIntervalJSON;
+}
+export interface ExUnitPricesJSON {
+  mem_price: UnitIntervalJSON;
+  step_price: UnitIntervalJSON;
+}
 export interface NonceJSON {
+  /**
+   * @minItems 32
+   * @maxItems 32
+   */
   hash?:
     | [
         number,
@@ -8844,235 +12133,296 @@ export interface NonceJSON {
       ]
     | null;
 }
-export interface OperationalCertJSON {
-  hot_vkey: string;
-  kes_period: number;
-  sequence_number: number;
-  sigma: string;
+export interface ExUnitsJSON {
+  mem: string;
+  steps: string;
 }
-export type PlutusScriptJSON = string;
-export type PlutusScriptsJSON = string[];
-export interface PoolMetadataJSON {
-  pool_metadata_hash: string;
-  url: URLJSON;
+export interface PoolVotingThresholdsJSON {
+  committee_no_confidence: UnitIntervalJSON;
+  committee_normal: UnitIntervalJSON;
+  hard_fork_initiation: UnitIntervalJSON;
+  motion_no_confidence: UnitIntervalJSON;
+  security_relevant_threshold: UnitIntervalJSON;
 }
-export type PoolMetadataHashJSON = string;
-export interface PoolParamsJSON {
-  cost: string;
-  margin: UnitIntervalJSON;
-  operator: string;
-  pledge: string;
-  pool_metadata?: PoolMetadataJSON | null;
-  pool_owners: Ed25519KeyHashesJSON;
-  relays: RelaysJSON;
+export interface VoterVotesJSON {
+  voter: VoterJSON;
+  votes: VoteJSON[];
+}
+export interface VoteJSON {
+  action_id: GovernanceActionIdJSON;
+  voting_procedure: VotingProcedureJSON;
+}
+export interface GovernanceActionIdJSON {
+  index: number;
+  transaction_id: string;
+}
+export interface VotingProcedureJSON {
+  anchor?: AnchorJSON | null;
+  vote: VoteKindJSON;
+}
+export interface VotingProposalJSON {
+  anchor: AnchorJSON;
+  deposit: string;
+  governance_action: GovernanceActionJSON;
   reward_account: string;
-  vrf_keyhash: string;
 }
-export interface PoolRegistrationJSON {
-  pool_params: PoolParamsJSON;
+export interface ParameterChangeActionJSON {
+  gov_action_id?: GovernanceActionIdJSON | null;
+  policy_hash?: string | null;
+  protocol_param_updates: ProtocolParamUpdateJSON;
 }
-export interface PoolRetirementJSON {
-  epoch: number;
-  pool_keyhash: string;
+export interface HardForkInitiationActionJSON {
+  gov_action_id?: GovernanceActionIdJSON | null;
+  protocol_version: ProtocolVersionJSON;
 }
-export interface ProposedProtocolParameterUpdatesJSON {
-  [k: string]: ProtocolParamUpdateJSON;
+export interface TreasuryWithdrawalsActionJSON {
+  policy_hash?: string | null;
+  withdrawals: TreasuryWithdrawalsJSON;
 }
-export interface ProtocolParamUpdateJSON {
-  ada_per_utxo_byte?: string | null;
-  collateral_percentage?: number | null;
-  cost_models?: CostmdlsJSON | null;
-  d?: UnitIntervalJSON | null;
-  execution_costs?: ExUnitPricesJSON | null;
-  expansion_rate?: UnitIntervalJSON | null;
-  extra_entropy?: NonceJSON | null;
-  key_deposit?: string | null;
-  max_block_body_size?: number | null;
-  max_block_ex_units?: ExUnitsJSON | null;
-  max_block_header_size?: number | null;
-  max_collateral_inputs?: number | null;
-  max_epoch?: number | null;
-  max_tx_ex_units?: ExUnitsJSON | null;
-  max_tx_size?: number | null;
-  max_value_size?: number | null;
-  min_pool_cost?: string | null;
-  minfee_a?: string | null;
-  minfee_b?: string | null;
-  n_opt?: number | null;
-  pool_deposit?: string | null;
-  pool_pledge_influence?: UnitIntervalJSON | null;
-  protocol_version?: ProtocolVersionJSON | null;
-  treasury_growth_rate?: UnitIntervalJSON | null;
+export interface TreasuryWithdrawalsJSON {
+  [k: string]: string;
 }
-export interface ProtocolVersionJSON {
-  major: number;
-  minor: number;
+export interface NoConfidenceActionJSON {
+  gov_action_id?: GovernanceActionIdJSON | null;
 }
-export type PublicKeyJSON = string;
+export interface UpdateCommitteeActionJSON {
+  committee: CommitteeJSON;
+  gov_action_id?: GovernanceActionIdJSON | null;
+  members_to_remove: CredTypeJSON[];
+}
+export interface CommitteeJSON {
+  members: CommitteeMemberJSON[];
+  quorum_threshold: UnitIntervalJSON;
+}
+export interface CommitteeMemberJSON {
+  stake_credential: CredTypeJSON;
+  term_limit: number;
+}
+export interface NewConstitutionActionJSON {
+  constitution: ConstitutionJSON;
+  gov_action_id?: GovernanceActionIdJSON | null;
+}
+export interface ConstitutionJSON {
+  anchor: AnchorJSON;
+  script_hash?: string | null;
+}
+export interface TransactionWitnessSetJSON {
+  bootstraps?: BootstrapWitnessJSON[] | null;
+  native_scripts?: NativeScriptsJSON | null;
+  plutus_data?: PlutusListJSON | null;
+  plutus_scripts?: PlutusScriptsJSON | null;
+  redeemers?: RedeemerJSON[] | null;
+  vkeys?: VkeywitnessJSON[] | null;
+}
+export interface BootstrapWitnessJSON {
+  attributes: number[];
+  chain_code: number[];
+  signature: string;
+  vkey: VkeyJSON;
+}
+export interface PlutusListJSON {
+  definite_encoding?: boolean | null;
+  elems: string[];
+}
 export interface RedeemerJSON {
   data: string;
   ex_units: ExUnitsJSON;
   index: string;
   tag: RedeemerTagJSON;
 }
-export type RedeemerTagJSON = RedeemerTagKindJSON;
-export type RedeemerTagKindJSON = "Spend" | "MintJSON" | "Cert" | "Reward";
+export interface VkeywitnessJSON {
+  signature: string;
+  vkey: VkeyJSON;
+}
+export type BlockHashJSON = string;
+export type BootstrapWitnessesJSON = BootstrapWitnessJSON[];
+
+export type CertificateEnumJSON =
+  | {
+      StakeRegistration: StakeRegistrationJSON;
+    }
+  | {
+      StakeDeregistration: StakeDeregistrationJSON;
+    }
+  | {
+      StakeDelegation: StakeDelegationJSON;
+    }
+  | {
+      PoolRegistration: PoolRegistrationJSON;
+    }
+  | {
+      PoolRetirement: PoolRetirementJSON;
+    }
+  | {
+      GenesisKeyDelegation: GenesisKeyDelegationJSON;
+    }
+  | {
+      MoveInstantaneousRewardsCert: MoveInstantaneousRewardsCertJSON;
+    }
+  | {
+      CommitteeHotAuth: CommitteeHotAuthJSON;
+    }
+  | {
+      CommitteeColdResign: CommitteeColdResignJSON;
+    }
+  | {
+      DRepDeregistration: DRepDeregistrationJSON;
+    }
+  | {
+      DRepRegistration: DRepRegistrationJSON;
+    }
+  | {
+      DRepUpdate: DRepUpdateJSON;
+    }
+  | {
+      StakeAndVoteDelegation: StakeAndVoteDelegationJSON;
+    }
+  | {
+      StakeRegistrationAndDelegation: StakeRegistrationAndDelegationJSON;
+    }
+  | {
+      StakeVoteRegistrationAndDelegation: StakeVoteRegistrationAndDelegationJSON;
+    }
+  | {
+      VoteDelegation: VoteDelegationJSON;
+    }
+  | {
+      VoteRegistrationAndDelegation: VoteRegistrationAndDelegationJSON;
+    };
+export type CertificatesJSON = CertificateJSON[];
+
+export type CredentialJSON = CredTypeJSON;
+export type CredentialsJSON = CredTypeJSON[];
+export type DRepEnumJSON =
+  | ("AlwaysAbstain" | "AlwaysNoConfidence")
+  | {
+      KeyHash: string;
+    }
+  | {
+      ScriptHash: string;
+    };
+export type DataHashJSON = string;
+export type Ed25519KeyHashJSON = string;
+export type Ed25519KeyHashesJSON = string[];
+export type Ed25519SignatureJSON = string;
+export interface GeneralTransactionMetadataJSON {
+  [k: string]: string;
+}
+export type GenesisDelegateHashJSON = string;
+export type GenesisHashJSON = string;
+export type GenesisHashesJSON = string[];
+export type GovernanceActionEnumJSON =
+  | {
+      ParameterChangeAction: ParameterChangeActionJSON;
+    }
+  | {
+      HardForkInitiationAction: HardForkInitiationActionJSON;
+    }
+  | {
+      TreasuryWithdrawalsAction: TreasuryWithdrawalsActionJSON;
+    }
+  | {
+      NoConfidenceAction: NoConfidenceActionJSON;
+    }
+  | {
+      UpdateCommitteeAction: UpdateCommitteeActionJSON;
+    }
+  | {
+      NewConstitutionAction: NewConstitutionActionJSON;
+    }
+  | {
+      InfoAction: InfoActionJSON;
+    };
+export type GovernanceActionIdsJSON = GovernanceActionIdJSON[];
+
+export type IntJSON = string;
+/**
+ * @minItems 4
+ * @maxItems 4
+ */
+export type KESVKeyJSON = string;
+export type LanguageJSON = LanguageKindJSON;
+export type LanguageKindJSON = "PlutusV1" | "PlutusV2" | "PlutusV3";
+export type LanguagesJSON = LanguageJSON[];
+export type MIRToStakeCredentialsJSON = StakeToCoinJSON[];
+
+export type MintsAssetsJSON = MintAssetsJSON[];
+
+export type NetworkIdKindJSON = "Testnet" | "Mainnet";
+export type PlutusScriptJSON = string;
+export type PoolMetadataHashJSON = string;
+export interface ProposedProtocolParameterUpdatesJSON {
+  [k: string]: ProtocolParamUpdateJSON;
+}
+export type PublicKeyJSON = string;
+export type RedeemerTagKindJSON = "Spend" | "Mint" | "Cert" | "Reward" | "Vote" | "VotingProposal";
 export type RedeemersJSON = RedeemerJSON[];
-export type RelayJSON = RelayEnumJSON;
+
 export type RelayEnumJSON =
   | {
-      SingleHostAddrJSON: SingleHostAddr;
+      SingleHostAddr: SingleHostAddrJSON;
     }
   | {
-      SingleHostNameJSON: SingleHostName;
+      SingleHostName: SingleHostNameJSON;
     }
   | {
-      MultiHostNameJSON: MultiHostName;
+      MultiHostName: MultiHostNameJSON;
     };
-export type RelaysJSON = RelayJSON[];
+/**
+ * @minItems 4
+ * @maxItems 4
+ */
 export type RewardAddressJSON = string;
 export type RewardAddressesJSON = string[];
-export interface ScriptAllJSON {
-  native_scripts: NativeScriptsJSON;
-}
-export interface ScriptAnyJSON {
-  native_scripts: NativeScriptsJSON;
-}
 export type ScriptDataHashJSON = string;
 export type ScriptHashJSON = string;
 export type ScriptHashesJSON = string[];
-export interface ScriptNOfKJSON {
-  n: number;
-  native_scripts: NativeScriptsJSON;
-}
-export interface ScriptPubkeyJSON {
-  addr_keyhash: string;
-}
-export type ScriptRefJSON = ScriptRefEnumJSON;
 export type ScriptRefEnumJSON =
   | {
-      NativeScriptJSON: NativeScript;
+      NativeScript: NativeScriptJSON;
     }
   | {
-      PlutusScriptJSON: string;
+      PlutusScript: string;
     };
-export interface SingleHostAddrJSON {
-  ipv4?: Ipv4JSON | null;
-  ipv6?: Ipv6JSON | null;
-  port?: number | null;
-}
-export interface SingleHostNameJSON {
-  dns_name: DNSRecordAorAAAAJSON;
-  port?: number | null;
-}
-export type StakeCredTypeJSON =
-  | {
-      Key: string;
-    }
-  | {
-      Script: string;
-    };
-export type StakeCredentialJSON = StakeCredTypeJSON;
-export type StakeCredentialsJSON = StakeCredTypeJSON[];
-export interface StakeDelegationJSON {
-  pool_keyhash: string;
-  stake_credential: StakeCredTypeJSON;
-}
-export interface StakeDeregistrationJSON {
-  stake_credential: StakeCredTypeJSON;
-}
-export interface StakeRegistrationJSON {
-  stake_credential: StakeCredTypeJSON;
-}
-export interface TimelockExpiryJSON {
-  slot: string;
-}
-export interface TimelockStartJSON {
-  slot: string;
-}
 export interface TransactionJSON {
   auxiliary_data?: AuxiliaryDataJSON | null;
   body: TransactionBodyJSON;
   is_valid: boolean;
   witness_set: TransactionWitnessSetJSON;
 }
-export type TransactionBodiesJSON = TransactionBodyJSON[];
-export interface TransactionBodyJSON {
-  auxiliary_data_hash?: string | null;
-  certs?: CertificatesJSON | null;
-  collateral?: TransactionInputsJSON | null;
-  collateral_return?: TransactionOutputJSON | null;
-  fee: string;
-  inputs: TransactionInputsJSON;
-  mint?: MintJSON | null;
-  network_id?: NetworkIdJSON | null;
-  outputs: TransactionOutputsJSON;
-  reference_inputs?: TransactionInputsJSON | null;
-  required_signers?: Ed25519KeyHashesJSON | null;
-  script_data_hash?: string | null;
-  total_collateral?: string | null;
-  ttl?: string | null;
-  update?: UpdateJSON | null;
-  validity_start_interval?: string | null;
-  withdrawals?: {
-    [k: string]: ProtocolParamUpdateJSON;
-  } | null;
-}
 export type TransactionHashJSON = string;
-export interface TransactionInputJSON {
-  index: number;
-  transaction_id: string;
-}
 export type TransactionInputsJSON = TransactionInputJSON[];
+
 export type TransactionMetadatumJSON = string;
-export interface TransactionOutputJSON {
-  address: string;
-  amount: ValueJSON;
-  plutus_data?: DataOptionJSON | null;
-  script_ref?: ScriptRefJSON | null;
-}
-export type TransactionOutputsJSON = TransactionOutputJSON[];
 export interface TransactionUnspentOutputJSON {
   input: TransactionInputJSON;
   output: TransactionOutputJSON;
 }
 export type TransactionUnspentOutputsJSON = TransactionUnspentOutputJSON[];
-export interface TransactionWitnessSetJSON {
-  bootstraps?: BootstrapWitnessesJSON | null;
-  native_scripts?: NativeScriptsJSON | null;
-  plutus_data?: PlutusList | null;
-  plutus_scripts?: PlutusScriptsJSON | null;
-  redeemers?: RedeemersJSON | null;
-  vkeys?: VkeywitnessesJSON | null;
-}
-export type TransactionWitnessSetsJSON = TransactionWitnessSetJSON[];
-export type URLJSON = string;
-export interface UnitIntervalJSON {
-  denominator: string;
-  numerator: string;
-}
-export interface UpdateJSON {
-  epoch: number;
-  proposed_protocol_parameter_updates: {
-    [k: string]: ProtocolParamUpdateJSON;
-  };
-}
-export interface VRFCertJSON {
-  output: number[];
-  proof: number[];
-}
+
 export type VRFKeyHashJSON = string;
 export type VRFVKeyJSON = string;
-export interface ValueJSON {
-  coin: string;
-  multiasset?: MultiAssetJSON | null;
-}
-export type VkeyJSON = string;
-export interface VkeywitnessJSON {
-  signature: string;
-  vkey: VkeyJSON;
+export interface VersionedBlockJSON {
+  block: BlockJSON;
+  era_code: number;
 }
 export type VkeywitnessesJSON = VkeywitnessJSON[];
+
+export type VoterEnumJSON =
+  | {
+      ConstitutionalCommitteeHotCred: CredTypeJSON;
+    }
+  | {
+      DRep: CredTypeJSON;
+    }
+  | {
+      StakingPool: string;
+    };
+export type VotersJSON = VoterJSON[];
+export type VotingProceduresJSON = VoterVotesJSON[];
+
+export type VotingProposalsJSON = VotingProposalJSON[];
+
 export interface WithdrawalsJSON {
-  [k: string]: ProtocolParamUpdateJSON;
+  [k: string]: string;
 }
