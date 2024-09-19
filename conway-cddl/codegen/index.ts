@@ -25,8 +25,12 @@ export class Codegen {
   }
 
   generate(): string {
+    let generatorsSorted = [...this.generators];
+    generatorsSorted.sort((a, b) =>
+      a.name > b.name ? 1 : a.name == b.name ? 0 : -1,
+    );
     let out = [];
-    for (let item of this.generators) {
+    for (let item of generatorsSorted) {
       out.push(item.generate());
     }
     return out.join("\n\n");
