@@ -1,0 +1,63 @@
+Int:
+  type: newtype
+  item: bigint
+  accessor: toJsValue
+  methods:
+    new: null
+  extra_methods: |
+    // Lifted from: https://doc.rust-lang.org/std/primitive.i32.html#associatedconstant.MAX
+    private static maxI32(): number {
+      return 2147483647;
+    }
+
+    // Lifted from: https://doc.rust-lang.org/std/primitive.i32.html#associatedconstant.MIN
+    private static minI32(): number {
+      return -2147483648;
+    }
+
+    static from_str(string: string): Int {
+      return new Int(BigInt(string));
+    }
+
+    to_str(): string {
+      return this.toJsValue().toString();
+    }
+
+    static new(x: BigNum): Int {
+      return new Int(x.toJsValue())
+    }
+
+    static new_negative(x: BigNum): Int {
+      return new Int(-1n * x.toJsValue())
+    }
+
+    static new_i32(x: number): Int {
+      return new Int(BigInt(x))
+    }
+
+    is_positive(): boolean {
+      return this.toJsValue() >= 0n;
+    }
+
+    as_positive(): BigNum | undefined {
+      return this.is_positive() ? new BigNum(this.toJsValue()) : undefined;
+    }
+
+    as_negative(): BigNum | undefined {
+      return (!this.is_positive()) ? new BigNum(-1n * this.toJsValue()) : undefined;
+    }
+
+    as_i32(): number | undefiend {
+      return this.as_i32_or_nothing();
+    }
+
+    as_i32_or_nothing(): number | undefined {
+      let x = this.toJsValue();
+      return (x >= Int.minI32() && x <= Int.maxI32()) ? Number(x) : undefined;
+    }
+
+    as_i32_or_fail(): number {
+      let x = this.as_i32_or_nothing();
+      if(x == null) throw new Error("Int out of i32 bounds");
+      return x;
+    }
