@@ -6,6 +6,7 @@ export type CodeGeneratorBaseOptions = {
     tag: number;
     bytes?: boolean;
   };
+  extra_methods?: string;
 };
 export class CodeGeneratorBase {
   name: string;
@@ -163,6 +164,8 @@ export class CodeGeneratorBase {
         ${serialize}
 
         ${this.options.genCSL ? this.generateCSLHelpers() : ""}
+
+        ${this.options.extra_methods ? this.options.extra_methods : ""}
       }
 
       ${this.generatePost()}
