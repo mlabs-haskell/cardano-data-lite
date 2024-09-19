@@ -189,9 +189,8 @@ export class TypeUtils {
       case "string":
       case "number":
       case "boolean":
+      case "bigint":
         return yamlType;
-      case "bignum":
-        return "bigint";
       case "bytes":
         return "Uint8Array";
       case "arrayToUint32Array":
@@ -213,7 +212,7 @@ export class TypeUtils {
         return `${reader}.readString()`;
       case "number":
         return `Number(${reader}.readInt())`;
-      case "bignum":
+      case "bigint":
         return `${reader}.readInt()`;
       case "boolean":
         return `${reader}.readBoolean()`;
@@ -238,7 +237,7 @@ export class TypeUtils {
         return `${writer}.writeString(${value})`;
       case "number":
         return `${writer}.writeInt(BigInt(${value}))`;
-      case "bignum":
+      case "bigint":
         return `${writer}.writeInt(${value})`;
       case "boolean":
         return `${writer}.writeBoolean(${value})`;
@@ -261,7 +260,7 @@ export class TypeUtils {
     switch (type) {
       case "string":
       case "number":
-      case "bignum":
+      case "bigint":
       case "boolean":
         return `${var1} === ${var2}`;
       case "bytes":
