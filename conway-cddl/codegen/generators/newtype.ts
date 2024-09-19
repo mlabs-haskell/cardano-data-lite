@@ -22,6 +22,11 @@ export class GenNewtype extends CodeGeneratorBase {
       min?: number;
       max?: number;
     };
+    value?: {
+      eq?: number;
+      min?: number;
+      max?: number;
+    };
   };
 
   constructor(
@@ -61,6 +66,21 @@ export class GenNewtype extends CodeGeneratorBase {
         ${
           this.constraints?.len?.max != null
             ? `if(inner.length > ${this.constraints.len.max}) throw new Error("Expected length to be atmost ${this.constraints.len.max}");`
+            : ""
+        }
+        ${
+          this.constraints?.value?.eq != null
+            ? `if(inner != ${this.constraints.value.eq}) throw new Error("Expected value to be ${this.constraints.value.eq}");`
+            : ""
+        }
+        ${
+          this.constraints?.value?.min != null
+            ? `if(inner < ${this.constraints.value.min}) throw new Error("Expected value to be atleast ${this.constraints.value.min}");`
+            : ""
+        }
+        ${
+          this.constraints?.value?.max != null
+            ? `if(inner > ${this.constraints.value.max}) throw new Error("Expected value to be atmost ${this.constraints.value.max}");`
             : ""
         }
         this.inner = inner;
