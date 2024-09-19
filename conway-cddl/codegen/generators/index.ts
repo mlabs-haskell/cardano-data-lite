@@ -131,12 +131,12 @@ export class CodeGeneratorBase {
   }
 
   generate(): string {
-    let deserialize;
-    let serialize;
+    let deserialize: string;
+    let serialize: string;
 
     if (this.options.tagged != null) {
-      let deserializeInner;
-      let serializeInner;
+      let deserializeInner: string;
+      let serializeInner: string;
       if (this.options.tagged.bytes) {
         deserializeInner = `
           let innerBytes = reader.readBytes();
@@ -145,7 +145,7 @@ export class CodeGeneratorBase {
         `;
         serializeInner = `
           let innerWriter = new CBORWriter();
-          ${this.name}.serializeInner(innerWriter);
+          this.serializeInner(innerWriter);
           reader.writeBytes(innerWriter.getBytes());
         `;
       } else {
@@ -153,7 +153,7 @@ export class CodeGeneratorBase {
           return ${this.name}.deserializeInner(reader);
         `;
         serializeInner = `
-          ${this.name}.serializeInner(writer);
+          this.serializeInner(writer);
         `;
       }
 
