@@ -1,0 +1,81 @@
+BigNum:
+  type: newtype
+  item: bigint
+  accessor: toJsValue
+  constraints:
+    value:
+      min: 0n
+      max: BigNum.maxU64()
+  extra_methods: |
+    // Lifted from: https://doc.rust-lang.org/std/primitive.u64.html#associatedconstant.MAX
+    private static maxU64(): bigint {
+      return 18446744073709551615n;
+    }
+
+    static from_str(string: string): BigNum {
+      return new BigNum(BigInt(string));
+    }
+
+    to_str(): string {
+      return this.toJsValue().toString();
+    }
+
+    static zero(): BigNum {
+      return new BigNum(0n);
+    }
+
+    static one(): BigNum {
+      return new BigNum(1n);
+    }
+
+    is_zero(): boolean {
+      return this.toJsValue() == 0n;
+    }
+
+    div_floor(other: BigNum): BigNum {
+      let res = this.toJsValue() / other.toJsValue();
+      return new BigNum(res);
+    }
+
+    checked_mul(other: BigNum): BigNum {
+      let res = this.toJsValue() * other.toJsValue();
+      if(res > BigNum.maxU64()) throw new Error("BigNum.checked_mul overflow")
+      return new BigNum(res);
+    }
+
+    checked_add(other: BigNum): BigNum {
+      let res = this.toJsValue() + other.toJsValue();
+      if(res > BigNum.maxU64()) throw new Error("BigNum.checked_add overflow")
+      return new BigNum(res);
+    }
+
+    checked_sub(other: BigNum): BigNum {
+      let res = this.toJsValue() - other.toJsValue();
+      if(res < 0n) throw new Error("BigNum.checked_add overflow")
+      return new BigNum(res);
+    }
+
+    clamped_sub(other: BigNum): BigNum {
+      let res = this.toJsValue() - other.toJsValue();
+      if(res < 0n) res = 0n;
+      return new BigNum(res);
+    }
+
+    compare(rhs_value: BigNum): number {
+      if(this.toJsValue() < rhs_value.toJsValue()) return -1;
+      else if(this.toJsValue() == rhs_value.toJsValue()) return 0;
+      else return 1;
+    }
+
+    less_than(rhs_value: BigNum): boolean {
+      return this.toJsValue() < rhs_value.toJsValue();
+    }
+
+    static max_value(): BigNum {
+      return new BigNum(BigNum.maxU64());
+    }
+
+    static max(a: BigNum, b: Bignum): BigNum {
+      if(a.toJsValue() > b.toJsValue()) return a;
+      else return b;
+    }
