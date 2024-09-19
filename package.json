@@ -10,7 +10,7 @@
   "license": "ISC",
   "type": "module",
   "devDependencies": {
-    "@emurgo/cardano-serialization-lib-browser": "^11.5.0",
+    "@emurgo/cardano-serialization-lib-browser": "^12.1",
     "@prettier/sync": "^0.5.2",
     "@sinclair/typebox": "^0.33.7",
     "@types/node": "^20.12.7",
