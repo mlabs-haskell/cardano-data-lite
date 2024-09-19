@@ -9,6 +9,9 @@ export const Schema = Type.Intersect([
         bytes: Type.Optional(Type.Boolean()),
       }),
     ),
+    methods: Type.Optional(
+      Type.Record(Type.String(), Type.Union([Type.Null(), Type.String()])),
+    ),
     extra_methods: Type.Optional(Type.String()),
   }),
   Type.Union([

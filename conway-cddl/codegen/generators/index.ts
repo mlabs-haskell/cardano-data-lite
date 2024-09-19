@@ -7,6 +7,7 @@ export type CodeGeneratorBaseOptions = {
     bytes?: boolean;
   };
   extra_methods?: string;
+  methods?: { [key: string]: string };
 };
 export class CodeGeneratorBase {
   name: string;
@@ -23,6 +24,21 @@ export class CodeGeneratorBase {
     this.options = options;
   }
 
+  renameMethod(name: string, contents: (name: string) => string): string {
+    if (this.name == "Int")
+      console.log("METHODS", this.options, this.options.methods);
+    if (
+      this.options.methods == null ||
+      !Object.hasOwn(this.options.methods, name)
+    ) {
+      return contents(name);
+    }
+    let newName = this.options.methods[name];
+    console.log("Rename:", name, newName);
+    if (newName == null) return "";
+    return contents(newName);
+  }
+
   deserialize(reader: string): string {
     return `${this.name}.deserialize(${reader})`;
   }
@@ -37,28 +53,52 @@ export class CodeGeneratorBase {
 
   generateCSLHelpers() {
     return `  
+    ${this.renameMethod(
+      "free",
+      (free) => `
     // no-op
-    free(): void {}
+    ${free}(): void {}`,
+    )}
 
-    static from_bytes(data: Uint8Array): ${this.name} {
+
+    ${this.renameMethod(
+      "from_bytes",
+      (from_bytes) => `
+    static ${from_bytes}(data: Uint8Array): ${this.name} {
       let reader = new CBORReader(data);
       return ${this.deserialize("reader")}
-    }
+    }`,
+    )}
 
-    static from_hex(hex_str: string): ${this.name} {
+
+    ${this.renameMethod(
+      "from_hex",
+      (from_hex) => `
+    static ${from_hex}(hex_str: string): ${this.name} {
       return ${this.name}.from_bytes(hexToBytes(hex_str));
-    }
+    }`,
+    )}
 
     
-    to_bytes(): Uint8Array {
+    ${this.renameMethod(
+      "to_bytes",
+      (to_bytes) => `
+    ${to_bytes}(): Uint8Array {
       let writer = new CBORWriter();
       ${this.serialize("writer", "this")}
       return writer.getBytes();
-    }
+    }`,
+    )}
 
-    to_hex(): string {
+
+    ${this.renameMethod(
+      "to_hex",
+      (to_hex) => `
+    ${to_hex}(): string {
       return bytesToHex(this.to_bytes());
-    }
+    }`,
+    )}
+
   `;
   }
 
@@ -118,37 +158,57 @@ export class CodeGeneratorBase {
       }
 
       deserialize = `
-        static deserialize(reader: CBORReader): ${this.name} {
+        ${this.renameMethod(
+          "deserialize",
+          (deserialize) => `
+        static ${deserialize}(reader: CBORReader): ${this.name} {
           let taggedTag = reader.readTaggedTag();
-          if (taggedTag != ${this.options.tagged.tag}) {
-            throw new Error("Expected tag ${this.options.tagged.tag}, got " + taggedTag);
+          if (taggedTag != ${this.options.tagged!.tag}) {
+            throw new Error("Expected tag ${this.options.tagged!.tag}, got " + taggedTag);
           }
           ${deserializeInner}
-        }
+        }`,
+        )}
 
         static deserializeInner(reader: CBORReader): ${this.name} {
           ${this.generateDeserialize("reader")}
         }`;
 
       serialize = `
-        serialize(writer: CBORWriter): void {
-          writer.writeTaggedTag(${this.options.tagged.tag});
+        ${this.renameMethod(
+          "serialize",
+          (serialize) => `
+        ${serialize}(writer: CBORWriter): void {
+          writer.writeTaggedTag(${this.options.tagged!.tag});
           ${serializeInner}
-        }
+        }`,
+        )}
 
         serializeInner(writer: CBORWriter): void {
           ${this.generateSerialize("writer")}
         }`;
     } else {
       deserialize = `
-        static deserialize(reader: CBORReader): ${this.name} {
+        ${this.renameMethod(
+          "deserialize",
+          (deserialize) => `
+        static ${deserialize}(reader: CBORReader): ${this.name} {
           ${this.generateDeserialize("reader")}
-        }`;
+        }`,
+        )}
+  
+        `;
 
       serialize = `
-        serialize(writer: CBORWriter): void {
+        ${this.renameMethod(
+          "serialize",
+          (serialize) => `
+        ${serialize}(writer: CBORWriter): void {
           ${this.generateSerialize("writer")}
-        }`;
+        }`,
+        )}
+
+        `;
     }
 
     return `
