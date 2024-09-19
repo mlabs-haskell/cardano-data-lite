@@ -52,6 +52,12 @@ async function main() {
     import {CBORWriter} from "../cbor/writer";
     import {hexToBytes, bytesToHex} from "../hex";
     import {arrayEq} from "../eq";
+
+    function $$UN(...args: any): any {}
+    const $$CANT_READ = $$UN;
+    const $$CANT_WRITE = $$UN;
+    const $$CANT_EQ = $$UN;
+
     `;
     let out = codegen.generate();
     fs.writeFileSync("../../src/generated/out-unformatted.ts", out);
