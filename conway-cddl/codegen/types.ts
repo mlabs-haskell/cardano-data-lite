@@ -42,6 +42,13 @@ export const Schema = Type.Intersect([
               max: Type.Optional(Type.Number()),
             }),
           ),
+          value: Type.Optional(
+            Type.Object({
+              eq: Type.Optional(Type.String()),
+              min: Type.Optional(Type.String()),
+              max: Type.Optional(Type.String()),
+            }),
+          ),
         }),
       ),
     }),
