@@ -89,7 +89,7 @@ HeaderBody:
     - name: block_number
       type: number
     - name: slot
-      type: bignum
+      type: BigNum
     - name: prev_hash
       type: BlockHash
       nullable: true
@@ -171,10 +171,10 @@ TransactionBody:
       type: TransactionOutputs
     - id: 2
       name: fee
-      type: bignum
+      type: BigNum
     - id: 3
       name: ttl
-      type: bignum
+      type: BigNum
       optional: true
       flags:
         - as_number
@@ -192,7 +192,7 @@ TransactionBody:
       optional: true
     - id: 8
       name: validity_start_interval
-      type: bignum
+      type: BigNum
       optional: true
     - id: 9
       name: mint
@@ -220,7 +220,7 @@ TransactionBody:
       optional: true
     - id: 17
       name: total_collateral
-      type: bignum
+      type: BigNum
       optional: true
     - id: 18
       name: reference_inputs
@@ -236,11 +236,11 @@ TransactionBody:
       optional: true
     - id: 21
       name: current_treasury_value
-      type: bignum
+      type: BigNum
       optional: true
     - id: 22
       name: donation
-      type: bignum
+      type: BigNum
       optional: true
 
 TransactionInputs:
@@ -285,7 +285,7 @@ VotingProposal:
   type: record
   fields:
     - name: deposit
-      type: bignum
+      type: BigNum
     - name: reward_account
       type: RewardAddress
     - name: governance_action
@@ -776,7 +776,7 @@ RegCert:
     - name: stake_credential
       type: Credential
     - name: coin
-      type: bignum
+      type: BigNum
 
 UnregCert:
   type: record_fragment
@@ -784,7 +784,7 @@ UnregCert:
     - name: stake_credential
       type: Credential
     - name: coin
-      type: bignum
+      type: BigNum
 
 VoteDelegation:
   type: record_fragment
@@ -812,7 +812,7 @@ StakeRegistrationAndDelegation:
     - name: pool_keyhash
       type: Ed25519KeyHash
     - name: coin
-      type: bignum
+      type: BigNum
 
 VoteRegistrationAndDelegation:
   type: record_fragment
@@ -822,7 +822,7 @@ VoteRegistrationAndDelegation:
     - name: drep
       type: DRep
     - name: coin
-      type: bignum
+      type: BigNum
 
 StakeVoteRegistrationAndDelegation:
   type: record_fragment
@@ -834,7 +834,7 @@ StakeVoteRegistrationAndDelegation:
     - name: drep
       type: DRep
     - name: coin
-      type: bignum
+      type: BigNum
 
 CommitteeHotAuth:
   type: record_fragment
@@ -859,7 +859,7 @@ DrepRegistration:
     - name: voting_credential
       type: Credential
     - name: coin
-      type: bignum
+      type: BigNum
     - name: anchor
       type: Anchor
       nullable: true
@@ -870,7 +870,7 @@ DrepDeregistration:
     - name: drep_credential
       type: Credential
     - name: coin
-      type: bignum
+      type: BigNum
 
 DrepUpdate:
   type: record_fragment
@@ -942,9 +942,9 @@ PoolParams:
     - name: vrf_keyhash
       type: VRFKeyHash
     - name: pledge
-      type: bignum
+      type: BigNum
     - name: cost
-      type: bignum
+      type: BigNum
     - name: margin
       type: UnitInterval
     - name: reward_account
@@ -1079,7 +1079,7 @@ URL:
 Withdrawals:
   type: map
   key: RewardAddress
-  value: bignum
+  value: BigNum
 
 # protocol_param_update =
 #   { ? 0:  coin                   ; minfee A
@@ -1119,11 +1119,11 @@ ProtocolParamUpdate:
   fields:
     - id: 0
       name: minfee_a
-      type: bignum
+      type: BigNum
       optional: true
     - id: 1
       name: minfee_b
-      type: bignum
+      type: BigNum
       optional: true
     - id: 2
       name: max_block_body_size
@@ -1139,11 +1139,11 @@ ProtocolParamUpdate:
       optional: true
     - id: 5
       name: key_deposit
-      type: bignum
+      type: BigNum
       optional: true
     - id: 6
       name: pool_deposit
-      type: bignum
+      type: BigNum
       optional: true
     - id: 7
       name: max_epoch
@@ -1167,11 +1167,11 @@ ProtocolParamUpdate:
       optional: true
     - id: 16
       name: min_pool_cost
-      type: bignum
+      type: BigNum
       optional: true
     - id: 17
       name: ada_per_utxo_byte
-      type: bignum
+      type: BigNum
       optional: true
     - id: 18
       name: costmdls
@@ -1223,11 +1223,11 @@ ProtocolParamUpdate:
       optional: true
     - id: 30
       name: governance_action_deposit
-      type: bignum
+      type: BigNum
       optional: true
     - id: 31
       name: drep_deposit
-      type: bignum
+      type: BigNum
       optional: true
     - id: 32
       name: drep_inactivity_period
@@ -1428,9 +1428,9 @@ ExUnits:
   type: record
   fields:
     - name: mem
-      type: bignum
+      type: BigNum
     - name: steps
-      type: bignum
+      type: BigNum
 
 # ex_unit_prices =
 #   [ mem_price: nonnegative_interval, step_price: nonnegative_interval ]
@@ -1492,7 +1492,7 @@ Language:
 # metadata = { * transaction_metadatum_label => transaction_metadatum }
 GeneralTransactionMetadata:
   type: map
-  key: bignum
+  key: BigNum
   value: TransactionMetadatum
 
 # auxiliary_data =
@@ -1622,13 +1622,13 @@ TimelockStart:
   type: record_fragment
   fields:
     - name: slot
-      type: bignum
+      type: BigNum
 
 TimelockExpiry:
   type: record_fragment
   fields:
     - name: slot
-      type: bignum
+      type: BigNum
 
 # coin = uint
 
@@ -1731,8 +1731,8 @@ UnitInterval:
   type: record
   fields:
     - name: numerator
-      type: bignum
+      type: BigNum
     - name: denominator
-      type: bignum
+      type: BigNum
   tagged:
     tag: 30
