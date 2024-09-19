@@ -47,7 +47,7 @@ Int:
       return (!this.is_positive()) ? new BigNum(-1n * this.toJsValue()) : undefined;
     }
 
-    as_i32(): number | undefiend {
+    as_i32(): number | undefined {
       return this.as_i32_or_nothing();
     }
 
