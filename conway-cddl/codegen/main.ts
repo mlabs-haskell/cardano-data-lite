@@ -26,7 +26,7 @@ async function main() {
 
   let codegen = new Codegen();
   let hasAnyError = false;
-  for (let filename of ["conway"]) {
+  for (let filename of ["conway", "custom/bignum", "custom/int"]) {
     let file = fs.readFileSync(`../yaml/${filename}.yaml`, "utf8");
     let doc = yaml.parse(file);
     for (let [key, value] of Object.entries(doc)) {
