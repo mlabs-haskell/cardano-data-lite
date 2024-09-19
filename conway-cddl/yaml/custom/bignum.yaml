@@ -75,7 +75,7 @@ BigNum:
       return new BigNum(BigNum.maxU64());
     }
 
-    static max(a: BigNum, b: Bignum): BigNum {
+    static max(a: BigNum, b: BigNum): BigNum {
       if(a.toJsValue() > b.toJsValue()) return a;
       else return b;
     }
