@@ -10,17 +10,27 @@ import * as Out from "./generated/out"
 // in the transaction ('path').
 type Component = { type: string, path: string, cbor: Uint8Array }
 // Each test is made of a transaction and an array of extracted components to test
-type TestParameters = { txCount: number, txHash: string, component: Component }
+type TestParameters = { txCount: number, txHash: string, componentIndex: number, component: Component }
 // The transaction info as provided by get_transactions.ts
 type TransactionInfo = { hash: string, cbor: string };
 
 // The transaction information obtained from get_transactions
 let transactionInfos: Array<TransactionInfo> = [];
+// The CSL transactions
+let transactionsCsl: Array<csl.Transaction> = [];
 // array of parameters for the test function
 let testsTable: Array<TestParameters> = [];
 
 // Types we are not interested in (or that are not supported)
-const typeBlacklist = new Set(["boolean", "bignum"]);
+const typeBlacklist = new Set([
+  // Broken
+  "AuxiliaryData",
+  "TransactionOutput",
+  "TransactionOutputs",
+  // Uninteresting
+  "boolean",
+  "bignum" 
+]);
 // Unsupported fields
 const fieldsBlacklist = new Set([
   "plutus_scripts_v1",
@@ -39,15 +49,19 @@ console.log("(serialization.test.ts) All transactions read.")
 
 // Build tests table
 console.log("(serialization.test.ts) Building tests table...")
+let componentIndex = 0;
 for (const [index, txInfo] of transactionInfos.entries()) {
   let tx = csl.Transaction.from_hex(txInfo.cbor);
+  transactionsCsl.push(tx);
   const components = explodeTx(tx)
   for (const component of components) {
     testsTable.push({
       txCount: index
       , txHash: txInfo.hash
       , component: component
+      , componentIndex: componentIndex
     });
+    componentIndex++;
   }
 }
 console.log("(serialization.test.ts) Tests table prepared.")
@@ -92,6 +106,17 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
         }
       }
       break;
+    case "array":
+      for (let index = 0; index < value.len(); index++) {
+        const elemValue = getElem(value, index, `${key}[${index}]`, schema.item);
+        if (elemValue && schemata[schema.item]) {
+          const newComponentPath = `${componentPath}.get(${index})`;
+          console.log(`Elem index: ${index}\nElem type: ${schema.item}\nPath: ${newComponentPath}`);
+          explodeValue(`${key}[${index}]`, elemValue, schemata[schema.item], schemata, components, newComponentPath)
+          components.push({ type: schema.item, path: newComponentPath, cbor: elemValue.to_bytes() });
+        }
+      }
+      break;
   }
 }
 
@@ -103,12 +128,30 @@ function getField(value: any, fieldName: string, fieldType: string): any | undef
   return value[fieldName]();
 }
 
+function getElem(value: any, index: number, elemName: string, elemType: string): any | undefined {
+  console.log("getElem: ", elemName);
+  if (typeBlacklist.has(elemType)) {
+    return undefined;
+  }
+  return value.get(index);
+}
+
 function updatePath(componentPath: string, fieldName: string, optional: boolean | undefined): string {
   return optional ? `${componentPath}["${fieldName}"]()?` : `${componentPath}["${fieldName}"]()`
 }
 
 describe("Serialization/deserialization roundtrip tests", () => {
-  test.each(testsTable)("TX $txCount ($txHash)\n\tComponent $component.path ($component.type) ", (params) => {
+  // Used for debugging 
+  let testN = 0;
+  test.skip(`Test N. ${testN}`, () => {
+    console.log(Buffer.from(testsTable[testN].component.cbor).toString('hex'));
+    let class_key = testsTable[testN].component.type as keyof (typeof Out);
+    let deserialized = (Out[class_key] as any).from_bytes(testsTable[testN].component.cbor);
+    let serialized = deserialized.to_bytes();
+    expect(serialized).toBe(testsTable[testN].component.cbor);
+  })
+
+  test.each(testsTable)("($componentIndex) TX $txCount ($txHash)\n\tComponent $component.path ($component.type) ", (params) => {
     let class_key = params.component.type as keyof (typeof Out);
     let deserialized = (Out[class_key] as any).from_bytes(params.component.cbor);
     let serialized = deserialized.to_bytes();
