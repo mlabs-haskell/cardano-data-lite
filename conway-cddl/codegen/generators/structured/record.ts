@@ -52,12 +52,12 @@ export class GenRecord extends GenStructuredBase<Field> {
       ${this.getFields()
         .map((x) =>
           x.nullable
-            ? `if(this.${x.name} == null) { 
+            ? `if(this._${x.name} == null) { 
                   ${writer}.writeNull();
               } else { 
-                  ${this.typeUtils.writeType(writer, `this.${x.name}`, x.type)};
+                  ${this.typeUtils.writeType(writer, `this._${x.name}`, x.type)};
               }`
-            : `${this.typeUtils.writeType(writer, `this.${x.name}`, x.type)};`,
+            : `${this.typeUtils.writeType(writer, `this._${x.name}`, x.type)};`,
         )
         .join("\n")}
     `;

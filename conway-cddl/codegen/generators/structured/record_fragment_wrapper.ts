@@ -36,7 +36,7 @@ export class GenRecordFragmentWrapper extends GenStructuredBase<Item> {
 
   generateSerialize(writer: string): string {
     return ` 
-      this.${this.getItem().name}.serialize(${writer});
+      this._${this.getItem().name}.serialize(${writer});
     `;
   }
 }
