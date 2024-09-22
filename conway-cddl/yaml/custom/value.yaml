@@ -2,7 +2,7 @@ Value:
   type: record
   fields:
     - name: coin
-      type: bignum
+      type: BigNum
     - name: multiasset
       type: MultiAsset
       nullable: true
@@ -12,22 +12,22 @@ Value:
     new: new_with_assets
   extra_methods: |
     static zero(): Value {
-      return Value.new(0n);
+      return Value.new(BigNum.zero());
     }
 
-    static new(coin: bigint): Value {
+    static new(coin: BigNum): Value {
       return Value.new_with_assets(coin, undefined);
     }
 
     static new_from_assets(multiasset: MultiAsset): Value {
-      return Value.new_with_assets(0n, multiasset);
+      return Value.new_with_assets(BigNum.zero(), multiasset);
     }
 
-    deserialize(reader: CBORReader): Value {
+    static deserialize(reader: CBORReader): Value {
       if(reader.peekType() == 'array') {
-        return this.deserializeRecord(reader);
+        return Value.deserializeRecord(reader);
       }
-      return Value.new(reader.readUint());
+      return Value.new(BigNum.deserialize(reader));
     }
 
     serialize(writer: CBORWriter): void {
@@ -35,15 +35,15 @@ Value:
         this._multiasset == null || 
         this._multiasset.len() == 0
       ) {
-        writer.writeUint(this.coin);
+        this._coin.serialize(writer);
       } else {
         this.serializeRecord();
       }
     }
 
     checked_add(rhs: Value): Value {
-      let coin = this._coin.checked_add(rhs.coin);
-      let multiasset: Multiasset | undefined;
+      let coin = this._coin.checked_add(rhs._coin);
+      let multiasset: MultiAsset | undefined;
       if(this._multiasset != null) {
         multiasset = this._multiasset.clone();
         if(rhs._multiasset != null) {
@@ -55,9 +55,9 @@ Value:
       return new Value(coin, multiasset);
     }
 
-    checked_sub(rhs_value: Value): Value {
-      let coin = this.coin.checked_sub(rhs.coin);
-      let multiasset: Multiasset | undefined;
+    checked_sub(rhs: Value): Value {
+      let coin = this._coin.checked_sub(rhs._coin);
+      let multiasset: MultiAsset | undefined;
       if(this._multiasset != null) {
         multiasset = this._multiasset.clone();
         if(rhs._multiasset != null) {
@@ -67,8 +67,9 @@ Value:
       return new Value(coin, multiasset);
     }
 
-    clamped_sub(rhs_value: Value): Value {
-      let coin = this.coin.clamped_sub(rhs.coin);
+    clamped_sub(rhs: Value): Value {
+      let coin = this._coin.clamped_sub(rhs._coin);
+      let multiasset: MultiAsset | undefined;
       if(this._multiasset != null) {
         multiasset = this._multiasset.clone();
         if(rhs._multiasset != null) {
@@ -79,9 +80,9 @@ Value:
     }
 
     compare(rhs_value: Value): number | undefined {
-      let coin_cmp = this.coin.compare(rhs_value.coin);
-      let this_multiasset = this.multiasset ?? MultiAsset.new();
-      let rhs_multiasset = rhs_value.multiasset ?? MultiAsset.new();
+      let coin_cmp = this._coin.compare(rhs_value._coin);
+      let this_multiasset = this._multiasset ?? MultiAsset.new();
+      let rhs_multiasset = rhs_value._multiasset ?? MultiAsset.new();
 
       let assets_cmp = this_multiasset._partial_cmp(rhs_multiasset);
       if(assets_cmp == null) return undefined;
@@ -109,7 +110,7 @@ MultiAsset:
         assets = Assets.new();
         this.insert(policy_id, assets);
       }
-      assets.insert(asset_name, value);
+      return assets.insert(asset_name, value);
     }
 
     get_asset(
@@ -153,7 +154,7 @@ MultiAsset:
     _normalize(): void {
       let to_remove: ScriptHash[] = [];
       for(let [policy_id, assets] of this.items) {
-        if(assets.len() == 0) to_remove.add(policy_id);
+        if(assets.len() == 0) to_remove.push(policy_id);
       }
       this._remove_many(to_remove);
     }
@@ -165,29 +166,29 @@ MultiAsset:
         false, // 0
         false, // 1
       ];
-      for(let [policy_id, this_assets] in this.items) {
+      for(let [policy_id, this_assets] of this.items) {
         let rhs_assets = rhs.get(policy_id);
         if(rhs_assets == null) rhs_assets = zero;
-        let assets_cmp = this_assets.compare(rhs_assets);
+        let assets_cmp = this_assets._partial_cmp(rhs_assets);
         if(assets_cmp == null) return undefined;
         cmps[1 + assets_cmp] = true;
       }
 
-      for(let [policy_id, rhs_assets] in rhs.items) {
+      for(let [policy_id, rhs_assets] of rhs.items) {
         let this_assets = this.get(policy_id);
         if(this_assets == null) this_assets = zero;
-        let assets_cmp = this_assets.compare(rhs_assets);
+        let assets_cmp = this_assets._partial_cmp(rhs_assets);
         if(assets_cmp == null) return undefined;
         cmps[1 + assets_cmp] = true;
       }
       
       let has_less = cmps[0];
-      let has_equal = cmps[1];
+      let _has_equal = cmps[1];
       let has_greater = cmps[2];
 
-      if(has_less && has_greater) return undefnined;
-      elif(has_less) return -1;
-      elif(has_greater) return 1;
+      if(has_less && has_greater) return undefined;
+      else if(has_less) return -1;
+      else if(has_greater) return 1;
       else return 0;
     }
 
@@ -198,7 +199,7 @@ Assets:
   keys_method_type: AssetNames
   extra_methods: |
     _inplace_checked_add(rhs: Assets): void {
-      for(let [asset_name, amount] of rhs) {
+      for(let [asset_name, amount] of rhs.items) {
         let this_amount = this.get(asset_name);
         if(this_amount == null) this_amount = amount;
         else this_amount = this_amount.checked_add(amount);
@@ -207,7 +208,7 @@ Assets:
     }
 
     _inplace_clamped_sub(rhs: Assets): void {
-      for(let [asset_name, amount] of rhs) {
+      for(let [asset_name, amount] of rhs.items) {
         let this_amount = this.get(asset_name);
         if(this_amount == null) continue;
         this_amount = this_amount.clamped_sub(amount);
@@ -217,7 +218,7 @@ Assets:
     }
 
     _normalize(): void {
-      let to_remove: string[] = [];
+      let to_remove: AssetName[] = [];
       for(let [asset_name, amount] of this.items) {
         if(amount.is_zero()) to_remove.push(asset_name);
       }
@@ -231,13 +232,13 @@ Assets:
         false, // 0
         false, // 1
       ];
-      for(let [asset_name, this_amount] in this.items) {
+      for(let [asset_name, this_amount] of this.items) {
          let rhs_amount = rhs.get(asset_name);
          if(rhs_amount == null) rhs_amount = zero;
          cmps[1 + this_amount.compare(rhs_amount)] = true;
       }
 
-      for(let [asset_name, rhs_amount] in rhs.items) {
+      for(let [asset_name, rhs_amount] of rhs.items) {
          let this_amount = this.get(asset_name);
          if(this_amount == null) this_amount = zero;
          cmps[1 + this_amount.compare(rhs_amount)];
@@ -247,9 +248,9 @@ Assets:
       let has_equal = cmps[1];
       let has_greater = cmps[2];
 
-      if(has_less && has_greater) return undefnined;
-      elif(has_less) return -1;
-      elif(has_greater) return 1;
+      if(has_less && has_greater) return undefined;
+      else if(has_less) return -1;
+      else if(has_greater) return 1;
       else return 0;
     }
 
