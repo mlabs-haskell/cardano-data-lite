@@ -52,10 +52,15 @@ export class GenMap extends CodeGeneratorBase {
         return this.items.length;
       }
 
-      insert(key: ${keyJsType}, value: ${valueJsType}): void {
+      insert(key: ${keyJsType}, value: ${valueJsType}): ${valueJsType} | undefined {
         let entry = this.items.find(x => ${this.typeUtils.eqType("key", "x[0]", this.key)});
-        if(entry != null) entry[1] = value;
-        else this.items.push([key, value]);
+        if(entry != null) {
+          let ret = entry[1];
+          entry[1] = value;
+          return ret;
+        }
+        this.items.push([key, value]);
+        return undefined;
       }
 
       get(key: ${keyJsType}): ${valueJsType} | undefined {
