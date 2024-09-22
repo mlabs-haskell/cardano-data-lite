@@ -1494,6 +1494,11 @@ GeneralTransactionMetadata:
   type: map
   key: BigNum
   value: TransactionMetadatum
+  keys_method_type: TransactionMetadatumLabels
+
+TransactionMetadatumLabels:
+  type: array
+  item: BigNum
 
 # auxiliary_data =
 #   metadata ; Shelley
