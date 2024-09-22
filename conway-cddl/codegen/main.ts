@@ -64,9 +64,9 @@ async function main() {
     const $$CANT_EQ = $$UN;
 
     `;
-    let out = codegen.generate();
+    let out = header + codegen.generate();
     fs.writeFileSync("../../src/generated/out-unformatted.ts", out);
-    out = await prettier.format(header + out, { parser: "babel-ts" });
+    out = await prettier.format(out, { parser: "babel-ts" });
     fs.writeFileSync("../../src/generated/out.ts", out);
     if (!hasAnyError) {
       console.log("Success.");
