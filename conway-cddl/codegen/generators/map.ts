@@ -4,16 +4,19 @@ import { SchemaTable } from "..";
 export type GenMapOptions = {
   key: string;
   value: string;
+  keys_method_type?: string;
 } & CodeGeneratorBaseOptions;
 
 export class GenMap extends CodeGeneratorBase {
   key: string;
   value: string;
+  keys_method_type?: string;
 
   constructor(name: string, customTypes: SchemaTable, options: GenMapOptions) {
     super(name, customTypes, { genCSL: true, ...options });
     this.key = options.key;
     this.value = options.value;
+    this.keys_method_type = options.keys_method_type;
   }
 
   private entryJsType(): string {
@@ -60,6 +63,8 @@ export class GenMap extends CodeGeneratorBase {
         if(entry == null) return undefined;
         return entry[1];
       }
+
+      ${this.generateKeysMethod()}
     `;
   }
 
@@ -83,5 +88,19 @@ export class GenMap extends CodeGeneratorBase {
         ${this.typeUtils.writeType("writer", "x[1]", this.value)};
       });
     `;
+  }
+
+  generateKeysMethod(): string {
+    if (this.keys_method_type == null) return "";
+    return this.renameMethod(
+      "keys",
+      (keys) => `
+      ${keys}(): ${this.keys_method_type} {
+        let keys = ${this.keys_method_type}.new();
+        for(let [key, _] of this.items) keys.insert(key);
+        return keys;
+      }
+      `,
+    );
   }
 }
