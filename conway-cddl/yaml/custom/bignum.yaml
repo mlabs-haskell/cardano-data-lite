@@ -51,7 +51,7 @@ BigNum:
 
     checked_sub(other: BigNum): BigNum {
       let res = this.toJsValue() - other.toJsValue();
-      if(res < 0n) throw new Error("BigNum.checked_add overflow")
+      if(res < 0n) throw new Error("BigNum.checked_sub overflow")
       return new BigNum(res);
     }
 
