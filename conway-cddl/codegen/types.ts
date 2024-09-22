@@ -32,6 +32,7 @@ export const Schema = Type.Intersect([
       type: Type.Literal("map"),
       key: Type.String(),
       value: Type.String(),
+      keys_method_type: Type.Optional(Type.String()),
     }),
     Type.Object({
       type: Type.Literal("newtype"),
