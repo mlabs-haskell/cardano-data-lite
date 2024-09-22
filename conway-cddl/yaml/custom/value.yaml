@@ -1,0 +1,265 @@
+Value:
+  type: record
+  fields:
+    - name: coin
+      type: bignum
+    - name: multiasset
+      type: MultiAsset
+      nullable: true
+  methods:
+    deserialize: deserializeRecord
+    serialize: serializeRecord
+    new: new_with_assets
+  extra_methods: |
+    static zero(): Value {
+      return Value.new(0n);
+    }
+
+    static new(coin: bigint): Value {
+      return Value.new_with_assets(coin, undefined);
+    }
+
+    static new_from_assets(multiasset: MultiAsset): Value {
+      return Value.new_with_assets(0n, multiasset);
+    }
+
+    deserialize(reader: CBORReader): Value {
+      if(reader.peekType() == 'array') {
+        return this.deserializeRecord(reader);
+      }
+      return Value.new(reader.readUint());
+    }
+
+    serialize(writer: CBORWriter): void {
+      if(
+        this._multiasset == null || 
+        this._multiasset.len() == 0
+      ) {
+        writer.writeUint(this.coin);
+      } else {
+        this.serializeRecord();
+      }
+    }
+
+    checked_add(rhs: Value): Value {
+      let coin = this._coin.checked_add(rhs.coin);
+      let multiasset: Multiasset | undefined;
+      if(this._multiasset != null) {
+        multiasset = this._multiasset.clone();
+        if(rhs._multiasset != null) {
+          multiasset._inplace_checked_add(rhs._multiasset);
+        }
+      } else if(rhs._multiasset != null) {
+        multiasset = rhs._multiasset.clone();
+      }
+      return new Value(coin, multiasset);
+    }
+
+    checked_sub(rhs_value: Value): Value {
+      let coin = this.coin.checked_sub(rhs.coin);
+      let multiasset: Multiasset | undefined;
+      if(this._multiasset != null) {
+        multiasset = this._multiasset.clone();
+        if(rhs._multiasset != null) {
+          multiasset._inplace_clamped_sub(rhs._multiasset);   
+        }
+      }
+      return new Value(coin, multiasset);
+    }
+
+    clamped_sub(rhs_value: Value): Value {
+      let coin = this.coin.clamped_sub(rhs.coin);
+      if(this._multiasset != null) {
+        multiasset = this._multiasset.clone();
+        if(rhs._multiasset != null) {
+          multiasset._inplace_clamped_sub(rhs._multiasset);   
+        }
+      }
+      return new Value(coin, multiasset);
+    }
+
+    compare(rhs_value: Value): number | undefined {
+      let coin_cmp = this.coin.compare(rhs_value.coin);
+      let this_multiasset = this.multiasset ?? MultiAsset.new();
+      let rhs_multiasset = rhs_value.multiasset ?? MultiAsset.new();
+
+      let assets_cmp = this_multiasset._partial_cmp(rhs_multiasset);
+      if(assets_cmp == null) return undefined;
+
+      if(coin_cmp == 0 || coin_cmp == assets_cmp) return assets_cmp;
+      if(assets_cmp == 0) return coin_cmp;
+
+      // (coin_cmp == -1 && assets_cmp == +1) || (coin_cmp == +1 && assets_cmp == -1)
+      return undefined;
+    }
+
+MultiAsset:
+  type: map
+  key: ScriptHash
+  value: Assets
+  keys_method_type: ScriptHashes
+  extra_methods: |
+    set_asset(
+      policy_id: ScriptHash,
+      asset_name: AssetName,
+      value: BigNum,
+    ): BigNum | undefined {
+      let assets = this.get(policy_id);
+      if(assets == null) {
+        assets = Assets.new();
+        this.insert(policy_id, assets);
+      }
+      assets.insert(asset_name, value);
+    }
+
+    get_asset(
+      policy_id: ScriptHash,
+      asset_name: AssetName
+    ): BigNum {
+      let assets = this.get(policy_id);
+      if(assets == null) return BigNum.zero();
+      let asset_amount = assets.get(asset_name);
+      if(asset_amount == null) return BigNum.zero();
+      return asset_amount;
+    }
+
+    sub(rhs: MultiAsset): MultiAsset {
+      let out = this.clone();
+      out._inplace_clamped_sub(rhs);
+      return out;
+    }
+
+    _inplace_checked_add(rhs: MultiAsset): void {
+      for(let [policy, rhs_assets] of rhs.items) {
+        let this_assets = this.get(policy);
+        if(this_assets == null) {
+          this_assets = Assets.new()
+          this.insert(policy, this_assets);
+        }
+        this_assets._inplace_checked_add(rhs_assets);
+      }
+    }
+
+    _inplace_clamped_sub(rhs: MultiAsset) {
+      for(let [policy, rhs_assets] of rhs.items) {
+        let this_assets = this.get(policy);
+        if(this_assets == null) continue;
+        this_assets._inplace_clamped_sub(rhs_assets);
+      }
+      this._normalize();
+    }
+
+
+    _normalize(): void {
+      let to_remove: ScriptHash[] = [];
+      for(let [policy_id, assets] of this.items) {
+        if(assets.len() == 0) to_remove.add(policy_id);
+      }
+      this._remove_many(to_remove);
+    }
+
+    _partial_cmp(rhs: MultiAsset): number | undefined {
+      const zero = Assets.new();
+      let cmps = [
+        false, // -1
+        false, // 0
+        false, // 1
+      ];
+      for(let [policy_id, this_assets] in this.items) {
+        let rhs_assets = rhs.get(policy_id);
+        if(rhs_assets == null) rhs_assets = zero;
+        let assets_cmp = this_assets.compare(rhs_assets);
+        if(assets_cmp == null) return undefined;
+        cmps[1 + assets_cmp] = true;
+      }
+
+      for(let [policy_id, rhs_assets] in rhs.items) {
+        let this_assets = this.get(policy_id);
+        if(this_assets == null) this_assets = zero;
+        let assets_cmp = this_assets.compare(rhs_assets);
+        if(assets_cmp == null) return undefined;
+        cmps[1 + assets_cmp] = true;
+      }
+      
+      let has_less = cmps[0];
+      let has_equal = cmps[1];
+      let has_greater = cmps[2];
+
+      if(has_less && has_greater) return undefnined;
+      elif(has_less) return -1;
+      elif(has_greater) return 1;
+      else return 0;
+    }
+
+Assets:
+  type: map
+  key: AssetName
+  value: BigNum
+  keys_method_type: AssetNames
+  extra_methods: |
+    _inplace_checked_add(rhs: Assets): void {
+      for(let [asset_name, amount] of rhs) {
+        let this_amount = this.get(asset_name);
+        if(this_amount == null) this_amount = amount;
+        else this_amount = this_amount.checked_add(amount);
+        this.insert(asset_name, this_amount);
+      }
+    }
+
+    _inplace_clamped_sub(rhs: Assets): void {
+      for(let [asset_name, amount] of rhs) {
+        let this_amount = this.get(asset_name);
+        if(this_amount == null) continue;
+        this_amount = this_amount.clamped_sub(amount);
+        this.insert(asset_name, this_amount);
+      }
+      this._normalize();
+    }
+
+    _normalize(): void {
+      let to_remove: string[] = [];
+      for(let [asset_name, amount] of this.items) {
+        if(amount.is_zero()) to_remove.push(asset_name);
+      }
+      this._remove_many(to_remove);
+    }
+
+    _partial_cmp(rhs: Assets): number | undefined {
+      const zero = BigNum.zero();
+      let cmps = [
+        false, // -1
+        false, // 0
+        false, // 1
+      ];
+      for(let [asset_name, this_amount] in this.items) {
+         let rhs_amount = rhs.get(asset_name);
+         if(rhs_amount == null) rhs_amount = zero;
+         cmps[1 + this_amount.compare(rhs_amount)] = true;
+      }
+
+      for(let [asset_name, rhs_amount] in rhs.items) {
+         let this_amount = this.get(asset_name);
+         if(this_amount == null) this_amount = zero;
+         cmps[1 + this_amount.compare(rhs_amount)];
+      }
+      
+      let has_less = cmps[0];
+      let has_equal = cmps[1];
+      let has_greater = cmps[2];
+
+      if(has_less && has_greater) return undefnined;
+      elif(has_less) return -1;
+      elif(has_greater) return 1;
+      else return 0;
+    }
+
+AssetName:
+  type: newtype
+  item: bytes
+  constraints:
+    len:
+      max: 32
+
+AssetNames:
+  type: array
+  item: AssetName
