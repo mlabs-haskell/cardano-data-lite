@@ -64,6 +64,10 @@ export class GenMap extends CodeGeneratorBase {
         return entry[1];
       }
 
+      _remove_many(keys: ${keyJsType}[]): void {
+        this.items = this.items.filter(x => !${this.typeUtils.eqType("key", "x[0]", this.key)});
+      }
+
       ${this.generateKeysMethod()}
     `;
   }
