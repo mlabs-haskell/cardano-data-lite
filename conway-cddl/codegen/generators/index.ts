@@ -99,6 +99,14 @@ export class CodeGeneratorBase {
     }`,
     )}
 
+    ${this.renameMethod(
+      "clone",
+      (clone) => `
+    ${clone}(): ${this.name} {
+      return ${this.name}.from_bytes(this.to_bytes());
+    }`,
+    )}
+
   `;
   }
 
