@@ -3,6 +3,11 @@ import { CBORWriter } from "../cbor/writer";
 import { hexToBytes, bytesToHex } from "../hex";
 import { arrayEq } from "../eq";
 
+function $$UN(...args: any): any {}
+const $$CANT_READ = $$UN;
+const $$CANT_WRITE = $$UN;
+const $$CANT_EQ = $$UN;
+
 export class Anchor {
   private url: URL;
   private anchor_data_hash: unknown;
@@ -460,7 +465,7 @@ export class BigNum {
     return new BigNum(BigNum.maxU64());
   }
 
-  static max(a: BigNum, b: Bignum): BigNum {
+  static max(a: BigNum, b: BigNum): BigNum {
     if (a.toJsValue() > b.toJsValue()) return a;
     else return b;
   }
@@ -3421,7 +3426,7 @@ export class Int {
     return !this.is_positive() ? new BigNum(-1n * this.toJsValue()) : undefined;
   }
 
-  as_i32(): number | undefiend {
+  as_i32(): number | undefined {
     return this.as_i32_or_nothing();
   }
 
@@ -8037,7 +8042,7 @@ export class UnitInterval {
   serialize(writer: CBORWriter): void {
     writer.writeTaggedTag(30);
 
-    UnitInterval.serializeInner(writer);
+    this.serializeInner(writer);
   }
 
   serializeInner(writer: CBORWriter): void {
