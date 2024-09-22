@@ -110,7 +110,7 @@ export class GenMap extends CodeGeneratorBase {
       (keys) => `
       ${keys}(): ${this.keys_method_type} {
         let keys = ${this.keys_method_type}.new();
-        for(let [key, _] of this.items) keys.insert(key);
+        for(let [key, _] of this.items) keys.add(key);
         return keys;
       }
       `,
