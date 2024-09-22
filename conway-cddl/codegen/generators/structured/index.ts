@@ -49,7 +49,20 @@ export class GenStructuredBase<
         ${this.getFields()
           .map((x) => `this._${x.name} = ${x.name};`)
           .join("\n")}
-      }`;
+      }
+      ${this.renameMethod(
+        "new",
+        (new_) => `
+      static ${new_}(${this.getFields()
+        .map((x) => `${x.name}: ${this.fieldType(x)}`)
+        .join(", ")}) {
+          return new ${this.name}(${this.getFields()
+            .map((x) => x.name)
+            .join(",")});
+        }
+      `,
+      )}
+    `;
   }
 
   generateAccessors(): string {
