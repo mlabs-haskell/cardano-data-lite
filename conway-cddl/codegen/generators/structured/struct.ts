@@ -62,7 +62,7 @@ export class GenStruct extends GenStructuredBase<Field> {
       let len = ${this.getFields().length};
       ${this.getFields()
         .map((x) =>
-          x.optional ? `if(this.${x.name} === undefined) len -= 1;` : ``,
+          x.optional ? `if(this._${x.name} === undefined) len -= 1;` : ``,
         )
         .filter((x) => x != "")
         .join("\n")}
@@ -71,9 +71,9 @@ export class GenStruct extends GenStructuredBase<Field> {
         .map((x) => {
           let write = `
             ${writer}.writeInt(${x.id}n);
-            ${this.typeUtils.writeType(writer, `this.${x.name}`, x.type)};
+            ${this.typeUtils.writeType(writer, `this._${x.name}`, x.type)};
           `;
-          return `${x.optional ? `if(this.${x.name} !== undefined) { ${write} }` : write}`;
+          return `${x.optional ? `if(this._${x.name} !== undefined) { ${write} }` : write}`;
         })
         .join("\n")}
      `;

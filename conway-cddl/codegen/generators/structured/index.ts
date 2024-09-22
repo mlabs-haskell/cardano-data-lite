@@ -37,7 +37,7 @@ export class GenStructuredBase<
 
   generateMembers(): string {
     return this.options.fields
-      .map((x) => `private ${x.name}: ${this.fieldType(x)};`)
+      .map((x) => `private _${x.name}: ${this.fieldType(x)};`)
       .join("\n");
   }
 
@@ -47,7 +47,7 @@ export class GenStructuredBase<
         .map((x) => `${x.name}: ${this.fieldType(x)}`)
         .join(", ")}) {
         ${this.getFields()
-          .map((x) => `this.${x.name} = ${x.name};`)
+          .map((x) => `this._${x.name} = ${x.name};`)
           .join("\n")}
       }`;
   }
@@ -57,11 +57,11 @@ export class GenStructuredBase<
       .map(
         (x) => `
         get_${x.name}(): ${this.fieldType(x)} {
-          return this.${x.name};
+          return this._${x.name};
         }
 
         set_${x.name}(${x.name}: ${this.fieldType(x)}): void {
-          this.${x.name} = ${x.name};
+          this._${x.name} = ${x.name};
         }
       `,
       )
