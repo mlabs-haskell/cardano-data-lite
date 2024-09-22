@@ -7,7 +7,7 @@ export type CodeGeneratorBaseOptions = {
     bytes?: boolean;
   };
   extra_methods?: string;
-  methods?: { [key: string]: string };
+  methods?: { [key: string]: string | null };
 };
 export class CodeGeneratorBase {
   name: string;
