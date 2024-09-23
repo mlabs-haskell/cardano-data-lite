@@ -254,13 +254,6 @@ Assets:
       else return 0;
     }
 
-AssetName:
-  type: newtype
-  item: bytes
-  constraints:
-    len:
-      max: 32
-
 AssetNames:
   type: array
   item: AssetName
