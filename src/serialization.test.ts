@@ -13,6 +13,8 @@ type Component = { type: string, path: string, cbor: Uint8Array }
 type TestParameters = { txCount: number, txHash: string, componentIndex: number, component: Component }
 // The transaction info as provided by get_transactions.ts
 type TransactionInfo = { hash: string, cbor: string };
+// Result type for retrieving fields/elements/entries inside the different components
+type AccessSubComponent = { sub: any | undefined, subPath: string }
 
 // The transaction information obtained from get_transactions
 let transactionInfos: Array<TransactionInfo> = [];
@@ -24,6 +26,8 @@ let testsTable: Array<TestParameters> = [];
 // Types we are not interested in (or that are not supported)
 const typeBlacklist = new Set([
   // Broken
+  "StakeDeregistration", // no from_bytes() implemented!
+  "Ed25519KeyHash", 
   "AuxiliaryData",
   "TransactionOutput",
   "TransactionOutputs",
@@ -38,19 +42,25 @@ const fieldsBlacklist = new Set([
   "plutus_scripts_v3"
 ]);
 
+// Whether to log extraction messages or not
+const traceExtraction = true;
+
+const extractLog = traceExtraction ? (...args : any) => console.log(...args) : () => { ; };
+
 // Retrieve TXs from FIFO...
-console.log("(serialization.test.ts) Reading transactions from get_transactions...")
+extractLog("(serialization.test.ts) Reading transactions from get_transactions...")
 const transactionInfoText = fs.readFileSync("transaction_fifo", { "encoding": "utf8" });
 for (const chunk of transactionInfoText.trimEnd().split('\n')) {
   let transactionInfo: TransactionInfo = JSON.parse(chunk);
   transactionInfos.push(transactionInfo);
 }
-console.log("(serialization.test.ts) All transactions read.")
+extractLog("(serialization.test.ts) All transactions read.")
 
 // Build tests table
-console.log("(serialization.test.ts) Building tests table...")
+extractLog("(serialization.test.ts) Building tests table...")
 let componentIndex = 0;
 for (const [index, txInfo] of transactionInfos.entries()) {
+  extractLog(`(serialization.test.ts) Decomposing TX ${txInfo.hash}`)
   let tx = csl.Transaction.from_hex(txInfo.cbor);
   transactionsCsl.push(tx);
   const components = explodeTx(tx)
@@ -64,7 +74,7 @@ for (const [index, txInfo] of transactionInfos.entries()) {
     componentIndex++;
   }
 }
-console.log("(serialization.test.ts) Tests table prepared.")
+extractLog("(serialization.test.ts) Tests table prepared.")
 
 // Decompose a csl transaction into its constituent parts
 function explodeTx(tx: csl.Transaction): Array<Component> {
@@ -82,14 +92,14 @@ function explodeTx(tx: csl.Transaction): Array<Component> {
 // Depth-first search of all sub-components (omitting optional/unavailable ones and builtin types)
 // componentPath is used for debugging purposes
 function explodeValue(key: string, value: any, schema: Schema, schemata: any, components: Array<Component>, componentPath: string): void {
-  console.log(`Key: ${key}, Type: ${schema.type}`);
+  extractLog(`Key: ${key}, Type: ${schema.type}`);
   switch (schema.type) {
-    case "record":
+    case "record": // intended fall-through: this should work for records and record fragments
+    case "record_fragment":
       for (const field of schema.fields) {
-        const fieldValue = getField(value, field.name, field.type);
+        const {sub: fieldValue, subPath: newComponentPath } = getField(value, field.name, field.type, field.nullable, componentPath);
         if (fieldValue && schemata[field.type]) {
-          const newComponentPath = updatePath(componentPath, field.name, field.nullable);
-          console.log(`Field name: ${field.name}\nField type: ${field.type}\nPath: ${newComponentPath}`);
+          extractLog(`Field name: ${field.name}\nField type: ${field.type}\nPath: ${newComponentPath}`);
           explodeValue(field.name, fieldValue, schemata[field.type], schemata, components, newComponentPath)
           components.push({ type: field.type, path: newComponentPath, cbor: fieldValue.to_bytes() });
         }
@@ -97,21 +107,58 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
       break;
     case "struct":
       for (const field of schema.fields) {
-        const fieldValue = getField(value, field.name, field.type);
+        const { sub: fieldValue, subPath: newComponentPath } = getField(value, field.name, field.type, field.optional, componentPath);
         if (fieldValue && schemata[field.type]) {
-          const newComponentPath = updatePath(componentPath, field.name, field.optional);
-          console.log(`Field name: ${field.name}\nField type: ${field.type}\nPath: ${newComponentPath}`);
+          extractLog(`Field name: ${field.name}\nField type: ${field.type}\nPath: ${newComponentPath}`);
           explodeValue(field.name, fieldValue, schemata[field.type], schemata, components, newComponentPath)
           components.push({ type: field.type, path: newComponentPath, cbor: fieldValue.to_bytes() });
         }
       }
       break;
+    case "tagged_record": // sum types
+      // let tx: csl.Transaction = undefined as any;
+      // let x = tx["body"]()["certs"]()?.get(0).as_stake_deregistration()?.["stake_credential"]()?.
+      const tag: number  = value.kind().valueOf();
+      let variant = schema.variants.find((v) => v.tag == tag)
+      extractLog("variant", variant);
+      if (variant && variant.value && schemata[variant.value]) {
+        const { sub: taggedValue, subPath: newComponentPath} = getTagged(value, variant.name, variant.value, componentPath);
+        extractLog(`Variant name: ${variant.name}\nVariant type: ${variant.value}`);
+        explodeValue(variant.name, taggedValue, schemata[variant.value], schemata, components, newComponentPath)
+        components.push({ type: variant.value, path: newComponentPath, cbor: taggedValue.to_bytes() })
+      }
+      break;
+    case "map": // for maps we extract both the keys and the values
+      for (let index = 0; index < value.keys().len(); index++) {
+        const {sub: keyValue, subPath: keyPath} = getElem(value.keys(), index, `${key}.keys().get(${index})`, schema.key, componentPath);
+        if (keyValue && schemata[schema.key]) {
+          extractLog(`Key index: ${index}\nKey type: ${schema.key}\nKey path: ${keyPath}`);
+          explodeValue(`${key}.keys().get(${index})`, keyValue, schemata[schema.key], schemata, components, keyPath)
+          components.push({ type: schema.key, path: keyPath, cbor: keyValue.to_bytes()});
+        }
+        const {sub: entryValue, subPath: valuePath} = getEntry(value, keyValue, `${key}.get(Key#${index})`, schema.value, index, componentPath);
+        if (entryValue && schemata[schema.value]) {
+          extractLog(`Value type: ${schema.value}\nValue path: ${valuePath}`);
+          explodeValue(`${key}.get(Key#${index})`, entryValue, schemata[schema.value], schemata, components, valuePath)
+          components.push({ type: schema.value, path: valuePath, cbor: entryValue.to_bytes()});
+        }
+      }
+      break;
+    case "set":
+      for (let index = 0; index < value.len(); index++) {
+        const {sub: elemValue, subPath: newComponentPath} = getElem(value, index, `${key}[${index}]`, schema.item, componentPath);        
+        if (elemValue && schemata[schema.item]) {
+          extractLog(`Elem index: ${index}\nElem type: ${schema.item}\nPath: ${newComponentPath}`);
+          explodeValue(`${key}[${index}]`, elemValue, schemata[schema.item], schemata, components, newComponentPath)
+          components.push({ type: schema.item, path: newComponentPath, cbor: elemValue.to_bytes() });
+        }
+      }
+      break;
     case "array":
       for (let index = 0; index < value.len(); index++) {
-        const elemValue = getElem(value, index, `${key}[${index}]`, schema.item);
+        const {sub: elemValue, subPath: newComponentPath } = getElem(value, index, `${key}[${index}]`, schema.item, componentPath);
         if (elemValue && schemata[schema.item]) {
-          const newComponentPath = `${componentPath}.get(${index})`;
-          console.log(`Elem index: ${index}\nElem type: ${schema.item}\nPath: ${newComponentPath}`);
+          extractLog(`Elem index: ${index}\nElem type: ${schema.item}\nPath: ${newComponentPath}`);
           explodeValue(`${key}[${index}]`, elemValue, schemata[schema.item], schemata, components, newComponentPath)
           components.push({ type: schema.item, path: newComponentPath, cbor: elemValue.to_bytes() });
         }
@@ -120,24 +167,45 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
   }
 }
 
-function getField(value: any, fieldName: string, fieldType: string): any | undefined {
-  console.log("getField: ", fieldName);
+// Get field of struct or record
+function getField(value: any, fieldName: string, fieldType: string, optional: boolean | undefined, path: string): AccessSubComponent {
+  extractLog("getField: ", fieldName);
+  const subPath = optional ? `${path}["${fieldName}"]()?` : `${path}["${fieldName}"]()`
   if (typeBlacklist.has(fieldType) || fieldsBlacklist.has(fieldName)) {
-    return undefined;
+    return { sub: undefined, subPath: subPath };
   }
-  return value[fieldName]();
+  return {sub: value[fieldName](), subPath: subPath };
 }
 
-function getElem(value: any, index: number, elemName: string, elemType: string): any | undefined {
-  console.log("getElem: ", elemName);
+// Get entry of map
+function getEntry(value: any, mapKey: any, entryName: string, entryType: string, mapKeyIndex: number, path: string): AccessSubComponent {
+  extractLog("getEntry: ", entryName);
+  const subPath = `${path}.get(${path}.keys().get(${mapKeyIndex}))`;
+  if (typeBlacklist.has(entryType)) {
+    return { sub: undefined, subPath: subPath };
+  }
+  return { sub: value.get(mapKey), subPath: subPath };
+}
+
+// Get element of array or set (can be used for getting a key by index too)
+function getElem(value: any, index: number, elemName: string, elemType: string, path: string): AccessSubComponent {
+  extractLog("getElem: ", elemName);
+  const subPath = `${path}.get(${index})`;
   if (typeBlacklist.has(elemType)) {
-    return undefined;
+    return { sub: undefined, subPath: subPath };
   }
-  return value.get(index);
+  return {sub: value.get(index), subPath: subPath };
 }
 
-function updatePath(componentPath: string, fieldName: string, optional: boolean | undefined): string {
-  return optional ? `${componentPath}["${fieldName}"]()?` : `${componentPath}["${fieldName}"]()`
+// Get value out of a tagged_record
+function getTagged(value: any, variantName: string, variantType: string, path: string): AccessSubComponent {
+  extractLog("getTagged: ", variantName);
+  const accessor = `as_${variantName}`;
+  const subPath = `${path}[\"${accessor}\"]`
+  if (typeBlacklist.has(variantType) || fieldsBlacklist.has(variantName)) {
+    return { sub: undefined, subPath: subPath };
+  }
+  return {sub: value[accessor](), subPath: subPath };
 }
 
 describe("Serialization/deserialization roundtrip tests", () => {
