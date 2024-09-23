@@ -25,8 +25,6 @@ export class CodeGeneratorBase {
   }
 
   renameMethod(name: string, contents: (name: string) => string): string {
-    if (this.name == "Int")
-      console.log("METHODS", this.options, this.options.methods);
     if (
       this.options.methods == null ||
       !Object.hasOwn(this.options.methods, name)
@@ -34,7 +32,6 @@ export class CodeGeneratorBase {
       return contents(name);
     }
     let newName = this.options.methods[name];
-    console.log("Rename:", name, newName);
     if (newName == null) return "";
     return contents(newName);
   }
