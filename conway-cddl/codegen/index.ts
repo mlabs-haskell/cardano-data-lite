@@ -11,6 +11,7 @@ import { GenEnumSimple } from "./generators/enum_simple";
 import { GenNewtype } from "./generators/newtype";
 import { GenRecordFragment } from "./generators/structured/record_fragment";
 import { GenRecordFragmentWrapper } from "./generators/structured/record_fragment_wrapper";
+import { GenUnion } from "./generators/union";
 import { Value } from "@sinclair/typebox/value";
 
 export type SchemaTable = { [key: string]: CodeGeneratorBase };
@@ -61,6 +62,8 @@ export class Codegen {
         return new GenEnumSimple(name, this.customTypes, schema);
       case "newtype":
         return new GenNewtype(name, this.customTypes, schema);
+      case "union":
+        return new GenUnion(name, this.customTypes, schema);
     }
     throw new Error("Unknown type: " + schema_.type + " for " + name);
   }
