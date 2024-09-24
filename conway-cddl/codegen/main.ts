@@ -28,7 +28,10 @@ async function main() {
 
   let curFile = fileURLToPath(import.meta.url);
   let curDir = path.dirname(curFile);
-  console.log(curDir);
+
+  let srcDir = path.join(curDir, "..", "..", "src");
+  let outUnformattedFile = path.join(srcDir, "generated", "out-unformatted.ts");
+  let outFile = path.join(srcDir, "generated", "out.ts");
 
   let yamlDir = path.join(curDir, "..", "yaml");
 
@@ -80,9 +83,9 @@ async function main() {
 
     `;
     let out = header + codegen.generate();
-    fs.writeFileSync("../../src/generated/out-unformatted.ts", out);
+    fs.writeFileSync(outUnformattedFile, out);
     out = await prettier.format(out, { parser: "babel-ts" });
-    fs.writeFileSync("../../src/generated/out.ts", out);
+    fs.writeFileSync(outFile, out);
     if (!hasAnyError) {
       console.log("Success.");
     } else {
