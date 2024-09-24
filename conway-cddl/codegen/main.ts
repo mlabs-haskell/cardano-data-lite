@@ -45,8 +45,6 @@ async function main() {
     if (item.endsWith(".yaml")) files.push(item);
   }
 
-  console.log("Files", files);
-
   let codegen = new Codegen();
   let hasAnyError = false;
   for (let filename of files) {
