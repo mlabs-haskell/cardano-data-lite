@@ -17,6 +17,10 @@ export class Anchor {
     this._anchor_data_hash = anchor_data_hash;
   }
 
+  static new(url: URL, anchor_data_hash: unknown) {
+    return new Anchor(url, anchor_data_hash);
+  }
+
   get_url(): URL {
     return this._url;
   }
@@ -135,6 +139,213 @@ export class AssetName {
   }
 }
 
+export class AssetNames {
+  private items: AssetName[];
+
+  constructor(items: AssetName[]) {
+    this.items = items;
+  }
+
+  static new(): AssetNames {
+    return new AssetNames([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): AssetName {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: AssetName): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): AssetNames {
+    return new AssetNames(
+      reader.readArray((reader) => AssetName.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): AssetNames {
+    let reader = new CBORReader(data);
+    return AssetNames.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): AssetNames {
+    return AssetNames.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): AssetNames {
+    return AssetNames.from_bytes(this.to_bytes());
+  }
+}
+
+export class Assets {
+  private items: [AssetName, BigNum][];
+
+  constructor(items: [AssetName, BigNum][]) {
+    this.items = items;
+  }
+
+  static new(): Assets {
+    return new Assets([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(key: AssetName, value: BigNum): BigNum | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: AssetName): BigNum | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: AssetName[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+    );
+  }
+
+  keys(): AssetNames {
+    let keys = AssetNames.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader): Assets {
+    let ret = new Assets([]);
+    reader.readMap((reader) =>
+      ret.insert(AssetName.deserialize(reader), BigNum.deserialize(reader)),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this.items, (writer, x) => {
+      x[0].serialize(writer);
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Assets {
+    let reader = new CBORReader(data);
+    return Assets.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Assets {
+    return Assets.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Assets {
+    return Assets.from_bytes(this.to_bytes());
+  }
+
+  _inplace_checked_add(rhs: Assets): void {
+    for (let [asset_name, amount] of rhs.items) {
+      let this_amount = this.get(asset_name);
+      if (this_amount == null) this_amount = amount;
+      else this_amount = this_amount.checked_add(amount);
+      this.insert(asset_name, this_amount);
+    }
+  }
+
+  _inplace_clamped_sub(rhs: Assets): void {
+    for (let [asset_name, amount] of rhs.items) {
+      let this_amount = this.get(asset_name);
+      if (this_amount == null) continue;
+      this_amount = this_amount.clamped_sub(amount);
+      this.insert(asset_name, this_amount);
+    }
+    this._normalize();
+  }
+
+  _normalize(): void {
+    let to_remove: AssetName[] = [];
+    for (let [asset_name, amount] of this.items) {
+      if (amount.is_zero()) to_remove.push(asset_name);
+    }
+    this._remove_many(to_remove);
+  }
+
+  _partial_cmp(rhs: Assets): number | undefined {
+    const zero = BigNum.zero();
+    let cmps = [
+      false, // -1
+      false, // 0
+      false, // 1
+    ];
+    for (let [asset_name, this_amount] of this.items) {
+      let rhs_amount = rhs.get(asset_name);
+      if (rhs_amount == null) rhs_amount = zero;
+      cmps[1 + this_amount.compare(rhs_amount)] = true;
+    }
+
+    for (let [asset_name, rhs_amount] of rhs.items) {
+      let this_amount = this.get(asset_name);
+      if (this_amount == null) this_amount = zero;
+      cmps[1 + this_amount.compare(rhs_amount)];
+    }
+
+    let has_less = cmps[0];
+    let has_equal = cmps[1];
+    let has_greater = cmps[2];
+
+    if (has_less && has_greater) return undefined;
+    else if (has_less) return -1;
+    else if (has_greater) return 1;
+    else return 0;
+  }
+}
+
 export class AuxiliaryData {
   private _metadata: GeneralTransactionMetadata;
   private _native_scripts: NativeScripts;
@@ -154,6 +365,22 @@ export class AuxiliaryData {
     this._plutus_scripts_v1 = plutus_scripts_v1;
     this._plutus_scripts_v2 = plutus_scripts_v2;
     this._plutus_scripts_v3 = plutus_scripts_v3;
+  }
+
+  static new(
+    metadata: GeneralTransactionMetadata,
+    native_scripts: NativeScripts,
+    plutus_scripts_v1: PlutusScripts,
+    plutus_scripts_v2: PlutusScripts,
+    plutus_scripts_v3: PlutusScripts,
+  ) {
+    return new AuxiliaryData(
+      metadata,
+      native_scripts,
+      plutus_scripts_v1,
+      plutus_scripts_v2,
+      plutus_scripts_v3,
+    );
   }
 
   get_metadata(): GeneralTransactionMetadata {
@@ -311,10 +538,15 @@ export class AuxiliaryDataSet {
     return this.items.length;
   }
 
-  insert(key: number, value: AuxiliaryData): void {
+  insert(key: number, value: AuxiliaryData): AuxiliaryData | undefined {
     let entry = this.items.find((x) => key === x[0]);
-    if (entry != null) entry[1] = value;
-    else this.items.push([key, value]);
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
   }
 
   get(key: number): AuxiliaryData | undefined {
@@ -518,6 +750,22 @@ export class Block {
     this._invalid_transactions = invalid_transactions;
   }
 
+  static new(
+    header: Header,
+    transaction_bodies: TransactionBodies,
+    transaction_witness_sets: TransactionWitnessSets,
+    auxiliary_data_set: AuxiliaryDataSet,
+    invalid_transactions: Uint32Array,
+  ) {
+    return new Block(
+      header,
+      transaction_bodies,
+      transaction_witness_sets,
+      auxiliary_data_set,
+      invalid_transactions,
+    );
+  }
+
   get_header(): Header {
     return this._header;
   }
@@ -645,6 +893,15 @@ export class BootstrapWitness {
     this._signature = signature;
     this._chain_code = chain_code;
     this._attributes = attributes;
+  }
+
+  static new(
+    vkey: unknown,
+    signature: unknown,
+    chain_code: Uint8Array,
+    attributes: Uint8Array,
+  ) {
+    return new BootstrapWitness(vkey, signature, chain_code, attributes);
   }
 
   get_vkey(): unknown {
@@ -1425,6 +1682,10 @@ export class CommitteeColdResign {
     this._anchor = anchor;
   }
 
+  static new(committee_cold_key: Credential, anchor: Anchor | undefined) {
+    return new CommitteeColdResign(committee_cold_key, anchor);
+  }
+
   get_committee_cold_key(): Credential {
     return this._committee_cold_key;
   }
@@ -1468,6 +1729,10 @@ export class CommitteeHotAuth {
     this._committee_hot_key = committee_hot_key;
   }
 
+  static new(committee_cold_key: Credential, committee_hot_key: Credential) {
+    return new CommitteeHotAuth(committee_cold_key, committee_hot_key);
+  }
+
   get_committee_cold_key(): Credential {
     return this._committee_cold_key;
   }
@@ -1505,6 +1770,10 @@ export class Constitution {
   constructor(anchor: Anchor, scripthash: unknown | undefined) {
     this._anchor = anchor;
     this._scripthash = scripthash;
+  }
+
+  static new(anchor: Anchor, scripthash: unknown | undefined) {
+    return new Constitution(anchor, scripthash);
   }
 
   get_anchor(): Anchor {
@@ -2138,6 +2407,10 @@ export class DrepDeregistration {
     this._coin = coin;
   }
 
+  static new(drep_credential: Credential, coin: BigNum) {
+    return new DrepDeregistration(drep_credential, coin);
+  }
+
   get_drep_credential(): Credential {
     return this._drep_credential;
   }
@@ -2181,6 +2454,14 @@ export class DrepRegistration {
     this._voting_credential = voting_credential;
     this._coin = coin;
     this._anchor = anchor;
+  }
+
+  static new(
+    voting_credential: Credential,
+    coin: BigNum,
+    anchor: Anchor | undefined,
+  ) {
+    return new DrepRegistration(voting_credential, coin, anchor);
   }
 
   get_voting_credential(): Credential {
@@ -2235,6 +2516,10 @@ export class DrepUpdate {
   constructor(drep_credential: Credential, anchor: Anchor | undefined) {
     this._drep_credential = drep_credential;
     this._anchor = anchor;
+  }
+
+  static new(drep_credential: Credential, anchor: Anchor | undefined) {
+    return new DrepUpdate(drep_credential, anchor);
   }
 
   get_drep_credential(): Credential {
@@ -2305,6 +2590,32 @@ export class DrepVotingThresholds {
     this._pp_technical_group = pp_technical_group;
     this._pp_governance_group = pp_governance_group;
     this._treasury_withdrawal = treasury_withdrawal;
+  }
+
+  static new(
+    motion_no_confidence: UnitInterval,
+    committee_normal: UnitInterval,
+    committee_no_confidence: UnitInterval,
+    update_constitution: UnitInterval,
+    hard_fork_initiation: UnitInterval,
+    pp_network_group: UnitInterval,
+    pp_economic_group: UnitInterval,
+    pp_technical_group: UnitInterval,
+    pp_governance_group: UnitInterval,
+    treasury_withdrawal: UnitInterval,
+  ) {
+    return new DrepVotingThresholds(
+      motion_no_confidence,
+      committee_normal,
+      committee_no_confidence,
+      update_constitution,
+      hard_fork_initiation,
+      pp_network_group,
+      pp_economic_group,
+      pp_technical_group,
+      pp_governance_group,
+      treasury_withdrawal,
+    );
   }
 
   get_motion_no_confidence(): UnitInterval {
@@ -2560,6 +2871,10 @@ export class ExUnitPrices {
     this._step_price = step_price;
   }
 
+  static new(mem_price: UnitInterval, step_price: UnitInterval) {
+    return new ExUnitPrices(mem_price, step_price);
+  }
+
   get_mem_price(): UnitInterval {
     return this._mem_price;
   }
@@ -2635,6 +2950,10 @@ export class ExUnits {
     this._steps = steps;
   }
 
+  static new(mem: BigNum, steps: BigNum) {
+    return new ExUnits(mem, steps);
+  }
+
   get_mem(): BigNum {
     return this._mem;
   }
@@ -2702,9 +3021,9 @@ export class ExUnits {
 }
 
 export class GeneralTransactionMetadata {
-  private items: [BigNum, unknown][];
+  private items: [BigNum, TransactionMetadatum][];
 
-  constructor(items: [BigNum, unknown][]) {
+  constructor(items: [BigNum, TransactionMetadatum][]) {
     this.items = items;
   }
 
@@ -2716,15 +3035,23 @@ export class GeneralTransactionMetadata {
     return this.items.length;
   }
 
-  insert(key: BigNum, value: unknown): void {
+  insert(
+    key: BigNum,
+    value: TransactionMetadatum,
+  ): TransactionMetadatum | undefined {
     let entry = this.items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
-    if (entry != null) entry[1] = value;
-    else this.items.push([key, value]);
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
   }
 
-  get(key: BigNum): unknown | undefined {
+  get(key: BigNum): TransactionMetadatum | undefined {
     let entry = this.items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
@@ -2738,12 +3065,18 @@ export class GeneralTransactionMetadata {
     );
   }
 
+  keys(): TransactionMetadatumLabels {
+    let keys = TransactionMetadatumLabels.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
   static deserialize(reader: CBORReader): GeneralTransactionMetadata {
     let ret = new GeneralTransactionMetadata([]);
     reader.readMap((reader) =>
       ret.insert(
         BigNum.deserialize(reader),
-        $$CANT_READ("TransactionMetadatum"),
+        TransactionMetadatum.deserialize(reader),
       ),
     );
     return ret;
@@ -2752,7 +3085,7 @@ export class GeneralTransactionMetadata {
   serialize(writer: CBORWriter): void {
     writer.writeMap(this.items, (writer, x) => {
       x[0].serialize(writer);
-      $$CANT_WRITE("TransactionMetadatum");
+      x[1].serialize(writer);
     });
   }
 
@@ -3054,6 +3387,10 @@ export class GovernanceActionId {
     this._index = index;
   }
 
+  static new(transaction_id: unknown, index: number) {
+    return new GovernanceActionId(transaction_id, index);
+  }
+
   get_transaction_id(): unknown {
     return this._transaction_id;
   }
@@ -3132,6 +3469,13 @@ export class HardForkInitiationAction {
     this._protocol_version = protocol_version;
   }
 
+  static new(
+    gov_action_id: GovernanceActionId | undefined,
+    protocol_version: ProtocolVersion,
+  ) {
+    return new HardForkInitiationAction(gov_action_id, protocol_version);
+  }
+
   get_gov_action_id(): GovernanceActionId | undefined {
     return this._gov_action_id;
   }
@@ -3175,6 +3519,10 @@ export class Header {
   constructor(header_body: HeaderBody, body_signature: unknown) {
     this._header_body = header_body;
     this._body_signature = body_signature;
+  }
+
+  static new(header_body: HeaderBody, body_signature: unknown) {
+    return new Header(header_body, body_signature);
   }
 
   get_header_body(): HeaderBody {
@@ -3277,6 +3625,32 @@ export class HeaderBody {
     this._block_body_hash = block_body_hash;
     this._operational_cert = operational_cert;
     this._protocol_version = protocol_version;
+  }
+
+  static new(
+    block_number: number,
+    slot: BigNum,
+    prev_hash: unknown | undefined,
+    issuer_vkey: unknown,
+    vrf_vkey: unknown,
+    vrf_result: unknown,
+    block_body_size: number,
+    block_body_hash: unknown,
+    operational_cert: OperationalCert,
+    protocol_version: ProtocolVersion,
+  ) {
+    return new HeaderBody(
+      block_number,
+      slot,
+      prev_hash,
+      issuer_vkey,
+      vrf_vkey,
+      vrf_result,
+      block_body_size,
+      block_body_hash,
+      operational_cert,
+      protocol_version,
+    );
   }
 
   get_block_number(): number {
@@ -3451,6 +3825,10 @@ export class HeaderBody {
 
 export class InfoAction {
   constructor() {}
+
+  static new() {
+    return new InfoAction();
+  }
 
   static deserialize(reader: CBORReader): InfoAction {
     return new InfoAction();
@@ -3730,11 +4108,382 @@ export class Language {
   }
 }
 
+export class MetadataList {
+  private items: TransactionMetadatum[];
+
+  constructor(items: TransactionMetadatum[]) {
+    this.items = items;
+  }
+
+  static new(): MetadataList {
+    return new MetadataList([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): TransactionMetadatum {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: TransactionMetadatum): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): MetadataList {
+    return new MetadataList(
+      reader.readArray((reader) => TransactionMetadatum.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MetadataList {
+    let reader = new CBORReader(data);
+    return MetadataList.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MetadataList {
+    return MetadataList.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MetadataList {
+    return MetadataList.from_bytes(this.to_bytes());
+  }
+}
+
+export class MetadataMap {
+  private items: [TransactionMetadatum, TransactionMetadatum][];
+
+  constructor(items: [TransactionMetadatum, TransactionMetadatum][]) {
+    this.items = items;
+  }
+
+  static new(): MetadataMap {
+    return new MetadataMap([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(
+    key: TransactionMetadatum,
+    value: TransactionMetadatum,
+  ): TransactionMetadatum | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: TransactionMetadatum): TransactionMetadatum | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: TransactionMetadatum[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+    );
+  }
+
+  keys(): MetadataList {
+    let keys = MetadataList.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader): MetadataMap {
+    let ret = new MetadataMap([]);
+    reader.readMap((reader) =>
+      ret.insert(
+        TransactionMetadatum.deserialize(reader),
+        TransactionMetadatum.deserialize(reader),
+      ),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this.items, (writer, x) => {
+      x[0].serialize(writer);
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MetadataMap {
+    let reader = new CBORReader(data);
+    return MetadataMap.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MetadataMap {
+    return MetadataMap.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MetadataMap {
+    return MetadataMap.from_bytes(this.to_bytes());
+  }
+
+  insert_str(
+    key: string,
+    value: TransactionMetadatum,
+  ): TransactionMetadatum | undefined {
+    let metadata = TransactionMetadatum.new_text(key);
+    return this.insert(metadata, value);
+  }
+
+  insert_i32(
+    key: number,
+    value: TransactionMetadatum,
+  ): TransactionMetadatum | undefined {
+    let metadata = TransactionMetadatum.new_int(Int.new_i32(key));
+    return this.insert(metadata, value);
+  }
+
+  get(key: TransactionMetadatum): TransactionMetadatum {
+    let ret = this._get(key);
+    if (ret == null) throw new Error("Non-existent key");
+    return ret;
+  }
+
+  get_str(key: string): TransactionMetadatum {
+    let metadata = TransactionMetadatum.new_text(key);
+    return this.get(metadata);
+  }
+
+  get_i32(key: number): TransactionMetadatum {
+    let metadata = TransactionMetadatum.new_int(Int.new_i32(key));
+    return this.get(metadata);
+  }
+
+  has(key: TransactionMetadatum): boolean {
+    return this._get(key) != null;
+  }
+}
+
+export class MultiAsset {
+  private items: [unknown, Assets][];
+
+  constructor(items: [unknown, Assets][]) {
+    this.items = items;
+  }
+
+  static new(): MultiAsset {
+    return new MultiAsset([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(key: unknown, value: Assets): Assets | undefined {
+    let entry = this.items.find((x) => $$CANT_EQ("ScriptHash"));
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: unknown): Assets | undefined {
+    let entry = this.items.find((x) => $$CANT_EQ("ScriptHash"));
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: unknown[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !$$CANT_EQ("ScriptHash")),
+    );
+  }
+
+  keys(): ScriptHashes {
+    let keys = ScriptHashes.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader): MultiAsset {
+    let ret = new MultiAsset([]);
+    reader.readMap((reader) =>
+      ret.insert($$CANT_READ("ScriptHash"), Assets.deserialize(reader)),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this.items, (writer, x) => {
+      $$CANT_WRITE("ScriptHash");
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MultiAsset {
+    let reader = new CBORReader(data);
+    return MultiAsset.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MultiAsset {
+    return MultiAsset.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MultiAsset {
+    return MultiAsset.from_bytes(this.to_bytes());
+  }
+
+  set_asset(
+    policy_id: ScriptHash,
+    asset_name: AssetName,
+    value: BigNum,
+  ): BigNum | undefined {
+    let assets = this.get(policy_id);
+    if (assets == null) {
+      assets = Assets.new();
+      this.insert(policy_id, assets);
+    }
+    return assets.insert(asset_name, value);
+  }
+
+  get_asset(policy_id: ScriptHash, asset_name: AssetName): BigNum {
+    let assets = this.get(policy_id);
+    if (assets == null) return BigNum.zero();
+    let asset_amount = assets.get(asset_name);
+    if (asset_amount == null) return BigNum.zero();
+    return asset_amount;
+  }
+
+  sub(rhs: MultiAsset): MultiAsset {
+    let out = this.clone();
+    out._inplace_clamped_sub(rhs);
+    return out;
+  }
+
+  _inplace_checked_add(rhs: MultiAsset): void {
+    for (let [policy, rhs_assets] of rhs.items) {
+      let this_assets = this.get(policy);
+      if (this_assets == null) {
+        this_assets = Assets.new();
+        this.insert(policy, this_assets);
+      }
+      this_assets._inplace_checked_add(rhs_assets);
+    }
+  }
+
+  _inplace_clamped_sub(rhs: MultiAsset) {
+    for (let [policy, rhs_assets] of rhs.items) {
+      let this_assets = this.get(policy);
+      if (this_assets == null) continue;
+      this_assets._inplace_clamped_sub(rhs_assets);
+    }
+    this._normalize();
+  }
+
+  _normalize(): void {
+    let to_remove: ScriptHash[] = [];
+    for (let [policy_id, assets] of this.items) {
+      if (assets.len() == 0) to_remove.push(policy_id);
+    }
+    this._remove_many(to_remove);
+  }
+
+  _partial_cmp(rhs: MultiAsset): number | undefined {
+    const zero = Assets.new();
+    let cmps = [
+      false, // -1
+      false, // 0
+      false, // 1
+    ];
+    for (let [policy_id, this_assets] of this.items) {
+      let rhs_assets = rhs.get(policy_id);
+      if (rhs_assets == null) rhs_assets = zero;
+      let assets_cmp = this_assets._partial_cmp(rhs_assets);
+      if (assets_cmp == null) return undefined;
+      cmps[1 + assets_cmp] = true;
+    }
+
+    for (let [policy_id, rhs_assets] of rhs.items) {
+      let this_assets = this.get(policy_id);
+      if (this_assets == null) this_assets = zero;
+      let assets_cmp = this_assets._partial_cmp(rhs_assets);
+      if (assets_cmp == null) return undefined;
+      cmps[1 + assets_cmp] = true;
+    }
+
+    let has_less = cmps[0];
+    let _has_equal = cmps[1];
+    let has_greater = cmps[2];
+
+    if (has_less && has_greater) return undefined;
+    else if (has_less) return -1;
+    else if (has_greater) return 1;
+    else return 0;
+  }
+}
+
 export class MultiHostName {
   private _dns_name: DNSRecordSRV;
 
   constructor(dns_name: DNSRecordSRV) {
     this._dns_name = dns_name;
+  }
+
+  static new(dns_name: DNSRecordSRV) {
+    return new MultiHostName(dns_name);
   }
 
   get_dns_name(): DNSRecordSRV {
@@ -4101,6 +4850,13 @@ export class NewConstitutionAction {
     this._constitution = constitution;
   }
 
+  static new(
+    gov_action_id: GovernanceActionId | undefined,
+    constitution: Constitution,
+  ) {
+    return new NewConstitutionAction(gov_action_id, constitution);
+  }
+
   get_gov_action_id(): GovernanceActionId | undefined {
     return this._gov_action_id;
   }
@@ -4144,6 +4900,10 @@ export class NoConfidenceAction {
     this._gov_action_id = gov_action_id;
   }
 
+  static new(gov_action_id: GovernanceActionId | undefined) {
+    return new NoConfidenceAction(gov_action_id);
+  }
+
   get_gov_action_id(): GovernanceActionId | undefined {
     return this._gov_action_id;
   }
@@ -4185,6 +4945,15 @@ export class OperationalCert {
     this._sequence_number = sequence_number;
     this._kes_period = kes_period;
     this._sigma = sigma;
+  }
+
+  static new(
+    hot_vkey: unknown,
+    sequence_number: number,
+    kes_period: number,
+    sigma: unknown,
+  ) {
+    return new OperationalCert(hot_vkey, sequence_number, kes_period, sigma);
   }
 
   get_hot_vkey(): unknown {
@@ -4288,6 +5057,18 @@ export class ParameterChangeAction {
     this._gov_action_id = gov_action_id;
     this._protocol_param_updates = protocol_param_updates;
     this._policy_hash = policy_hash;
+  }
+
+  static new(
+    gov_action_id: GovernanceActionId | undefined,
+    protocol_param_updates: ProtocolParamUpdate,
+    policy_hash: unknown | undefined,
+  ) {
+    return new ParameterChangeAction(
+      gov_action_id,
+      protocol_param_updates,
+      policy_hash,
+    );
   }
 
   get_gov_action_id(): GovernanceActionId | undefined {
@@ -4493,6 +5274,10 @@ export class PoolMetadata {
     this._pool_metadata_hash = pool_metadata_hash;
   }
 
+  static new(url: URL, pool_metadata_hash: unknown) {
+    return new PoolMetadata(url, pool_metadata_hash);
+  }
+
   get_url(): URL {
     return this._url;
   }
@@ -4590,6 +5375,30 @@ export class PoolParams {
     this._pool_owners = pool_owners;
     this._relays = relays;
     this._pool_metadata = pool_metadata;
+  }
+
+  static new(
+    operator: unknown,
+    vrf_keyhash: unknown,
+    pledge: BigNum,
+    cost: BigNum,
+    margin: UnitInterval,
+    reward_account: unknown,
+    pool_owners: Ed25519KeyHashes,
+    relays: Relays,
+    pool_metadata: PoolMetadata | undefined,
+  ) {
+    return new PoolParams(
+      operator,
+      vrf_keyhash,
+      pledge,
+      cost,
+      margin,
+      reward_account,
+      pool_owners,
+      relays,
+      pool_metadata,
+    );
   }
 
   get_operator(): unknown {
@@ -4721,6 +5530,10 @@ export class PoolRegistration {
     this._pool_params = pool_params;
   }
 
+  static new(pool_params: PoolParams) {
+    return new PoolRegistration(pool_params);
+  }
+
   get_pool_params(): PoolParams {
     return this._pool_params;
   }
@@ -4774,6 +5587,10 @@ export class PoolRetirement {
     this._epoch = epoch;
   }
 
+  static new(pool_keyhash: unknown, epoch: number) {
+    return new PoolRetirement(pool_keyhash, epoch);
+  }
+
   get_pool_keyhash(): unknown {
     return this._pool_keyhash;
   }
@@ -4823,6 +5640,22 @@ export class PoolVotingThresholds {
     this._committee_no_confidence = committee_no_confidence;
     this._hard_fork_initiation = hard_fork_initiation;
     this._security_relevant_threshold = security_relevant_threshold;
+  }
+
+  static new(
+    motion_no_confidence: UnitInterval,
+    committee_normal: UnitInterval,
+    committee_no_confidence: UnitInterval,
+    hard_fork_initiation: UnitInterval,
+    security_relevant_threshold: UnitInterval,
+  ) {
+    return new PoolVotingThresholds(
+      motion_no_confidence,
+      committee_normal,
+      committee_no_confidence,
+      hard_fork_initiation,
+      security_relevant_threshold,
+    );
   }
 
   get_motion_no_confidence(): UnitInterval {
@@ -5026,6 +5859,72 @@ export class ProtocolParamUpdate {
     this._drep_deposit = drep_deposit;
     this._drep_inactivity_period = drep_inactivity_period;
     this._script_cost_per_byte = script_cost_per_byte;
+  }
+
+  static new(
+    minfee_a: BigNum | undefined,
+    minfee_b: BigNum | undefined,
+    max_block_body_size: number | undefined,
+    max_tx_size: number | undefined,
+    max_block_header_size: number | undefined,
+    key_deposit: BigNum | undefined,
+    pool_deposit: BigNum | undefined,
+    max_epoch: number | undefined,
+    n_opt: number | undefined,
+    pool_pledge_influence: UnitInterval | undefined,
+    expansion_rate: UnitInterval | undefined,
+    treasury_growth_rate: UnitInterval | undefined,
+    min_pool_cost: BigNum | undefined,
+    ada_per_utxo_byte: BigNum | undefined,
+    costmdls: unknown | undefined,
+    execution_costs: ExUnitPrices | undefined,
+    max_tx_ex_units: ExUnits | undefined,
+    max_block_ex_units: ExUnits | undefined,
+    max_value_size: number | undefined,
+    collateral_percentage: number | undefined,
+    max_collateral_inputs: number | undefined,
+    pool_voting_thresholds: PoolVotingThresholds | undefined,
+    drep_voting_thresholds: DrepVotingThresholds | undefined,
+    min_committee_size: number | undefined,
+    committee_term_limit: number | undefined,
+    governance_action_validity_period: number | undefined,
+    governance_action_deposit: BigNum | undefined,
+    drep_deposit: BigNum | undefined,
+    drep_inactivity_period: number | undefined,
+    script_cost_per_byte: UnitInterval | undefined,
+  ) {
+    return new ProtocolParamUpdate(
+      minfee_a,
+      minfee_b,
+      max_block_body_size,
+      max_tx_size,
+      max_block_header_size,
+      key_deposit,
+      pool_deposit,
+      max_epoch,
+      n_opt,
+      pool_pledge_influence,
+      expansion_rate,
+      treasury_growth_rate,
+      min_pool_cost,
+      ada_per_utxo_byte,
+      costmdls,
+      execution_costs,
+      max_tx_ex_units,
+      max_block_ex_units,
+      max_value_size,
+      collateral_percentage,
+      max_collateral_inputs,
+      pool_voting_thresholds,
+      drep_voting_thresholds,
+      min_committee_size,
+      committee_term_limit,
+      governance_action_validity_period,
+      governance_action_deposit,
+      drep_deposit,
+      drep_inactivity_period,
+      script_cost_per_byte,
+    );
   }
 
   get_minfee_a(): BigNum | undefined {
@@ -5695,6 +6594,10 @@ export class ProtocolVersion {
     this._minor = minor;
   }
 
+  static new(major: number, minor: number) {
+    return new ProtocolVersion(major, minor);
+  }
+
   get_major(): number {
     return this._major;
   }
@@ -5850,6 +6753,10 @@ export class RegCert {
   constructor(stake_credential: Credential, coin: BigNum) {
     this._stake_credential = stake_credential;
     this._coin = coin;
+  }
+
+  static new(stake_credential: Credential, coin: BigNum) {
+    return new RegCert(stake_credential, coin);
   }
 
   get_stake_credential(): Credential {
@@ -6084,6 +6991,10 @@ export class ScriptAll {
     this._native_scripts = native_scripts;
   }
 
+  static new(native_scripts: NativeScripts) {
+    return new ScriptAll(native_scripts);
+  }
+
   get_native_scripts(): NativeScripts {
     return this._native_scripts;
   }
@@ -6108,6 +7019,10 @@ export class ScriptAny {
 
   constructor(native_scripts: NativeScripts) {
     this._native_scripts = native_scripts;
+  }
+
+  static new(native_scripts: NativeScripts) {
+    return new ScriptAny(native_scripts);
   }
 
   get_native_scripts(): NativeScripts {
@@ -6136,6 +7051,10 @@ export class ScriptNOfK {
   constructor(n: number, native_scripts: NativeScripts) {
     this._n = n;
     this._native_scripts = native_scripts;
+  }
+
+  static new(n: number, native_scripts: NativeScripts) {
+    return new ScriptNOfK(n, native_scripts);
   }
 
   get_n(): number {
@@ -6173,6 +7092,10 @@ export class ScriptPubname {
 
   constructor(addr_keyhash: unknown) {
     this._addr_keyhash = addr_keyhash;
+  }
+
+  static new(addr_keyhash: unknown) {
+    return new ScriptPubname(addr_keyhash);
   }
 
   get_addr_keyhash(): unknown {
@@ -6371,6 +7294,14 @@ export class SingleHostAddr {
     this._ipv6 = ipv6;
   }
 
+  static new(
+    port: number | undefined,
+    ipv4: Ipv4 | undefined,
+    ipv6: Ipv6 | undefined,
+  ) {
+    return new SingleHostAddr(port, ipv4, ipv6);
+  }
+
   get_port(): number | undefined {
     return this._port;
   }
@@ -6433,6 +7364,10 @@ export class SingleHostName {
     this._dns_name = dns_name;
   }
 
+  static new(port: number | undefined, dns_name: DNSRecordAorAAAA) {
+    return new SingleHostName(port, dns_name);
+  }
+
   get_port(): number | undefined {
     return this._port;
   }
@@ -6476,6 +7411,10 @@ export class StakeAndVoteDelegation {
     this._stake_credential = stake_credential;
     this._pool_keyhash = pool_keyhash;
     this._drep = drep;
+  }
+
+  static new(stake_credential: Credential, pool_keyhash: unknown, drep: DRep) {
+    return new StakeAndVoteDelegation(stake_credential, pool_keyhash, drep);
   }
 
   get_stake_credential(): Credential {
@@ -6528,6 +7467,10 @@ export class StakeDelegation {
     this._pool_keyhash = pool_keyhash;
   }
 
+  static new(stake_credential: Credential, pool_keyhash: unknown) {
+    return new StakeDelegation(stake_credential, pool_keyhash);
+  }
+
   get_stake_credential(): Credential {
     return this._stake_credential;
   }
@@ -6565,6 +7508,10 @@ export class StakeDeregistration {
     this._stake_credential = stake_credential;
   }
 
+  static new(stake_credential: Credential) {
+    return new StakeDeregistration(stake_credential);
+  }
+
   get_stake_credential(): Credential {
     return this._stake_credential;
   }
@@ -6589,6 +7536,10 @@ export class StakeRegistration {
 
   constructor(stake_credential: Credential) {
     this._stake_credential = stake_credential;
+  }
+
+  static new(stake_credential: Credential) {
+    return new StakeRegistration(stake_credential);
   }
 
   get_stake_credential(): Credential {
@@ -6623,6 +7574,18 @@ export class StakeRegistrationAndDelegation {
     this._stake_credential = stake_credential;
     this._pool_keyhash = pool_keyhash;
     this._coin = coin;
+  }
+
+  static new(
+    stake_credential: Credential,
+    pool_keyhash: unknown,
+    coin: BigNum,
+  ) {
+    return new StakeRegistrationAndDelegation(
+      stake_credential,
+      pool_keyhash,
+      coin,
+    );
   }
 
   get_stake_credential(): Credential {
@@ -6686,6 +7649,20 @@ export class StakeVoteRegistrationAndDelegation {
     this._pool_keyhash = pool_keyhash;
     this._drep = drep;
     this._coin = coin;
+  }
+
+  static new(
+    stake_credential: Credential,
+    pool_keyhash: unknown,
+    drep: DRep,
+    coin: BigNum,
+  ) {
+    return new StakeVoteRegistrationAndDelegation(
+      stake_credential,
+      pool_keyhash,
+      drep,
+      coin,
+    );
   }
 
   get_stake_credential(): Credential {
@@ -6752,6 +7729,10 @@ export class TimelockExpiry {
     this._slot = slot;
   }
 
+  static new(slot: BigNum) {
+    return new TimelockExpiry(slot);
+  }
+
   get_slot(): BigNum {
     return this._slot;
   }
@@ -6776,6 +7757,10 @@ export class TimelockStart {
 
   constructor(slot: BigNum) {
     this._slot = slot;
+  }
+
+  static new(slot: BigNum) {
+    return new TimelockStart(slot);
   }
 
   get_slot(): BigNum {
@@ -6813,6 +7798,15 @@ export class Transaction {
     this._witness_set = witness_set;
     this._is_valid = is_valid;
     this._auxiliary_data = auxiliary_data;
+  }
+
+  static new(
+    body: TransactionBody,
+    witness_set: TransactionWitnessSet,
+    is_valid: boolean,
+    auxiliary_data: AuxiliaryData | undefined,
+  ) {
+    return new Transaction(body, witness_set, is_valid, auxiliary_data);
   }
 
   get_body(): TransactionBody {
@@ -7033,6 +8027,52 @@ export class TransactionBody {
     this._voting_proposals = voting_proposals;
     this._current_treasury_value = current_treasury_value;
     this._donation = donation;
+  }
+
+  static new(
+    inputs: TransactionInputs,
+    outputs: TransactionOutputs,
+    fee: BigNum,
+    ttl: BigNum | undefined,
+    certs: Certificates | undefined,
+    withdrawals: Withdrawals | undefined,
+    auxiliary_data_hash: unknown | undefined,
+    validity_start_interval: BigNum | undefined,
+    mint: unknown | undefined,
+    script_data_hash: unknown | undefined,
+    collateral: TransactionInputs | undefined,
+    required_signers: Ed25519KeyHashes | undefined,
+    network_id: NetworkId | undefined,
+    collateral_return: TransactionOutput | undefined,
+    total_collateral: BigNum | undefined,
+    reference_inputs: TransactionInputs | undefined,
+    voting_procedures: unknown | undefined,
+    voting_proposals: VotingProposals | undefined,
+    current_treasury_value: BigNum | undefined,
+    donation: BigNum | undefined,
+  ) {
+    return new TransactionBody(
+      inputs,
+      outputs,
+      fee,
+      ttl,
+      certs,
+      withdrawals,
+      auxiliary_data_hash,
+      validity_start_interval,
+      mint,
+      script_data_hash,
+      collateral,
+      required_signers,
+      network_id,
+      collateral_return,
+      total_collateral,
+      reference_inputs,
+      voting_procedures,
+      voting_proposals,
+      current_treasury_value,
+      donation,
+    );
   }
 
   get_inputs(): TransactionInputs {
@@ -7490,6 +8530,10 @@ export class TransactionInput {
     this._index = index;
   }
 
+  static new(transaction_id: unknown, index: number) {
+    return new TransactionInput(transaction_id, index);
+  }
+
   get_transaction_id(): unknown {
     return this._transaction_id;
   }
@@ -7633,15 +8677,242 @@ export class TransactionInputs {
   }
 }
 
+export enum TransactionMetadatumKind {
+  MetadataMap = 0,
+  MetadataList = 1,
+  Int = 2,
+  Bytes = 3,
+  Text = 4,
+}
+
+export type TransactionMetadatumVariant =
+  | { kind: 0; value: MetadataMap }
+  | { kind: 1; value: MetadataList }
+  | { kind: 2; value: Int }
+  | { kind: 3; value: Uint8Array }
+  | { kind: 4; value: string };
+
+export class TransactionMetadatum {
+  private variant: TransactionMetadatumVariant;
+
+  constructor(variant: TransactionMetadatumVariant) {
+    this.variant = variant;
+  }
+
+  static new_map(map: MetadataMap): TransactionMetadatum {
+    return new TransactionMetadatum({ kind: 0, value: map });
+  }
+
+  static new_list(list: MetadataList): TransactionMetadatum {
+    return new TransactionMetadatum({ kind: 1, value: list });
+  }
+
+  static new_int(int: Int): TransactionMetadatum {
+    return new TransactionMetadatum({ kind: 2, value: int });
+  }
+
+  static new_bytes(bytes: Uint8Array): TransactionMetadatum {
+    return new TransactionMetadatum({ kind: 3, value: bytes });
+  }
+
+  static new_text(text: string): TransactionMetadatum {
+    return new TransactionMetadatum({ kind: 4, value: text });
+  }
+
+  as_map(): MetadataMap {
+    if (this.variant.kind == 0) return this.variant.value;
+    throw new Error("Incorrect cast");
+  }
+
+  as_list(): MetadataList {
+    if (this.variant.kind == 1) return this.variant.value;
+    throw new Error("Incorrect cast");
+  }
+
+  as_int(): Int {
+    if (this.variant.kind == 2) return this.variant.value;
+    throw new Error("Incorrect cast");
+  }
+
+  as_bytes(): Uint8Array {
+    if (this.variant.kind == 3) return this.variant.value;
+    throw new Error("Incorrect cast");
+  }
+
+  as_text(): string {
+    if (this.variant.kind == 4) return this.variant.value;
+    throw new Error("Incorrect cast");
+  }
+
+  static deserialize(reader: CBORReader): TransactionMetadatum {
+    let tag = reader.peekType();
+    let variant: TransactionMetadatumVariant;
+
+    switch (tag) {
+      case "map":
+        variant = {
+          kind: TransactionMetadatumKind.MetadataMap,
+          value: MetadataMap.deserialize(reader),
+        };
+        break;
+
+      case "array":
+        variant = {
+          kind: TransactionMetadatumKind.MetadataList,
+          value: MetadataList.deserialize(reader),
+        };
+        break;
+
+      case "uint":
+      case "nint":
+        variant = {
+          kind: TransactionMetadatumKind.Int,
+          value: Int.deserialize(reader),
+        };
+        break;
+
+      case "bytes":
+        variant = {
+          kind: TransactionMetadatumKind.Bytes,
+          value: reader.readBytes(),
+        };
+        break;
+
+      case "string":
+        variant = {
+          kind: TransactionMetadatumKind.Text,
+          value: reader.readString(),
+        };
+        break;
+
+      default:
+        throw new Error("Unexpected subtype for TransactionMetadatum: " + tag);
+    }
+
+    return new TransactionMetadatum(variant);
+  }
+
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        this.variant.value.serialize(writer);
+        break;
+
+      case 1:
+        this.variant.value.serialize(writer);
+        break;
+
+      case 2:
+        this.variant.value.serialize(writer);
+        break;
+
+      case 3:
+        writer.writeBytes(this.variant.value);
+        break;
+
+      case 4:
+        writer.writeString(this.variant.value);
+        break;
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TransactionMetadatum {
+    let reader = new CBORReader(data);
+    return TransactionMetadatum.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TransactionMetadatum {
+    return TransactionMetadatum.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): TransactionMetadatum {
+    return TransactionMetadatum.from_bytes(this.to_bytes());
+  }
+}
+
+export class TransactionMetadatumLabels {
+  private items: BigNum[];
+
+  constructor(items: BigNum[]) {
+    this.items = items;
+  }
+
+  static new(): TransactionMetadatumLabels {
+    return new TransactionMetadatumLabels([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): BigNum {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: BigNum): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): TransactionMetadatumLabels {
+    return new TransactionMetadatumLabels(
+      reader.readArray((reader) => BigNum.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TransactionMetadatumLabels {
+    let reader = new CBORReader(data);
+    return TransactionMetadatumLabels.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TransactionMetadatumLabels {
+    return TransactionMetadatumLabels.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): TransactionMetadatumLabels {
+    return TransactionMetadatumLabels.from_bytes(this.to_bytes());
+  }
+}
+
 export class TransactionOutput {
   private _address: unknown;
-  private _amount: unknown;
+  private _amount: Value;
   private _plutus_data: DataOption | undefined;
   private _script_ref: ScriptRef | undefined;
 
   constructor(
     address: unknown,
-    amount: unknown,
+    amount: Value,
     plutus_data: DataOption | undefined,
     script_ref: ScriptRef | undefined,
   ) {
@@ -7649,6 +8920,15 @@ export class TransactionOutput {
     this._amount = amount;
     this._plutus_data = plutus_data;
     this._script_ref = script_ref;
+  }
+
+  static new(
+    address: unknown,
+    amount: Value,
+    plutus_data: DataOption | undefined,
+    script_ref: ScriptRef | undefined,
+  ) {
+    return new TransactionOutput(address, amount, plutus_data, script_ref);
   }
 
   get_address(): unknown {
@@ -7659,11 +8939,11 @@ export class TransactionOutput {
     this._address = address;
   }
 
-  get_amount(): unknown {
+  get_amount(): Value {
     return this._amount;
   }
 
-  set_amount(amount: unknown): void {
+  set_amount(amount: Value): void {
     this._amount = amount;
   }
 
@@ -7693,7 +8973,7 @@ export class TransactionOutput {
           break;
 
         case 1:
-          fields.amount = $$CANT_READ("Value");
+          fields.amount = Value.deserialize(r);
           break;
 
         case 2:
@@ -7730,7 +9010,7 @@ export class TransactionOutput {
     $$CANT_WRITE("Address");
 
     writer.writeInt(1n);
-    $$CANT_WRITE("Value");
+    this._amount.serialize(writer);
 
     if (this._plutus_data !== undefined) {
       writer.writeInt(2n);
@@ -7858,6 +9138,28 @@ export class TransactionWitnessSet {
     this._redeemers = redeemers;
     this._plutus_scripts_v2 = plutus_scripts_v2;
     this._plutus_scripts_v3 = plutus_scripts_v3;
+  }
+
+  static new(
+    vkeys: Vkeywitnesses | undefined,
+    native_scripts: NativeScripts | undefined,
+    bootstraps: BootstrapWitnesses | undefined,
+    plutus_scripts_v1: PlutusScripts | undefined,
+    plutus_data: PlutusList | undefined,
+    redeemers: unknown | undefined,
+    plutus_scripts_v2: PlutusScripts | undefined,
+    plutus_scripts_v3: PlutusScripts | undefined,
+  ) {
+    return new TransactionWitnessSet(
+      vkeys,
+      native_scripts,
+      bootstraps,
+      plutus_scripts_v1,
+      plutus_data,
+      redeemers,
+      plutus_scripts_v2,
+      plutus_scripts_v3,
+    );
   }
 
   get_vkeys(): Vkeywitnesses | undefined {
@@ -8133,6 +9435,10 @@ export class TreasuryWithdrawalsAction {
     this._policy_hash = policy_hash;
   }
 
+  static new(withdrawals: unknown, policy_hash: unknown | undefined) {
+    return new TreasuryWithdrawalsAction(withdrawals, policy_hash);
+  }
+
   get_withdrawals(): unknown {
     return this._withdrawals;
   }
@@ -8230,6 +9536,10 @@ export class UnitInterval {
     this._denominator = denominator;
   }
 
+  static new(numerator: BigNum, denominator: BigNum) {
+    return new UnitInterval(numerator, denominator);
+  }
+
   get_numerator(): BigNum {
     return this._numerator;
   }
@@ -8320,6 +9630,10 @@ export class UnregCert {
     this._coin = coin;
   }
 
+  static new(stake_credential: Credential, coin: BigNum) {
+    return new UnregCert(stake_credential, coin);
+  }
+
   get_stake_credential(): Credential {
     return this._stake_credential;
   }
@@ -8366,6 +9680,20 @@ export class UpdateCommitteeAction {
     this._members_to_remove = members_to_remove;
     this._committee = committee;
     this._quorom_threshold = quorom_threshold;
+  }
+
+  static new(
+    gov_action_id: GovernanceActionId | undefined,
+    members_to_remove: Credentials,
+    committee: unknown,
+    quorom_threshold: UnitInterval,
+  ) {
+    return new UpdateCommitteeAction(
+      gov_action_id,
+      members_to_remove,
+      committee,
+      quorom_threshold,
+    );
   }
 
   get_gov_action_id(): GovernanceActionId | undefined {
@@ -8431,6 +9759,170 @@ export class UpdateCommitteeAction {
   }
 }
 
+export class Value {
+  private _coin: BigNum;
+  private _multiasset: MultiAsset | undefined;
+
+  constructor(coin: BigNum, multiasset: MultiAsset | undefined) {
+    this._coin = coin;
+    this._multiasset = multiasset;
+  }
+
+  static new_with_assets(coin: BigNum, multiasset: MultiAsset | undefined) {
+    return new Value(coin, multiasset);
+  }
+
+  get_coin(): BigNum {
+    return this._coin;
+  }
+
+  set_coin(coin: BigNum): void {
+    this._coin = coin;
+  }
+
+  get_multiasset(): MultiAsset | undefined {
+    return this._multiasset;
+  }
+
+  set_multiasset(multiasset: MultiAsset | undefined): void {
+    this._multiasset = multiasset;
+  }
+
+  static deserializeRecord(reader: CBORReader): Value {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let coin = BigNum.deserialize(reader);
+
+    let multiasset =
+      reader.readNullable((r) => MultiAsset.deserialize(r)) ?? undefined;
+
+    return new Value(coin, multiasset);
+  }
+
+  serializeRecord(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
+
+    this._coin.serialize(writer);
+    if (this._multiasset == null) {
+      writer.writeNull();
+    } else {
+      this._multiasset.serialize(writer);
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Value {
+    let reader = new CBORReader(data);
+    return Value.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Value {
+    return Value.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Value {
+    return Value.from_bytes(this.to_bytes());
+  }
+
+  static zero(): Value {
+    return Value.new(BigNum.zero());
+  }
+
+  static new(coin: BigNum): Value {
+    return Value.new_with_assets(coin, undefined);
+  }
+
+  static new_from_assets(multiasset: MultiAsset): Value {
+    return Value.new_with_assets(BigNum.zero(), multiasset);
+  }
+
+  static deserialize(reader: CBORReader): Value {
+    if (reader.peekType() == "array") {
+      return Value.deserializeRecord(reader);
+    }
+    return Value.new(BigNum.deserialize(reader));
+  }
+
+  serialize(writer: CBORWriter): void {
+    if (this._multiasset == null || this._multiasset.len() == 0) {
+      this._coin.serialize(writer);
+    } else {
+      this.serializeRecord();
+    }
+  }
+
+  checked_add(rhs: Value): Value {
+    let coin = this._coin.checked_add(rhs._coin);
+    let multiasset: MultiAsset | undefined;
+    if (this._multiasset != null) {
+      multiasset = this._multiasset.clone();
+      if (rhs._multiasset != null) {
+        multiasset._inplace_checked_add(rhs._multiasset);
+      }
+    } else if (rhs._multiasset != null) {
+      multiasset = rhs._multiasset.clone();
+    }
+    return new Value(coin, multiasset);
+  }
+
+  checked_sub(rhs: Value): Value {
+    let coin = this._coin.checked_sub(rhs._coin);
+    let multiasset: MultiAsset | undefined;
+    if (this._multiasset != null) {
+      multiasset = this._multiasset.clone();
+      if (rhs._multiasset != null) {
+        multiasset._inplace_clamped_sub(rhs._multiasset);
+      }
+    }
+    return new Value(coin, multiasset);
+  }
+
+  clamped_sub(rhs: Value): Value {
+    let coin = this._coin.clamped_sub(rhs._coin);
+    let multiasset: MultiAsset | undefined;
+    if (this._multiasset != null) {
+      multiasset = this._multiasset.clone();
+      if (rhs._multiasset != null) {
+        multiasset._inplace_clamped_sub(rhs._multiasset);
+      }
+    }
+    return new Value(coin, multiasset);
+  }
+
+  compare(rhs_value: Value): number | undefined {
+    let coin_cmp = this._coin.compare(rhs_value._coin);
+    let this_multiasset = this._multiasset ?? MultiAsset.new();
+    let rhs_multiasset = rhs_value._multiasset ?? MultiAsset.new();
+
+    let assets_cmp = this_multiasset._partial_cmp(rhs_multiasset);
+    if (assets_cmp == null) return undefined;
+
+    if (coin_cmp == 0 || coin_cmp == assets_cmp) return assets_cmp;
+    if (assets_cmp == 0) return coin_cmp;
+
+    // (coin_cmp == -1 && assets_cmp == +1) || (coin_cmp == +1 && assets_cmp == -1)
+    return undefined;
+  }
+}
+
 export class Vkeywitness {
   private _vkey: unknown;
   private _signature: unknown;
@@ -8438,6 +9930,10 @@ export class Vkeywitness {
   constructor(vkey: unknown, signature: unknown) {
     this._vkey = vkey;
     this._signature = signature;
+  }
+
+  static new(vkey: unknown, signature: unknown) {
+    return new Vkeywitness(vkey, signature);
   }
 
   get_vkey(): unknown {
@@ -8592,6 +10088,10 @@ export class VoteDelegation {
     this._drep = drep;
   }
 
+  static new(stake_credential: Credential, drep: DRep) {
+    return new VoteDelegation(stake_credential, drep);
+  }
+
   get_stake_credential(): Credential {
     return this._stake_credential;
   }
@@ -8656,6 +10156,10 @@ export class VoteRegistrationAndDelegation {
     this._coin = coin;
   }
 
+  static new(stake_credential: Credential, drep: DRep, coin: BigNum) {
+    return new VoteRegistrationAndDelegation(stake_credential, drep, coin);
+  }
+
   get_stake_credential(): Credential {
     return this._stake_credential;
   }
@@ -8710,6 +10214,14 @@ export class Voter {
     this._constitutional_committee_hot_key = constitutional_committee_hot_key;
     this._drep = drep;
     this._staking_pool = staking_pool;
+  }
+
+  static new(
+    constitutional_committee_hot_key: Credential,
+    drep: Credential,
+    staking_pool: unknown,
+  ) {
+    return new Voter(constitutional_committee_hot_key, drep, staking_pool);
   }
 
   get_constitutional_committee_hot_key(): Credential {
@@ -8800,6 +10312,10 @@ export class VotingProcedure {
     this._anchor = anchor;
   }
 
+  static new(vote: VoteKind, anchor: Anchor | undefined) {
+    return new VotingProcedure(vote, anchor);
+  }
+
   get_vote(): VoteKind {
     return this._vote;
   }
@@ -8886,6 +10402,20 @@ export class VotingProposal {
     this._reward_account = reward_account;
     this._governance_action = governance_action;
     this._anchor = anchor;
+  }
+
+  static new(
+    deposit: BigNum,
+    reward_account: unknown,
+    governance_action: GovernanceAction,
+    anchor: Anchor,
+  ) {
+    return new VotingProposal(
+      deposit,
+      reward_account,
+      governance_action,
+      anchor,
+    );
   }
 
   get_deposit(): BigNum {
@@ -9073,10 +10603,15 @@ export class Withdrawals {
     return this.items.length;
   }
 
-  insert(key: unknown, value: BigNum): void {
+  insert(key: unknown, value: BigNum): BigNum | undefined {
     let entry = this.items.find((x) => $$CANT_EQ("RewardAddress"));
-    if (entry != null) entry[1] = value;
-    else this.items.push([key, value]);
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
   }
 
   get(key: unknown): BigNum | undefined {
