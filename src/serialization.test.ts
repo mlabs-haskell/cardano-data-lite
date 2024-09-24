@@ -26,7 +26,7 @@ let testsTable: Array<TestParameters> = [];
 // Types we are not interested in (or that are not supported)
 const typeBlacklist = new Set([
   // Broken
-  "VoteKind", // not really broken: we don't suport deserialization for enum_simple
+  "VoteKind", // not really broken: we don't suport deserialization for enum_simple (this is the only enum_simple)
   "Ed25519KeyHash", 
   "AuxiliaryData",
   "TransactionOutput",
@@ -37,9 +37,11 @@ const typeBlacklist = new Set([
 ]);
 // Unsupported fields
 const fieldsBlacklist = new Set([
-  "plutus_scripts_v1",
-  "plutus_scripts_v2",
-  "plutus_scripts_v3"
+  "committee_cold_resign", // in conway.yaml this is a `CommiteeColdResign`. But in CSL, this is a `Credential`.
+  "committee_cold_key",    // tries to access 'committee_cold_key', but only 'committee_cold_credential' exists in CSL type
+  "plutus_scripts_v1",     // no accessor with this name
+  "plutus_scripts_v2",     // no accessor with this name
+  "plutus_scripts_v3"      // no accessor with this name
 ]);
 
 // Whether to log extraction messages or not
@@ -108,8 +110,6 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
       }
       break;
     case "record_fragment_wrapper": {
-      // let tx: csl.Transaction = undefined as any;
-      // let pool_params = tx.body().certs()?.get(0).as_pool_registration()?.pool_params();
       const wrappedName = schema.item.name;
       const wrappedType = schema.item.type;
       const {sub: wrappedValue, subPath: newComponentPath } = getWrapped(value, wrappedName, wrappedType, componentPath);
@@ -141,9 +141,11 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
       extractLog("variant", variant);
       if (variant && variant.value && schemata[variant.value]) {
         const { sub: taggedValue, subPath: newComponentPath} = getTagged(value, variant.name, variant.value, componentPath);
-        extractLog(`Variant name: ${variant.name}\nVariant type: ${variant.value}`);
-        explodeValue(variant.name, taggedValue, schemata[variant.value], schemata, components, newComponentPath)
-        components.push({ type: variant.value, path: newComponentPath, cbor: taggedValue.to_bytes() })
+        if (taggedValue) {
+          extractLog(`Variant name: ${variant.name}\nVariant type: ${variant.value}`);
+          explodeValue(variant.name, taggedValue, schemata[variant.value], schemata, components, newComponentPath)
+          components.push({ type: variant.value, path: newComponentPath, cbor: taggedValue.to_bytes() })
+        }
       }
       break;
       }
@@ -254,10 +256,9 @@ describe("Serialization/deserialization roundtrip tests", () => {
   })
 
   test.each(testsTable)("($componentIndex) TX $txCount ($txHash)\n\tComponent $component.path ($component.type) ", (params) => {
-    // let class_key = params.component.type as keyof (typeof Out);
-    // let deserialized = (Out[class_key] as any).from_bytes(params.component.cbor);
-    // let serialized = deserialized.to_bytes();
-    // expect(serialized).toBe(params.component.cbor);
-    expect(3).toBe(3);
+    let class_key = params.component.type as keyof (typeof Out);
+    let deserialized = (Out[class_key] as any).from_bytes(params.component.cbor);
+    let serialized = deserialized.to_bytes();
+    expect(serialized).toBe(params.component.cbor);
   });
 });
