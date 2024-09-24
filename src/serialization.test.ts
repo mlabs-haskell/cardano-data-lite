@@ -101,7 +101,9 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
         if (fieldValue && schemata[field.type]) {
           extractLog(`Field name: ${field.name}\nField type: ${field.type}\nPath: ${newComponentPath}`);
           explodeValue(field.name, fieldValue, schemata[field.type], schemata, components, newComponentPath)
-          components.push({ type: field.type, path: newComponentPath, cbor: fieldValue.to_bytes() });
+          if (schema.type == "record") {
+            components.push({ type: field.type, path: newComponentPath, cbor: fieldValue.to_bytes() });
+          } // we don't test record fragments themselves
         }
       }
       break;
