@@ -1,0 +1,68 @@
+TransactionMetadatum:
+  type: union
+  variants:
+    - tag: 0
+      peek_type: map
+      name: map
+      type: MetadataMap
+    - tag: 1
+      peek_type: array
+      name: list
+      type: MetadataList
+    - tag: 2
+      peek_type: ["uint", "nint"]
+      name: int
+      kind_name: Int
+      type: Int
+    - tag: 3
+      peek_type: bytes
+      name: bytes
+      kind_name: Bytes
+      type: bytes
+    - tag: 4
+      peek_type: string
+      name: text
+      kind_name: Text
+      type: string
+
+MetadataList:
+  type: array
+  item: TransactionMetadatum
+
+MetadataMap:
+  type: map
+  key: TransactionMetadatum
+  value: TransactionMetadatum
+  keys_method_type: MetadataList
+  methods:
+    get: _get
+  extra_methods: |
+    insert_str(key: string, value: TransactionMetadatum): TransactionMetadatum | undefined {
+      let metadata = TransactionMetadatum.new_text(key);
+      return this.insert(metadata, value);
+    }
+
+    insert_i32(key: number, value: TransactionMetadatum): TransactionMetadatum | undefined {
+      let metadata = TransactionMetadatum.new_int(Int.new_i32(key));
+      return this.insert(metadata, value);
+    }
+
+    get(key: TransactionMetadatum): TransactionMetadatum {
+      let ret = this._get(key);
+      if(ret == null) throw new Error("Non-existent key");
+      return ret;
+    }
+
+    get_str(key: string): TransactionMetadatum {
+      let metadata = TransactionMetadatum.new_text(key);
+      return this.get(metadata);
+    }
+
+    get_i32(key: number): TransactionMetadatum {
+      let metadata = TransactionMetadatum.new_int(Int.new_i32(key));
+      return this.get(metadata);
+    }
+
+    has(key: TransactionMetadatum): boolean {
+      return this._get(key) != null;
+    }
