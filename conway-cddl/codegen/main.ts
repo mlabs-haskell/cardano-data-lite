@@ -1,10 +1,12 @@
 import * as yaml from "yaml";
 import * as fs from "node:fs";
+import * as path from "node:path";
 import * as prettier from "prettier";
 import * as process from "node:process";
 import { Codegen } from ".";
 import { Schema } from "./types";
 import { Value } from "@sinclair/typebox/value";
+import { fileURLToPath } from "node:url";
 
 export type CLIArgs = {
   validateOnly: boolean;
@@ -24,15 +26,28 @@ function parseCLIArgs(): CLIArgs {
 async function main() {
   let cliArgs = parseCLIArgs();
 
+  let curFile = fileURLToPath(import.meta.url);
+  let curDir = path.dirname(curFile);
+  console.log(curDir);
+
+  let yamlDir = path.join(curDir, "..", "yaml");
+
+  let files = [path.join(yamlDir, "conway.yaml")];
+
+  let customDir = path.join(yamlDir, "custom");
+
+  for (let item of fs.readdirSync(customDir)) {
+    item = path.join(customDir, item);
+    if (!fs.statSync(item).isFile()) continue;
+    if (item.endsWith(".yaml")) files.push(item);
+  }
+
+  console.log("Files", files);
+
   let codegen = new Codegen();
   let hasAnyError = false;
-  for (let filename of [
-    "conway",
-    "custom/bignum",
-    "custom/int",
-    "custom/value",
-  ]) {
-    let file = fs.readFileSync(`../yaml/${filename}.yaml`, "utf8");
+  for (let filename of files) {
+    let file = fs.readFileSync(filename, "utf8");
     let doc = yaml.parse(file);
     for (let [key, value] of Object.entries(doc)) {
       if ((value as any).custom == true) {
