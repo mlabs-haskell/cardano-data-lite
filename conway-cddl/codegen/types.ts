@@ -107,6 +107,18 @@ export const Schema = Type.Intersect([
         }),
       ),
     }),
+    Type.Object({
+      type: Type.Literal("union"),
+      variants: Type.Array(
+        Type.Object({
+          tag: Type.Number(),
+          peek_type: Type.Union([Type.String(), Type.Array(Type.String())]),
+          name: Type.String(),
+          type: Type.String(),
+          kind_name: Type.Optional(Type.String()),
+        }),
+      ),
+    }),
   ]),
 ]);
 
