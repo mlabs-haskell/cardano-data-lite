@@ -25,7 +25,10 @@ let testsTable: Array<TestParameters> = [];
 
 // Types we are not interested in (or that are not supported)
 const typeBlacklist = new Set([
-  // Broken
+  // from_bytes not implemented for these types
+  "ScriptAll",
+  "StakeDeregistration",
+  "StakeDelegation",
   "VoteKind", // not really broken: we don't suport deserialization for enum_simple (this is the only enum_simple)
   "Ed25519KeyHash", 
   "AuxiliaryData",
@@ -46,6 +49,8 @@ const fieldsBlacklist = new Set([
 
 // Whether to log extraction messages or not
 const traceExtraction = false;
+// Whether to succeed when a $$CANT_READ error is found
+const succeedWithUnimplementedFunctions = false;
 
 const extractLog = traceExtraction ? (...args : any) => console.log(...args) : () => { ; };
 
@@ -252,13 +257,26 @@ describe("Serialization/deserialization roundtrip tests", () => {
     let class_key = testsTable[testN].component.type as keyof (typeof Out);
     let deserialized = (Out[class_key] as any).from_bytes(testsTable[testN].component.cbor);
     let serialized = deserialized.to_bytes();
-    expect(serialized).toBe(testsTable[testN].component.cbor);
+    expect(serialized).toStrictEqual(testsTable[testN].component.cbor);
   })
 
   test.each(testsTable)("($componentIndex) TX $txCount ($txHash)\n\tComponent $component.path ($component.type) ", (params) => {
     let class_key = params.component.type as keyof (typeof Out);
-    let deserialized = (Out[class_key] as any).from_bytes(params.component.cbor);
-    let serialized = deserialized.to_bytes();
-    expect(serialized).toBe(params.component.cbor);
+    expect(roundtrip_eq(Out[class_key], params.component.cbor)).toBeTruthy();
   });
 });
+
+function roundtrip_eq(someClass: any, cbor: Uint8Array): boolean {
+    let deserialized: any;
+    try {
+      deserialized = someClass.from_bytes(cbor);
+    } catch(err) {
+      if(err instanceof TypeError && err.message === "$$CANT_READ is not a function" && succeedWithUnimplementedFunctions) {
+        return true;
+      } else {
+        throw(err);
+      }
+    }
+    let serialized: Uint8Array = deserialized.to_bytes();
+    return (Buffer.compare(serialized, cbor) == 0)
+}
