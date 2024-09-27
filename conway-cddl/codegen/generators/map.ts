@@ -44,15 +44,26 @@ export class GenMap extends CodeGeneratorBase {
     let keyJsType = this.typeUtils.jsType(this.key);
     let valueJsType = this.typeUtils.jsType(this.value);
     return `
-      static new(): ${this.name} {
+      ${this.renameMethod(
+        "new",
+        (new_) => `
+      static ${new_}(): ${this.name} {
         return new ${this.name}([]);
-      }
+      }`,
+      )};
 
-      len(): number {
+      ${this.renameMethod(
+        "len",
+        (len) => `
+      ${len}(): number {
         return this.items.length;
-      }
+      }`,
+      )};
 
-      insert(key: ${keyJsType}, value: ${valueJsType}): ${valueJsType} | undefined {
+      ${this.renameMethod(
+        "insert",
+        (insert) => `
+      ${insert}(key: ${keyJsType}, value: ${valueJsType}): ${valueJsType} | undefined {
         let entry = this.items.find(x => ${this.typeUtils.eqType("key", "x[0]", this.key)});
         if(entry != null) {
           let ret = entry[1];
@@ -61,13 +72,18 @@ export class GenMap extends CodeGeneratorBase {
         }
         this.items.push([key, value]);
         return undefined;
-      }
+      }`,
+      )};
 
-      get(key: ${keyJsType}): ${valueJsType} | undefined {
+      ${this.renameMethod(
+        "get",
+        (get) => `
+      ${get}(key: ${keyJsType}): ${valueJsType} | undefined {
         let entry = this.items.find(x => ${this.typeUtils.eqType("key", "x[0]", this.key)});
         if(entry == null) return undefined;
         return entry[1];
-      }
+      }`,
+      )};
 
       _remove_many(keys: ${keyJsType}[]): void {
         this.items = this.items.filter(
