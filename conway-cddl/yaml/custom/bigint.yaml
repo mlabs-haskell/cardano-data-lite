@@ -1,0 +1,145 @@
+CSLBigInt:
+  type: newtype
+  csl_name: BigInt
+  item: bigint
+  accessor: toJsValue
+  methods:
+    serialize: null
+    deserialize: null
+  extra_methods: |
+    static from_str(string: string): CSLBigInt {
+      return new CSLBigInt(BigInt(string));
+    }
+
+    to_str(): string {
+      return this.toJsValue().toString();
+    }
+
+    static zero(): CSLBigInt {
+      return new CSLBigInt(0n);
+    }
+
+    static one(): CSLBigInt {
+      return new CSLBigInt(1n);
+    }
+
+    is_zero(): boolean {
+      return this.toJsValue() == 0n;
+    }
+
+    add(other: CSLBigInt): CSLBigInt {
+      let res = this.toJsValue() + other.toJsValue();
+      return new CSLBigInt(res);
+    }
+
+    sub(other: CSLBigInt): CSLBigInt {
+      let res = this.toJsValue() - other.toJsValue();
+      return new CSLBigInt(res);
+    }
+
+    mul(other: CSLBigInt): CSLBigInt {
+      let res = this.toJsValue() * other.toJsValue();
+      return new CSLBigInt(res);
+    }
+
+    pow(other: CSLBigInt): CSLBigInt {
+      let res = this.toJsValue() ** other.toJsValue();
+      return new CSLBigInt(res);
+    }
+
+    div_floor(other: CSLBigInt): CSLBigInt {
+      let res = this.toJsValue() / other.toJsValue();
+      return new CSLBigInt(res);
+    }
+
+    div_ceil(other: CSLBigInt): CSLBigInt {
+      let a = this.toJsValue();
+      let b = other.toJsValue();
+      let res = a / b;
+      let rem = a % b;
+      if(rem !== 0n && ((a < 0n && b < 0n) || (a > 0n && b > 0n))) {
+        return new CSLBigInt(res+1n);
+      }
+      return new CSLBigInt(res);
+    }
+
+    abs(): CSLBigInt {
+      if(this.toJsValue() < 0) return new CSLBigInt(this.toJsValue() * -1n);
+      return this;
+    }
+
+    increment(): CSLBigInt {
+      return new CSLBigInt(this.toJsValue() + 1n);
+    }
+
+    static max(a: CSLBigInt, b: CSLBigInt): CSLBigInt {
+      if(a.toJsValue() > b.toJsValue()) return a;
+      else return b;
+    }
+
+    as_u64(): BigNum | undefined {
+      let inner = this.toJsValue();
+      if(inner <= BigNum._maxU64()) {
+        return new BigNum(inner);
+      }
+      return undefined;
+    }
+
+    as_int(): Int | undefined {
+      let inner = this.toJsValue();
+      if(inner >= Int._minI32() && inner <= Int._maxI32()) return new Int(inner);
+      return undefined;
+    }
+
+    serialize(writer: CBORWriter): void {
+      let value = this.toJsValue();
+      
+      let isNegative;
+      let valueAbs;
+      if (value >= 0n) {
+        if(value <= BigNum._maxU64()) {
+          writer.writeInt(value);    
+          return;
+        } 
+
+        isNegative = false;
+        valueAbs = value;
+      } else {
+        isNegative = true;
+        valueAbs = value * -1n;
+
+        if(valueAbs <= BigNum._maxU64()) {
+          writer.writeInt(value);    
+          return;
+        }
+      }
+
+      let buffer = new GrowableBuffer();
+      buffer.pushBigInt(valueAbs);
+      writer.writeTaggedTag(isNegative ? 3 : 2);
+      writer.writeBytesChunked(buffer.getBytes(), 64);
+    }
+
+    static deserialize(reader: CBORReader): CSLBigInt {
+      let typ = reader.peekType();
+      if(typ == "uint" || typ == "nint") {
+        let value = reader.readInt();
+        return new CSLBigInt(value);
+      }  
+      
+      // if not uint non nint, must be tagged
+      let tag = reader.readTaggedTag();
+      let isNegative;
+      if(tag == 2) {
+        isNegative = false;
+      } else if (tag == 3) {
+        isNegative = true;
+      } else {
+        throw new Error("Unknown tag: " + tag+". Expected 2 or 3");
+      }
+
+      let bytes = reader.readBytes();
+      let valueAbs = bigintFromBytes(bytes.length, bytes);
+      let value = isNegative ? valueAbs * -1n : valueAbs;
+      return new CSLBigInt(value);
+    }
