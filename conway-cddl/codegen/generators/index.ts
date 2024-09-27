@@ -1,6 +1,7 @@
 import { SchemaTable } from "..";
 
 export type CodeGeneratorBaseOptions = {
+  csl_name?: string;
   genCSL?: boolean;
   tagged?: {
     tag: number;
@@ -234,6 +235,14 @@ export class CodeGeneratorBase {
       }
 
       ${this.generatePost()}
+  
+      ${
+        this.options.csl_name != null
+          ? `
+      export { ${this.name} as ${this.options.csl_name} };
+      `
+          : ""
+      }
     `;
   }
 }
