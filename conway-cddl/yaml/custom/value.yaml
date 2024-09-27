@@ -37,7 +37,7 @@ Value:
       ) {
         this._coin.serialize(writer);
       } else {
-        this.serializeRecord();
+        this.serializeRecord(writer);
       }
     }
 
