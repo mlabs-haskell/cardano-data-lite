@@ -37,6 +37,20 @@ export class CBORWriter {
     this.writeBytesValue(value);
   }
 
+  writeBytesChunked(value: Uint8Array, chunkSize: number) {
+    if (value.length <= chunkSize) {
+      this.writeBytes(value);
+      return;
+    }
+
+    this.writeBytesTag(null);
+    for (let i = 0; i < value.length; i += chunkSize) {
+      let chunk = value.slice(i, i + chunkSize);
+      this.writeBytes(chunk);
+    }
+    this.buffer.pushByte(0xff);
+  }
+
   writeStringTag(len: number | null) {
     this.writeBigInt(0x60, len == null ? null : BigInt(len));
   }
