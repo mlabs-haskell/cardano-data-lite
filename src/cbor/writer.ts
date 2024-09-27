@@ -144,7 +144,7 @@ export class CBORWriter {
     let additional = 0x18 + size;
     let tag = tagBase | additional;
     this.buffer.pushByte(tag);
-    this.buffer.pushBigInt(value, Math.pow(2, size + 1));
+    this.buffer.pushBigInt(value, Math.pow(2, size));
   }
 }
 
