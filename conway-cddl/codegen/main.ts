@@ -69,7 +69,7 @@ async function main() {
 
   if (!cliArgs.validateOnly) {
     let header = `
-    import {CBORReader} from "../cbor/reader";
+    import {CBORReader, bigintFromBytes} from "../cbor/reader";
     import {CBORWriter} from "../cbor/writer";
     import {hexToBytes, bytesToHex} from "../hex";
     import {arrayEq} from "../eq";
