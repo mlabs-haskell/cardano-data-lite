@@ -8,7 +8,11 @@ for (let i = 0; i < 0x100; i++) {
 }
 
 export function bytesToHex(bytes: Uint8Array): string {
-  return bytes.map((b) => BYTE_TO_HEX_LUT[b]).join("");
+  let s = "";
+  for (let byte of bytes) {
+    s += BYTE_TO_HEX_LUT[byte];
+  }
+  return s;
 }
 
 export function hexToBytes(hex: string): Uint8Array {
