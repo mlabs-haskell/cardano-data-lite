@@ -71,6 +71,7 @@ async function main() {
     let header = `
     import {CBORReader, bigintFromBytes} from "../cbor/reader";
     import {CBORWriter} from "../cbor/writer";
+    import {GrowableBuffer} from "../cbor/growable-buffer";
     import {hexToBytes, bytesToHex} from "../hex";
     import {arrayEq} from "../eq";
 
