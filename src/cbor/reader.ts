@@ -265,7 +265,7 @@ export class CBORReader {
   }
 }
 
-function bigintFromBytes(nBytes: number, stream: Uint8Array): bigint {
+export function bigintFromBytes(nBytes: number, stream: Uint8Array): bigint {
   let x = BigInt(0);
   for (let i = 0; i < nBytes; i++) {
     x = x << 8n;
