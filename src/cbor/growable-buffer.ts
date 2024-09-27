@@ -13,6 +13,10 @@ export class GrowableBuffer {
     return this.buffer.slice(0, this.occupiedLength);
   }
 
+  getBytes(): Uint8Array {
+    return new Uint8Array(this.getBuffer());
+  }
+
   pushByte(value: number) {
     this.growIfNeeded(1);
     this.dataView.setUint8(this.occupiedLength, value);
