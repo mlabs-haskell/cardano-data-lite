@@ -2,6 +2,7 @@ import { Type, type Static } from "@sinclair/typebox";
 
 export const Schema = Type.Intersect([
   Type.Object({
+    csl_name: Type.Optional(Type.String()),
     genCSL: Type.Optional(Type.Boolean()),
     tagged: Type.Optional(
       Type.Object({
