@@ -1,9 +1,5 @@
 import { GrowableBuffer } from "./growable-buffer";
-
-const HEX_LUT = new Array(0x100);
-for (let i = 0; i < 0x100; i++) {
-  HEX_LUT[i] = i.toString(16).padStart(2, "0");
-}
+import { bytesToHex } from "../hex";
 
 export class CBORWriter {
   private buffer: GrowableBuffer;
@@ -17,9 +13,7 @@ export class CBORWriter {
   }
 
   getHex(): string {
-    return this.getBytes()
-      .map((byte) => HEX_LUT[byte])
-      .join("");
+    return bytesToHex(this.getBytes());
   }
 
   writeInt(value: bigint) {
