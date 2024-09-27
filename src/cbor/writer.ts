@@ -13,7 +13,7 @@ export class CBORWriter {
   }
 
   getBytes(): Uint8Array {
-    return new Uint8Array(this.buffer.getBuffer());
+    return this.buffer.getBytes();
   }
 
   getHex(): string {
