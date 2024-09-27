@@ -33,7 +33,7 @@ export class GrowableBuffer {
 
   pushBigInt(value: bigint, nBytes?: number) {
     if (nBytes == null) {
-      nBytes = Math.ceil(Number(value).toString(2).length / 8);
+      nBytes = Math.ceil(value.toString(2).length / 8);
     }
 
     let bytes: bigint[] = [];
@@ -62,8 +62,13 @@ export class GrowableBuffer {
   }
 
   private growIfNeeded(expectedExtraLength: number) {
-    if (this.occupiedLength + expectedExtraLength > this.buffer.byteLength) {
-      let newBuffer = new ArrayBuffer(this.buffer.byteLength * 2 + 1);
+    let n = this.buffer.byteLength;
+    if (n == 0) n = expectedExtraLength;
+    while (this.occupiedLength + expectedExtraLength > n) {
+      n = n * 2;
+    }
+    if (n > this.buffer.byteLength) {
+      let newBuffer = new ArrayBuffer(n);
       let newDataView = new DataView(newBuffer);
       for (let i = 0; i < this.buffer.byteLength; i++) {
         newDataView.setUint8(i, this.dataView.getUint8(i));
