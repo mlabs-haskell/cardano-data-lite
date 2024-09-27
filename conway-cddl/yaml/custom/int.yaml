@@ -6,12 +6,12 @@ Int:
     new: null
   extra_methods: |
     // Lifted from: https://doc.rust-lang.org/std/primitive.i32.html#associatedconstant.MAX
-    private static maxI32(): number {
+    static _maxI32(): number {
       return 2147483647;
     }
 
     // Lifted from: https://doc.rust-lang.org/std/primitive.i32.html#associatedconstant.MIN
-    private static minI32(): number {
+    static _minI32(): number {
       return -2147483648;
     }
 
@@ -53,7 +53,7 @@ Int:
 
     as_i32_or_nothing(): number | undefined {
       let x = this.toJsValue();
-      return (x >= Int.minI32() && x <= Int.maxI32()) ? Number(x) : undefined;
+      return (x >= Int._minI32() && x <= Int._maxI32()) ? Number(x) : undefined;
     }
 
     as_i32_or_fail(): number {

@@ -5,10 +5,10 @@ BigNum:
   constraints:
     value:
       min: 0n
-      max: BigNum.maxU64()
+      max: BigNum._maxU64()
   extra_methods: |
     // Lifted from: https://doc.rust-lang.org/std/primitive.u64.html#associatedconstant.MAX
-    private static maxU64(): bigint {
+    static _maxU64(): bigint {
       return 18446744073709551615n;
     }
 
@@ -39,13 +39,13 @@ BigNum:
 
     checked_mul(other: BigNum): BigNum {
       let res = this.toJsValue() * other.toJsValue();
-      if(res > BigNum.maxU64()) throw new Error("BigNum.checked_mul overflow")
+      if(res > BigNum._maxU64()) throw new Error("BigNum.checked_mul overflow")
       return new BigNum(res);
     }
 
     checked_add(other: BigNum): BigNum {
       let res = this.toJsValue() + other.toJsValue();
-      if(res > BigNum.maxU64()) throw new Error("BigNum.checked_add overflow")
+      if(res > BigNum._maxU64()) throw new Error("BigNum.checked_add overflow")
       return new BigNum(res);
     }
 
@@ -72,7 +72,7 @@ BigNum:
     }
 
     static max_value(): BigNum {
-      return new BigNum(BigNum.maxU64());
+      return new BigNum(BigNum._maxU64());
     }
 
     static max(a: BigNum, b: BigNum): BigNum {
