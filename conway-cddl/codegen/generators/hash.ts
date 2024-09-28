@@ -9,7 +9,7 @@ export class GenHash extends CodeGeneratorBase {
   len?: number;
 
   constructor(name: string, customTypes: SchemaTable, options: GenHashOptions) {
-    super(name, customTypes, { genCSL: true, ...options });
+    super(name, customTypes, { genCSL: false, ...options });
     this.len = options.len;
   }
 
@@ -47,7 +47,9 @@ export class GenHash extends CodeGeneratorBase {
         (from_bech32) => `
         static ${from_bech32}(bech_str: string): ${this.name} {
           let decoded = bech32.decode(bech_str);
-          let bytes = new Uint8Array(decoded.words);
+          let words = decoded.words;
+          let bytesArray = bech32.fromWords(words);
+          let bytes = new Uint8Array(bytesArray);
           return new ${this.name}(bytes);
         }`,
       )}
@@ -57,9 +59,62 @@ export class GenHash extends CodeGeneratorBase {
         (to_bech32) => `
         ${to_bech32}(prefix: string): string {
           let bytes = this.to_bytes();
-          return bech32.encode(prefix, bytes);
+          let words = bech32.toWords(bytes);
+          return bech32.encode(prefix, words);
         }`,
       )}
+
+      ${this.renameMethod(
+        "free",
+        (free) => `
+      // no-op
+      ${free}(): void {}`,
+      )}
+
+
+      ${this.renameMethod(
+        "from_bytes",
+        (from_bytes) => `
+      static ${from_bytes}(data: Uint8Array): ${this.name} {
+        return new ${this.name}(data);
+      }`,
+      )}
+
+
+      ${this.renameMethod(
+        "from_hex",
+        (from_hex) => `
+      static ${from_hex}(hex_str: string): ${this.name} {
+        return ${this.name}.from_bytes(hexToBytes(hex_str));
+      }`,
+      )}
+
+      
+      ${this.renameMethod(
+        "to_bytes",
+        (to_bytes) => `
+      ${to_bytes}(): Uint8Array {
+        return this.inner;
+      }`,
+      )}
+
+
+      ${this.renameMethod(
+        "to_hex",
+        (to_hex) => `
+      ${to_hex}(): string {
+        return bytesToHex(this.to_bytes());
+      }`,
+      )}
+
+      ${this.renameMethod(
+        "clone",
+        (clone) => `
+      ${clone}(): ${this.name} {
+        return ${this.name}.from_bytes(this.to_bytes());
+      }`,
+      )}
+
     `;
   }
 
