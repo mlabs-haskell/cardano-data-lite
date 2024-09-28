@@ -1,7 +1,9 @@
-import { CBORReader } from "../cbor/reader";
+import { CBORReader, bigintFromBytes } from "../cbor/reader";
 import { CBORWriter } from "../cbor/writer";
+import { GrowableBuffer } from "../cbor/growable-buffer";
 import { hexToBytes, bytesToHex } from "../hex";
 import { arrayEq } from "../eq";
+import { bech32 } from "bech32";
 
 function $$UN(...args: any): any {}
 const $$CANT_READ = $$UN;
@@ -10,14 +12,14 @@ const $$CANT_EQ = $$UN;
 
 export class Anchor {
   private _url: URL;
-  private _anchor_data_hash: unknown;
+  private _anchor_data_hash: AnchorDataHash;
 
-  constructor(url: URL, anchor_data_hash: unknown) {
+  constructor(url: URL, anchor_data_hash: AnchorDataHash) {
     this._url = url;
     this._anchor_data_hash = anchor_data_hash;
   }
 
-  static new(url: URL, anchor_data_hash: unknown) {
+  static new(url: URL, anchor_data_hash: AnchorDataHash) {
     return new Anchor(url, anchor_data_hash);
   }
 
@@ -29,11 +31,11 @@ export class Anchor {
     this._url = url;
   }
 
-  get_anchor_data_hash(): unknown {
+  get_anchor_data_hash(): AnchorDataHash {
     return this._anchor_data_hash;
   }
 
-  set_anchor_data_hash(anchor_data_hash: unknown): void {
+  set_anchor_data_hash(anchor_data_hash: AnchorDataHash): void {
     this._anchor_data_hash = anchor_data_hash;
   }
 
@@ -48,7 +50,7 @@ export class Anchor {
 
     let url = URL.deserialize(reader);
 
-    let anchor_data_hash = $$CANT_READ("AnchorDataHash");
+    let anchor_data_hash = AnchorDataHash.deserialize(reader);
 
     return new Anchor(url, anchor_data_hash);
   }
@@ -57,7 +59,7 @@ export class Anchor {
     writer.writeArrayTag(2);
 
     this._url.serialize(writer);
-    $$CANT_WRITE("AnchorDataHash");
+    this._anchor_data_hash.serialize(writer);
   }
 
   // no-op
@@ -84,6 +86,64 @@ export class Anchor {
 
   clone(): Anchor {
     return Anchor.from_bytes(this.to_bytes());
+  }
+}
+
+export class AnchorDataHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 32) throw new Error("Expected length to be 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): AnchorDataHash {
+    return new AnchorDataHash(inner);
+  }
+
+  static from_bech32(bech_str: string): AnchorDataHash {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new AnchorDataHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): AnchorDataHash {
+    return new AnchorDataHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): AnchorDataHash {
+    let reader = new CBORReader(data);
+    return AnchorDataHash.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): AnchorDataHash {
+    return AnchorDataHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): AnchorDataHash {
+    return AnchorDataHash.from_bytes(this.to_bytes());
   }
 }
 
@@ -523,6 +583,64 @@ export class AuxiliaryData {
   }
 }
 
+export class AuxiliaryDataHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 32) throw new Error("Expected length to be 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): AuxiliaryDataHash {
+    return new AuxiliaryDataHash(inner);
+  }
+
+  static from_bech32(bech_str: string): AuxiliaryDataHash {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new AuxiliaryDataHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): AuxiliaryDataHash {
+    return new AuxiliaryDataHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): AuxiliaryDataHash {
+    let reader = new CBORReader(data);
+    return AuxiliaryDataHash.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): AuxiliaryDataHash {
+    return AuxiliaryDataHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): AuxiliaryDataHash {
+    return AuxiliaryDataHash.from_bytes(this.to_bytes());
+  }
+}
+
 export class AuxiliaryDataSet {
   private items: [number, AuxiliaryData][];
 
@@ -608,8 +726,8 @@ export class BigNum {
 
   constructor(inner: bigint) {
     if (inner < 0n) throw new Error("Expected value to be atleast 0n");
-    if (inner > BigNum.maxU64())
-      throw new Error("Expected value to be atmost BigNum.maxU64()");
+    if (inner > BigNum._maxU64())
+      throw new Error("Expected value to be atmost BigNum._maxU64()");
     this.inner = inner;
   }
 
@@ -656,7 +774,7 @@ export class BigNum {
   }
 
   // Lifted from: https://doc.rust-lang.org/std/primitive.u64.html#associatedconstant.MAX
-  private static maxU64(): bigint {
+  static _maxU64(): bigint {
     return 18446744073709551615n;
   }
 
@@ -687,13 +805,13 @@ export class BigNum {
 
   checked_mul(other: BigNum): BigNum {
     let res = this.toJsValue() * other.toJsValue();
-    if (res > BigNum.maxU64()) throw new Error("BigNum.checked_mul overflow");
+    if (res > BigNum._maxU64()) throw new Error("BigNum.checked_mul overflow");
     return new BigNum(res);
   }
 
   checked_add(other: BigNum): BigNum {
     let res = this.toJsValue() + other.toJsValue();
-    if (res > BigNum.maxU64()) throw new Error("BigNum.checked_add overflow");
+    if (res > BigNum._maxU64()) throw new Error("BigNum.checked_add overflow");
     return new BigNum(res);
   }
 
@@ -720,7 +838,7 @@ export class BigNum {
   }
 
   static max_value(): BigNum {
-    return new BigNum(BigNum.maxU64());
+    return new BigNum(BigNum._maxU64());
   }
 
   static max(a: BigNum, b: BigNum): BigNum {
@@ -874,6 +992,64 @@ export class Block {
 
   clone(): Block {
     return Block.from_bytes(this.to_bytes());
+  }
+}
+
+export class BlockHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 32) throw new Error("Expected length to be 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): BlockHash {
+    return new BlockHash(inner);
+  }
+
+  static from_bech32(bech_str: string): BlockHash {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new BlockHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): BlockHash {
+    return new BlockHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): BlockHash {
+    let reader = new CBORReader(data);
+    return BlockHash.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): BlockHash {
+    return BlockHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): BlockHash {
+    return BlockHash.from_bytes(this.to_bytes());
   }
 }
 
@@ -1052,6 +1228,187 @@ export class BootstrapWitnesses {
     return BootstrapWitnesses.from_bytes(this.to_bytes());
   }
 }
+
+export class CSLBigInt {
+  private inner: bigint;
+
+  constructor(inner: bigint) {
+    this.inner = inner;
+  }
+
+  static new(inner: bigint): CSLBigInt {
+    return new CSLBigInt(inner);
+  }
+
+  toJsValue(): bigint {
+    return this.inner;
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): CSLBigInt {
+    let reader = new CBORReader(data);
+    return CSLBigInt.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): CSLBigInt {
+    return CSLBigInt.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): CSLBigInt {
+    return CSLBigInt.from_bytes(this.to_bytes());
+  }
+
+  static from_str(string: string): CSLBigInt {
+    return new CSLBigInt(BigInt(string));
+  }
+
+  to_str(): string {
+    return this.toJsValue().toString();
+  }
+
+  static zero(): CSLBigInt {
+    return new CSLBigInt(0n);
+  }
+
+  static one(): CSLBigInt {
+    return new CSLBigInt(1n);
+  }
+
+  is_zero(): boolean {
+    return this.toJsValue() == 0n;
+  }
+
+  add(other: CSLBigInt): CSLBigInt {
+    let res = this.toJsValue() + other.toJsValue();
+    return new CSLBigInt(res);
+  }
+
+  sub(other: CSLBigInt): CSLBigInt {
+    let res = this.toJsValue() - other.toJsValue();
+    return new CSLBigInt(res);
+  }
+
+  mul(other: CSLBigInt): CSLBigInt {
+    let res = this.toJsValue() * other.toJsValue();
+    return new CSLBigInt(res);
+  }
+
+  pow(other: CSLBigInt): CSLBigInt {
+    let res = this.toJsValue() ** other.toJsValue();
+    return new CSLBigInt(res);
+  }
+
+  div_floor(other: CSLBigInt): CSLBigInt {
+    let res = this.toJsValue() / other.toJsValue();
+    return new CSLBigInt(res);
+  }
+
+  div_ceil(other: CSLBigInt): CSLBigInt {
+    let a = this.toJsValue();
+    let b = other.toJsValue();
+    let res = a / b;
+    let rem = a % b;
+    if (rem !== 0n && ((a < 0n && b < 0n) || (a > 0n && b > 0n))) {
+      return new CSLBigInt(res + 1n);
+    }
+    return new CSLBigInt(res);
+  }
+
+  abs(): CSLBigInt {
+    if (this.toJsValue() < 0) return new CSLBigInt(this.toJsValue() * -1n);
+    return this;
+  }
+
+  increment(): CSLBigInt {
+    return new CSLBigInt(this.toJsValue() + 1n);
+  }
+
+  static max(a: CSLBigInt, b: CSLBigInt): CSLBigInt {
+    if (a.toJsValue() > b.toJsValue()) return a;
+    else return b;
+  }
+
+  as_u64(): BigNum | undefined {
+    let inner = this.toJsValue();
+    if (inner <= BigNum._maxU64()) {
+      return new BigNum(inner);
+    }
+    return undefined;
+  }
+
+  as_int(): Int | undefined {
+    let inner = this.toJsValue();
+    if (inner >= Int._minI32() && inner <= Int._maxI32()) return new Int(inner);
+    return undefined;
+  }
+
+  serialize(writer: CBORWriter): void {
+    let value = this.toJsValue();
+
+    let isNegative;
+    let valueAbs;
+    if (value >= 0n) {
+      if (value <= BigNum._maxU64()) {
+        writer.writeInt(value);
+        return;
+      }
+
+      isNegative = false;
+      valueAbs = value;
+    } else {
+      isNegative = true;
+      valueAbs = value * -1n;
+
+      if (valueAbs <= BigNum._maxU64()) {
+        writer.writeInt(value);
+        return;
+      }
+    }
+
+    let buffer = new GrowableBuffer();
+    buffer.pushBigInt(valueAbs);
+    writer.writeTaggedTag(isNegative ? 3 : 2);
+    writer.writeBytesChunked(buffer.getBytes(), 64);
+  }
+
+  static deserialize(reader: CBORReader): CSLBigInt {
+    let typ = reader.peekType();
+    if (typ == "uint" || typ == "nint") {
+      let value = reader.readInt();
+      return new CSLBigInt(value);
+    }
+
+    // if not uint non nint, must be tagged
+    let tag = reader.readTaggedTag();
+    let isNegative;
+    if (tag == 2) {
+      isNegative = false;
+    } else if (tag == 3) {
+      isNegative = true;
+    } else {
+      throw new Error("Unknown tag: " + tag + ". Expected 2 or 3");
+    }
+
+    let bytes = reader.readBytes();
+    let valueAbs = bigintFromBytes(bytes.length, bytes);
+    let value = isNegative ? valueAbs * -1n : valueAbs;
+    return new CSLBigInt(value);
+  }
+}
+
+export { CSLBigInt as BigInt };
 
 export enum CertificateKind {
   StakeRegistration = 0,
@@ -1765,14 +2122,14 @@ export class CommitteeHotAuth {
 
 export class Constitution {
   private _anchor: Anchor;
-  private _scripthash: unknown | undefined;
+  private _scripthash: ScriptHash | undefined;
 
-  constructor(anchor: Anchor, scripthash: unknown | undefined) {
+  constructor(anchor: Anchor, scripthash: ScriptHash | undefined) {
     this._anchor = anchor;
     this._scripthash = scripthash;
   }
 
-  static new(anchor: Anchor, scripthash: unknown | undefined) {
+  static new(anchor: Anchor, scripthash: ScriptHash | undefined) {
     return new Constitution(anchor, scripthash);
   }
 
@@ -1784,11 +2141,11 @@ export class Constitution {
     this._anchor = anchor;
   }
 
-  get_scripthash(): unknown | undefined {
+  get_scripthash(): ScriptHash | undefined {
     return this._scripthash;
   }
 
-  set_scripthash(scripthash: unknown | undefined): void {
+  set_scripthash(scripthash: ScriptHash | undefined): void {
     this._scripthash = scripthash;
   }
 
@@ -1804,7 +2161,7 @@ export class Constitution {
     let anchor = Anchor.deserialize(reader);
 
     let scripthash =
-      reader.readNullable((r) => $$CANT_READ("ScriptHash")) ?? undefined;
+      reader.readNullable((r) => ScriptHash.deserialize(r)) ?? undefined;
 
     return new Constitution(anchor, scripthash);
   }
@@ -1816,7 +2173,7 @@ export class Constitution {
     if (this._scripthash == null) {
       writer.writeNull();
     } else {
-      $$CANT_WRITE("ScriptHash");
+      this._scripthash.serialize(writer);
     }
   }
 
@@ -1853,8 +2210,8 @@ export enum CredentialKind {
 }
 
 export type CredentialVariant =
-  | { kind: 0; value: unknown }
-  | { kind: 1; value: unknown };
+  | { kind: 0; value: Ed25519KeyHash }
+  | { kind: 1; value: ScriptHash };
 
 export class Credential {
   private variant: CredentialVariant;
@@ -1863,19 +2220,19 @@ export class Credential {
     this.variant = variant;
   }
 
-  static new_keyhash(keyhash: unknown): Credential {
+  static new_keyhash(keyhash: Ed25519KeyHash): Credential {
     return new Credential({ kind: 0, value: keyhash });
   }
 
-  static new_scripthash(scripthash: unknown): Credential {
+  static new_scripthash(scripthash: ScriptHash): Credential {
     return new Credential({ kind: 1, value: scripthash });
   }
 
-  as_keyhash(): unknown | undefined {
+  as_keyhash(): Ed25519KeyHash | undefined {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
-  as_scripthash(): unknown | undefined {
+  as_scripthash(): ScriptHash | undefined {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
@@ -1891,7 +2248,7 @@ export class Credential {
         }
         variant = {
           kind: 0,
-          value: $$CANT_READ("Ed25519KeyHash"),
+          value: Ed25519KeyHash.deserialize(reader),
         };
 
         break;
@@ -1902,7 +2259,7 @@ export class Credential {
         }
         variant = {
           kind: 1,
-          value: $$CANT_READ("ScriptHash"),
+          value: ScriptHash.deserialize(reader),
         };
 
         break;
@@ -1920,12 +2277,12 @@ export class Credential {
       case 0:
         writer.writeArrayTag(2);
         writer.writeInt(BigInt(0));
-        $$CANT_WRITE("Ed25519KeyHash");
+        this.variant.value.serialize(writer);
         break;
       case 1:
         writer.writeArrayTag(2);
         writer.writeInt(BigInt(1));
-        $$CANT_WRITE("ScriptHash");
+        this.variant.value.serialize(writer);
         break;
     }
   }
@@ -2146,8 +2503,8 @@ export enum DRepKind {
 }
 
 export type DRepVariant =
-  | { kind: 0; value: unknown }
-  | { kind: 1; value: unknown }
+  | { kind: 0; value: Ed25519KeyHash }
+  | { kind: 1; value: ScriptHash }
   | { kind: 2 }
   | { kind: 3 };
 
@@ -2158,11 +2515,11 @@ export class DRep {
     this.variant = variant;
   }
 
-  static new_key_hash(key_hash: unknown): DRep {
+  static new_key_hash(key_hash: Ed25519KeyHash): DRep {
     return new DRep({ kind: 0, value: key_hash });
   }
 
-  static new_script_hash(script_hash: unknown): DRep {
+  static new_script_hash(script_hash: ScriptHash): DRep {
     return new DRep({ kind: 1, value: script_hash });
   }
 
@@ -2174,11 +2531,11 @@ export class DRep {
     return new DRep({ kind: 3 });
   }
 
-  as_key_hash(): unknown | undefined {
+  as_key_hash(): Ed25519KeyHash | undefined {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
-  as_script_hash(): unknown | undefined {
+  as_script_hash(): ScriptHash | undefined {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
@@ -2194,7 +2551,7 @@ export class DRep {
         }
         variant = {
           kind: 0,
-          value: $$CANT_READ("Ed25519KeyHash"),
+          value: Ed25519KeyHash.deserialize(reader),
         };
 
         break;
@@ -2205,7 +2562,7 @@ export class DRep {
         }
         variant = {
           kind: 1,
-          value: $$CANT_READ("ScriptHash"),
+          value: ScriptHash.deserialize(reader),
         };
 
         break;
@@ -2243,12 +2600,12 @@ export class DRep {
       case 0:
         writer.writeArrayTag(2);
         writer.writeInt(BigInt(0));
-        $$CANT_WRITE("Ed25519KeyHash");
+        this.variant.value.serialize(writer);
         break;
       case 1:
         writer.writeArrayTag(2);
         writer.writeInt(BigInt(1));
-        $$CANT_WRITE("ScriptHash");
+        this.variant.value.serialize(writer);
         break;
       case 2:
         writer.writeArrayTag(1);
@@ -2288,13 +2645,71 @@ export class DRep {
   }
 }
 
+export class DataHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 32) throw new Error("Expected length to be 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): DataHash {
+    return new DataHash(inner);
+  }
+
+  static from_bech32(bech_str: string): DataHash {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new DataHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): DataHash {
+    return new DataHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DataHash {
+    let reader = new CBORReader(data);
+    return DataHash.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DataHash {
+    return DataHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): DataHash {
+    return DataHash.from_bytes(this.to_bytes());
+  }
+}
+
 export enum DataOptionKind {
   DataHash = 0,
   PlutusData = 1,
 }
 
 export type DataOptionVariant =
-  | { kind: 0; value: unknown }
+  | { kind: 0; value: DataHash }
   | { kind: 1; value: unknown };
 
 export class DataOption {
@@ -2304,7 +2719,7 @@ export class DataOption {
     this.variant = variant;
   }
 
-  static new_hash(hash: unknown): DataOption {
+  static new_hash(hash: DataHash): DataOption {
     return new DataOption({ kind: 0, value: hash });
   }
 
@@ -2312,7 +2727,7 @@ export class DataOption {
     return new DataOption({ kind: 1, value: data });
   }
 
-  as_hash(): unknown | undefined {
+  as_hash(): DataHash | undefined {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
@@ -2332,7 +2747,7 @@ export class DataOption {
         }
         variant = {
           kind: 0,
-          value: $$CANT_READ("DataHash"),
+          value: DataHash.deserialize(reader),
         };
 
         break;
@@ -2361,7 +2776,7 @@ export class DataOption {
       case 0:
         writer.writeArrayTag(2);
         writer.writeInt(BigInt(0));
-        $$CANT_WRITE("DataHash");
+        this.variant.value.serialize(writer);
         break;
       case 1:
         writer.writeArrayTag(2);
@@ -2783,8 +3198,66 @@ export class DrepVotingThresholds {
   }
 }
 
+export class Ed25519KeyHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 28) throw new Error("Expected length to be 28");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): Ed25519KeyHash {
+    return new Ed25519KeyHash(inner);
+  }
+
+  static from_bech32(bech_str: string): Ed25519KeyHash {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new Ed25519KeyHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): Ed25519KeyHash {
+    return new Ed25519KeyHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Ed25519KeyHash {
+    let reader = new CBORReader(data);
+    return Ed25519KeyHash.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Ed25519KeyHash {
+    return Ed25519KeyHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Ed25519KeyHash {
+    return Ed25519KeyHash.from_bytes(this.to_bytes());
+  }
+}
+
 export class Ed25519KeyHashes {
-  private items: unknown[];
+  private items: Ed25519KeyHash[];
 
   constructor() {
     this.items = [];
@@ -2798,20 +3271,20 @@ export class Ed25519KeyHashes {
     return this.items.length;
   }
 
-  get(index: number): unknown {
+  get(index: number): Ed25519KeyHash {
     if (index >= this.items.length) throw new Error("Array out of bounds");
     return this.items[index];
   }
 
-  add(elem: unknown): boolean {
+  add(elem: Ed25519KeyHash): boolean {
     if (this.contains(elem)) return true;
     this.items.push(elem);
     return false;
   }
 
-  contains(elem: unknown): boolean {
+  contains(elem: Ed25519KeyHash): boolean {
     for (let item of this.items) {
-      if ($$CANT_EQ("Ed25519KeyHash")) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
         return true;
       }
     }
@@ -2824,15 +3297,13 @@ export class Ed25519KeyHashes {
       let tag = reader.readTaggedTag();
       if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
     }
-    reader.readArray((reader) => ret.add($$CANT_READ("Ed25519KeyHash")));
+    reader.readArray((reader) => ret.add(Ed25519KeyHash.deserialize(reader)));
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeTaggedTag(258);
-    writer.writeArray(this.items, (writer, x) =>
-      $$CANT_WRITE("Ed25519KeyHash"),
-    );
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
   // no-op
@@ -3116,6 +3587,183 @@ export class GeneralTransactionMetadata {
   }
 }
 
+export class GenesisDelegateHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 28) throw new Error("Expected length to be 28");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): GenesisDelegateHash {
+    return new GenesisDelegateHash(inner);
+  }
+
+  static from_bech32(bech_str: string): GenesisDelegateHash {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new GenesisDelegateHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): GenesisDelegateHash {
+    return new GenesisDelegateHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): GenesisDelegateHash {
+    let reader = new CBORReader(data);
+    return GenesisDelegateHash.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): GenesisDelegateHash {
+    return GenesisDelegateHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): GenesisDelegateHash {
+    return GenesisDelegateHash.from_bytes(this.to_bytes());
+  }
+}
+
+export class GenesisHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 28) throw new Error("Expected length to be 28");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): GenesisHash {
+    return new GenesisHash(inner);
+  }
+
+  static from_bech32(bech_str: string): GenesisHash {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new GenesisHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): GenesisHash {
+    return new GenesisHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): GenesisHash {
+    let reader = new CBORReader(data);
+    return GenesisHash.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): GenesisHash {
+    return GenesisHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): GenesisHash {
+    return GenesisHash.from_bytes(this.to_bytes());
+  }
+}
+
+export class GenesisHashes {
+  private items: GenesisHash[];
+
+  constructor(items: GenesisHash[]) {
+    this.items = items;
+  }
+
+  static new(): GenesisHashes {
+    return new GenesisHashes([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): GenesisHash {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: GenesisHash): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): GenesisHashes {
+    return new GenesisHashes(
+      reader.readArray((reader) => GenesisHash.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): GenesisHashes {
+    let reader = new CBORReader(data);
+    return GenesisHashes.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): GenesisHashes {
+    return GenesisHashes.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): GenesisHashes {
+    return GenesisHashes.from_bytes(this.to_bytes());
+  }
+}
+
 export enum GovernanceActionKind {
   ParameterChangeAction = 0,
   HardForkInitiationAction = 1,
@@ -3379,23 +4027,23 @@ export class GovernanceAction {
 }
 
 export class GovernanceActionId {
-  private _transaction_id: unknown;
+  private _transaction_id: TransactionHash;
   private _index: number;
 
-  constructor(transaction_id: unknown, index: number) {
+  constructor(transaction_id: TransactionHash, index: number) {
     this._transaction_id = transaction_id;
     this._index = index;
   }
 
-  static new(transaction_id: unknown, index: number) {
+  static new(transaction_id: TransactionHash, index: number) {
     return new GovernanceActionId(transaction_id, index);
   }
 
-  get_transaction_id(): unknown {
+  get_transaction_id(): TransactionHash {
     return this._transaction_id;
   }
 
-  set_transaction_id(transaction_id: unknown): void {
+  set_transaction_id(transaction_id: TransactionHash): void {
     this._transaction_id = transaction_id;
   }
 
@@ -3416,7 +4064,7 @@ export class GovernanceActionId {
       );
     }
 
-    let transaction_id = $$CANT_READ("TransactionHash");
+    let transaction_id = TransactionHash.deserialize(reader);
 
     let index = Number(reader.readInt());
 
@@ -3426,7 +4074,7 @@ export class GovernanceActionId {
   serialize(writer: CBORWriter): void {
     writer.writeArrayTag(2);
 
-    $$CANT_WRITE("TransactionHash");
+    this._transaction_id.serialize(writer);
     writer.writeInt(BigInt(this._index));
   }
 
@@ -3594,24 +4242,24 @@ export class Header {
 export class HeaderBody {
   private _block_number: number;
   private _slot: BigNum;
-  private _prev_hash: unknown | undefined;
+  private _prev_hash: BlockHash | undefined;
   private _issuer_vkey: unknown;
-  private _vrf_vkey: unknown;
+  private _vrf_vkey: VRFVKey;
   private _vrf_result: unknown;
   private _block_body_size: number;
-  private _block_body_hash: unknown;
+  private _block_body_hash: BlockHash;
   private _operational_cert: OperationalCert;
   private _protocol_version: ProtocolVersion;
 
   constructor(
     block_number: number,
     slot: BigNum,
-    prev_hash: unknown | undefined,
+    prev_hash: BlockHash | undefined,
     issuer_vkey: unknown,
-    vrf_vkey: unknown,
+    vrf_vkey: VRFVKey,
     vrf_result: unknown,
     block_body_size: number,
-    block_body_hash: unknown,
+    block_body_hash: BlockHash,
     operational_cert: OperationalCert,
     protocol_version: ProtocolVersion,
   ) {
@@ -3630,12 +4278,12 @@ export class HeaderBody {
   static new(
     block_number: number,
     slot: BigNum,
-    prev_hash: unknown | undefined,
+    prev_hash: BlockHash | undefined,
     issuer_vkey: unknown,
-    vrf_vkey: unknown,
+    vrf_vkey: VRFVKey,
     vrf_result: unknown,
     block_body_size: number,
-    block_body_hash: unknown,
+    block_body_hash: BlockHash,
     operational_cert: OperationalCert,
     protocol_version: ProtocolVersion,
   ) {
@@ -3669,11 +4317,11 @@ export class HeaderBody {
     this._slot = slot;
   }
 
-  get_prev_hash(): unknown | undefined {
+  get_prev_hash(): BlockHash | undefined {
     return this._prev_hash;
   }
 
-  set_prev_hash(prev_hash: unknown | undefined): void {
+  set_prev_hash(prev_hash: BlockHash | undefined): void {
     this._prev_hash = prev_hash;
   }
 
@@ -3685,11 +4333,11 @@ export class HeaderBody {
     this._issuer_vkey = issuer_vkey;
   }
 
-  get_vrf_vkey(): unknown {
+  get_vrf_vkey(): VRFVKey {
     return this._vrf_vkey;
   }
 
-  set_vrf_vkey(vrf_vkey: unknown): void {
+  set_vrf_vkey(vrf_vkey: VRFVKey): void {
     this._vrf_vkey = vrf_vkey;
   }
 
@@ -3709,11 +4357,11 @@ export class HeaderBody {
     this._block_body_size = block_body_size;
   }
 
-  get_block_body_hash(): unknown {
+  get_block_body_hash(): BlockHash {
     return this._block_body_hash;
   }
 
-  set_block_body_hash(block_body_hash: unknown): void {
+  set_block_body_hash(block_body_hash: BlockHash): void {
     this._block_body_hash = block_body_hash;
   }
 
@@ -3747,17 +4395,17 @@ export class HeaderBody {
     let slot = BigNum.deserialize(reader);
 
     let prev_hash =
-      reader.readNullable((r) => $$CANT_READ("BlockHash")) ?? undefined;
+      reader.readNullable((r) => BlockHash.deserialize(r)) ?? undefined;
 
     let issuer_vkey = $$CANT_READ("Vkey");
 
-    let vrf_vkey = $$CANT_READ("VRFVKey");
+    let vrf_vkey = VRFVKey.deserialize(reader);
 
     let vrf_result = $$CANT_READ("VRFCert");
 
     let block_body_size = Number(reader.readInt());
 
-    let block_body_hash = $$CANT_READ("BlockHash");
+    let block_body_hash = BlockHash.deserialize(reader);
 
     let operational_cert = OperationalCert.deserialize(reader);
 
@@ -3785,13 +4433,13 @@ export class HeaderBody {
     if (this._prev_hash == null) {
       writer.writeNull();
     } else {
-      $$CANT_WRITE("BlockHash");
+      this._prev_hash.serialize(writer);
     }
     $$CANT_WRITE("Vkey");
-    $$CANT_WRITE("VRFVKey");
+    this._vrf_vkey.serialize(writer);
     $$CANT_WRITE("VRFCert");
     writer.writeInt(BigInt(this._block_body_size));
-    $$CANT_WRITE("BlockHash");
+    this._block_body_hash.serialize(writer);
     this._operational_cert.serialize(writer);
     this._protocol_version.serialize(writer);
   }
@@ -3883,12 +4531,12 @@ export class Int {
   }
 
   // Lifted from: https://doc.rust-lang.org/std/primitive.i32.html#associatedconstant.MAX
-  private static maxI32(): number {
+  static _maxI32(): number {
     return 2147483647;
   }
 
   // Lifted from: https://doc.rust-lang.org/std/primitive.i32.html#associatedconstant.MIN
-  private static minI32(): number {
+  static _minI32(): number {
     return -2147483648;
   }
 
@@ -3930,7 +4578,7 @@ export class Int {
 
   as_i32_or_nothing(): number | undefined {
     let x = this.toJsValue();
-    return x >= Int.minI32() && x <= Int.maxI32() ? Number(x) : undefined;
+    return x >= Int._minI32() && x <= Int._maxI32() ? Number(x) : undefined;
   }
 
   as_i32_or_fail(): number {
@@ -4041,6 +4689,64 @@ export class Ipv6 {
 
   clone(): Ipv6 {
     return Ipv6.from_bytes(this.to_bytes());
+  }
+}
+
+export class KESVKey {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 32) throw new Error("Expected length to be 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): KESVKey {
+    return new KESVKey(inner);
+  }
+
+  static from_bech32(bech_str: string): KESVKey {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new KESVKey(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): KESVKey {
+    return new KESVKey(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): KESVKey {
+    let reader = new CBORReader(data);
+    return KESVKey.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): KESVKey {
+    return KESVKey.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): KESVKey {
+    return KESVKey.from_bytes(this.to_bytes());
   }
 }
 
@@ -4200,7 +4906,7 @@ export class MetadataMap {
     return undefined;
   }
 
-  get(key: TransactionMetadatum): TransactionMetadatum | undefined {
+  _get(key: TransactionMetadatum): TransactionMetadatum | undefined {
     let entry = this.items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
@@ -4302,9 +5008,9 @@ export class MetadataMap {
 }
 
 export class MultiAsset {
-  private items: [unknown, Assets][];
+  private items: [ScriptHash, Assets][];
 
-  constructor(items: [unknown, Assets][]) {
+  constructor(items: [ScriptHash, Assets][]) {
     this.items = items;
   }
 
@@ -4316,8 +5022,10 @@ export class MultiAsset {
     return this.items.length;
   }
 
-  insert(key: unknown, value: Assets): Assets | undefined {
-    let entry = this.items.find((x) => $$CANT_EQ("ScriptHash"));
+  insert(key: ScriptHash, value: Assets): Assets | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
     if (entry != null) {
       let ret = entry[1];
       entry[1] = value;
@@ -4327,15 +5035,17 @@ export class MultiAsset {
     return undefined;
   }
 
-  get(key: unknown): Assets | undefined {
-    let entry = this.items.find((x) => $$CANT_EQ("ScriptHash"));
+  get(key: ScriptHash): Assets | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
     if (entry == null) return undefined;
     return entry[1];
   }
 
-  _remove_many(keys: unknown[]): void {
+  _remove_many(keys: ScriptHash[]): void {
     this.items = this.items.filter(([k, _v]) =>
-      keys.every((key) => !$$CANT_EQ("ScriptHash")),
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
@@ -4348,14 +5058,14 @@ export class MultiAsset {
   static deserialize(reader: CBORReader): MultiAsset {
     let ret = new MultiAsset([]);
     reader.readMap((reader) =>
-      ret.insert($$CANT_READ("ScriptHash"), Assets.deserialize(reader)),
+      ret.insert(ScriptHash.deserialize(reader), Assets.deserialize(reader)),
     );
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeMap(this.items, (writer, x) => {
-      $$CANT_WRITE("ScriptHash");
+      x[0].serialize(writer);
       x[1].serialize(writer);
     });
   }
@@ -4930,13 +5640,13 @@ export class NoConfidenceAction {
 }
 
 export class OperationalCert {
-  private _hot_vkey: unknown;
+  private _hot_vkey: KESVKey;
   private _sequence_number: number;
   private _kes_period: number;
   private _sigma: unknown;
 
   constructor(
-    hot_vkey: unknown,
+    hot_vkey: KESVKey,
     sequence_number: number,
     kes_period: number,
     sigma: unknown,
@@ -4948,7 +5658,7 @@ export class OperationalCert {
   }
 
   static new(
-    hot_vkey: unknown,
+    hot_vkey: KESVKey,
     sequence_number: number,
     kes_period: number,
     sigma: unknown,
@@ -4956,11 +5666,11 @@ export class OperationalCert {
     return new OperationalCert(hot_vkey, sequence_number, kes_period, sigma);
   }
 
-  get_hot_vkey(): unknown {
+  get_hot_vkey(): KESVKey {
     return this._hot_vkey;
   }
 
-  set_hot_vkey(hot_vkey: unknown): void {
+  set_hot_vkey(hot_vkey: KESVKey): void {
     this._hot_vkey = hot_vkey;
   }
 
@@ -4997,7 +5707,7 @@ export class OperationalCert {
       );
     }
 
-    let hot_vkey = $$CANT_READ("KESVKey");
+    let hot_vkey = KESVKey.deserialize(reader);
 
     let sequence_number = Number(reader.readInt());
 
@@ -5011,7 +5721,7 @@ export class OperationalCert {
   serialize(writer: CBORWriter): void {
     writer.writeArrayTag(4);
 
-    $$CANT_WRITE("KESVKey");
+    this._hot_vkey.serialize(writer);
     writer.writeInt(BigInt(this._sequence_number));
     writer.writeInt(BigInt(this._kes_period));
     $$CANT_WRITE("Ed25519Signature");
@@ -5047,12 +5757,12 @@ export class OperationalCert {
 export class ParameterChangeAction {
   private _gov_action_id: GovernanceActionId | undefined;
   private _protocol_param_updates: ProtocolParamUpdate;
-  private _policy_hash: unknown | undefined;
+  private _policy_hash: ScriptHash | undefined;
 
   constructor(
     gov_action_id: GovernanceActionId | undefined,
     protocol_param_updates: ProtocolParamUpdate,
-    policy_hash: unknown | undefined,
+    policy_hash: ScriptHash | undefined,
   ) {
     this._gov_action_id = gov_action_id;
     this._protocol_param_updates = protocol_param_updates;
@@ -5062,7 +5772,7 @@ export class ParameterChangeAction {
   static new(
     gov_action_id: GovernanceActionId | undefined,
     protocol_param_updates: ProtocolParamUpdate,
-    policy_hash: unknown | undefined,
+    policy_hash: ScriptHash | undefined,
   ) {
     return new ParameterChangeAction(
       gov_action_id,
@@ -5089,11 +5799,11 @@ export class ParameterChangeAction {
     this._protocol_param_updates = protocol_param_updates;
   }
 
-  get_policy_hash(): unknown | undefined {
+  get_policy_hash(): ScriptHash | undefined {
     return this._policy_hash;
   }
 
-  set_policy_hash(policy_hash: unknown | undefined): void {
+  set_policy_hash(policy_hash: ScriptHash | undefined): void {
     this._policy_hash = policy_hash;
   }
 
@@ -5105,7 +5815,7 @@ export class ParameterChangeAction {
     let protocol_param_updates = ProtocolParamUpdate.deserialize(reader);
 
     let policy_hash =
-      reader.readNullable((r) => $$CANT_READ("ScriptHash")) ?? undefined;
+      reader.readNullable((r) => ScriptHash.deserialize(r)) ?? undefined;
 
     return new ParameterChangeAction(
       gov_action_id,
@@ -5124,7 +5834,7 @@ export class ParameterChangeAction {
     if (this._policy_hash == null) {
       writer.writeNull();
     } else {
-      $$CANT_WRITE("ScriptHash");
+      this._policy_hash.serialize(writer);
     }
   }
 }
@@ -5267,14 +5977,14 @@ export class PlutusScripts {
 
 export class PoolMetadata {
   private _url: URL;
-  private _pool_metadata_hash: unknown;
+  private _pool_metadata_hash: PoolMetadataHash;
 
-  constructor(url: URL, pool_metadata_hash: unknown) {
+  constructor(url: URL, pool_metadata_hash: PoolMetadataHash) {
     this._url = url;
     this._pool_metadata_hash = pool_metadata_hash;
   }
 
-  static new(url: URL, pool_metadata_hash: unknown) {
+  static new(url: URL, pool_metadata_hash: PoolMetadataHash) {
     return new PoolMetadata(url, pool_metadata_hash);
   }
 
@@ -5286,11 +5996,11 @@ export class PoolMetadata {
     this._url = url;
   }
 
-  get_pool_metadata_hash(): unknown {
+  get_pool_metadata_hash(): PoolMetadataHash {
     return this._pool_metadata_hash;
   }
 
-  set_pool_metadata_hash(pool_metadata_hash: unknown): void {
+  set_pool_metadata_hash(pool_metadata_hash: PoolMetadataHash): void {
     this._pool_metadata_hash = pool_metadata_hash;
   }
 
@@ -5305,7 +6015,7 @@ export class PoolMetadata {
 
     let url = URL.deserialize(reader);
 
-    let pool_metadata_hash = $$CANT_READ("PoolMetadataHash");
+    let pool_metadata_hash = PoolMetadataHash.deserialize(reader);
 
     return new PoolMetadata(url, pool_metadata_hash);
   }
@@ -5314,7 +6024,7 @@ export class PoolMetadata {
     writer.writeArrayTag(2);
 
     this._url.serialize(writer);
-    $$CANT_WRITE("PoolMetadataHash");
+    this._pool_metadata_hash.serialize(writer);
   }
 
   // no-op
@@ -5344,9 +6054,67 @@ export class PoolMetadata {
   }
 }
 
+export class PoolMetadataHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 32) throw new Error("Expected length to be 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): PoolMetadataHash {
+    return new PoolMetadataHash(inner);
+  }
+
+  static from_bech32(bech_str: string): PoolMetadataHash {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new PoolMetadataHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): PoolMetadataHash {
+    return new PoolMetadataHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PoolMetadataHash {
+    let reader = new CBORReader(data);
+    return PoolMetadataHash.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PoolMetadataHash {
+    return PoolMetadataHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): PoolMetadataHash {
+    return PoolMetadataHash.from_bytes(this.to_bytes());
+  }
+}
+
 export class PoolParams {
-  private _operator: unknown;
-  private _vrf_keyhash: unknown;
+  private _operator: Ed25519KeyHash;
+  private _vrf_keyhash: VRFKeyHash;
   private _pledge: BigNum;
   private _cost: BigNum;
   private _margin: UnitInterval;
@@ -5356,8 +6124,8 @@ export class PoolParams {
   private _pool_metadata: PoolMetadata | undefined;
 
   constructor(
-    operator: unknown,
-    vrf_keyhash: unknown,
+    operator: Ed25519KeyHash,
+    vrf_keyhash: VRFKeyHash,
     pledge: BigNum,
     cost: BigNum,
     margin: UnitInterval,
@@ -5378,8 +6146,8 @@ export class PoolParams {
   }
 
   static new(
-    operator: unknown,
-    vrf_keyhash: unknown,
+    operator: Ed25519KeyHash,
+    vrf_keyhash: VRFKeyHash,
     pledge: BigNum,
     cost: BigNum,
     margin: UnitInterval,
@@ -5401,19 +6169,19 @@ export class PoolParams {
     );
   }
 
-  get_operator(): unknown {
+  get_operator(): Ed25519KeyHash {
     return this._operator;
   }
 
-  set_operator(operator: unknown): void {
+  set_operator(operator: Ed25519KeyHash): void {
     this._operator = operator;
   }
 
-  get_vrf_keyhash(): unknown {
+  get_vrf_keyhash(): VRFKeyHash {
     return this._vrf_keyhash;
   }
 
-  set_vrf_keyhash(vrf_keyhash: unknown): void {
+  set_vrf_keyhash(vrf_keyhash: VRFKeyHash): void {
     this._vrf_keyhash = vrf_keyhash;
   }
 
@@ -5474,9 +6242,9 @@ export class PoolParams {
   }
 
   static deserialize(reader: CBORReader): PoolParams {
-    let operator = $$CANT_READ("Ed25519KeyHash");
+    let operator = Ed25519KeyHash.deserialize(reader);
 
-    let vrf_keyhash = $$CANT_READ("VRFKeyHash");
+    let vrf_keyhash = VRFKeyHash.deserialize(reader);
 
     let pledge = BigNum.deserialize(reader);
 
@@ -5507,8 +6275,8 @@ export class PoolParams {
   }
 
   serialize(writer: CBORWriter): void {
-    $$CANT_WRITE("Ed25519KeyHash");
-    $$CANT_WRITE("VRFKeyHash");
+    this._operator.serialize(writer);
+    this._vrf_keyhash.serialize(writer);
     this._pledge.serialize(writer);
     this._cost.serialize(writer);
     this._margin.serialize(writer);
@@ -5579,23 +6347,23 @@ export class PoolRegistration {
 }
 
 export class PoolRetirement {
-  private _pool_keyhash: unknown;
+  private _pool_keyhash: Ed25519KeyHash;
   private _epoch: number;
 
-  constructor(pool_keyhash: unknown, epoch: number) {
+  constructor(pool_keyhash: Ed25519KeyHash, epoch: number) {
     this._pool_keyhash = pool_keyhash;
     this._epoch = epoch;
   }
 
-  static new(pool_keyhash: unknown, epoch: number) {
+  static new(pool_keyhash: Ed25519KeyHash, epoch: number) {
     return new PoolRetirement(pool_keyhash, epoch);
   }
 
-  get_pool_keyhash(): unknown {
+  get_pool_keyhash(): Ed25519KeyHash {
     return this._pool_keyhash;
   }
 
-  set_pool_keyhash(pool_keyhash: unknown): void {
+  set_pool_keyhash(pool_keyhash: Ed25519KeyHash): void {
     this._pool_keyhash = pool_keyhash;
   }
 
@@ -5608,7 +6376,7 @@ export class PoolRetirement {
   }
 
   static deserialize(reader: CBORReader): PoolRetirement {
-    let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
+    let pool_keyhash = Ed25519KeyHash.deserialize(reader);
 
     let epoch = Number(reader.readInt());
 
@@ -5616,7 +6384,7 @@ export class PoolRetirement {
   }
 
   serialize(writer: CBORWriter): void {
-    $$CANT_WRITE("Ed25519KeyHash");
+    this._pool_keyhash.serialize(writer);
     writer.writeInt(BigInt(this._epoch));
   }
 }
@@ -7044,6 +7812,183 @@ export class ScriptAny {
   }
 }
 
+export class ScriptDataHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 32) throw new Error("Expected length to be 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): ScriptDataHash {
+    return new ScriptDataHash(inner);
+  }
+
+  static from_bech32(bech_str: string): ScriptDataHash {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new ScriptDataHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): ScriptDataHash {
+    return new ScriptDataHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ScriptDataHash {
+    let reader = new CBORReader(data);
+    return ScriptDataHash.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ScriptDataHash {
+    return ScriptDataHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): ScriptDataHash {
+    return ScriptDataHash.from_bytes(this.to_bytes());
+  }
+}
+
+export class ScriptHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 28) throw new Error("Expected length to be 28");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): ScriptHash {
+    return new ScriptHash(inner);
+  }
+
+  static from_bech32(bech_str: string): ScriptHash {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new ScriptHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): ScriptHash {
+    return new ScriptHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ScriptHash {
+    let reader = new CBORReader(data);
+    return ScriptHash.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ScriptHash {
+    return ScriptHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): ScriptHash {
+    return ScriptHash.from_bytes(this.to_bytes());
+  }
+}
+
+export class ScriptHashes {
+  private items: ScriptHash[];
+
+  constructor(items: ScriptHash[]) {
+    this.items = items;
+  }
+
+  static new(): ScriptHashes {
+    return new ScriptHashes([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): ScriptHash {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: ScriptHash): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): ScriptHashes {
+    return new ScriptHashes(
+      reader.readArray((reader) => ScriptHash.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ScriptHashes {
+    let reader = new CBORReader(data);
+    return ScriptHashes.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ScriptHashes {
+    return ScriptHashes.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): ScriptHashes {
+    return ScriptHashes.from_bytes(this.to_bytes());
+  }
+}
+
 export class ScriptNOfK {
   private _n: number;
   private _native_scripts: NativeScripts;
@@ -7088,32 +8033,32 @@ export class ScriptNOfK {
 }
 
 export class ScriptPubname {
-  private _addr_keyhash: unknown;
+  private _addr_keyhash: Ed25519KeyHash;
 
-  constructor(addr_keyhash: unknown) {
+  constructor(addr_keyhash: Ed25519KeyHash) {
     this._addr_keyhash = addr_keyhash;
   }
 
-  static new(addr_keyhash: unknown) {
+  static new(addr_keyhash: Ed25519KeyHash) {
     return new ScriptPubname(addr_keyhash);
   }
 
-  get_addr_keyhash(): unknown {
+  get_addr_keyhash(): Ed25519KeyHash {
     return this._addr_keyhash;
   }
 
-  set_addr_keyhash(addr_keyhash: unknown): void {
+  set_addr_keyhash(addr_keyhash: Ed25519KeyHash): void {
     this._addr_keyhash = addr_keyhash;
   }
 
   static deserialize(reader: CBORReader): ScriptPubname {
-    let addr_keyhash = $$CANT_READ("Ed25519KeyHash");
+    let addr_keyhash = Ed25519KeyHash.deserialize(reader);
 
     return new ScriptPubname(addr_keyhash);
   }
 
   serialize(writer: CBORWriter): void {
-    $$CANT_WRITE("Ed25519KeyHash");
+    this._addr_keyhash.serialize(writer);
   }
 }
 
@@ -7404,16 +8349,24 @@ export class SingleHostName {
 
 export class StakeAndVoteDelegation {
   private _stake_credential: Credential;
-  private _pool_keyhash: unknown;
+  private _pool_keyhash: Ed25519KeyHash;
   private _drep: DRep;
 
-  constructor(stake_credential: Credential, pool_keyhash: unknown, drep: DRep) {
+  constructor(
+    stake_credential: Credential,
+    pool_keyhash: Ed25519KeyHash,
+    drep: DRep,
+  ) {
     this._stake_credential = stake_credential;
     this._pool_keyhash = pool_keyhash;
     this._drep = drep;
   }
 
-  static new(stake_credential: Credential, pool_keyhash: unknown, drep: DRep) {
+  static new(
+    stake_credential: Credential,
+    pool_keyhash: Ed25519KeyHash,
+    drep: DRep,
+  ) {
     return new StakeAndVoteDelegation(stake_credential, pool_keyhash, drep);
   }
 
@@ -7425,11 +8378,11 @@ export class StakeAndVoteDelegation {
     this._stake_credential = stake_credential;
   }
 
-  get_pool_keyhash(): unknown {
+  get_pool_keyhash(): Ed25519KeyHash {
     return this._pool_keyhash;
   }
 
-  set_pool_keyhash(pool_keyhash: unknown): void {
+  set_pool_keyhash(pool_keyhash: Ed25519KeyHash): void {
     this._pool_keyhash = pool_keyhash;
   }
 
@@ -7444,7 +8397,7 @@ export class StakeAndVoteDelegation {
   static deserialize(reader: CBORReader): StakeAndVoteDelegation {
     let stake_credential = Credential.deserialize(reader);
 
-    let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
+    let pool_keyhash = Ed25519KeyHash.deserialize(reader);
 
     let drep = DRep.deserialize(reader);
 
@@ -7453,21 +8406,21 @@ export class StakeAndVoteDelegation {
 
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
-    $$CANT_WRITE("Ed25519KeyHash");
+    this._pool_keyhash.serialize(writer);
     this._drep.serialize(writer);
   }
 }
 
 export class StakeDelegation {
   private _stake_credential: Credential;
-  private _pool_keyhash: unknown;
+  private _pool_keyhash: Ed25519KeyHash;
 
-  constructor(stake_credential: Credential, pool_keyhash: unknown) {
+  constructor(stake_credential: Credential, pool_keyhash: Ed25519KeyHash) {
     this._stake_credential = stake_credential;
     this._pool_keyhash = pool_keyhash;
   }
 
-  static new(stake_credential: Credential, pool_keyhash: unknown) {
+  static new(stake_credential: Credential, pool_keyhash: Ed25519KeyHash) {
     return new StakeDelegation(stake_credential, pool_keyhash);
   }
 
@@ -7479,25 +8432,25 @@ export class StakeDelegation {
     this._stake_credential = stake_credential;
   }
 
-  get_pool_keyhash(): unknown {
+  get_pool_keyhash(): Ed25519KeyHash {
     return this._pool_keyhash;
   }
 
-  set_pool_keyhash(pool_keyhash: unknown): void {
+  set_pool_keyhash(pool_keyhash: Ed25519KeyHash): void {
     this._pool_keyhash = pool_keyhash;
   }
 
   static deserialize(reader: CBORReader): StakeDelegation {
     let stake_credential = Credential.deserialize(reader);
 
-    let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
+    let pool_keyhash = Ed25519KeyHash.deserialize(reader);
 
     return new StakeDelegation(stake_credential, pool_keyhash);
   }
 
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
-    $$CANT_WRITE("Ed25519KeyHash");
+    this._pool_keyhash.serialize(writer);
   }
 }
 
@@ -7563,12 +8516,12 @@ export class StakeRegistration {
 
 export class StakeRegistrationAndDelegation {
   private _stake_credential: Credential;
-  private _pool_keyhash: unknown;
+  private _pool_keyhash: Ed25519KeyHash;
   private _coin: BigNum;
 
   constructor(
     stake_credential: Credential,
-    pool_keyhash: unknown,
+    pool_keyhash: Ed25519KeyHash,
     coin: BigNum,
   ) {
     this._stake_credential = stake_credential;
@@ -7578,7 +8531,7 @@ export class StakeRegistrationAndDelegation {
 
   static new(
     stake_credential: Credential,
-    pool_keyhash: unknown,
+    pool_keyhash: Ed25519KeyHash,
     coin: BigNum,
   ) {
     return new StakeRegistrationAndDelegation(
@@ -7596,11 +8549,11 @@ export class StakeRegistrationAndDelegation {
     this._stake_credential = stake_credential;
   }
 
-  get_pool_keyhash(): unknown {
+  get_pool_keyhash(): Ed25519KeyHash {
     return this._pool_keyhash;
   }
 
-  set_pool_keyhash(pool_keyhash: unknown): void {
+  set_pool_keyhash(pool_keyhash: Ed25519KeyHash): void {
     this._pool_keyhash = pool_keyhash;
   }
 
@@ -7615,7 +8568,7 @@ export class StakeRegistrationAndDelegation {
   static deserialize(reader: CBORReader): StakeRegistrationAndDelegation {
     let stake_credential = Credential.deserialize(reader);
 
-    let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
+    let pool_keyhash = Ed25519KeyHash.deserialize(reader);
 
     let coin = BigNum.deserialize(reader);
 
@@ -7628,20 +8581,20 @@ export class StakeRegistrationAndDelegation {
 
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
-    $$CANT_WRITE("Ed25519KeyHash");
+    this._pool_keyhash.serialize(writer);
     this._coin.serialize(writer);
   }
 }
 
 export class StakeVoteRegistrationAndDelegation {
   private _stake_credential: Credential;
-  private _pool_keyhash: unknown;
+  private _pool_keyhash: Ed25519KeyHash;
   private _drep: DRep;
   private _coin: BigNum;
 
   constructor(
     stake_credential: Credential,
-    pool_keyhash: unknown,
+    pool_keyhash: Ed25519KeyHash,
     drep: DRep,
     coin: BigNum,
   ) {
@@ -7653,7 +8606,7 @@ export class StakeVoteRegistrationAndDelegation {
 
   static new(
     stake_credential: Credential,
-    pool_keyhash: unknown,
+    pool_keyhash: Ed25519KeyHash,
     drep: DRep,
     coin: BigNum,
   ) {
@@ -7673,11 +8626,11 @@ export class StakeVoteRegistrationAndDelegation {
     this._stake_credential = stake_credential;
   }
 
-  get_pool_keyhash(): unknown {
+  get_pool_keyhash(): Ed25519KeyHash {
     return this._pool_keyhash;
   }
 
-  set_pool_keyhash(pool_keyhash: unknown): void {
+  set_pool_keyhash(pool_keyhash: Ed25519KeyHash): void {
     this._pool_keyhash = pool_keyhash;
   }
 
@@ -7700,7 +8653,7 @@ export class StakeVoteRegistrationAndDelegation {
   static deserialize(reader: CBORReader): StakeVoteRegistrationAndDelegation {
     let stake_credential = Credential.deserialize(reader);
 
-    let pool_keyhash = $$CANT_READ("Ed25519KeyHash");
+    let pool_keyhash = Ed25519KeyHash.deserialize(reader);
 
     let drep = DRep.deserialize(reader);
 
@@ -7716,7 +8669,7 @@ export class StakeVoteRegistrationAndDelegation {
 
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
-    $$CANT_WRITE("Ed25519KeyHash");
+    this._pool_keyhash.serialize(writer);
     this._drep.serialize(writer);
     this._coin.serialize(writer);
   }
@@ -7970,10 +8923,10 @@ export class TransactionBody {
   private _ttl: BigNum | undefined;
   private _certs: Certificates | undefined;
   private _withdrawals: Withdrawals | undefined;
-  private _auxiliary_data_hash: unknown | undefined;
+  private _auxiliary_data_hash: AuxiliaryDataHash | undefined;
   private _validity_start_interval: BigNum | undefined;
   private _mint: unknown | undefined;
-  private _script_data_hash: unknown | undefined;
+  private _script_data_hash: ScriptDataHash | undefined;
   private _collateral: TransactionInputs | undefined;
   private _required_signers: Ed25519KeyHashes | undefined;
   private _network_id: NetworkId | undefined;
@@ -7992,10 +8945,10 @@ export class TransactionBody {
     ttl: BigNum | undefined,
     certs: Certificates | undefined,
     withdrawals: Withdrawals | undefined,
-    auxiliary_data_hash: unknown | undefined,
+    auxiliary_data_hash: AuxiliaryDataHash | undefined,
     validity_start_interval: BigNum | undefined,
     mint: unknown | undefined,
-    script_data_hash: unknown | undefined,
+    script_data_hash: ScriptDataHash | undefined,
     collateral: TransactionInputs | undefined,
     required_signers: Ed25519KeyHashes | undefined,
     network_id: NetworkId | undefined,
@@ -8036,10 +8989,10 @@ export class TransactionBody {
     ttl: BigNum | undefined,
     certs: Certificates | undefined,
     withdrawals: Withdrawals | undefined,
-    auxiliary_data_hash: unknown | undefined,
+    auxiliary_data_hash: AuxiliaryDataHash | undefined,
     validity_start_interval: BigNum | undefined,
     mint: unknown | undefined,
-    script_data_hash: unknown | undefined,
+    script_data_hash: ScriptDataHash | undefined,
     collateral: TransactionInputs | undefined,
     required_signers: Ed25519KeyHashes | undefined,
     network_id: NetworkId | undefined,
@@ -8123,11 +9076,13 @@ export class TransactionBody {
     this._withdrawals = withdrawals;
   }
 
-  get_auxiliary_data_hash(): unknown | undefined {
+  get_auxiliary_data_hash(): AuxiliaryDataHash | undefined {
     return this._auxiliary_data_hash;
   }
 
-  set_auxiliary_data_hash(auxiliary_data_hash: unknown | undefined): void {
+  set_auxiliary_data_hash(
+    auxiliary_data_hash: AuxiliaryDataHash | undefined,
+  ): void {
     this._auxiliary_data_hash = auxiliary_data_hash;
   }
 
@@ -8149,11 +9104,11 @@ export class TransactionBody {
     this._mint = mint;
   }
 
-  get_script_data_hash(): unknown | undefined {
+  get_script_data_hash(): ScriptDataHash | undefined {
     return this._script_data_hash;
   }
 
-  set_script_data_hash(script_data_hash: unknown | undefined): void {
+  set_script_data_hash(script_data_hash: ScriptDataHash | undefined): void {
     this._script_data_hash = script_data_hash;
   }
 
@@ -8269,7 +9224,7 @@ export class TransactionBody {
           break;
 
         case 7:
-          fields.auxiliary_data_hash = $$CANT_READ("AuxiliaryDataHash");
+          fields.auxiliary_data_hash = AuxiliaryDataHash.deserialize(r);
           break;
 
         case 8:
@@ -8281,7 +9236,7 @@ export class TransactionBody {
           break;
 
         case 11:
-          fields.script_data_hash = $$CANT_READ("ScriptDataHash");
+          fields.script_data_hash = ScriptDataHash.deserialize(r);
           break;
 
         case 13:
@@ -8438,7 +9393,7 @@ export class TransactionBody {
     }
     if (this._auxiliary_data_hash !== undefined) {
       writer.writeInt(7n);
-      $$CANT_WRITE("AuxiliaryDataHash");
+      this._auxiliary_data_hash.serialize(writer);
     }
     if (this._validity_start_interval !== undefined) {
       writer.writeInt(8n);
@@ -8450,7 +9405,7 @@ export class TransactionBody {
     }
     if (this._script_data_hash !== undefined) {
       writer.writeInt(11n);
-      $$CANT_WRITE("ScriptDataHash");
+      this._script_data_hash.serialize(writer);
     }
     if (this._collateral !== undefined) {
       writer.writeInt(13n);
@@ -8521,24 +9476,82 @@ export class TransactionBody {
   }
 }
 
+export class TransactionHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 32) throw new Error("Expected length to be 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): TransactionHash {
+    return new TransactionHash(inner);
+  }
+
+  static from_bech32(bech_str: string): TransactionHash {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new TransactionHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): TransactionHash {
+    return new TransactionHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TransactionHash {
+    let reader = new CBORReader(data);
+    return TransactionHash.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TransactionHash {
+    return TransactionHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): TransactionHash {
+    return TransactionHash.from_bytes(this.to_bytes());
+  }
+}
+
 export class TransactionInput {
-  private _transaction_id: unknown;
+  private _transaction_id: TransactionHash;
   private _index: number;
 
-  constructor(transaction_id: unknown, index: number) {
+  constructor(transaction_id: TransactionHash, index: number) {
     this._transaction_id = transaction_id;
     this._index = index;
   }
 
-  static new(transaction_id: unknown, index: number) {
+  static new(transaction_id: TransactionHash, index: number) {
     return new TransactionInput(transaction_id, index);
   }
 
-  get_transaction_id(): unknown {
+  get_transaction_id(): TransactionHash {
     return this._transaction_id;
   }
 
-  set_transaction_id(transaction_id: unknown): void {
+  set_transaction_id(transaction_id: TransactionHash): void {
     this._transaction_id = transaction_id;
   }
 
@@ -8559,7 +9572,7 @@ export class TransactionInput {
       );
     }
 
-    let transaction_id = $$CANT_READ("TransactionHash");
+    let transaction_id = TransactionHash.deserialize(reader);
 
     let index = Number(reader.readInt());
 
@@ -8569,7 +9582,7 @@ export class TransactionInput {
   serialize(writer: CBORWriter): void {
     writer.writeArrayTag(2);
 
-    $$CANT_WRITE("TransactionHash");
+    this._transaction_id.serialize(writer);
     writer.writeInt(BigInt(this._index));
   }
 
@@ -9428,14 +10441,14 @@ export class TransactionWitnessSets {
 
 export class TreasuryWithdrawalsAction {
   private _withdrawals: unknown;
-  private _policy_hash: unknown | undefined;
+  private _policy_hash: ScriptHash | undefined;
 
-  constructor(withdrawals: unknown, policy_hash: unknown | undefined) {
+  constructor(withdrawals: unknown, policy_hash: ScriptHash | undefined) {
     this._withdrawals = withdrawals;
     this._policy_hash = policy_hash;
   }
 
-  static new(withdrawals: unknown, policy_hash: unknown | undefined) {
+  static new(withdrawals: unknown, policy_hash: ScriptHash | undefined) {
     return new TreasuryWithdrawalsAction(withdrawals, policy_hash);
   }
 
@@ -9447,11 +10460,11 @@ export class TreasuryWithdrawalsAction {
     this._withdrawals = withdrawals;
   }
 
-  get_policy_hash(): unknown | undefined {
+  get_policy_hash(): ScriptHash | undefined {
     return this._policy_hash;
   }
 
-  set_policy_hash(policy_hash: unknown | undefined): void {
+  set_policy_hash(policy_hash: ScriptHash | undefined): void {
     this._policy_hash = policy_hash;
   }
 
@@ -9459,7 +10472,7 @@ export class TreasuryWithdrawalsAction {
     let withdrawals = $$CANT_READ("TreasuryWithdrawals");
 
     let policy_hash =
-      reader.readNullable((r) => $$CANT_READ("ScriptHash")) ?? undefined;
+      reader.readNullable((r) => ScriptHash.deserialize(r)) ?? undefined;
 
     return new TreasuryWithdrawalsAction(withdrawals, policy_hash);
   }
@@ -9469,7 +10482,7 @@ export class TreasuryWithdrawalsAction {
     if (this._policy_hash == null) {
       writer.writeNull();
     } else {
-      $$CANT_WRITE("ScriptHash");
+      this._policy_hash.serialize(writer);
     }
   }
 }
@@ -9759,6 +10772,122 @@ export class UpdateCommitteeAction {
   }
 }
 
+export class VRFKeyHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 32) throw new Error("Expected length to be 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): VRFKeyHash {
+    return new VRFKeyHash(inner);
+  }
+
+  static from_bech32(bech_str: string): VRFKeyHash {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new VRFKeyHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): VRFKeyHash {
+    return new VRFKeyHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): VRFKeyHash {
+    let reader = new CBORReader(data);
+    return VRFKeyHash.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): VRFKeyHash {
+    return VRFKeyHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): VRFKeyHash {
+    return VRFKeyHash.from_bytes(this.to_bytes());
+  }
+}
+
+export class VRFVKey {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 32) throw new Error("Expected length to be 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): VRFVKey {
+    return new VRFVKey(inner);
+  }
+
+  static from_bech32(bech_str: string): VRFVKey {
+    let decoded = bech32.decode(bech_str);
+    let bytes = new Uint8Array(decoded.words);
+    return new VRFVKey(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    return bech32.encode(prefix, bytes);
+  }
+
+  static deserialize(reader: CBORReader): VRFVKey {
+    return new VRFVKey(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): VRFVKey {
+    let reader = new CBORReader(data);
+    return VRFVKey.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): VRFVKey {
+    return VRFVKey.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): VRFVKey {
+    return VRFVKey.from_bytes(this.to_bytes());
+  }
+}
+
 export class Value {
   private _coin: BigNum;
   private _multiasset: MultiAsset | undefined;
@@ -9865,7 +10994,7 @@ export class Value {
     if (this._multiasset == null || this._multiasset.len() == 0) {
       this._coin.serialize(writer);
     } else {
-      this.serializeRecord();
+      this.serializeRecord(writer);
     }
   }
 
@@ -10204,12 +11333,12 @@ export class VoteRegistrationAndDelegation {
 export class Voter {
   private _constitutional_committee_hot_key: Credential;
   private _drep: Credential;
-  private _staking_pool: unknown;
+  private _staking_pool: Ed25519KeyHash;
 
   constructor(
     constitutional_committee_hot_key: Credential,
     drep: Credential,
-    staking_pool: unknown,
+    staking_pool: Ed25519KeyHash,
   ) {
     this._constitutional_committee_hot_key = constitutional_committee_hot_key;
     this._drep = drep;
@@ -10219,7 +11348,7 @@ export class Voter {
   static new(
     constitutional_committee_hot_key: Credential,
     drep: Credential,
-    staking_pool: unknown,
+    staking_pool: Ed25519KeyHash,
   ) {
     return new Voter(constitutional_committee_hot_key, drep, staking_pool);
   }
@@ -10242,11 +11371,11 @@ export class Voter {
     this._drep = drep;
   }
 
-  get_staking_pool(): unknown {
+  get_staking_pool(): Ed25519KeyHash {
     return this._staking_pool;
   }
 
-  set_staking_pool(staking_pool: unknown): void {
+  set_staking_pool(staking_pool: Ed25519KeyHash): void {
     this._staking_pool = staking_pool;
   }
 
@@ -10263,7 +11392,7 @@ export class Voter {
 
     let drep = Credential.deserialize(reader);
 
-    let staking_pool = $$CANT_READ("Ed25519KeyHash");
+    let staking_pool = Ed25519KeyHash.deserialize(reader);
 
     return new Voter(constitutional_committee_hot_key, drep, staking_pool);
   }
@@ -10273,7 +11402,7 @@ export class Voter {
 
     this._constitutional_committee_hot_key.serialize(writer);
     this._drep.serialize(writer);
-    $$CANT_WRITE("Ed25519KeyHash");
+    this._staking_pool.serialize(writer);
   }
 
   // no-op
