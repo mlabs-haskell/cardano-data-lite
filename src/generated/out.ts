@@ -103,29 +103,23 @@ export class AnchorDataHash {
 
   static from_bech32(bech_str: string): AnchorDataHash {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new AnchorDataHash(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): AnchorDataHash {
-    return new AnchorDataHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): AnchorDataHash {
-    let reader = new CBORReader(data);
-    return AnchorDataHash.deserialize(reader);
+    return new AnchorDataHash(data);
   }
 
   static from_hex(hex_str: string): AnchorDataHash {
@@ -133,9 +127,7 @@ export class AnchorDataHash {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -144,6 +136,14 @@ export class AnchorDataHash {
 
   clone(): AnchorDataHash {
     return AnchorDataHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): AnchorDataHash {
+    return new AnchorDataHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -597,29 +597,23 @@ export class AuxiliaryDataHash {
 
   static from_bech32(bech_str: string): AuxiliaryDataHash {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new AuxiliaryDataHash(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): AuxiliaryDataHash {
-    return new AuxiliaryDataHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): AuxiliaryDataHash {
-    let reader = new CBORReader(data);
-    return AuxiliaryDataHash.deserialize(reader);
+    return new AuxiliaryDataHash(data);
   }
 
   static from_hex(hex_str: string): AuxiliaryDataHash {
@@ -627,9 +621,7 @@ export class AuxiliaryDataHash {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -638,6 +630,14 @@ export class AuxiliaryDataHash {
 
   clone(): AuxiliaryDataHash {
     return AuxiliaryDataHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): AuxiliaryDataHash {
+    return new AuxiliaryDataHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -1009,29 +1009,23 @@ export class BlockHash {
 
   static from_bech32(bech_str: string): BlockHash {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new BlockHash(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): BlockHash {
-    return new BlockHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): BlockHash {
-    let reader = new CBORReader(data);
-    return BlockHash.deserialize(reader);
+    return new BlockHash(data);
   }
 
   static from_hex(hex_str: string): BlockHash {
@@ -1039,9 +1033,7 @@ export class BlockHash {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -1050,6 +1042,14 @@ export class BlockHash {
 
   clone(): BlockHash {
     return BlockHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): BlockHash {
+    return new BlockHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -2659,29 +2659,23 @@ export class DataHash {
 
   static from_bech32(bech_str: string): DataHash {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new DataHash(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): DataHash {
-    return new DataHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): DataHash {
-    let reader = new CBORReader(data);
-    return DataHash.deserialize(reader);
+    return new DataHash(data);
   }
 
   static from_hex(hex_str: string): DataHash {
@@ -2689,9 +2683,7 @@ export class DataHash {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -2700,6 +2692,14 @@ export class DataHash {
 
   clone(): DataHash {
     return DataHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): DataHash {
+    return new DataHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -3212,29 +3212,23 @@ export class Ed25519KeyHash {
 
   static from_bech32(bech_str: string): Ed25519KeyHash {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new Ed25519KeyHash(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): Ed25519KeyHash {
-    return new Ed25519KeyHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): Ed25519KeyHash {
-    let reader = new CBORReader(data);
-    return Ed25519KeyHash.deserialize(reader);
+    return new Ed25519KeyHash(data);
   }
 
   static from_hex(hex_str: string): Ed25519KeyHash {
@@ -3242,9 +3236,7 @@ export class Ed25519KeyHash {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -3253,6 +3245,14 @@ export class Ed25519KeyHash {
 
   clone(): Ed25519KeyHash {
     return Ed25519KeyHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): Ed25519KeyHash {
+    return new Ed25519KeyHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -3601,29 +3601,23 @@ export class GenesisDelegateHash {
 
   static from_bech32(bech_str: string): GenesisDelegateHash {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new GenesisDelegateHash(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): GenesisDelegateHash {
-    return new GenesisDelegateHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): GenesisDelegateHash {
-    let reader = new CBORReader(data);
-    return GenesisDelegateHash.deserialize(reader);
+    return new GenesisDelegateHash(data);
   }
 
   static from_hex(hex_str: string): GenesisDelegateHash {
@@ -3631,9 +3625,7 @@ export class GenesisDelegateHash {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -3642,6 +3634,14 @@ export class GenesisDelegateHash {
 
   clone(): GenesisDelegateHash {
     return GenesisDelegateHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): GenesisDelegateHash {
+    return new GenesisDelegateHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -3659,29 +3659,23 @@ export class GenesisHash {
 
   static from_bech32(bech_str: string): GenesisHash {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new GenesisHash(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): GenesisHash {
-    return new GenesisHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): GenesisHash {
-    let reader = new CBORReader(data);
-    return GenesisHash.deserialize(reader);
+    return new GenesisHash(data);
   }
 
   static from_hex(hex_str: string): GenesisHash {
@@ -3689,9 +3683,7 @@ export class GenesisHash {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -3700,6 +3692,14 @@ export class GenesisHash {
 
   clone(): GenesisHash {
     return GenesisHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): GenesisHash {
+    return new GenesisHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -4706,29 +4706,23 @@ export class KESVKey {
 
   static from_bech32(bech_str: string): KESVKey {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new KESVKey(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): KESVKey {
-    return new KESVKey(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): KESVKey {
-    let reader = new CBORReader(data);
-    return KESVKey.deserialize(reader);
+    return new KESVKey(data);
   }
 
   static from_hex(hex_str: string): KESVKey {
@@ -4736,9 +4730,7 @@ export class KESVKey {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -4747,6 +4739,14 @@ export class KESVKey {
 
   clone(): KESVKey {
     return KESVKey.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): KESVKey {
+    return new KESVKey(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -6068,29 +6068,23 @@ export class PoolMetadataHash {
 
   static from_bech32(bech_str: string): PoolMetadataHash {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new PoolMetadataHash(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): PoolMetadataHash {
-    return new PoolMetadataHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): PoolMetadataHash {
-    let reader = new CBORReader(data);
-    return PoolMetadataHash.deserialize(reader);
+    return new PoolMetadataHash(data);
   }
 
   static from_hex(hex_str: string): PoolMetadataHash {
@@ -6098,9 +6092,7 @@ export class PoolMetadataHash {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -6109,6 +6101,14 @@ export class PoolMetadataHash {
 
   clone(): PoolMetadataHash {
     return PoolMetadataHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): PoolMetadataHash {
+    return new PoolMetadataHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -7826,29 +7826,23 @@ export class ScriptDataHash {
 
   static from_bech32(bech_str: string): ScriptDataHash {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new ScriptDataHash(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): ScriptDataHash {
-    return new ScriptDataHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): ScriptDataHash {
-    let reader = new CBORReader(data);
-    return ScriptDataHash.deserialize(reader);
+    return new ScriptDataHash(data);
   }
 
   static from_hex(hex_str: string): ScriptDataHash {
@@ -7856,9 +7850,7 @@ export class ScriptDataHash {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -7867,6 +7859,14 @@ export class ScriptDataHash {
 
   clone(): ScriptDataHash {
     return ScriptDataHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): ScriptDataHash {
+    return new ScriptDataHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -7884,29 +7884,23 @@ export class ScriptHash {
 
   static from_bech32(bech_str: string): ScriptHash {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new ScriptHash(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): ScriptHash {
-    return new ScriptHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): ScriptHash {
-    let reader = new CBORReader(data);
-    return ScriptHash.deserialize(reader);
+    return new ScriptHash(data);
   }
 
   static from_hex(hex_str: string): ScriptHash {
@@ -7914,9 +7908,7 @@ export class ScriptHash {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -7925,6 +7917,14 @@ export class ScriptHash {
 
   clone(): ScriptHash {
     return ScriptHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): ScriptHash {
+    return new ScriptHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -9490,29 +9490,23 @@ export class TransactionHash {
 
   static from_bech32(bech_str: string): TransactionHash {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new TransactionHash(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): TransactionHash {
-    return new TransactionHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): TransactionHash {
-    let reader = new CBORReader(data);
-    return TransactionHash.deserialize(reader);
+    return new TransactionHash(data);
   }
 
   static from_hex(hex_str: string): TransactionHash {
@@ -9520,9 +9514,7 @@ export class TransactionHash {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -9531,6 +9523,14 @@ export class TransactionHash {
 
   clone(): TransactionHash {
     return TransactionHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): TransactionHash {
+    return new TransactionHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -10786,29 +10786,23 @@ export class VRFKeyHash {
 
   static from_bech32(bech_str: string): VRFKeyHash {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new VRFKeyHash(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): VRFKeyHash {
-    return new VRFKeyHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): VRFKeyHash {
-    let reader = new CBORReader(data);
-    return VRFKeyHash.deserialize(reader);
+    return new VRFKeyHash(data);
   }
 
   static from_hex(hex_str: string): VRFKeyHash {
@@ -10816,9 +10810,7 @@ export class VRFKeyHash {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -10827,6 +10819,14 @@ export class VRFKeyHash {
 
   clone(): VRFKeyHash {
     return VRFKeyHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): VRFKeyHash {
+    return new VRFKeyHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -10844,29 +10844,23 @@ export class VRFVKey {
 
   static from_bech32(bech_str: string): VRFVKey {
     let decoded = bech32.decode(bech_str);
-    let bytes = new Uint8Array(decoded.words);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
     return new VRFVKey(bytes);
   }
 
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
-    return bech32.encode(prefix, bytes);
-  }
-
-  static deserialize(reader: CBORReader): VRFVKey {
-    return new VRFVKey(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
   }
 
   // no-op
   free(): void {}
 
   static from_bytes(data: Uint8Array): VRFVKey {
-    let reader = new CBORReader(data);
-    return VRFVKey.deserialize(reader);
+    return new VRFVKey(data);
   }
 
   static from_hex(hex_str: string): VRFVKey {
@@ -10874,9 +10868,7 @@ export class VRFVKey {
   }
 
   to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
+    return this.inner;
   }
 
   to_hex(): string {
@@ -10885,6 +10877,14 @@ export class VRFVKey {
 
   clone(): VRFVKey {
     return VRFVKey.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): VRFVKey {
+    return new VRFVKey(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
