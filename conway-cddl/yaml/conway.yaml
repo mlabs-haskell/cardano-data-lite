@@ -1549,7 +1549,7 @@ BootstrapWitness:
   type: record
   fields:
     - name: vkey
-      type: VKey
+      type: Vkey
     - name: signature
       type: Ed25519Signature
     - name: chain_code
