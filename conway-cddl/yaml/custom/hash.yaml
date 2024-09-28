@@ -1,0 +1,63 @@
+Ed25519KeyHash:
+  type: hash
+  len: 28
+
+ScriptHash:
+  type: hash
+  len: 28
+
+ScriptHashes:
+  type: array
+  item: ScriptHash
+
+AnchorDataHash:
+  type: hash
+  len: 32
+
+TransactionHash:
+  type: hash
+  len: 32
+
+GenesisDelegateHash:
+  type: hash
+  len: 28
+
+GenesisHash:
+  type: hash
+  len: 28
+
+GenesisHashes:
+  type: array
+  item: GenesisHash
+
+AuxiliaryDataHash:
+  type: hash
+  len: 32
+
+PoolMetadataHash:
+  type: hash
+  len: 32
+
+VRFKeyHash:
+  type: hash
+  len: 32
+
+BlockHash:
+  type: hash
+  len: 32
+
+DataHash:
+  type: hash
+  len: 32
+
+ScriptDataHash:
+  type: hash
+  len: 32
+
+VRFVKey:
+  type: hash
+  len: 32
+
+KESVKey:
+  type: hash
+  len: 32

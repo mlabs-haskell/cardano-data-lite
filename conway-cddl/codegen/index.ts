@@ -13,6 +13,7 @@ import { GenRecordFragment } from "./generators/structured/record_fragment";
 import { GenRecordFragmentWrapper } from "./generators/structured/record_fragment_wrapper";
 import { GenUnion } from "./generators/union";
 import { Value } from "@sinclair/typebox/value";
+import { GenHash } from "./generators/hash";
 
 export type SchemaTable = { [key: string]: CodeGeneratorBase };
 
@@ -64,6 +65,8 @@ export class Codegen {
         return new GenNewtype(name, this.customTypes, schema);
       case "union":
         return new GenUnion(name, this.customTypes, schema);
+      case "hash":
+        return new GenHash(name, this.customTypes, schema);
     }
     throw new Error("Unknown type: " + schema_.type + " for " + name);
   }
