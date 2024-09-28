@@ -1121,7 +1121,7 @@ export class BootstrapWitness {
       );
     }
 
-    let vkey = $$CANT_READ("VKey");
+    let vkey = $$CANT_READ("Vkey");
 
     let signature = $$CANT_READ("Ed25519Signature");
 
@@ -1135,7 +1135,7 @@ export class BootstrapWitness {
   serialize(writer: CBORWriter): void {
     writer.writeArrayTag(4);
 
-    $$CANT_WRITE("VKey");
+    $$CANT_WRITE("Vkey");
     $$CANT_WRITE("Ed25519Signature");
     writer.writeBytes(this._chain_code);
     writer.writeBytes(this._attributes);
