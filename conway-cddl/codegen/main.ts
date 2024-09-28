@@ -74,6 +74,7 @@ async function main() {
     import {GrowableBuffer} from "../cbor/growable-buffer";
     import {hexToBytes, bytesToHex} from "../hex";
     import {arrayEq} from "../eq";
+    import {bech32} from "bech32";
 
     function $$UN(...args: any): any {}
     const $$CANT_READ = $$UN;

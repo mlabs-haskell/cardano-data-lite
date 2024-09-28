@@ -24,5 +24,8 @@
     "tsx": "^4.15.7",
     "typescript": "^5.4.3",
     "yaml": "^2.4.5"
+  },
+  "dependencies": {
+    "bech32": "^2.0.0"
   }
 }

@@ -41,6 +41,25 @@ export class GenHash extends CodeGeneratorBase {
           return new ${this.name}(inner);
         }`,
       )}
+
+      ${this.renameMethod(
+        "from_bech32",
+        (from_bech32) => `
+        static ${from_bech32}(bech_str: string): ${this.name} {
+          let decoded = bech32.decode(bech_str);
+          let bytes = new Uint8Array(decoded.words);
+          return new ${this.name}(bytes);
+        }`,
+      )}
+
+      ${this.renameMethod(
+        "to_bech32",
+        (to_bech32) => `
+        ${to_bech32}(prefix: string): string {
+          let bytes = this.to_bytes();
+          return bech32.encode(prefix, bytes);
+        }`,
+      )}
     `;
   }
 
