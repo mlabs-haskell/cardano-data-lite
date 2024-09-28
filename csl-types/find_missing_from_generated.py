@@ -72,11 +72,14 @@ for name, kind in src_exports.items():
         missing_types.append(name)
 
 crypto_types = []
+hash_types = []
 other_types = []
 for t in missing_types:
     if t in excluded:
         continue
-    if any(x in t.lower() for x in ["hash", "address", "signature", "key"]):
+    if "hash" in t.lower():
+        hash_types.append(t)
+    elif any(x in t.lower() for x in ["address", "signature", "key"]):
         crypto_types.append(t)
     else:
         other_types.append(t)
@@ -84,9 +87,20 @@ for t in missing_types:
 
 print("Crypto:")
 for t in crypto_types:
-    print(t)
+    print(" " + t)
+if not crypto_types:
+    print(" N/A")
+
+print()
+print("Hash:")
+for t in hash_types:
+    print(" " + t)
+if not hash_types:
+    print(" N/A")
 
 print()
 print("Others:")
 for t in other_types:
-    print(t)
+    print(" " + t)
+if not other_types:
+    print(" N/A")
