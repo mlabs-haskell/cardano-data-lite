@@ -1,0 +1,30 @@
+Classes  {
+    // Classes
+    ClassesDecl = ClassDecl*
+    ClassDecl =  "export" "declare"? "class" ClassName "{" (MethodDecl | PrivateMember)* "}"
+    // Methods
+    MethodDecl = StaticMethod | InstanceMethod
+    InstanceMethod = Method
+    StaticMethod = "static" Method
+    Method = MethodName #"(" ParamsList ")" (":" Type)? ";"?
+    // Data members
+    PrivateMember = "private" identifier ";"?
+    // Parameters
+    ParamsList = ListOf<Param, ",">
+    Param = NullableParam | SimpleParam
+    SimpleParam = identifier #":" Type
+    NullableParam = identifier #("?" ":") SimpleType
+    // Types
+    Type = NullableType | ArrayType | TupleType | SimpleType
+    NullableType = Type "|" "undefined"
+    SimpleType = identifier
+    ArrayType = Type #"[]"
+    TupleType = "[" ListOf<Type, ","> "]"
+    // Identifiers
+    ClassName = identifier
+    MethodName = identifier
+    identifier = wordlike
+    wordlike = letter anyseq
+    anyseq = (alnum | underscores)*
+    underscores = "_"+
+ }
