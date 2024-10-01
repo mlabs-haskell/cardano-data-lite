@@ -2,5 +2,6 @@
 export type TransactionInfo = { hash: string, cbor: string };
 
 // Type for method signatures of a given class
-export type MethodInfo = { class: string, static: boolean, params: Array<ParamInfo> }
-export type ParamInfo = { nullable: boolean, type: string }
+export type ClassInfo = { name: string, methods: Array<MethodInfo>}
+export type MethodInfo = { name: string, static: boolean, params: Array<ParamInfo>, returnType: string }
+export type ParamInfo = { name: string, nullable: boolean, type: string }
