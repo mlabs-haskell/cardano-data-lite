@@ -1,0 +1,39 @@
+# Missing types
+
+- [X] Languages: Missing `static list(): Languages` - should we worry?
+- [X] Pointer : There are basicaly duplicated methods for `number` and `BigNum`. Should we keep only the `BigNum`s?
+- [X] PlutusMapValues: verify if `type: array` with `item: PlutusData` is enough/okay
+- [X] Update: Verify - `Update` looks like `UnitInterval`. I'm not sure what `tagged` does in `UnitInterval`. Do we need it on `Update` as well?
+- [X] Voters: seems to make sense to be of type `array`, however in CSL we have `get(index: number): Voter | undefined`, while for type `array` we only return `Voter`. Should we worry about this difference?
+- [X] GovernanceActionIds: same note as above.
+- [X] PlutusMap
+- [X] ProposedProtocolParameterUpdates
+
+- [ ] TreasuryWithdrawals: has `insert`, `keys` and `lens`. `insert` here returns `void`, while in other functions it returns `a | undefined`. Clarify this difference and how it relates to serialization
+- [ ] VotingProcedures: same note as `TreasuryWithdrawals`, plus has additional methods.
+- [ ] ConstrPlutusData
+- [ ] CostModel
+- [ ] Costmdls
+- [ ] DRepDeregistration
+- [ ] DRepRegistration
+- [ ] DatumSource
+- [ ] MIRToStakeCredentials
+- [ ] Mint
+- [ ] MintAssets
+- [ ] MintWitness
+- [ ] MintsAssets
+- [ ] MoveInstantaneousRewardsCert
+- [ ] NativeScriptSource
+- [ ] Nonce
+- [ ] OutputDatum
+- [ ] PlutusData
+- [ ] PlutusScript
+- [ ] PlutusScriptSource
+- [ ] PlutusWitness
+- [ ] PlutusWitnesses
+- [ ] Redeemer
+- [ ] Redeemers
+- [ ] DRepVotingThresholds
+- [ ] MoveInstantaneousReward
+- [ ] DRepUpdate
+- [ ] VRFCert

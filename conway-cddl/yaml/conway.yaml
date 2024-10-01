@@ -448,6 +448,11 @@ Voter: # TODO (custom serializer)
     - name: staking_pool
       type: Ed25519KeyHash
 
+Voters:
+  type: array
+  item: Voter
+
+
 # anchor =
 #   [ anchor_url       : url
 #   , anchor_data_hash : $hash32
@@ -485,6 +490,10 @@ GovernanceActionId:
       type: TransactionHash
     - name: index
       type: number
+
+GovernanceActionIds:
+  type: array
+  item: GovernanceActionId
 
 # required_signers = nonempty_set<addr_keyhash>
 # Replaced by Ed25519KeyHashes. See TransactionBody
@@ -1456,6 +1465,10 @@ Language:
     - name: plutus_v3
       value: 2
 
+Languages:
+  type: array
+  item: Language
+
 # potential_languages = 0 .. 255
 # potential_languages:
 #   type: uint
@@ -1741,3 +1754,39 @@ UnitInterval:
       type: BigNum
   tagged:
     tag: 30
+
+# TODO: clarify if indeed only `BigNum`s are enough
+Pointer:
+  type: record
+  fields:
+    - name: slot
+      type: BigNum
+    - name: tx_index
+      type: BigNum
+    - name: cert_index
+      type: BigNum
+
+
+Update:
+  type: record
+  fields:
+    - name: proposed_protocol_parameter_updates
+      type: ProposedProtocolParameterUpdates
+    - name: epoch
+      type: number
+
+ProposedProtocolParameterUpdates:
+  type: map
+  key: GenesisHash
+  value: ProtocolParamUpdate
+  keys_method_type: GenesisHashes
+
+PlutusMap:
+  type: map
+  key: PlutusData
+  value: PlutusMapValues
+  keys_method_type: PlutusList
+
+PlutusMapValues:
+  type: array
+  item: PlutusData
