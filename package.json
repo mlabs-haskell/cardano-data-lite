@@ -4,11 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npm run test-serialization",
+    "test": "npm run test-serialization ; npm run test-api",
     "test-serialization": "rm -f transaction_fifo; mkfifo transaction_fifo; npx tsx src/get_transactions.ts & NODE_OPTIONS=--experimental-vm-modules jest serialization",
     "test-api": "rm -f src/*ohm-bundle* ; npm run generate-grammar-bundle; NODE_OPTIONS=--experimental-vm-modules jest api",
     "codegen": "tsx conway-cddl/codegen/main.ts",
-    "generate-grammar-bundle": "npx ohm generateBundles -e -t src/* && mv src/grammar.ohm-bundle* src/generated/"
+    "generate-grammar-bundle": "npx ohm generateBundles -e -t src/grammar.ohm && mv src/grammar.ohm-bundle* src/generated/"
   },
   "author": "",
   "license": "ISC",
