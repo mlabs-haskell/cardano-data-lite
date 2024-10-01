@@ -1,28 +1,28 @@
 Classes  {
     // Classes
     ClassesDecl = ClassDecl*
-    ClassDecl =  "export" "declare"? "class" ClassName "{" (MethodDecl | PrivateMember)* "}"
+    ClassDecl =  "export" "declare"? "class" identifier "{" (MethodDecl | DataDecl)* "}"
     // Methods
-    MethodDecl = StaticMethod | InstanceMethod
-    InstanceMethod = Method
-    StaticMethod = "static" Method
-    Method = MethodName #"(" ParamsList ")" (":" Type)? ";"?
+    MethodDecl =
+        "static" Method -- static
+        | Method        -- instance
+    Method =
+        identifier #"(" ListOf<Param, ","> ")" (":" "void") ";"? -- with_void
+        | identifier #"(" ListOf<Param, ","> ")" (":" Type) ";"? -- with_type
+        | identifier #"(" ListOf<Param, ","> ")" ";"?            -- without_type
     // Data members
-    PrivateMember = "private" identifier ";"?
+    DataDecl = "private" identifier ";"?
     // Parameters
-    ParamsList = ListOf<Param, ",">
-    Param = NullableParam | SimpleParam
-    SimpleParam = identifier #":" Type
-    NullableParam = identifier #("?" ":") SimpleType
+    Param =
+        identifier #":" Type         -- mandatory
+        | identifier #("?" ":") Type -- nullable
     // Types
-    Type = NullableType | ArrayType | TupleType | SimpleType
-    NullableType = Type "|" "undefined"
-    SimpleType = identifier
-    ArrayType = Type #"[]"
-    TupleType = "[" ListOf<Type, ","> "]"
+    Type =
+        | Type "|" "undefined"      -- nullable
+        | Type #"[]"                -- array
+        | "[" ListOf<Type, ","> "]" -- tuple
+        | identifier                -- simple
     // Identifiers
-    ClassName = identifier
-    MethodName = identifier
     identifier = wordlike
     wordlike = letter anyseq
     anyseq = (alnum | underscores)*
