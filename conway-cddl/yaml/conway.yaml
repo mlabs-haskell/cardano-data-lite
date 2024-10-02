@@ -259,9 +259,6 @@ Ed25519KeyHashes:
   type: set
   item: Ed25519KeyHash
 
-# voting_procedures = { + voter => { + gov_action_id => voting_procedure } }
-# TODO
-
 # voting_procedure =
 #   [ vote
 #   , anchor / null
@@ -1790,3 +1787,33 @@ PlutusMap:
 PlutusMapValues:
   type: array
   item: PlutusData
+
+PlutusWitnesses:
+  type: array
+  item: PlutusWitness
+
+TreasuryWithdrawals:
+  type: map
+  key: RewardAddress
+  value: BigNum
+  keys_method_type: RewardAddresses
+
+MIRToStakeCredentials:
+  type: map
+  key: Credential
+  value: Credential
+  keys_method_type: Credentials
+
+Redeemer:
+  type: record
+  fields:
+    - name: tag
+      type: RedeemerTag
+    - name: index
+      type: BigNum
+    - name: data
+      type: PlutusData
+    - name: ex_units
+      type: ExUnits
+    - name: invalid_transactions
+      type: arrayToUint32Array

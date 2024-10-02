@@ -1,39 +1,43 @@
 # Missing types
 
-- [X] Languages: Missing `static list(): Languages` - should we worry?
-- [X] Pointer : There are basicaly duplicated methods for `number` and `BigNum`. Should we keep only the `BigNum`s?
-- [X] PlutusMapValues: verify if `type: array` with `item: PlutusData` is enough/okay
-- [X] Update: Verify - `Update` looks like `UnitInterval`. I'm not sure what `tagged` does in `UnitInterval`. Do we need it on `Update` as well?
-- [X] Voters: seems to make sense to be of type `array`, however in CSL we have `get(index: number): Voter | undefined`, while for type `array` we only return `Voter`. Should we worry about this difference?
-- [X] GovernanceActionIds: same note as above.
-- [X] PlutusMap
-- [X] ProposedProtocolParameterUpdates
+`[X]` means implemented, but needs revision. Some contains missing methods - those have comments. Rama tests might help to check their behavior.
 
-- [ ] TreasuryWithdrawals: has `insert`, `keys` and `lens`. `insert` here returns `void`, while in other functions it returns `a | undefined`. Clarify this difference and how it relates to serialization
-- [ ] VotingProcedures: same note as `TreasuryWithdrawals`, plus has additional methods.
+- [X] Languages: Missing `static list(): Languages`
+- [X] Pointer: In CSL there are basicaly duplicated methods for `number` and `BigNum`. I've added only the `BigNum` one.
+- [X] PlutusMap
+- [X] PlutusMapValues: Implemented as `type: array` with `item: PlutusData`.
+- [X] Update: We have `get_epoch` instead of `epoch`, `get_proposed_protocol_parameter_updates` instead of `proposed_protocol_parameter_updates`
+- [X] Voters
+- [X] GovernanceActionIds
+- [X] ProposedProtocolParameterUpdates
+- [X] TreasuryWithdrawals: Map of `RewardAddress` to `BigNum`. Relies on `RewardAddress` (crypto type)
+- [X] VotingProcedures: It is in a sense similar fo `MultiAsset`. I've added `insert_voter_and_gov_action` and `get_by_voter_and_gov_action`, which on CSL are simply `insert` and `get`
+- [X] DRepRegistration: Missing `has_script_credentials` and `new` (without setting `anchor`, but this might not be critical.)
+- [X] DRepDeregistration: Missing `has_script_credentials` and `new` (without setting `anchor`, but this might not be critical.)
+- [X] DRepUpdate: Missing `has_script_credentials` and `new` (without setting `anchor`, but this might not be critical.)
+- [X] DRepVotingThresholds
+- [X] MIRToStakeCredentials
+- [X] MintsAssets: map<AssetName, Int>. missing `new_from_entry(key: AssetName, value: Int): MintAssets;`
+- [X] PlutusWitnesses: array of PlutusWitness
+
+- [ ] VRFCert: similar to `AuxiliaryDataHash` (custom)
 - [ ] ConstrPlutusData
-- [ ] CostModel
-- [ ] Costmdls
-- [ ] DRepDeregistration
-- [ ] DRepRegistration
-- [ ] DatumSource
-- [ ] MIRToStakeCredentials
-- [ ] Mint
-- [ ] MintAssets
-- [ ] MintWitness
-- [ ] MintsAssets
-- [ ] MoveInstantaneousRewardsCert
-- [ ] NativeScriptSource
-- [ ] Nonce
-- [ ] OutputDatum
-- [ ] PlutusData
+- [ ] CostModel: custom. See Farseen's notes.txt
+- [ ] Costmdls: custom? Looks like map<Language, CostModel> with additional method `retain_language_versions(languages: Languages): Costmdls`
+- [ ] Mint: kind of multimap with methods `as_positive_multiasset` and `as_negative_multiasset`. Custom. Similar to `Value`?
+- [ ] MintWitness: custom. Need help.
+- [ ] NativeScriptSource: custom?. has method `new_ref_input`.
+- [ ] DatumSource: custom?. has method `new_ref_input`.
+- [ ] OutputDatum: custom data - in a sense similar to `int.yaml`. newtype.
+- [ ] PlutusData: custom data - not sure how to approach this one. Need help.
 - [ ] PlutusScript
 - [ ] PlutusScriptSource
-- [ ] PlutusWitness
-- [ ] PlutusWitnesses
-- [ ] Redeemer
-- [ ] Redeemers
-- [ ] DRepVotingThresholds
-- [ ] MoveInstantaneousReward
-- [ ] DRepUpdate
-- [ ] VRFCert
+- [ ] PlutusWitness: `record` + methods `new_with_ref`, `new_without_datum` and `new_with_ref_without_datum`
+- [ ] Redeemer: Looks like an standard `record`, but there's a note in the CDDL:
+	; Flat Array support is included for backwards compatibility and will be removed in the next era.
+	; It is recommended for tools to adopt using a Map instead of Array going forward.
+	Due this is a `custom` type required?
+- [ ] Redeemers: array of `Redeemer` + additional method `total_ex_units(): ExUnits`
+- [ ] MoveInstantaneousReward: looks like `Relay` (tagged_record)
+- [ ] MoveInstantaneousRewardsCert: Has `move_instantaneous_reward(): MoveInstantaneousReward` that differs
+- [ ] Nonce

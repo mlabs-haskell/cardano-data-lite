@@ -32,7 +32,7 @@ Value:
 
     serialize(writer: CBORWriter): void {
       if(
-        this._multiasset == null || 
+        this._multiasset == null ||
         this._multiasset.len() == 0
       ) {
         this._coin.serialize(writer);
@@ -61,7 +61,7 @@ Value:
       if(this._multiasset != null) {
         multiasset = this._multiasset.clone();
         if(rhs._multiasset != null) {
-          multiasset._inplace_clamped_sub(rhs._multiasset);   
+          multiasset._inplace_clamped_sub(rhs._multiasset);
         }
       }
       return new Value(coin, multiasset);
@@ -73,7 +73,7 @@ Value:
       if(this._multiasset != null) {
         multiasset = this._multiasset.clone();
         if(rhs._multiasset != null) {
-          multiasset._inplace_clamped_sub(rhs._multiasset);   
+          multiasset._inplace_clamped_sub(rhs._multiasset);
         }
       }
       return new Value(coin, multiasset);
@@ -181,7 +181,7 @@ MultiAsset:
         if(assets_cmp == null) return undefined;
         cmps[1 + assets_cmp] = true;
       }
-      
+
       let has_less = cmps[0];
       let _has_equal = cmps[1];
       let has_greater = cmps[2];
@@ -243,7 +243,7 @@ Assets:
          if(this_amount == null) this_amount = zero;
          cmps[1 + this_amount.compare(rhs_amount)];
       }
-      
+
       let has_less = cmps[0];
       let has_equal = cmps[1];
       let has_greater = cmps[2];
@@ -257,3 +257,9 @@ Assets:
 AssetNames:
   type: array
   item: AssetName
+
+MintAssets:
+  type: map
+  key: AssetName
+  value: Int
+  keys_method_type: AssetNames
