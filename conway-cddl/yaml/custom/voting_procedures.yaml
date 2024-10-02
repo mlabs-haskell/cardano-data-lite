@@ -1,0 +1,43 @@
+VotingProcedures:
+  type: map
+  key: Voter
+  value: GovernanceActions
+  keys_method_type: Voters
+  extra_methods: |
+    insert_voter_and_gov_action(
+      voter: Voter,
+      governance_action_id: GovernanceActionId,
+      voting_procedure: VotingProcedure
+    ): void {
+      let gov_actions = this.get(voter);
+      if(gov_actions == null) {
+        gov_actions = GovernanceActions.new();
+        this.insert(voter, gov_actions);
+      }
+      gov_actions.insert(governance_action_id, voting_procedure);
+    }
+
+    get_by_voter_and_gov_action(
+      voter: Voter,
+      governance_action_id: GovernanceActionId
+    ): VotingProcedure | undefined {
+      let gov_actions = this.get(voter);
+      if(gov_actions == null) return undefined;
+      return gov_actions.get(governance_action_id);
+    }
+
+    get_voters(): Voters {
+      return this.keys();
+    }
+
+    get_governance_action_ids_by_voter(voter: Voter): GovernanceActionIds {
+      let gov_actions = this.get(voter);
+      if(gov_actions == null) return GovernanceActionIds.new();
+      return gov_actions.keys();
+    }
+
+GovernanceActions:
+  type: map
+  key: GovernanceActionId
+  value: VotingProcedure
+  keys_method_type: GovernanceActionIds
