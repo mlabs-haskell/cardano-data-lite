@@ -16,7 +16,7 @@ const skipUndefinedClasses = false;
 // The test parameters for constructing the table
 type TestParameters = { n: number, comparedToMethod: MethodInfo, class: string };
 
-const cslStrippedTxt = fs.readFileSync("csl-types/csl-stripped.d.ts", { "encoding": "utf8" });
+const cslStrippedTxt = fs.readFileSync("csl-types/csl-stripped-classes-only.d.ts", { "encoding": "utf8" });
 const cdlTxt = fs.readFileSync("csl-types/cardano-data-lite.d.ts", { "encoding": "utf8" });
 
 // Arrays of parameters for the tests
