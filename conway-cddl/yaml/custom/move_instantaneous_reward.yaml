@@ -1,0 +1,60 @@
+MIRPot:
+  type: enum
+  values:
+    - name: Reserves
+      value: 0
+    - name: Treasury
+      value: 1
+
+MIR:
+  type: enum
+  values:
+    - name: ToOtherPot
+      value: 0
+    - name: ToStakeCredentials
+      value: 1
+
+MIREnum:
+  type: tagged_record
+  variants:
+    - tag: 0
+      name: to_other_pot
+      value: BigNum
+    - tag: 1
+      name: to_stake_creds
+      value: MIRToStakeCredentials
+
+MoveInstantaneousReward:
+  type: record
+  fields:
+    - name: pot
+      type: MIRPot
+    - name: variant
+      type: MIREnum
+  extra_methods: |
+    static new_to_other_pot(pot: MIRPot, amount: BigNum): MoveInstantaneousReward {
+      return MoveInstantaneousReward.new(pot, MIREnum.new_to_other_pot(amount));
+    }
+
+    static new_to_stake_creds(pot: MIRPot, amounts: MIRToStakeCredentials): MoveInstantaneousReward {
+      return MoveInstantaneousReward.new(pot, MIREnum.new_to_stake_creds(amounts));
+    }
+
+    pot(): MIRPot {
+      return this.get_pot();
+    }
+
+    kind(): MIRKind {
+      if (this._variant.as_to_other_pot() === undefined) {
+        return MIRKind.ToStakeCredentials;
+      }
+      return MIRKind.ToOtherPot;
+    }
+
+    as_to_other_pot(): BigNum | undefined {
+      return this._variant.as_to_other_pot();
+    }
+
+    as_to_stake_creds(): MIRToStakeCredentials | undefined {
+      return this._variant.as_to_stake_creds();
+    }
