@@ -8,10 +8,6 @@ import { describe, test } from "@jest/globals";
 //// TEST CONFIG ////
 // Whether to print all the extracted class infos
 const traceClassInfos = false;
-// Whether to skip undefined methods
-const skipUndefinedMethods = false;
-// Whether to skip undefined classes
-const skipUndefinedClasses = false;
 
 // The test parameters for constructing the table
 type TestParameters = { n: number, comparedToMethod: MethodInfo, class: string };
@@ -113,10 +109,10 @@ semantics.addOperation<SomeType>("type()", {
 
 console.log("Traversing parse tree of CSL type definitions...");
 const cslClasses: Array<ClassInfo> = semantics(cslMatch).classes();
-const cslClassesMap: Map<string, MethodInfo[]> = new Map(cslClasses.map((cls) => [cls.name, cls.methods]))
+let cslClassesMap: Map<string, MethodInfo[]> = new Map(cslClasses.map((cls) => [cls.name, cls.methods]))
 console.log("Traversing parse tree of CDL type definitions...");
 const cdlClasses: Array<ClassInfo> = semantics(cdlMatch).classes();
-const cdlClassesMap: Map<string, MethodInfo[]> = new Map(cdlClasses.map((cls) => [cls.name, cls.methods]))
+let cdlClassesMap: Map<string, MethodInfo[]> = new Map(cdlClasses.map((cls) => [cls.name, cls.methods]))
 
 // We trace all the classes as parsed
 if (traceClassInfos) {
@@ -124,6 +120,28 @@ if (traceClassInfos) {
     console.log(`[TRACE] ${name}`)
     for (const cls of clss) {
       prettyClassInfo(cls);
+    }
+  }
+}
+// We filter out missing classes/methods
+let missingClasses = [];
+for (const cls of cslClassesMap.keys()) {
+  if (!cdlClassesMap.has(cls)) {
+    missingClasses.push(cls);
+    cslClassesMap.delete(cls);
+  }
+}
+
+let missingMethods = [];
+for (const [cls, methods] of cslClassesMap) {
+  for (const method of methods) {
+    const cdlMethods = cdlClassesMap.get(cls);
+    if (!cdlMethods) {
+      throw `Unexpected missing class ${cls} in cdlClassesMap`;
+    } else {
+      if (!cdlMethods.find((cdlMethod) => cdlMethod.name == method.name)) {
+        missingMethods.push(`${cls}.${method.name}`);
+      }
     }
   }
 }
@@ -136,7 +154,6 @@ for (const cls of cslClasses) {
     n += 1;
   }
 }
-console.log("compareToCslTests.length: ", compareToCslTests.length)
 
 n = 0;
 for (const cls of cdlClasses) {
@@ -145,6 +162,11 @@ for (const cls of cdlClasses) {
     n += 1;
   }
 }
+
+console.log("Missing classes:\n\t", missingClasses.join("\n\t"))
+console.log("Missing methods:\n\t", missingMethods.join("\n\t"))
+
+console.log("compareToCslTests.length: ", compareToCslTests.length)
 console.log("compareToCdlTests.length: ", compareToCdlTests.length)
 
 // Used for debugging 
@@ -158,6 +180,14 @@ test.skip(`Test N. ${testN}`, () => {
 });
 
 // Tests
+describe("API coverage tests", () => {
+  test("There should be no missing classes", () => {
+    expect(missingClasses).toHaveLength(0);
+  })
+  test("There should be no missing methods", () => {
+    expect(missingMethods).toHaveLength(0);
+  })
+})
 describe("Compare each CSL class/method to its CDL counterpart", () => {
   test.each(compareToCslTests)("($n) Comparing CDL's $class . $comparedToMethod.name to CSL's", (params) => {
     compareToClass(cdlClassesMap, params.class, params.comparedToMethod);
@@ -184,10 +214,6 @@ function prettyClassInfo(cls: ClassInfo): void {
 
 function compareToClass(clss: Map<string, MethodInfo[]>, cls: string, comparedToMethod: MethodInfo) {
   const methods = clss.get(cls);
-  if (!skipUndefinedClasses) {
-    // The compared class should exist
-    expect(methods).toBeDefined();
-  }
   if (methods) {
     const method = methods.find((info) => info.name == comparedToMethod.name)
     compareToMethod(method, comparedToMethod);
@@ -195,10 +221,6 @@ function compareToClass(clss: Map<string, MethodInfo[]>, cls: string, comparedTo
 }
 
 function compareToMethod(method1: MethodInfo | undefined, method2: MethodInfo) {
-  if (!skipUndefinedMethods) {
-    // The compared method should be defined
-    expect(method1).toBeDefined();
-  }
   if (method1) {
     // Method names should match
     expect(method1.name).toEqual(method2.name);
