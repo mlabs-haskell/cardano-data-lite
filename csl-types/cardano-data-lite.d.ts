@@ -181,7 +181,6 @@ export declare class Bip32PrivateKey {
     to_hex(): string;
     static deserialize(reader: CBORReader): Bip32PrivateKey;
     serialize(writer: CBORWriter): void;
-    static _BECH32_HRP: string;
     static from_bech32(bech_str: string): Bip32PrivateKey;
     to_bech32(): void;
 }
@@ -517,6 +516,22 @@ export declare class DNSRecordSRV {
     to_hex(): string;
     clone(): DNSRecordSRV;
 }
+export declare class GeneralTransactionMetadata {
+    private items;
+    constructor(items: [BigNum, TransactionMetadatum][]);
+    static new(): GeneralTransactionMetadata;
+    len(): number;
+    insert(key: BigNum, value: TransactionMetadatum): TransactionMetadatum | undefined;
+    get(key: BigNum): TransactionMetadatum | undefined;
+    _remove_many(keys: BigNum[]): void;
+    keys(): TransactionMetadatumLabels;
+    static deserialize(reader: CBORReader): GeneralTransactionMetadata;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array): GeneralTransactionMetadata;
+    static from_hex(hex_str: string): GeneralTransactionMetadata;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
     clone(): GeneralTransactionMetadata;
 }
 export declare class GenesisDelegateHash {
@@ -1297,18 +1312,11 @@ export declare class PoolVotingThresholds {
 export declare class PrivateKey {
     private inner;
     private options?;
-    constructor(inner: Uint8Array, options?: {
-        isExtended: boolean;
-    });
     static new(inner: Uint8Array): PrivateKey;
     as_bytes(): Uint8Array;
     to_hex(): string;
     static deserialize(reader: CBORReader): PrivateKey;
     serialize(writer: CBORWriter): void;
-    static _KEY_LEN: number;
-    static _EXT_KEY_LEN: number;
-    static _BECH32_HRP: string;
-    static _EXT_BECH32_HRP: string;
     free(): void;
     static from_normal_bytes(bytes: Uint8Array): PrivateKey;
     static from_extended_bytes(bytes: Uint8Array): PrivateKey;
@@ -1471,7 +1479,6 @@ export declare class PublicKey {
     clone(): PublicKey;
     static deserialize(reader: CBORReader): PublicKey;
     serialize(writer: CBORWriter): void;
-    static _BECH32_HRP: string;
     hash(): Ed25519KeyHash;
     verify(data: Uint8Array, signature: Ed25519Signature): boolean;
     static from_bech32(bech_str: string): PublicKey;
