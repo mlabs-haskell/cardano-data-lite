@@ -77,11 +77,12 @@ async function main() {
     import {bech32} from "bech32";
     import * as cdlCrypto from "../bip32-ed25519";
 
-    function $$UN(...args: any): any {}
-    const $$CANT_READ = $$UN;
-    const $$CANT_WRITE = $$UN;
-    const $$CANT_EQ = $$UN;
-
+    function $$UN(id: string, ...args: any): any {
+      throw ("Undefined function: " + id);
+    }
+    const $$CANT_READ = (...args: any) => $$UN("$$CANT_READ", ...args);
+    const $$CANT_WRITE = (...args: any) => $$UN("$$CANT_WRITE", ...args);
+    const $$CANT_EQ = (...args: any) => $$UN("$$CANT_EQ", ...args);
     `;
     let out = header + codegen.generate();
     fs.writeFileSync(outUnformattedFile, out);
