@@ -706,13 +706,13 @@ Certificate:
       value: CommitteeColdResign
     - name: drep_registration
       tag: 16
-      value: DrepRegistration
+      value: DRepRegistration
     - name: drep_deregistration
       tag: 17
-      value: DrepDeregistration
+      value: DRepDeregistration
     - name: drep_update
       tag: 18
-      value: DrepUpdate
+      value: DRepUpdate
 
 StakeRegistration:
   type: record_fragment
@@ -831,7 +831,7 @@ CommitteeColdResign:
       type: Anchor
       nullable: true
 
-DrepRegistration:
+DRepRegistration:
   type: record_fragment
   fields:
     - name: voting_credential
@@ -842,7 +842,7 @@ DrepRegistration:
       type: Anchor
       nullable: true
 
-DrepDeregistration:
+DRepDeregistration:
   type: record_fragment
   fields:
     - name: drep_credential
@@ -850,7 +850,7 @@ DrepDeregistration:
     - name: coin
       type: BigNum
 
-DrepUpdate:
+DRepUpdate:
   type: record_fragment
   fields:
     - name: drep_credential
@@ -1185,7 +1185,7 @@ ProtocolParamUpdate:
       optional: true
     - id: 26
       name: drep_voting_thresholds
-      type: DrepVotingThresholds
+      type: DRepVotingThresholds
       optional: true
     - id: 27
       name: min_committee_size
@@ -1249,7 +1249,7 @@ PoolVotingThresholds:
 #   , unit_interval ; PP governance group
 #   , unit_interval ; treasury withdrawal
 #   ]
-DrepVotingThresholds:
+DRepVotingThresholds:
   type: record
   fields:
     - name: motion_no_confidence
