@@ -4,6 +4,7 @@ import { GrowableBuffer } from "../cbor/growable-buffer";
 import { hexToBytes, bytesToHex } from "../hex";
 import { arrayEq } from "../eq";
 import { bech32 } from "bech32";
+import * as cdlCrypto from "../bip32-ed25519";
 
 function $$UN(...args: any): any {}
 const $$CANT_READ = $$UN;
@@ -847,6 +848,62 @@ export class BigNum {
   }
 }
 
+export class Bip32PrivateKey {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 96) throw new Error("Expected length to be 96");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): Bip32PrivateKey {
+    return new Bip32PrivateKey(inner);
+  }
+
+  static from_bytes(data: Uint8Array): Bip32PrivateKey {
+    return new Bip32PrivateKey(data);
+  }
+
+  static from_hex(hex_str: string): Bip32PrivateKey {
+    return Bip32PrivateKey.from_bytes(hexToBytes(hex_str));
+  }
+
+  as_bytes(): Uint8Array {
+    return this.inner;
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.as_bytes());
+  }
+
+  static deserialize(reader: CBORReader): Bip32PrivateKey {
+    return new Bip32PrivateKey(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  static _BECH32_HRP = "xprv";
+
+  static from_bech32(bech_str: string): Bip32PrivateKey {
+    let decoded = bech32.decode(bech_str);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
+    if (decoded.prefix == Bip32PrivateKey._BECH32_HRP) {
+      return new Bip32PrivateKey(bytes);
+    } else {
+      throw new Error("Invalid prefix for Bip32PrivateKey: " + decoded.prefix);
+    }
+  }
+
+  to_bech32() {
+    let prefix = Bip32PrivateKey._BECH32_HRP;
+    bech32.encode(prefix, this.inner);
+  }
+}
+
 export class Block {
   private _header: Header;
   private _transaction_bodies: TransactionBodies;
@@ -1055,13 +1112,13 @@ export class BlockHash {
 
 export class BootstrapWitness {
   private _vkey: unknown;
-  private _signature: unknown;
+  private _signature: Ed25519Signature;
   private _chain_code: Uint8Array;
   private _attributes: Uint8Array;
 
   constructor(
     vkey: unknown,
-    signature: unknown,
+    signature: Ed25519Signature,
     chain_code: Uint8Array,
     attributes: Uint8Array,
   ) {
@@ -1073,7 +1130,7 @@ export class BootstrapWitness {
 
   static new(
     vkey: unknown,
-    signature: unknown,
+    signature: Ed25519Signature,
     chain_code: Uint8Array,
     attributes: Uint8Array,
   ) {
@@ -1088,11 +1145,11 @@ export class BootstrapWitness {
     this._vkey = vkey;
   }
 
-  get_signature(): unknown {
+  get_signature(): Ed25519Signature {
     return this._signature;
   }
 
-  set_signature(signature: unknown): void {
+  set_signature(signature: Ed25519Signature): void {
     this._signature = signature;
   }
 
@@ -1123,7 +1180,7 @@ export class BootstrapWitness {
 
     let vkey = $$CANT_READ("Vkey");
 
-    let signature = $$CANT_READ("Ed25519Signature");
+    let signature = Ed25519Signature.deserialize(reader);
 
     let chain_code = reader.readBytes();
 
@@ -1136,7 +1193,7 @@ export class BootstrapWitness {
     writer.writeArrayTag(4);
 
     $$CANT_WRITE("Vkey");
-    $$CANT_WRITE("Ed25519Signature");
+    this._signature.serialize(writer);
     writer.writeBytes(this._chain_code);
     writer.writeBytes(this._attributes);
   }
@@ -3330,6 +3387,64 @@ export class Ed25519KeyHashes {
 
   clone(): Ed25519KeyHashes {
     return Ed25519KeyHashes.from_bytes(this.to_bytes());
+  }
+}
+
+export class Ed25519Signature {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 64) throw new Error("Expected length to be 64");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): Ed25519Signature {
+    return new Ed25519Signature(inner);
+  }
+
+  static from_bech32(bech_str: string): Ed25519Signature {
+    let decoded = bech32.decode(bech_str);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
+    return new Ed25519Signature(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Ed25519Signature {
+    return new Ed25519Signature(data);
+  }
+
+  static from_hex(hex_str: string): Ed25519Signature {
+    return Ed25519Signature.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    return this.inner;
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Ed25519Signature {
+    return Ed25519Signature.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): Ed25519Signature {
+    return new Ed25519Signature(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
   }
 }
 
@@ -5643,13 +5758,13 @@ export class OperationalCert {
   private _hot_vkey: KESVKey;
   private _sequence_number: number;
   private _kes_period: number;
-  private _sigma: unknown;
+  private _sigma: Ed25519Signature;
 
   constructor(
     hot_vkey: KESVKey,
     sequence_number: number,
     kes_period: number,
-    sigma: unknown,
+    sigma: Ed25519Signature,
   ) {
     this._hot_vkey = hot_vkey;
     this._sequence_number = sequence_number;
@@ -5661,7 +5776,7 @@ export class OperationalCert {
     hot_vkey: KESVKey,
     sequence_number: number,
     kes_period: number,
-    sigma: unknown,
+    sigma: Ed25519Signature,
   ) {
     return new OperationalCert(hot_vkey, sequence_number, kes_period, sigma);
   }
@@ -5690,11 +5805,11 @@ export class OperationalCert {
     this._kes_period = kes_period;
   }
 
-  get_sigma(): unknown {
+  get_sigma(): Ed25519Signature {
     return this._sigma;
   }
 
-  set_sigma(sigma: unknown): void {
+  set_sigma(sigma: Ed25519Signature): void {
     this._sigma = sigma;
   }
 
@@ -5713,7 +5828,7 @@ export class OperationalCert {
 
     let kes_period = Number(reader.readInt());
 
-    let sigma = $$CANT_READ("Ed25519Signature");
+    let sigma = Ed25519Signature.deserialize(reader);
 
     return new OperationalCert(hot_vkey, sequence_number, kes_period, sigma);
   }
@@ -5724,7 +5839,7 @@ export class OperationalCert {
     this._hot_vkey.serialize(writer);
     writer.writeInt(BigInt(this._sequence_number));
     writer.writeInt(BigInt(this._kes_period));
-    $$CANT_WRITE("Ed25519Signature");
+    this._sigma.serialize(writer);
   }
 
   // no-op
@@ -6530,6 +6645,124 @@ export class PoolVotingThresholds {
 
   clone(): PoolVotingThresholds {
     return PoolVotingThresholds.from_bytes(this.to_bytes());
+  }
+}
+
+export class PrivateKey {
+  private inner: Uint8Array;
+  private options?: { isExtended: boolean };
+
+  constructor(inner: Uint8Array, options?: { isExtended: boolean }) {
+    this.inner = inner;
+    this.options = options;
+  }
+
+  static new(inner: Uint8Array): PrivateKey {
+    return new PrivateKey(inner);
+  }
+
+  as_bytes(): Uint8Array {
+    return this.inner;
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.as_bytes());
+  }
+
+  static deserialize(reader: CBORReader): PrivateKey {
+    return new PrivateKey(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  static _KEY_LEN = 32;
+  static _EXT_KEY_LEN = 64;
+  static _BECH32_HRP = "ed25519_sk";
+  static _EXT_BECH32_HRP = "ed25519e_sk";
+
+  free() {
+    for (let i = 0; i < this.inner.length; i++) {
+      this.inner[i] = 0x00;
+    }
+  }
+
+  static from_normal_bytes(bytes: Uint8Array): PrivateKey {
+    if (bytes.length != PrivateKey._KEY_LEN)
+      throw new Error(`Must be ${PrivateKey._KEY_LEN} bytes long`);
+    return new PrivateKey(bytes, { isExtended: false });
+  }
+
+  static from_extended_bytes(bytes: Uint8Array): PrivateKey {
+    if (bytes.length != PrivateKey._EXT_KEY_LEN)
+      throw new Error(`Must be ${PrivateKey._EXT_KEY_LEN} bytes long`);
+    return new PrivateKey(bytes, { isExtended: true });
+  }
+
+  to_bech32() {
+    let prefix = this.options?.isExtended
+      ? PrivateKey._EXT_BECH32_HRP
+      : PrivateKey._BECH32_HRP;
+    bech32.encode(prefix, this.inner);
+  }
+
+  static from_bech32(bech_str: string): PrivateKey {
+    let decoded = bech32.decode(bech_str);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
+    if (decoded.prefix == PrivateKey._BECH32_HRP) {
+      return PrivateKey.from_normal_bytes(bytes);
+    } else if (decoded.prefix == PrivateKey._EXT_BECH32_HRP) {
+      return PrivateKey.from_extended_bytes(bytes);
+    } else {
+      throw new Error("Invalid prefix for PrivateKey: " + decoded.prefix);
+    }
+  }
+
+  static generate_ed25519(): PrivateKey {
+    let bytes = cdlCrypto.getRandomBytes(PrivateKey._KEY_LEN);
+    return PrivateKey.from_normal_bytes(bytes);
+  }
+
+  static generate_ed25519extended(): PrivateKey {
+    let bytes = cdlCrypto.getRandomBytes(PrivateKey._EXT_KEY_LEN);
+    return PrivateKey.from_extended_bytes(bytes);
+  }
+
+  sign(message: Uint8Array): Ed25519Signature {
+    let sigBytes: Uint8Array;
+    if (this.options?.isExtended) {
+      sigBytes = cdlCrypto.signExtended(message, this.inner);
+    } else {
+      sigBytes = cdlCrypto.sign(message, this.inner);
+    }
+    return new Ed25519Signature(sigBytes);
+  }
+
+  to_public(): PublicKey {
+    let pubkeyBytes: Uint8Array;
+    if (this.options?.isExtended) {
+      pubkeyBytes = cdlCrypto.secretToPubkey(this.inner);
+    } else {
+      pubkeyBytes = cdlCrypto.extendedToPubkey(this.inner);
+    }
+    return new PublicKey(pubkeyBytes);
+  }
+
+  static _from_bytes(bytes: Uint8Array): PrivateKey {
+    if (bytes.length == PrivateKey._KEY_LEN) {
+      return PrivateKey.from_normal_bytes(bytes);
+    } else if (bytes.length == PrivateKey._EXT_KEY_LEN) {
+      return PrivateKey.from_extended_bytes(bytes);
+    } else {
+      throw new Error("Invalid bytes length for PrivateKey: " + bytes.length);
+    }
+  }
+
+  from_hex(hex_str: string): PrivateKey {
+    return PrivateKey._from_bytes(hexToBytes(hex_str));
   }
 }
 
@@ -7429,6 +7662,77 @@ export class ProtocolVersion {
 
   clone(): ProtocolVersion {
     return ProtocolVersion.from_bytes(this.to_bytes());
+  }
+}
+
+export class PublicKey {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 32) throw new Error("Expected length to be 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): PublicKey {
+    return new PublicKey(inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PublicKey {
+    return new PublicKey(data);
+  }
+
+  static from_hex(hex_str: string): PublicKey {
+    return PublicKey.from_bytes(hexToBytes(hex_str));
+  }
+
+  as_bytes(): Uint8Array {
+    return this.inner;
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.as_bytes());
+  }
+
+  clone(): PublicKey {
+    return PublicKey.from_bytes(this.as_bytes());
+  }
+
+  static deserialize(reader: CBORReader): PublicKey {
+    return new PublicKey(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  static _BECH32_HRP = "ed25519_pk";
+
+  hash(): Ed25519KeyHash {
+    return new Ed25519KeyHash(cdlCrypto.blake2b224(this.inner));
+  }
+
+  verify(data: Uint8Array, signature: Ed25519Signature): boolean {
+    return cdlCrypto.verify(data, signature.to_bytes(), this.inner);
+  }
+
+  static from_bech32(bech_str: string): PublicKey {
+    let decoded = bech32.decode(bech_str);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
+    if (decoded.prefix == PublicKey._BECH32_HRP) {
+      return new PublicKey(bytes);
+    } else {
+      throw new Error("Invalid prefix for PublicKey: " + decoded.prefix);
+    }
+  }
+
+  to_bech32() {
+    let prefix = PublicKey._BECH32_HRP;
+    bech32.encode(prefix, this.inner);
   }
 }
 
@@ -11054,14 +11358,14 @@ export class Value {
 
 export class Vkeywitness {
   private _vkey: unknown;
-  private _signature: unknown;
+  private _signature: Ed25519Signature;
 
-  constructor(vkey: unknown, signature: unknown) {
+  constructor(vkey: unknown, signature: Ed25519Signature) {
     this._vkey = vkey;
     this._signature = signature;
   }
 
-  static new(vkey: unknown, signature: unknown) {
+  static new(vkey: unknown, signature: Ed25519Signature) {
     return new Vkeywitness(vkey, signature);
   }
 
@@ -11073,11 +11377,11 @@ export class Vkeywitness {
     this._vkey = vkey;
   }
 
-  get_signature(): unknown {
+  get_signature(): Ed25519Signature {
     return this._signature;
   }
 
-  set_signature(signature: unknown): void {
+  set_signature(signature: Ed25519Signature): void {
     this._signature = signature;
   }
 
@@ -11092,7 +11396,7 @@ export class Vkeywitness {
 
     let vkey = $$CANT_READ("Vkey");
 
-    let signature = $$CANT_READ("Ed25519Signature");
+    let signature = Ed25519Signature.deserialize(reader);
 
     return new Vkeywitness(vkey, signature);
   }
@@ -11101,7 +11405,7 @@ export class Vkeywitness {
     writer.writeArrayTag(2);
 
     $$CANT_WRITE("Vkey");
-    $$CANT_WRITE("Ed25519Signature");
+    this._signature.serialize(writer);
   }
 
   // no-op
