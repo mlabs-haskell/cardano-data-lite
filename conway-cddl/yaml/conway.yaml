@@ -1462,10 +1462,6 @@ Language:
     - name: plutus_v3
       value: 2
 
-Languages:
-  type: array
-  item: Language
-
 # potential_languages = 0 .. 255
 # potential_languages:
 #   type: uint
@@ -1752,18 +1748,6 @@ UnitInterval:
   tagged:
     tag: 30
 
-# TODO: clarify if indeed only `BigNum`s are enough
-Pointer:
-  type: record
-  fields:
-    - name: slot
-      type: BigNum
-    - name: tx_index
-      type: BigNum
-    - name: cert_index
-      type: BigNum
-
-
 Update:
   type: record
   fields:
@@ -1804,16 +1788,12 @@ MIRToStakeCredentials:
   value: Credential
   keys_method_type: Credentials
 
-Redeemer:
+
+VRFCert:
   type: record
   fields:
-    - name: tag
-      type: RedeemerTag
-    - name: index
-      type: BigNum
-    - name: data
-      type: PlutusData
-    - name: ex_units
-      type: ExUnits
-    - name: invalid_transactions
-      type: arrayToUint32Array
+    - name: output
+      type: bytes
+    - name: proof
+      type: bytes
+

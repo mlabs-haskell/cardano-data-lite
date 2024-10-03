@@ -1,0 +1,31 @@
+Redeemer:
+  type: record
+  fields:
+    - name: tag
+      type: RedeemerTag
+    - name: index
+      type: BigNum
+    - name: data
+      type: PlutusData
+    - name: ex_units
+      type: ExUnits
+    - name: invalid_transactions
+      type: arrayToUint32Array
+
+Redeemers:
+  type: array
+  item: Redeemer
+  extra_methods: |
+    total_ex_units(): ExUnits {
+      let tot_mem = BigNum.zero();
+      let tot_steps = BigNum.zero();
+
+      for (let i = 0; i < this.items.length; i++) {
+        const r = this.items[i];
+        const exUnits = r.get_ex_units();
+        tot_mem = tot_mem.checked_add(exUnits.get_mem());
+        tot_steps = tot_steps.checked_add(exUnits.get_steps());
+      }
+      return ExUnits.new(tot_mem, tot_steps);
+    }
+

@@ -1,0 +1,41 @@
+CostModel:
+  type: array
+  item: Int
+  methods:
+    add: null
+  extra_methods: |
+    set(operation: number, cost: Int): Int {
+      const len = this.items.length;
+      const idx = operation;
+
+      // Fill in-between indexes with zeroes if the operation index is greater than the current length
+      if (idx >= len) {
+        for (let i = 0; i < (idx - len + 1); i++) {
+          this.items.push(Int.new_i32(0));
+        }
+      }
+      const old = this.items[idx];
+      this.items[idx] = cost;
+
+      // Return the old value - behaviour of CSL's Rust code.
+      return old;
+    }
+
+CostMdls:
+  type: map
+  key: Language
+  value: CostModel
+  keys_method_type: Languages
+  extra_methods: |
+    retain_language_versions(languages: Languages): CostMdls {
+      const result = new CostMdls([]);
+
+      for (let i = 0; i < languages.len(); i++) {
+        const lang = languages.get(i);
+        const costModel = this.get(lang);
+        if (costModel !== undefined) {
+          result.insert(lang, costModel);
+        }
+      }
+      return result;
+    }
