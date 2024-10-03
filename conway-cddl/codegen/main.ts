@@ -75,6 +75,7 @@ async function main() {
     import {hexToBytes, bytesToHex} from "../hex";
     import {arrayEq} from "../eq";
     import {bech32} from "bech32";
+    import * as cdlCrypto from "../bip32-ed25519";
 
     function $$UN(...args: any): any {}
     const $$CANT_READ = $$UN;
