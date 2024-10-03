@@ -2261,6 +2261,264 @@ export class Constitution {
   }
 }
 
+export class ConstrPlutusData {
+  private _alternative: BigNum;
+  private _data: PlutusList;
+
+  constructor(alternative: BigNum, data: PlutusList) {
+    this._alternative = alternative;
+    this._data = data;
+  }
+
+  static new(alternative: BigNum, data: PlutusList) {
+    return new ConstrPlutusData(alternative, data);
+  }
+
+  get_alternative(): BigNum {
+    return this._alternative;
+  }
+
+  set_alternative(alternative: BigNum): void {
+    this._alternative = alternative;
+  }
+
+  get_data(): PlutusList {
+    return this._data;
+  }
+
+  set_data(data: PlutusList): void {
+    this._data = data;
+  }
+
+  static deserialize(reader: CBORReader): ConstrPlutusData {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let alternative = BigNum.deserialize(reader);
+
+    let data = PlutusList.deserialize(reader);
+
+    return new ConstrPlutusData(alternative, data);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
+
+    this._alternative.serialize(writer);
+    this._data.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ConstrPlutusData {
+    let reader = new CBORReader(data);
+    return ConstrPlutusData.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ConstrPlutusData {
+    return ConstrPlutusData.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): ConstrPlutusData {
+    return ConstrPlutusData.from_bytes(this.to_bytes());
+  }
+}
+
+export class CostMdls {
+  private items: [Language, CostModel][];
+
+  constructor(items: [Language, CostModel][]) {
+    this.items = items;
+  }
+
+  static new(): CostMdls {
+    return new CostMdls([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(key: Language, value: CostModel): CostModel | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: Language): CostModel | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: Language[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+    );
+  }
+
+  keys(): Languages {
+    let keys = Languages.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader): CostMdls {
+    let ret = new CostMdls([]);
+    reader.readMap((reader) =>
+      ret.insert(Language.deserialize(reader), CostModel.deserialize(reader)),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this.items, (writer, x) => {
+      x[0].serialize(writer);
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): CostMdls {
+    let reader = new CBORReader(data);
+    return CostMdls.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): CostMdls {
+    return CostMdls.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): CostMdls {
+    return CostMdls.from_bytes(this.to_bytes());
+  }
+
+  retain_language_versions(languages: Languages): CostMdls {
+    const result = new CostMdls([]);
+
+    for (let i = 0; i < languages.len(); i++) {
+      const lang = languages.get(i);
+      const costModel = this.get(lang);
+      if (costModel !== undefined) {
+        result.insert(lang, costModel);
+      }
+    }
+    return result;
+  }
+}
+
+export class CostModel {
+  private items: Int[];
+
+  constructor(items: Int[]) {
+    this.items = items;
+  }
+
+  static new(): CostModel {
+    return new CostModel([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): Int {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: Int): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): CostModel {
+    return new CostModel(reader.readArray((reader) => Int.deserialize(reader)));
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): CostModel {
+    let reader = new CBORReader(data);
+    return CostModel.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): CostModel {
+    return CostModel.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): CostModel {
+    return CostModel.from_bytes(this.to_bytes());
+  }
+
+  set(operation: number, cost: Int): Int {
+    const len = this.items.length;
+    const idx = operation;
+
+    // Fill in-between indexes with zeroes if the operation index is greater than the current length
+    if (idx >= len) {
+      for (let i = 0; i < idx - len + 1; i++) {
+        this.items.push(Int.new_i32(0));
+      }
+    }
+    const old = this.items[idx];
+    this.items[idx] = cost;
+
+    // Return the old value - behaviour of CSL's Rust code.
+    return old;
+  }
+}
+
 export enum CredentialKind {
   Ed25519KeyHash = 0,
   ScriptHash = 1,
@@ -4220,6 +4478,163 @@ export class GovernanceActionId {
   }
 }
 
+export class GovernanceActionIds {
+  private items: GovernanceActionId[];
+
+  constructor(items: GovernanceActionId[]) {
+    this.items = items;
+  }
+
+  static new(): GovernanceActionIds {
+    return new GovernanceActionIds([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): GovernanceActionId {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: GovernanceActionId): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): GovernanceActionIds {
+    return new GovernanceActionIds(
+      reader.readArray((reader) => GovernanceActionId.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): GovernanceActionIds {
+    let reader = new CBORReader(data);
+    return GovernanceActionIds.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): GovernanceActionIds {
+    return GovernanceActionIds.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): GovernanceActionIds {
+    return GovernanceActionIds.from_bytes(this.to_bytes());
+  }
+}
+
+export class GovernanceActions {
+  private items: [GovernanceActionId, VotingProcedure][];
+
+  constructor(items: [GovernanceActionId, VotingProcedure][]) {
+    this.items = items;
+  }
+
+  static new(): GovernanceActions {
+    return new GovernanceActions([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(
+    key: GovernanceActionId,
+    value: VotingProcedure,
+  ): VotingProcedure | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: GovernanceActionId): VotingProcedure | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: GovernanceActionId[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+    );
+  }
+
+  keys(): GovernanceActionIds {
+    let keys = GovernanceActionIds.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader): GovernanceActions {
+    let ret = new GovernanceActions([]);
+    reader.readMap((reader) =>
+      ret.insert(
+        GovernanceActionId.deserialize(reader),
+        VotingProcedure.deserialize(reader),
+      ),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this.items, (writer, x) => {
+      x[0].serialize(writer);
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): GovernanceActions {
+    let reader = new CBORReader(data);
+    return GovernanceActions.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): GovernanceActions {
+    return GovernanceActions.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): GovernanceActions {
+    return GovernanceActions.from_bytes(this.to_bytes());
+  }
+}
+
 export class HardForkInitiationAction {
   private _gov_action_id: GovernanceActionId | undefined;
   private _protocol_version: ProtocolVersion;
@@ -4360,7 +4775,7 @@ export class HeaderBody {
   private _prev_hash: BlockHash | undefined;
   private _issuer_vkey: unknown;
   private _vrf_vkey: VRFVKey;
-  private _vrf_result: unknown;
+  private _vrf_result: VRFCert;
   private _block_body_size: number;
   private _block_body_hash: BlockHash;
   private _operational_cert: OperationalCert;
@@ -4372,7 +4787,7 @@ export class HeaderBody {
     prev_hash: BlockHash | undefined,
     issuer_vkey: unknown,
     vrf_vkey: VRFVKey,
-    vrf_result: unknown,
+    vrf_result: VRFCert,
     block_body_size: number,
     block_body_hash: BlockHash,
     operational_cert: OperationalCert,
@@ -4396,7 +4811,7 @@ export class HeaderBody {
     prev_hash: BlockHash | undefined,
     issuer_vkey: unknown,
     vrf_vkey: VRFVKey,
-    vrf_result: unknown,
+    vrf_result: VRFCert,
     block_body_size: number,
     block_body_hash: BlockHash,
     operational_cert: OperationalCert,
@@ -4456,11 +4871,11 @@ export class HeaderBody {
     this._vrf_vkey = vrf_vkey;
   }
 
-  get_vrf_result(): unknown {
+  get_vrf_result(): VRFCert {
     return this._vrf_result;
   }
 
-  set_vrf_result(vrf_result: unknown): void {
+  set_vrf_result(vrf_result: VRFCert): void {
     this._vrf_result = vrf_result;
   }
 
@@ -4516,7 +4931,7 @@ export class HeaderBody {
 
     let vrf_vkey = VRFVKey.deserialize(reader);
 
-    let vrf_result = $$CANT_READ("VRFCert");
+    let vrf_result = VRFCert.deserialize(reader);
 
     let block_body_size = Number(reader.readInt());
 
@@ -4552,7 +4967,7 @@ export class HeaderBody {
     }
     $$CANT_WRITE("Vkey");
     this._vrf_vkey.serialize(writer);
-    $$CANT_WRITE("VRFCert");
+    this._vrf_result.serialize(writer);
     writer.writeInt(BigInt(this._block_body_size));
     this._block_body_hash.serialize(writer);
     this._operational_cert.serialize(writer);
@@ -4929,6 +5344,168 @@ export class Language {
   }
 }
 
+export class Languages {
+  private items: Language[];
+
+  constructor(items: Language[]) {
+    this.items = items;
+  }
+
+  static new(): Languages {
+    return new Languages([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): Language {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: Language): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): Languages {
+    return new Languages(
+      reader.readArray((reader) => Language.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Languages {
+    let reader = new CBORReader(data);
+    return Languages.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Languages {
+    return Languages.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Languages {
+    return Languages.from_bytes(this.to_bytes());
+  }
+
+  static list(): Languages {
+    return new Languages([
+      Language.new_plutus_v1(),
+      Language.new_plutus_v2(),
+      Language.new_plutus_v3(),
+    ]);
+  }
+}
+
+export class MIRToStakeCredentials {
+  private items: [Credential, Credential][];
+
+  constructor(items: [Credential, Credential][]) {
+    this.items = items;
+  }
+
+  static new(): MIRToStakeCredentials {
+    return new MIRToStakeCredentials([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(key: Credential, value: Credential): Credential | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: Credential): Credential | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: Credential[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+    );
+  }
+
+  keys(): Credentials {
+    let keys = Credentials.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader): MIRToStakeCredentials {
+    let ret = new MIRToStakeCredentials([]);
+    reader.readMap((reader) =>
+      ret.insert(
+        Credential.deserialize(reader),
+        Credential.deserialize(reader),
+      ),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this.items, (writer, x) => {
+      x[0].serialize(writer);
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MIRToStakeCredentials {
+    let reader = new CBORReader(data);
+    return MIRToStakeCredentials.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MIRToStakeCredentials {
+    return MIRToStakeCredentials.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MIRToStakeCredentials {
+    return MIRToStakeCredentials.from_bytes(this.to_bytes());
+  }
+}
+
 export class MetadataList {
   private items: TransactionMetadatum[];
 
@@ -5119,6 +5696,234 @@ export class MetadataMap {
 
   has(key: TransactionMetadatum): boolean {
     return this._get(key) != null;
+  }
+}
+
+export class Mint {
+  private items: [ScriptHash, MintAssets][];
+
+  constructor(items: [ScriptHash, MintAssets][]) {
+    this.items = items;
+  }
+
+  static new(): Mint {
+    return new Mint([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(key: ScriptHash, value: MintAssets): MintAssets | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: ScriptHash): MintAssets | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: ScriptHash[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+    );
+  }
+
+  keys(): ScriptHashes {
+    let keys = ScriptHashes.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader): Mint {
+    let ret = new Mint([]);
+    reader.readMap((reader) =>
+      ret.insert(
+        ScriptHash.deserialize(reader),
+        MintAssets.deserialize(reader),
+      ),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this.items, (writer, x) => {
+      x[0].serialize(writer);
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Mint {
+    let reader = new CBORReader(data);
+    return Mint.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Mint {
+    return Mint.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Mint {
+    return Mint.from_bytes(this.to_bytes());
+  }
+
+  _as_multiasset(isPositive: boolean): MultiAsset {
+    const result = new MultiAsset([]);
+
+    // Iterating over items in Mint class
+    const mintItems = this.items;
+
+    for (const [scriptHash, mintAssets] of mintItems) {
+      const assets = new Assets([]);
+
+      const mintAssetEntries = mintAssets.keys();
+
+      for (let i = 0; i < mintAssetEntries.len(); i++) {
+        const assetName = mintAssetEntries.get(i);
+        const assetValue = mintAssets.get(assetName);
+
+        if (assetValue === undefined) {
+          throw new Error("assetValue is undefined");
+        }
+
+        if (assetValue > Int.new_i32(0) && isPositive) {
+          const amount = isPositive
+            ? assetValue.as_positive()
+            : assetValue.as_negative();
+          if (amount !== undefined) {
+            assets.insert(assetName, amount);
+          }
+        }
+      }
+
+      if (assets.len() > 0) {
+        result.insert(scriptHash, assets);
+      }
+    }
+
+    return result;
+  }
+
+  as_positive_multiasset(): MultiAsset {
+    return this._as_multiasset(true);
+  }
+
+  as_negative_multiasset(): MultiAsset {
+    return this._as_multiasset(false);
+  }
+}
+
+export class MintAssets {
+  private items: [AssetName, Int][];
+
+  constructor(items: [AssetName, Int][]) {
+    this.items = items;
+  }
+
+  static new(): MintAssets {
+    return new MintAssets([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(key: AssetName, value: Int): Int | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: AssetName): Int | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: AssetName[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+    );
+  }
+
+  keys(): AssetNames {
+    let keys = AssetNames.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader): MintAssets {
+    let ret = new MintAssets([]);
+    reader.readMap((reader) =>
+      ret.insert(AssetName.deserialize(reader), Int.deserialize(reader)),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this.items, (writer, x) => {
+      x[0].serialize(writer);
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MintAssets {
+    let reader = new CBORReader(data);
+    return MintAssets.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MintAssets {
+    return MintAssets.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MintAssets {
+    return MintAssets.from_bytes(this.to_bytes());
   }
 }
 
@@ -6031,6 +6836,156 @@ export class PlutusList {
   }
 }
 
+export class PlutusMap {
+  private items: [unknown, PlutusMapValues][];
+
+  constructor(items: [unknown, PlutusMapValues][]) {
+    this.items = items;
+  }
+
+  static new(): PlutusMap {
+    return new PlutusMap([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(key: unknown, value: PlutusMapValues): PlutusMapValues | undefined {
+    let entry = this.items.find((x) => $$CANT_EQ("PlutusData"));
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: unknown): PlutusMapValues | undefined {
+    let entry = this.items.find((x) => $$CANT_EQ("PlutusData"));
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: unknown[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !$$CANT_EQ("PlutusData")),
+    );
+  }
+
+  keys(): PlutusList {
+    let keys = PlutusList.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader): PlutusMap {
+    let ret = new PlutusMap([]);
+    reader.readMap((reader) =>
+      ret.insert(
+        $$CANT_READ("PlutusData"),
+        PlutusMapValues.deserialize(reader),
+      ),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this.items, (writer, x) => {
+      $$CANT_WRITE("PlutusData");
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PlutusMap {
+    let reader = new CBORReader(data);
+    return PlutusMap.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PlutusMap {
+    return PlutusMap.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): PlutusMap {
+    return PlutusMap.from_bytes(this.to_bytes());
+  }
+}
+
+export class PlutusMapValues {
+  private items: unknown[];
+
+  constructor(items: unknown[]) {
+    this.items = items;
+  }
+
+  static new(): PlutusMapValues {
+    return new PlutusMapValues([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): unknown {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: unknown): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): PlutusMapValues {
+    return new PlutusMapValues(
+      reader.readArray((reader) => $$CANT_READ("PlutusData")),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => $$CANT_WRITE("PlutusData"));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PlutusMapValues {
+    let reader = new CBORReader(data);
+    return PlutusMapValues.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PlutusMapValues {
+    return PlutusMapValues.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): PlutusMapValues {
+    return PlutusMapValues.from_bytes(this.to_bytes());
+  }
+}
+
 export class PlutusScripts {
   private items: Uint8Array[];
 
@@ -6087,6 +7042,177 @@ export class PlutusScripts {
 
   clone(): PlutusScripts {
     return PlutusScripts.from_bytes(this.to_bytes());
+  }
+}
+
+export class PlutusWitnesses {
+  private items: unknown[];
+
+  constructor(items: unknown[]) {
+    this.items = items;
+  }
+
+  static new(): PlutusWitnesses {
+    return new PlutusWitnesses([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): unknown {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: unknown): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): PlutusWitnesses {
+    return new PlutusWitnesses(
+      reader.readArray((reader) => $$CANT_READ("PlutusWitness")),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => $$CANT_WRITE("PlutusWitness"));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PlutusWitnesses {
+    let reader = new CBORReader(data);
+    return PlutusWitnesses.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PlutusWitnesses {
+    return PlutusWitnesses.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): PlutusWitnesses {
+    return PlutusWitnesses.from_bytes(this.to_bytes());
+  }
+}
+
+export class Pointer {
+  private _slot_bignum: BigNum;
+  private _tx_index_bignum: BigNum;
+  private _cert_index_bignum: BigNum;
+
+  constructor(
+    slot_bignum: BigNum,
+    tx_index_bignum: BigNum,
+    cert_index_bignum: BigNum,
+  ) {
+    this._slot_bignum = slot_bignum;
+    this._tx_index_bignum = tx_index_bignum;
+    this._cert_index_bignum = cert_index_bignum;
+  }
+
+  static new(
+    slot_bignum: BigNum,
+    tx_index_bignum: BigNum,
+    cert_index_bignum: BigNum,
+  ) {
+    return new Pointer(slot_bignum, tx_index_bignum, cert_index_bignum);
+  }
+
+  get_slot_bignum(): BigNum {
+    return this._slot_bignum;
+  }
+
+  set_slot_bignum(slot_bignum: BigNum): void {
+    this._slot_bignum = slot_bignum;
+  }
+
+  get_tx_index_bignum(): BigNum {
+    return this._tx_index_bignum;
+  }
+
+  set_tx_index_bignum(tx_index_bignum: BigNum): void {
+    this._tx_index_bignum = tx_index_bignum;
+  }
+
+  get_cert_index_bignum(): BigNum {
+    return this._cert_index_bignum;
+  }
+
+  set_cert_index_bignum(cert_index_bignum: BigNum): void {
+    this._cert_index_bignum = cert_index_bignum;
+  }
+
+  static deserialize(reader: CBORReader): Pointer {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 3) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 3. Received " + len,
+      );
+    }
+
+    let slot_bignum = BigNum.deserialize(reader);
+
+    let tx_index_bignum = BigNum.deserialize(reader);
+
+    let cert_index_bignum = BigNum.deserialize(reader);
+
+    return new Pointer(slot_bignum, tx_index_bignum, cert_index_bignum);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(3);
+
+    this._slot_bignum.serialize(writer);
+    this._tx_index_bignum.serialize(writer);
+    this._cert_index_bignum.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Pointer {
+    let reader = new CBORReader(data);
+    return Pointer.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Pointer {
+    return Pointer.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Pointer {
+    return Pointer.from_bytes(this.to_bytes());
+  }
+
+  slot(): number {
+    return Number(this._slot_bignum);
+  }
+  tx_index(): number {
+    return Number(this._tx_index_bignum);
+  }
+  cert_index(): number {
+    return Number(this._cert_index_bignum);
   }
 }
 
@@ -6763,6 +7889,102 @@ export class PrivateKey {
 
   from_hex(hex_str: string): PrivateKey {
     return PrivateKey._from_bytes(hexToBytes(hex_str));
+  }
+}
+
+export class ProposedProtocolParameterUpdates {
+  private items: [GenesisHash, ProtocolParamUpdate][];
+
+  constructor(items: [GenesisHash, ProtocolParamUpdate][]) {
+    this.items = items;
+  }
+
+  static new(): ProposedProtocolParameterUpdates {
+    return new ProposedProtocolParameterUpdates([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(
+    key: GenesisHash,
+    value: ProtocolParamUpdate,
+  ): ProtocolParamUpdate | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: GenesisHash): ProtocolParamUpdate | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: GenesisHash[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+    );
+  }
+
+  keys(): GenesisHashes {
+    let keys = GenesisHashes.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader): ProposedProtocolParameterUpdates {
+    let ret = new ProposedProtocolParameterUpdates([]);
+    reader.readMap((reader) =>
+      ret.insert(
+        GenesisHash.deserialize(reader),
+        ProtocolParamUpdate.deserialize(reader),
+      ),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this.items, (writer, x) => {
+      x[0].serialize(writer);
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ProposedProtocolParameterUpdates {
+    let reader = new CBORReader(data);
+    return ProposedProtocolParameterUpdates.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ProposedProtocolParameterUpdates {
+    return ProposedProtocolParameterUpdates.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): ProposedProtocolParameterUpdates {
+    return ProposedProtocolParameterUpdates.from_bytes(this.to_bytes());
   }
 }
 
@@ -7736,6 +8958,140 @@ export class PublicKey {
   }
 }
 
+export class Redeemer {
+  private _tag: RedeemerTag;
+  private _index: BigNum;
+  private _data: unknown;
+  private _ex_units: ExUnits;
+  private _invalid_transactions: Uint32Array;
+
+  constructor(
+    tag: RedeemerTag,
+    index: BigNum,
+    data: unknown,
+    ex_units: ExUnits,
+    invalid_transactions: Uint32Array,
+  ) {
+    this._tag = tag;
+    this._index = index;
+    this._data = data;
+    this._ex_units = ex_units;
+    this._invalid_transactions = invalid_transactions;
+  }
+
+  static new(
+    tag: RedeemerTag,
+    index: BigNum,
+    data: unknown,
+    ex_units: ExUnits,
+    invalid_transactions: Uint32Array,
+  ) {
+    return new Redeemer(tag, index, data, ex_units, invalid_transactions);
+  }
+
+  get_tag(): RedeemerTag {
+    return this._tag;
+  }
+
+  set_tag(tag: RedeemerTag): void {
+    this._tag = tag;
+  }
+
+  get_index(): BigNum {
+    return this._index;
+  }
+
+  set_index(index: BigNum): void {
+    this._index = index;
+  }
+
+  get_data(): unknown {
+    return this._data;
+  }
+
+  set_data(data: unknown): void {
+    this._data = data;
+  }
+
+  get_ex_units(): ExUnits {
+    return this._ex_units;
+  }
+
+  set_ex_units(ex_units: ExUnits): void {
+    this._ex_units = ex_units;
+  }
+
+  get_invalid_transactions(): Uint32Array {
+    return this._invalid_transactions;
+  }
+
+  set_invalid_transactions(invalid_transactions: Uint32Array): void {
+    this._invalid_transactions = invalid_transactions;
+  }
+
+  static deserialize(reader: CBORReader): Redeemer {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 5) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 5. Received " + len,
+      );
+    }
+
+    let tag = RedeemerTag.deserialize(reader);
+
+    let index = BigNum.deserialize(reader);
+
+    let data = $$CANT_READ("PlutusData");
+
+    let ex_units = ExUnits.deserialize(reader);
+
+    let invalid_transactions = new Uint32Array(
+      reader.readArray((reader) => Number(reader.readUint())),
+    );
+
+    return new Redeemer(tag, index, data, ex_units, invalid_transactions);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(5);
+
+    this._tag.serialize(writer);
+    this._index.serialize(writer);
+    $$CANT_WRITE("PlutusData");
+    this._ex_units.serialize(writer);
+    writer.writeArray(this._invalid_transactions, (writer, x) =>
+      writer.writeInt(BigInt(x)),
+    );
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Redeemer {
+    let reader = new CBORReader(data);
+    return Redeemer.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Redeemer {
+    return Redeemer.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Redeemer {
+    return Redeemer.from_bytes(this.to_bytes());
+  }
+}
+
 export enum RedeemerTagKind {
   spending = 0,
   minting = 1,
@@ -7815,6 +9171,80 @@ export class RedeemerTag {
 
   clone(): RedeemerTag {
     return RedeemerTag.from_bytes(this.to_bytes());
+  }
+}
+
+export class Redeemers {
+  private items: Redeemer[];
+
+  constructor(items: Redeemer[]) {
+    this.items = items;
+  }
+
+  static new(): Redeemers {
+    return new Redeemers([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): Redeemer {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: Redeemer): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): Redeemers {
+    return new Redeemers(
+      reader.readArray((reader) => Redeemer.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Redeemers {
+    let reader = new CBORReader(data);
+    return Redeemers.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Redeemers {
+    return Redeemers.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Redeemers {
+    return Redeemers.from_bytes(this.to_bytes());
+  }
+
+  total_ex_units(): ExUnits {
+    let tot_mem = BigNum.zero();
+    let tot_steps = BigNum.zero();
+
+    for (let i = 0; i < this.items.length; i++) {
+      const r = this.items[i];
+      const exUnits = r.get_ex_units();
+      tot_mem = tot_mem.checked_add(exUnits.get_mem());
+      tot_steps = tot_steps.checked_add(exUnits.get_steps());
+    }
+    return ExUnits.new(tot_mem, tot_steps);
   }
 }
 
@@ -9229,7 +10659,7 @@ export class TransactionBody {
   private _withdrawals: Withdrawals | undefined;
   private _auxiliary_data_hash: AuxiliaryDataHash | undefined;
   private _validity_start_interval: BigNum | undefined;
-  private _mint: unknown | undefined;
+  private _mint: Mint | undefined;
   private _script_data_hash: ScriptDataHash | undefined;
   private _collateral: TransactionInputs | undefined;
   private _required_signers: Ed25519KeyHashes | undefined;
@@ -9237,7 +10667,7 @@ export class TransactionBody {
   private _collateral_return: TransactionOutput | undefined;
   private _total_collateral: BigNum | undefined;
   private _reference_inputs: TransactionInputs | undefined;
-  private _voting_procedures: unknown | undefined;
+  private _voting_procedures: VotingProcedures | undefined;
   private _voting_proposals: VotingProposals | undefined;
   private _current_treasury_value: BigNum | undefined;
   private _donation: BigNum | undefined;
@@ -9251,7 +10681,7 @@ export class TransactionBody {
     withdrawals: Withdrawals | undefined,
     auxiliary_data_hash: AuxiliaryDataHash | undefined,
     validity_start_interval: BigNum | undefined,
-    mint: unknown | undefined,
+    mint: Mint | undefined,
     script_data_hash: ScriptDataHash | undefined,
     collateral: TransactionInputs | undefined,
     required_signers: Ed25519KeyHashes | undefined,
@@ -9259,7 +10689,7 @@ export class TransactionBody {
     collateral_return: TransactionOutput | undefined,
     total_collateral: BigNum | undefined,
     reference_inputs: TransactionInputs | undefined,
-    voting_procedures: unknown | undefined,
+    voting_procedures: VotingProcedures | undefined,
     voting_proposals: VotingProposals | undefined,
     current_treasury_value: BigNum | undefined,
     donation: BigNum | undefined,
@@ -9295,7 +10725,7 @@ export class TransactionBody {
     withdrawals: Withdrawals | undefined,
     auxiliary_data_hash: AuxiliaryDataHash | undefined,
     validity_start_interval: BigNum | undefined,
-    mint: unknown | undefined,
+    mint: Mint | undefined,
     script_data_hash: ScriptDataHash | undefined,
     collateral: TransactionInputs | undefined,
     required_signers: Ed25519KeyHashes | undefined,
@@ -9303,7 +10733,7 @@ export class TransactionBody {
     collateral_return: TransactionOutput | undefined,
     total_collateral: BigNum | undefined,
     reference_inputs: TransactionInputs | undefined,
-    voting_procedures: unknown | undefined,
+    voting_procedures: VotingProcedures | undefined,
     voting_proposals: VotingProposals | undefined,
     current_treasury_value: BigNum | undefined,
     donation: BigNum | undefined,
@@ -9400,11 +10830,11 @@ export class TransactionBody {
     this._validity_start_interval = validity_start_interval;
   }
 
-  get_mint(): unknown | undefined {
+  get_mint(): Mint | undefined {
     return this._mint;
   }
 
-  set_mint(mint: unknown | undefined): void {
+  set_mint(mint: Mint | undefined): void {
     this._mint = mint;
   }
 
@@ -9466,11 +10896,11 @@ export class TransactionBody {
     this._reference_inputs = reference_inputs;
   }
 
-  get_voting_procedures(): unknown | undefined {
+  get_voting_procedures(): VotingProcedures | undefined {
     return this._voting_procedures;
   }
 
-  set_voting_procedures(voting_procedures: unknown | undefined): void {
+  set_voting_procedures(voting_procedures: VotingProcedures | undefined): void {
     this._voting_procedures = voting_procedures;
   }
 
@@ -9536,7 +10966,7 @@ export class TransactionBody {
           break;
 
         case 9:
-          fields.mint = $$CANT_READ("Mint");
+          fields.mint = Mint.deserialize(r);
           break;
 
         case 11:
@@ -9568,7 +10998,7 @@ export class TransactionBody {
           break;
 
         case 19:
-          fields.voting_procedures = $$CANT_READ("VotingProcedures");
+          fields.voting_procedures = VotingProcedures.deserialize(r);
           break;
 
         case 20:
@@ -9705,7 +11135,7 @@ export class TransactionBody {
     }
     if (this._mint !== undefined) {
       writer.writeInt(9n);
-      $$CANT_WRITE("Mint");
+      this._mint.serialize(writer);
     }
     if (this._script_data_hash !== undefined) {
       writer.writeInt(11n);
@@ -9737,7 +11167,7 @@ export class TransactionBody {
     }
     if (this._voting_procedures !== undefined) {
       writer.writeInt(19n);
-      $$CANT_WRITE("VotingProcedures");
+      this._voting_procedures.serialize(writer);
     }
     if (this._voting_proposals !== undefined) {
       writer.writeInt(20n);
@@ -10433,7 +11863,7 @@ export class TransactionWitnessSet {
   private _bootstraps: BootstrapWitnesses | undefined;
   private _plutus_scripts_v1: PlutusScripts | undefined;
   private _plutus_data: PlutusList | undefined;
-  private _redeemers: unknown | undefined;
+  private _redeemers: Redeemers | undefined;
   private _plutus_scripts_v2: PlutusScripts | undefined;
   private _plutus_scripts_v3: PlutusScripts | undefined;
 
@@ -10443,7 +11873,7 @@ export class TransactionWitnessSet {
     bootstraps: BootstrapWitnesses | undefined,
     plutus_scripts_v1: PlutusScripts | undefined,
     plutus_data: PlutusList | undefined,
-    redeemers: unknown | undefined,
+    redeemers: Redeemers | undefined,
     plutus_scripts_v2: PlutusScripts | undefined,
     plutus_scripts_v3: PlutusScripts | undefined,
   ) {
@@ -10463,7 +11893,7 @@ export class TransactionWitnessSet {
     bootstraps: BootstrapWitnesses | undefined,
     plutus_scripts_v1: PlutusScripts | undefined,
     plutus_data: PlutusList | undefined,
-    redeemers: unknown | undefined,
+    redeemers: Redeemers | undefined,
     plutus_scripts_v2: PlutusScripts | undefined,
     plutus_scripts_v3: PlutusScripts | undefined,
   ) {
@@ -10519,11 +11949,11 @@ export class TransactionWitnessSet {
     this._plutus_data = plutus_data;
   }
 
-  get_redeemers(): unknown | undefined {
+  get_redeemers(): Redeemers | undefined {
     return this._redeemers;
   }
 
-  set_redeemers(redeemers: unknown | undefined): void {
+  set_redeemers(redeemers: Redeemers | undefined): void {
     this._redeemers = redeemers;
   }
 
@@ -10569,7 +11999,7 @@ export class TransactionWitnessSet {
           break;
 
         case 5:
-          fields.redeemers = $$CANT_READ("Redeemers");
+          fields.redeemers = Redeemers.deserialize(r);
           break;
 
         case 6:
@@ -10643,7 +12073,7 @@ export class TransactionWitnessSet {
     }
     if (this._redeemers !== undefined) {
       writer.writeInt(5n);
-      $$CANT_WRITE("Redeemers");
+      this._redeemers.serialize(writer);
     }
     if (this._plutus_scripts_v2 !== undefined) {
       writer.writeInt(6n);
@@ -10743,24 +12173,116 @@ export class TransactionWitnessSets {
   }
 }
 
+export class TreasuryWithdrawals {
+  private items: [unknown, BigNum][];
+
+  constructor(items: [unknown, BigNum][]) {
+    this.items = items;
+  }
+
+  static new(): TreasuryWithdrawals {
+    return new TreasuryWithdrawals([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(key: unknown, value: BigNum): BigNum | undefined {
+    let entry = this.items.find((x) => $$CANT_EQ("RewardAddress"));
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: unknown): BigNum | undefined {
+    let entry = this.items.find((x) => $$CANT_EQ("RewardAddress"));
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: unknown[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !$$CANT_EQ("RewardAddress")),
+    );
+  }
+
+  keys(): RewardAddresses {
+    let keys = RewardAddresses.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader): TreasuryWithdrawals {
+    let ret = new TreasuryWithdrawals([]);
+    reader.readMap((reader) =>
+      ret.insert($$CANT_READ("RewardAddress"), BigNum.deserialize(reader)),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this.items, (writer, x) => {
+      $$CANT_WRITE("RewardAddress");
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TreasuryWithdrawals {
+    let reader = new CBORReader(data);
+    return TreasuryWithdrawals.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TreasuryWithdrawals {
+    return TreasuryWithdrawals.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): TreasuryWithdrawals {
+    return TreasuryWithdrawals.from_bytes(this.to_bytes());
+  }
+}
+
 export class TreasuryWithdrawalsAction {
-  private _withdrawals: unknown;
+  private _withdrawals: TreasuryWithdrawals;
   private _policy_hash: ScriptHash | undefined;
 
-  constructor(withdrawals: unknown, policy_hash: ScriptHash | undefined) {
+  constructor(
+    withdrawals: TreasuryWithdrawals,
+    policy_hash: ScriptHash | undefined,
+  ) {
     this._withdrawals = withdrawals;
     this._policy_hash = policy_hash;
   }
 
-  static new(withdrawals: unknown, policy_hash: ScriptHash | undefined) {
+  static new(
+    withdrawals: TreasuryWithdrawals,
+    policy_hash: ScriptHash | undefined,
+  ) {
     return new TreasuryWithdrawalsAction(withdrawals, policy_hash);
   }
 
-  get_withdrawals(): unknown {
+  get_withdrawals(): TreasuryWithdrawals {
     return this._withdrawals;
   }
 
-  set_withdrawals(withdrawals: unknown): void {
+  set_withdrawals(withdrawals: TreasuryWithdrawals): void {
     this._withdrawals = withdrawals;
   }
 
@@ -10773,7 +12295,7 @@ export class TreasuryWithdrawalsAction {
   }
 
   static deserialize(reader: CBORReader): TreasuryWithdrawalsAction {
-    let withdrawals = $$CANT_READ("TreasuryWithdrawals");
+    let withdrawals = TreasuryWithdrawals.deserialize(reader);
 
     let policy_hash =
       reader.readNullable((r) => ScriptHash.deserialize(r)) ?? undefined;
@@ -10782,7 +12304,7 @@ export class TreasuryWithdrawalsAction {
   }
 
   serialize(writer: CBORWriter): void {
-    $$CANT_WRITE("TreasuryWithdrawals");
+    this._withdrawals.serialize(writer);
     if (this._policy_hash == null) {
       writer.writeNull();
     } else {
@@ -10981,6 +12503,96 @@ export class UnregCert {
   }
 }
 
+export class Update {
+  private _proposed_protocol_parameter_updates: ProposedProtocolParameterUpdates;
+  private _epoch: number;
+
+  constructor(
+    proposed_protocol_parameter_updates: ProposedProtocolParameterUpdates,
+    epoch: number,
+  ) {
+    this._proposed_protocol_parameter_updates =
+      proposed_protocol_parameter_updates;
+    this._epoch = epoch;
+  }
+
+  static new(
+    proposed_protocol_parameter_updates: ProposedProtocolParameterUpdates,
+    epoch: number,
+  ) {
+    return new Update(proposed_protocol_parameter_updates, epoch);
+  }
+
+  get_proposed_protocol_parameter_updates(): ProposedProtocolParameterUpdates {
+    return this._proposed_protocol_parameter_updates;
+  }
+
+  set_proposed_protocol_parameter_updates(
+    proposed_protocol_parameter_updates: ProposedProtocolParameterUpdates,
+  ): void {
+    this._proposed_protocol_parameter_updates =
+      proposed_protocol_parameter_updates;
+  }
+
+  get_epoch(): number {
+    return this._epoch;
+  }
+
+  set_epoch(epoch: number): void {
+    this._epoch = epoch;
+  }
+
+  static deserialize(reader: CBORReader): Update {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let proposed_protocol_parameter_updates =
+      ProposedProtocolParameterUpdates.deserialize(reader);
+
+    let epoch = Number(reader.readInt());
+
+    return new Update(proposed_protocol_parameter_updates, epoch);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
+
+    this._proposed_protocol_parameter_updates.serialize(writer);
+    writer.writeInt(BigInt(this._epoch));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Update {
+    let reader = new CBORReader(data);
+    return Update.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Update {
+    return Update.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Update {
+    return Update.from_bytes(this.to_bytes());
+  }
+}
+
 export class UpdateCommitteeAction {
   private _gov_action_id: GovernanceActionId | undefined;
   private _members_to_remove: Credentials;
@@ -11073,6 +12685,85 @@ export class UpdateCommitteeAction {
     this._members_to_remove.serialize(writer);
     $$CANT_WRITE("Committee");
     this._quorom_threshold.serialize(writer);
+  }
+}
+
+export class VRFCert {
+  private _output: Uint8Array;
+  private _proof: Uint8Array;
+
+  constructor(output: Uint8Array, proof: Uint8Array) {
+    this._output = output;
+    this._proof = proof;
+  }
+
+  static new(output: Uint8Array, proof: Uint8Array) {
+    return new VRFCert(output, proof);
+  }
+
+  get_output(): Uint8Array {
+    return this._output;
+  }
+
+  set_output(output: Uint8Array): void {
+    this._output = output;
+  }
+
+  get_proof(): Uint8Array {
+    return this._proof;
+  }
+
+  set_proof(proof: Uint8Array): void {
+    this._proof = proof;
+  }
+
+  static deserialize(reader: CBORReader): VRFCert {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let output = reader.readBytes();
+
+    let proof = reader.readBytes();
+
+    return new VRFCert(output, proof);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
+
+    writer.writeBytes(this._output);
+    writer.writeBytes(this._proof);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): VRFCert {
+    let reader = new CBORReader(data);
+    return VRFCert.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): VRFCert {
+    return VRFCert.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): VRFCert {
+    return VRFCert.from_bytes(this.to_bytes());
   }
 }
 
@@ -11736,6 +13427,65 @@ export class Voter {
   }
 }
 
+export class Voters {
+  private items: Voter[];
+
+  constructor(items: Voter[]) {
+    this.items = items;
+  }
+
+  static new(): Voters {
+    return new Voters([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): Voter {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: Voter): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): Voters {
+    return new Voters(reader.readArray((reader) => Voter.deserialize(reader)));
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Voters {
+    let reader = new CBORReader(data);
+    return Voters.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Voters {
+    return Voters.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Voters {
+    return Voters.from_bytes(this.to_bytes());
+  }
+}
+
 export class VotingProcedure {
   private _vote: VoteKind;
   private _anchor: Anchor | undefined;
@@ -11816,6 +13566,131 @@ export class VotingProcedure {
 
   clone(): VotingProcedure {
     return VotingProcedure.from_bytes(this.to_bytes());
+  }
+}
+
+export class VotingProcedures {
+  private items: [Voter, GovernanceActions][];
+
+  constructor(items: [Voter, GovernanceActions][]) {
+    this.items = items;
+  }
+
+  static new(): VotingProcedures {
+    return new VotingProcedures([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  insert(key: Voter, value: GovernanceActions): GovernanceActions | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: Voter): GovernanceActions | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: Voter[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+    );
+  }
+
+  keys(): Voters {
+    let keys = Voters.new();
+    for (let [key, _] of this.items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader): VotingProcedures {
+    let ret = new VotingProcedures([]);
+    reader.readMap((reader) =>
+      ret.insert(
+        Voter.deserialize(reader),
+        GovernanceActions.deserialize(reader),
+      ),
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this.items, (writer, x) => {
+      x[0].serialize(writer);
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): VotingProcedures {
+    let reader = new CBORReader(data);
+    return VotingProcedures.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): VotingProcedures {
+    return VotingProcedures.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): VotingProcedures {
+    return VotingProcedures.from_bytes(this.to_bytes());
+  }
+
+  insert_voter_and_gov_action(
+    voter: Voter,
+    governance_action_id: GovernanceActionId,
+    voting_procedure: VotingProcedure,
+  ): void {
+    let gov_actions = this.get(voter);
+    if (gov_actions == null) {
+      gov_actions = GovernanceActions.new();
+      this.insert(voter, gov_actions);
+    }
+    gov_actions.insert(governance_action_id, voting_procedure);
+  }
+
+  get_by_voter_and_gov_action(
+    voter: Voter,
+    governance_action_id: GovernanceActionId,
+  ): VotingProcedure | undefined {
+    let gov_actions = this.get(voter);
+    if (gov_actions == null) return undefined;
+    return gov_actions.get(governance_action_id);
+  }
+
+  get_voters(): Voters {
+    return this.keys();
+  }
+
+  get_governance_action_ids_by_voter(voter: Voter): GovernanceActionIds {
+    let gov_actions = this.get(voter);
+    if (gov_actions == null) return GovernanceActionIds.new();
+    return gov_actions.keys();
   }
 }
 
