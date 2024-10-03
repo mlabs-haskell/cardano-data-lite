@@ -1,0 +1,7 @@
+ConstrPlutusData:
+  type: record
+  fields:
+    - name: alternative
+      type: BigNum
+    - name: data
+      type: PlutusList

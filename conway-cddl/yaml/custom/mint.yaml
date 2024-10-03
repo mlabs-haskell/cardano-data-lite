@@ -1,0 +1,50 @@
+Mint:
+  type: map
+  key: ScriptHash
+  value: MintAssets
+  keys_method_type: ScriptHashes
+  extra_methods: |
+    _as_multiasset(isPositive: boolean): MultiAsset {
+      const result = new MultiAsset([]);
+
+      // Iterating over items in Mint class
+      const mintItems = this.items;
+
+      for (const [scriptHash, mintAssets] of mintItems) {
+        const assets = new Assets([]);
+
+
+        const mintAssetEntries = mintAssets.keys();
+
+        for (let i = 0; i < mintAssetEntries.len(); i++) {
+          const assetName = mintAssetEntries.get(i);
+          const assetValue = mintAssets.get(assetName);
+
+          if (assetValue === undefined) {
+            throw new Error("assetValue is undefined");
+          };
+
+          if (assetValue > Int.new_i32(0) && isPositive) {
+            const amount = isPositive ? assetValue.as_positive() : assetValue.as_negative();
+            if (amount !== undefined) {
+              assets.insert(assetName, amount);
+            }
+          }
+        };
+
+        if (assets.len() > 0) {
+          result.insert(scriptHash, assets);
+        }
+      }
+
+      return result;
+    }
+
+    as_positive_multiasset(): MultiAsset {
+      return this._as_multiasset(true);
+    }
+
+    as_negative_multiasset(): MultiAsset {
+      return this._as_multiasset(false);
+    }
+

@@ -2,8 +2,8 @@
 
 `[X]` means implemented, but needs revision. Some contains missing methods - those have comments. Rama tests might help to check their behavior.
 
-- [X] Languages: Missing `static list(): Languages`
-- [X] Pointer: In CSL there are basicaly duplicated methods for `number` and `BigNum`. I've added only the `BigNum` one.
+- [X] Languages
+- [X] Pointer
 - [X] PlutusMap
 - [X] PlutusMapValues: Implemented as `type: array` with `item: PlutusData`.
 - [X] Update: We have `get_epoch` instead of `epoch`, `get_proposed_protocol_parameter_updates` instead of `proposed_protocol_parameter_updates`
@@ -11,7 +11,7 @@
 - [X] GovernanceActionIds
 - [X] ProposedProtocolParameterUpdates
 - [X] TreasuryWithdrawals: Map of `RewardAddress` to `BigNum`. Relies on `RewardAddress` (crypto type)
-- [X] VotingProcedures: It is in a sense similar fo `MultiAsset`. I've added `insert_voter_and_gov_action` and `get_by_voter_and_gov_action`, which on CSL are simply `insert` and `get`
+- [X] VotingProcedures: It is in a sense similar fo `MultiAsset`. I've added `insert_voter_and_gov_action` and `get_by_voter_and_gov_action`, which on CSL are simply `insert` and `get`, respectively.
 - [X] DRepRegistration: Missing `has_script_credentials` and `new` (without setting `anchor`, but this might not be critical.)
 - [X] DRepDeregistration: Missing `has_script_credentials` and `new` (without setting `anchor`, but this might not be critical.)
 - [X] DRepUpdate: Missing `has_script_credentials` and `new` (without setting `anchor`, but this might not be critical.)
@@ -19,25 +19,29 @@
 - [X] MIRToStakeCredentials
 - [X] MintsAssets: map<AssetName, Int>. missing `new_from_entry(key: AssetName, value: Int): MintAssets;`
 - [X] PlutusWitnesses: array of PlutusWitness
+- [X] VRFCert: `output` -> `get_output`, `proof` -> `get_proof`. Also, the CDL version has extra methods for setting `output` and `proof` (and CSL does not).
+- [X] CostModel: Custom. `get` has different argument name, but this does not affect us.
+- [X] Costmdls
+- [X] Mint
+- [X] ConstrPlutusData: TODO: rename `get_alternative` -> `alternative`, `get_data` -> `data`. Remove `set_alternative` and `set_data`.
+- [X] Redeemer: Getters on CSL does not contain `get_` preffix. Should we rename them? Not critical, though.
+- [X] Redeemers
 
-- [ ] VRFCert: similar to `AuxiliaryDataHash` (custom)
-- [ ] ConstrPlutusData
-- [ ] CostModel: custom. See Farseen's notes.txt
-- [ ] Costmdls: custom? Looks like map<Language, CostModel> with additional method `retain_language_versions(languages: Languages): Costmdls`
-- [ ] Mint: kind of multimap with methods `as_positive_multiasset` and `as_negative_multiasset`. Custom. Similar to `Value`?
-- [ ] MintWitness: custom. Need help.
-- [ ] NativeScriptSource: custom?. has method `new_ref_input`.
-- [ ] DatumSource: custom?. has method `new_ref_input`.
-- [ ] OutputDatum: custom data - in a sense similar to `int.yaml`. newtype.
+- [ ] MintWitness: custom. Need help. Has `new_native_script` and `new_plutus_script` - not sure which type it is.
+- [ ] NativeScriptSource: custom?. has method `new_ref_input`. Looks like `tagged_record`?
+
+- [ ] PlutusScriptSource:
+- [ ] PlutusScriptSource: Similar to `NativeScriptSource`
+- [ ] DatumSource: Similar to `NativeScriptSource`
+
+- [ ] OutputDatum: Similar to `NativeScriptSource`
+
 - [ ] PlutusData: custom data - not sure how to approach this one. Need help.
 - [ ] PlutusScript
-- [ ] PlutusScriptSource
+
 - [ ] PlutusWitness: `record` + methods `new_with_ref`, `new_without_datum` and `new_with_ref_without_datum`
-- [ ] Redeemer: Looks like an standard `record`, but there's a note in the CDDL:
-	; Flat Array support is included for backwards compatibility and will be removed in the next era.
-	; It is recommended for tools to adopt using a Map instead of Array going forward.
-	Due this is a `custom` type required?
-- [ ] Redeemers: array of `Redeemer` + additional method `total_ex_units(): ExUnits`
+
 - [ ] MoveInstantaneousReward: looks like `Relay` (tagged_record)
 - [ ] MoveInstantaneousRewardsCert: Has `move_instantaneous_reward(): MoveInstantaneousReward` that differs
+
 - [ ] Nonce

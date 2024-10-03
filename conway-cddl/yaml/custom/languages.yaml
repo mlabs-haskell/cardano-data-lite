@@ -1,0 +1,12 @@
+Languages:
+  type: array
+  item: Language
+  extra_methods: |
+    static list(): Languages {
+      return new Languages([
+        Language.new_plutus_v1(),
+        Language.new_plutus_v2(),
+        Language.new_plutus_v3(),
+      ]);
+    }
+
