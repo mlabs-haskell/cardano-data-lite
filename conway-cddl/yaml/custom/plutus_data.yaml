@@ -1,0 +1,55 @@
+PlutusData:
+  type: union
+  variants:
+    - tag: 0
+      peek_type: ConstrPlutusData
+      name: constr_plutus_data
+      type: ConstrPlutusData
+    - tag: 1
+      peek_type: map
+      name: map
+      type: PlutusMap
+    - tag: 2
+      peek_type: array
+      name: list
+      type: PlutusList
+    - tag: 3
+      peek_type: BigInt
+      name: integer
+      type: BigInt
+    - tag: 4
+      peek_type: bytes
+      name: bytes
+      kind_name: Bytes
+      type: bytes
+
+  extra_methods: |
+    static new_empty_constr_plutus_data(alternative: BigNum): PlutusData {
+      return new PlutusData({
+        kind: 0,
+        value: ConstrPlutusData.new(alternative, PlutusList.new()),
+      });
+    }
+
+    static new_single_value_constr_plutus_data(
+      alternative: BigNum,
+      plutus_data: PlutusData,
+    ): PlutusData {
+      let plutus_list = PlutusList.new();
+      plutus_list.add(plutus_data);
+      return new PlutusData({
+        kind: 0,
+        value: ConstrPlutusData.new(alternative, plutus_list),
+      });
+    }
+
+    to_json(schema: PlutusDatumSchema): string {
+      throw new Error("PlutusData.to_json: to be implemented");
+    }
+    static from_json(json: string, schema: PlutusDatumSchema): PlutusData {
+      throw new Error("PlutusData.from_json: to be implemented");
+    }
+    static from_address(address: Address): PlutusData {
+      throw new Error("PlutusData.from_address: to be implemented");
+    }
+
