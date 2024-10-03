@@ -11,7 +11,7 @@ Classes  {
         | identifier #"(" ListOf<Param, ","> ")" (":" Type) ";"? -- with_type
         | identifier #"(" ListOf<Param, ","> ")" ";"?            -- without_type
     // Data members
-    DataDecl = "private" identifier ";"?
+    DataDecl = "private" identifier "?"? ";"?
     // Parameters
     Param =
         identifier #":" Type         -- mandatory
@@ -24,7 +24,7 @@ Classes  {
         | identifier                -- simple
     // Identifiers
     identifier = wordlike
-    wordlike = letter anyseq
+    wordlike = (letter | "_") anyseq
     anyseq = (alnum | underscores)*
     underscores = "_"+
  }
