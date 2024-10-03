@@ -5814,6 +5814,232 @@ export class Languages {
   }
 }
 
+export enum MIRKind {
+  ToOtherPot = 0,
+  ToStakeCredentials = 1,
+}
+
+export class MIR {
+  private kind_: MIRKind;
+
+  constructor(kind: MIRKind) {
+    this.kind_ = kind;
+  }
+
+  static new_ToOtherPot(): MIR {
+    return new MIR(0);
+  }
+
+  static new_ToStakeCredentials(): MIR {
+    return new MIR(1);
+  }
+
+  static deserialize(reader: CBORReader): MIR {
+    let kind = Number(reader.readInt());
+    if (kind == 0) return new MIR(0);
+    if (kind == 1) return new MIR(1);
+    throw "Unrecognized enum value: " + kind + " for " + MIR;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeInt(BigInt(this.kind_));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MIR {
+    let reader = new CBORReader(data);
+    return MIR.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MIR {
+    return MIR.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MIR {
+    return MIR.from_bytes(this.to_bytes());
+  }
+}
+
+export enum MIREnumKind {
+  BigNum = 0,
+  MIRToStakeCredentials = 1,
+}
+
+export type MIREnumVariant =
+  | { kind: 0; value: BigNum }
+  | { kind: 1; value: MIRToStakeCredentials };
+
+export class MIREnum {
+  private variant: MIREnumVariant;
+
+  constructor(variant: MIREnumVariant) {
+    this.variant = variant;
+  }
+
+  static new_to_other_pot(to_other_pot: BigNum): MIREnum {
+    return new MIREnum({ kind: 0, value: to_other_pot });
+  }
+
+  static new_to_stake_creds(to_stake_creds: MIRToStakeCredentials): MIREnum {
+    return new MIREnum({ kind: 1, value: to_stake_creds });
+  }
+
+  as_to_other_pot(): BigNum | undefined {
+    if (this.variant.kind == 0) return this.variant.value;
+  }
+
+  as_to_stake_creds(): MIRToStakeCredentials | undefined {
+    if (this.variant.kind == 1) return this.variant.value;
+  }
+
+  static deserialize(reader: CBORReader): MIREnum {
+    let len = reader.readArrayTag();
+    let tag = Number(reader.readUint());
+    let variant: MIREnumVariant;
+
+    switch (tag) {
+      case 0:
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode BigNum");
+        }
+        variant = {
+          kind: 0,
+          value: BigNum.deserialize(reader),
+        };
+
+        break;
+
+      case 1:
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode MIRToStakeCredentials");
+        }
+        variant = {
+          kind: 1,
+          value: MIRToStakeCredentials.deserialize(reader),
+        };
+
+        break;
+    }
+
+    if (len == null) {
+      reader.readBreak();
+    }
+
+    throw new Error("Unexpected tag for MIREnum: " + tag);
+  }
+
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(0));
+        this.variant.value.serialize(writer);
+        break;
+      case 1:
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(1));
+        this.variant.value.serialize(writer);
+        break;
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MIREnum {
+    let reader = new CBORReader(data);
+    return MIREnum.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MIREnum {
+    return MIREnum.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MIREnum {
+    return MIREnum.from_bytes(this.to_bytes());
+  }
+}
+
+export enum MIRPotKind {
+  Reserves = 0,
+  Treasury = 1,
+}
+
+export class MIRPot {
+  private kind_: MIRPotKind;
+
+  constructor(kind: MIRPotKind) {
+    this.kind_ = kind;
+  }
+
+  static new_Reserves(): MIRPot {
+    return new MIRPot(0);
+  }
+
+  static new_Treasury(): MIRPot {
+    return new MIRPot(1);
+  }
+
+  static deserialize(reader: CBORReader): MIRPot {
+    let kind = Number(reader.readInt());
+    if (kind == 0) return new MIRPot(0);
+    if (kind == 1) return new MIRPot(1);
+    throw "Unrecognized enum value: " + kind + " for " + MIRPot;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeInt(BigInt(this.kind_));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MIRPot {
+    let reader = new CBORReader(data);
+    return MIRPot.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MIRPot {
+    return MIRPot.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MIRPot {
+    return MIRPot.from_bytes(this.to_bytes());
+  }
+}
+
 export class MIRToStakeCredentials {
   private items: [Credential, Credential][];
 
@@ -6325,6 +6551,121 @@ export class MintAssets {
 
   clone(): MintAssets {
     return MintAssets.from_bytes(this.to_bytes());
+  }
+}
+
+export class MoveInstantaneousReward {
+  private _pot: MIRPot;
+  private _variant: MIREnum;
+
+  constructor(pot: MIRPot, variant: MIREnum) {
+    this._pot = pot;
+    this._variant = variant;
+  }
+
+  static new(pot: MIRPot, variant: MIREnum) {
+    return new MoveInstantaneousReward(pot, variant);
+  }
+
+  get_pot(): MIRPot {
+    return this._pot;
+  }
+
+  set_pot(pot: MIRPot): void {
+    this._pot = pot;
+  }
+
+  get_variant(): MIREnum {
+    return this._variant;
+  }
+
+  set_variant(variant: MIREnum): void {
+    this._variant = variant;
+  }
+
+  static deserialize(reader: CBORReader): MoveInstantaneousReward {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let pot = MIRPot.deserialize(reader);
+
+    let variant = MIREnum.deserialize(reader);
+
+    return new MoveInstantaneousReward(pot, variant);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
+
+    this._pot.serialize(writer);
+    this._variant.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MoveInstantaneousReward {
+    let reader = new CBORReader(data);
+    return MoveInstantaneousReward.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MoveInstantaneousReward {
+    return MoveInstantaneousReward.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MoveInstantaneousReward {
+    return MoveInstantaneousReward.from_bytes(this.to_bytes());
+  }
+
+  static new_to_other_pot(
+    pot: MIRPot,
+    amount: BigNum,
+  ): MoveInstantaneousReward {
+    return MoveInstantaneousReward.new(pot, MIREnum.new_to_other_pot(amount));
+  }
+
+  static new_to_stake_creds(
+    pot: MIRPot,
+    amounts: MIRToStakeCredentials,
+  ): MoveInstantaneousReward {
+    return MoveInstantaneousReward.new(
+      pot,
+      MIREnum.new_to_stake_creds(amounts),
+    );
+  }
+
+  pot(): MIRPot {
+    return this.get_pot();
+  }
+
+  kind(): MIRKind {
+    if (this._variant.as_to_other_pot() === undefined) {
+      return MIRKind.ToStakeCredentials;
+    }
+    return MIRKind.ToOtherPot;
+  }
+
+  as_to_other_pot(): BigNum | undefined {
+    return this._variant.as_to_other_pot();
+  }
+
+  as_to_stake_creds(): MIRToStakeCredentials | undefined {
+    return this._variant.as_to_stake_creds();
   }
 }
 
