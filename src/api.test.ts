@@ -78,7 +78,7 @@ semantics.addOperation<SomeType>("type()", {
   Method_without_type(name, _parens_open, paramsList, _parens_close, _semicolon) {
     return { name: name.sourceString, static: false, params: paramsList.asIteration().children.map((param) => param.param()), returnType: { tag: "simple", ident: "undefined" } };
   },
-  DataDecl(_0, _1, _2) {
+  DataDecl(_0, _1, _2, _3) {
     // ignore
     return undefined;
   }

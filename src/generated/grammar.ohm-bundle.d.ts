@@ -21,7 +21,7 @@ export interface ClassesActionDict<T> extends BaseActionDict<T> {
   Method_with_type?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode, arg2: NonterminalNode, arg3: TerminalNode, arg4: TerminalNode, arg5: NonterminalNode, arg6: IterationNode) => T;
   Method_without_type?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode, arg2: NonterminalNode, arg3: TerminalNode, arg4: IterationNode) => T;
   Method?: (this: NonterminalNode, arg0: NonterminalNode) => T;
-  DataDecl?: (this: NonterminalNode, arg0: TerminalNode, arg1: NonterminalNode, arg2: IterationNode) => T;
+  DataDecl?: (this: NonterminalNode, arg0: TerminalNode, arg1: NonterminalNode, arg2: IterationNode, arg3: IterationNode) => T;
   Param_mandatory?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode, arg2: NonterminalNode) => T;
   Param_nullable?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode, arg2: TerminalNode, arg3: NonterminalNode) => T;
   Param?: (this: NonterminalNode, arg0: NonterminalNode) => T;
@@ -31,7 +31,7 @@ export interface ClassesActionDict<T> extends BaseActionDict<T> {
   Type_simple?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   Type?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   identifier?: (this: NonterminalNode, arg0: NonterminalNode) => T;
-  wordlike?: (this: NonterminalNode, arg0: NonterminalNode, arg1: NonterminalNode) => T;
+  wordlike?: (this: NonterminalNode, arg0: NonterminalNode | TerminalNode, arg1: NonterminalNode) => T;
   anyseq?: (this: NonterminalNode, arg0: IterationNode) => T;
   underscores?: (this: NonterminalNode, arg0: IterationNode) => T;
 }
