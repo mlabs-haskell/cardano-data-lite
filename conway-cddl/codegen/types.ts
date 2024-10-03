@@ -123,6 +123,7 @@ export const Schema = Type.Intersect([
     Type.Object({
       type: Type.Literal("hash"),
       len: Type.Optional(Type.Number()),
+      options_type: Type.Optional(Type.String()),
     }),
   ]),
 ]);

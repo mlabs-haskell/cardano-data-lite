@@ -3,31 +3,39 @@ import { SchemaTable } from "..";
 
 export type GenHashOptions = {
   len?: number;
+  options_type?: string;
 } & CodeGeneratorBaseOptions;
 
 export class GenHash extends CodeGeneratorBase {
   len?: number;
+  optionsType?: string;
 
   constructor(name: string, customTypes: SchemaTable, options: GenHashOptions) {
     super(name, customTypes, { genCSL: false, ...options });
     this.len = options.len;
+    this.optionsType = options.options_type;
   }
 
   generateMembers(): string {
     return `
       private inner: Uint8Array;
+      ${this.optionsType != null ? `private options?: ${this.optionsType};` : ""}
     `;
   }
 
   generateConstructor(): string {
     return ` 
-      constructor(inner: Uint8Array) {
+      constructor(
+        inner: Uint8Array,
+        ${this.optionsType != null ? `options?: ${this.optionsType}` : ""}
+      ) {
         ${
           this.len != null
             ? `if(inner.length != ${this.len}) throw new Error("Expected length to be ${this.len}");`
             : ""
         }
         this.inner = inner;
+        ${this.optionsType != null ? `this.options = options;` : ""}
       }
     `;
   }
