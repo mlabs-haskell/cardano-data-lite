@@ -25,16 +25,16 @@ export class CodeGeneratorBase {
     this.options = options;
   }
 
-  renameMethod(name: string, contents: (name: string) => string): string {
+  renameMethod(name: string, contents?: (name: string) => string): string {
     if (
       this.options.methods == null ||
       !Object.hasOwn(this.options.methods, name)
     ) {
-      return contents(name);
+      return contents != null ? contents(name) : name;
     }
     let newName = this.options.methods[name];
-    if (newName == null) return "";
-    return contents(newName);
+    if (newName == null) return contents == null ? name : "";
+    return contents != null ? contents(newName) : newName;
   }
 
   deserialize(reader: string): string {
@@ -73,7 +73,7 @@ export class CodeGeneratorBase {
       "from_hex",
       (from_hex) => `
     static ${from_hex}(hex_str: string): ${this.name} {
-      return ${this.name}.from_bytes(hexToBytes(hex_str));
+      return ${this.name}.${this.renameMethod("from_bytes")}(hexToBytes(hex_str));
     }`,
     )}
 
@@ -93,7 +93,7 @@ export class CodeGeneratorBase {
       "to_hex",
       (to_hex) => `
     ${to_hex}(): string {
-      return bytesToHex(this.to_bytes());
+      return bytesToHex(this.${this.renameMethod("to_bytes")}());
     }`,
     )}
 
@@ -101,7 +101,7 @@ export class CodeGeneratorBase {
       "clone",
       (clone) => `
     ${clone}(): ${this.name} {
-      return ${this.name}.from_bytes(this.to_bytes());
+      return ${this.name}.${this.renameMethod("from_bytes")}(this.${this.renameMethod("to_bytes")}());
     }`,
     )}
 

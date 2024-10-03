@@ -93,7 +93,7 @@ export class GenHash extends CodeGeneratorBase {
         "from_hex",
         (from_hex) => `
       static ${from_hex}(hex_str: string): ${this.name} {
-        return ${this.name}.from_bytes(hexToBytes(hex_str));
+        return ${this.name}.${this.renameMethod("from_bytes")}(hexToBytes(hex_str));
       }`,
       )}
 
@@ -111,7 +111,7 @@ export class GenHash extends CodeGeneratorBase {
         "to_hex",
         (to_hex) => `
       ${to_hex}(): string {
-        return bytesToHex(this.to_bytes());
+        return bytesToHex(this.${this.renameMethod("to_bytes")}());
       }`,
       )}
 
@@ -119,7 +119,7 @@ export class GenHash extends CodeGeneratorBase {
         "clone",
         (clone) => `
       ${clone}(): ${this.name} {
-        return ${this.name}.from_bytes(this.to_bytes());
+        return ${this.name}.${this.renameMethod("from_bytes")}(this.${this.renameMethod("to_bytes")}());
       }`,
       )}
 
