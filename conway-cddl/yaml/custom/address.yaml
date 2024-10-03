@@ -1,0 +1,161 @@
+PrivateKey:
+  type: hash
+  options_type: "{isExtended: boolean}"
+  methods:
+    free: null
+    to_bech32: null
+    from_bech32: null
+    from_bytes: null
+    to_bytes: as_bytes
+    from_hex: null
+    clone: null
+
+  extra_methods: |
+    static _KEY_LEN = 32;
+    static _EXT_KEY_LEN = 64;
+    static _BECH32_HRP = "ed25519_sk";
+    static _EXT_BECH32_HRP = "ed25519e_sk";
+
+    free() {
+      for(let i = 0; i<this.inner.length; i++) {
+        this.inner[i] = 0x00;
+      }
+    }
+
+    static from_normal_bytes(bytes: Uint8Array): PrivateKey {
+      if(bytes.length != PrivateKey._KEY_LEN) throw new Error(`Must be ${PrivateKey._KEY_LEN} bytes long`);
+      return new PrivateKey(bytes, {isExtended: false});
+    }
+
+    static from_extended_bytes(bytes: Uint8Array): PrivateKey {
+      if(bytes.length != PrivateKey._EXT_KEY_LEN) throw new Error(`Must be ${PrivateKey._EXT_KEY_LEN} bytes long`);
+      return new PrivateKey(bytes, {isExtended: true});
+    }
+
+    to_bech32() {
+      let prefix = this.options?.isExtended ? PrivateKey._EXT_BECH32_HRP : PrivateKey._BECH32_HRP;
+      bech32.encode(prefix, this.inner);
+    }
+
+    static from_bech32(bech_str: string): PrivateKey {
+      let decoded = bech32.decode(bech_str);
+      let words = decoded.words;
+      let bytesArray = bech32.fromWords(words);
+      let bytes = new Uint8Array(bytesArray);
+      if(decoded.prefix==PrivateKey._BECH32_HRP) {
+        return PrivateKey.from_normal_bytes(bytes);
+      } else if(decoded.prefix==PrivateKey._EXT_BECH32_HRP) {
+        return PrivateKey.from_extended_bytes(bytes);
+      } else {
+        throw new Error("Invalid prefix for PrivateKey: " + decoded.prefix);
+      }
+    }
+
+    static generate_ed25519(): PrivateKey {
+      let bytes = cdlCrypto.getRandomBytes(PrivateKey._KEY_LEN);
+      return PrivateKey.from_normal_bytes(bytes);
+    }
+
+    static generate_ed25519extended(): PrivateKey {
+      let bytes = cdlCrypto.getRandomBytes(PrivateKey._EXT_KEY_LEN);
+      return PrivateKey.from_extended_bytes(bytes);
+    }
+
+    sign(message: Uint8Array): Ed25519Signature {
+      let sigBytes: Uint8Array;
+      if(this.options?.isExtended) {
+        sigBytes = cdlCrypto.signExtended(message, this.inner);
+      } else {
+        sigBytes = cdlCrypto.sign(message, this.inner);
+      }
+      return new Ed25519Signature(sigBytes);
+    }
+
+    to_public(): PublicKey {
+      let pubkeyBytes: Uint8Array;
+      if(this.options?.isExtended) {
+        pubkeyBytes = cdlCrypto.secretToPubkey(this.inner);
+      } else {
+        pubkeyBytes = cdlCrypto.extendedToPubkey(this.inner);
+      }
+      return new PublicKey(pubkeyBytes);
+    }
+
+    static _from_bytes(bytes: Uint8Array): PrivateKey {
+      if(bytes.length == PrivateKey._KEY_LEN) {
+        return PrivateKey.from_normal_bytes(bytes);
+      } else if(bytes.length == PrivateKey._EXT_KEY_LEN) {
+        return PrivateKey.from_extended_bytes(bytes);
+      } else {
+        throw new Error("Invalid bytes length for PrivateKey: " + bytes.length);
+      }
+    }
+
+    from_hex(hex_str: string): PrivateKey {
+      return PrivateKey._from_bytes(hexToBytes(hex_str));
+    }
+
+PublicKey:
+  type: hash
+  len: 32
+  methods:
+    to_bytes: as_bytes
+    from_bech32: null
+    to_bech32: null
+  extra_methods: |
+    static _BECH32_HRP = "ed25519_pk";
+
+    hash(): Ed25519KeyHash {
+      return new Ed25519KeyHash(cdlCrypto.blake2b224(this.inner));
+    }
+
+    verify(data: Uint8Array, signature: Ed25519Signature): boolean {
+      return cdlCrypto.verify(data, signature.to_bytes(), this.inner);
+    }
+
+    static from_bech32(bech_str: string): PublicKey {
+      let decoded = bech32.decode(bech_str);
+      let words = decoded.words;
+      let bytesArray = bech32.fromWords(words);
+      let bytes = new Uint8Array(bytesArray);
+      if(decoded.prefix==PublicKey._BECH32_HRP) {
+        return new PublicKey(bytes);
+      } else {
+        throw new Error("Invalid prefix for PublicKey: " + decoded.prefix);
+      }
+    }
+
+    to_bech32() {
+      let prefix = PublicKey._BECH32_HRP;
+      bech32.encode(prefix, this.inner);
+    }
+
+Bip32PrivateKey:
+  type: hash
+  len: 96
+  methods:
+    free: null
+    # from_bytes: null
+    to_bytes: as_bytes
+    from_bech32: null
+    to_bech32: null
+    clone: null
+  extra_methods: |
+    static _BECH32_HRP = "xprv";
+
+    static from_bech32(bech_str: string): Bip32PrivateKey {
+      let decoded = bech32.decode(bech_str);
+      let words = decoded.words;
+      let bytesArray = bech32.fromWords(words);
+      let bytes = new Uint8Array(bytesArray);
+      if(decoded.prefix==Bip32PrivateKey._BECH32_HRP) {
+        return new Bip32PrivateKey(bytes);
+      } else {
+        throw new Error("Invalid prefix for Bip32PrivateKey: " + decoded.prefix);
+      }
+    }
+
+    to_bech32() {
+      let prefix = Bip32PrivateKey._BECH32_HRP;
+      bech32.encode(prefix, this.inner);
+    }
