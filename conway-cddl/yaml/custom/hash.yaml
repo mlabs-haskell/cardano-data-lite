@@ -61,3 +61,7 @@ VRFVKey:
 KESVKey:
   type: hash
   len: 32
+
+Ed25519Signature:
+  type: hash
+  len: 64
