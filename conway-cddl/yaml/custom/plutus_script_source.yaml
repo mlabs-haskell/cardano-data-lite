@@ -1,0 +1,35 @@
+PlutusScriptRefInput:
+  type: record
+  fields:
+    - name: script_hash
+      type: ScriptHash
+    - name: input
+      type: TransactionInput
+    - name: lang_ver
+      type: Language
+    - name: script_size
+      type: number
+
+PlutusScriptSource:
+  type: tagged_record
+  variants:
+    - name: script
+      tag: 0
+      value: bytes
+    - name: _ref_input
+      tag: 1
+      value: PlutusScriptRefInput
+  extra_methods: |
+    static new(script: Uint8Array): PlutusScriptSource {
+      return PlutusScriptSource.new_script(script);
+    }
+    static new_ref_input(script_hash: ScriptHash, input: TransactionInput, lang_ver: Language, script_size: number): PlutusScriptSource {
+      return PlutusScriptSource.new__ref_input(PlutusScriptRefInput.new(script_hash, input, lang_ver, script_size));
+    }
+    set_required_signers(key_hashes: Ed25519KeyHashes): void {
+      // TODO: implement.
+    }
+    get_ref_script_size(): number | undefined {
+      // TODO: implement.
+      return undefined;
+    }

@@ -1,0 +1,13 @@
+DatumSource:
+  type: tagged_record
+  variants:
+    - name: datum
+      tag: 0
+      value: PlutusData
+    - name: ref_input
+      tag: 1
+      value: TransactionInput
+  extra_methods: |
+    static new(datum: PlutusData): DatumSource {
+      return DatumSource.new_datum(datum);
+    }
