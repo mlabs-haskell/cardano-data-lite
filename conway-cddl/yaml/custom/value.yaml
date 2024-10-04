@@ -15,6 +15,10 @@ Value:
       return Value.new(BigNum.zero());
     }
 
+    is_zero(): boolean {
+      return this._coin == 0n;
+    }
+
     static new(coin: BigNum): Value {
       return Value.new_with_assets(coin, undefined);
     }
