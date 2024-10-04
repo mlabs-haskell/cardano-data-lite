@@ -127,7 +127,7 @@ export class ByronAddress {
   }
 }
 
-class ByronAttributes {
+export class ByronAttributes {
   _derivation_path?: Uint8Array;
   _protocol_magic?: number;
 
