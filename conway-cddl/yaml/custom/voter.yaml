@@ -1,0 +1,46 @@
+# ; Constitutional Committee Hot KeyHash: 0
+# ; Constitutional Committee Hot ScriptHash: 1
+# ; DRep KeyHash: 2
+# ; DRep ScriptHash: 3
+# ; StakingPool KeyHash: 4
+# voter =
+#   [ 0, addr_keyhash
+#   // 1, scripthash
+#   // 2, addr_keyhash
+#   // 3, scripthash
+#   // 4, addr_keyhash
+#
+#   ]
+#
+VoterEnum:
+  type: tagged_record
+  variants:
+    - name: constitutional_committee_hot_key
+      tag: 0
+      value: ConstitutionalCommitteeHotKeyHash
+
+    - name: constitutional_committee_hot_script
+      tag: 1
+      value: ConstitutionalCommitteeHotScriptHash
+
+    - name: drep_key_hash
+      tag: 2
+      value: DRepKeyHash
+
+    - name: drep_script_hash
+      tag: 3
+      value: DRepScriptHash
+
+    - name: staking_pool_key_hash
+      tag: 4
+      value: StakingPoolKeyHash
+
+Voter: # TODO (custom serializer)
+  type: record
+  fields:
+    - name: constitutional_committee_hot_key
+      type: Credential
+    - name: drep
+      type: Credential
+    - name: staking_pool
+      type: Ed25519KeyHash
