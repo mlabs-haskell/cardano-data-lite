@@ -176,6 +176,18 @@ for (const [cls, methods] of cslClassesMap) {
   }
 }
 
+console.log("Missing classes:\n\t", missingClasses.join("\n\t"))
+console.log("Missing methods:\n\t", missingMethods.join("\n\t"))
+
+// We export the missing classes and methods to CSV files
+fs.mkdirSync("tests/reports");
+let missingClassesCsv = "Missing Class\n";
+missingClassesCsv += missingClasses.join("\n");
+fs.writeFileSync("tests/reports/api_missing_classes.csv", missingClassesCsv);
+let missingMethodsCsv = "Missing method\n"
+missingMethodsCsv += missingMethods.join("\n");
+fs.writeFileSync("tests/reports/api_missing_methods.csv", missingClassesCsv);
+
 // We construct the test tables
 let n: number = 0;
 for (const cls of cslClasses) {
@@ -192,10 +204,6 @@ for (const cls of cdlClasses) {
     n += 1;
   }
 }
-
-console.log("Missing classes:\n\t", missingClasses.join("\n\t"))
-console.log("Missing methods:\n\t", missingMethods.join("\n\t"))
-
 console.log("compareToCslTests.length: ", compareToCslTests.length)
 console.log("compareToCdlTests.length: ", compareToCdlTests.length)
 

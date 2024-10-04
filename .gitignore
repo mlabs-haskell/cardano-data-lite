@@ -4,3 +4,4 @@ shell.nix
 .envrc
 .direnv
 blockfrost-mainnet.txt
+tests/reports/
