@@ -2,7 +2,7 @@ import { describe, test, expect } from "@jest/globals";
 import * as thisLib from "./index";
 import * as naclExt from "./nacl-extended";
 import nacl from "tweetnacl";
-import * as CSL from "@emurgo/cardano-serialization-lib-nodejs";
+import * as CSL from "@emurgo/cardano-serialization-lib-nodejs-gc";
 import * as derive from "./derive";
 
 describe("extendedToPubkey", () => {
