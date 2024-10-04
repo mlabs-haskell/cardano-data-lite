@@ -64,7 +64,7 @@ export class ByronAddress {
     return ByronAddress.deserializeInner(new CBORReader(bytes));
   }
 
-  from_bytes(bytes: Uint8Array): ByronAddress {
+  static from_bytes(bytes: Uint8Array): ByronAddress {
     return ByronAddress.deserialize(new CBORReader(bytes));
   }
 

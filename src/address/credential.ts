@@ -4,8 +4,8 @@ import { CBORWriter } from "../cbor/writer";
 import { bytesToHex, hexToBytes } from "../hex";
 
 export enum CredKind {
-  Key,
-  Script,
+  Key = 0,
+  Script = 1,
 }
 
 export type CredentialVariant =
@@ -19,6 +19,8 @@ export type CredentialVariant =
     };
 
 export class Credential {
+  static HASH_LEN: number = 28;
+
   constructor(public readonly variant: CredentialVariant) {}
 
   static from_keyhash(key: Ed25519KeyHash): Credential {
@@ -27,6 +29,16 @@ export class Credential {
 
   static from_scripthash(script: ScriptHash): Credential {
     return new Credential({ kind: CredKind.Script, value: script });
+  }
+
+  static _from_raw_bytes(kind: number, bytes: Uint8Array) {
+    if (kind === CredKind.Key) {
+      return Credential.from_keyhash(Ed25519KeyHash.from_bytes(bytes));
+    } else if (kind === CredKind.Script) {
+      return Credential.from_scripthash(ScriptHash.from_bytes(bytes));
+    } else {
+      throw new Error(`Unknown credential kind: ${kind}`);
+    }
   }
 
   to_keyhash(): Ed25519KeyHash | undefined {
