@@ -1,6 +1,6 @@
 import { Address, AddressKind } from ".";
-import { CBORReader } from "../cbor/reader";
-import { CBORWriter } from "../cbor/writer";
+import { CBORReader } from "../lib/cbor/reader";
+import { CBORWriter } from "../lib/cbor/writer";
 import { Crc32 } from "@aws-crypto/crc32";
 import { NetworkInfo } from "./network_info";
 // @ts-ignore

@@ -1,10 +1,11 @@
-import { CBORReader, bigintFromBytes } from "../cbor/reader";
-import { CBORWriter } from "../cbor/writer";
-import { GrowableBuffer } from "../cbor/growable-buffer";
-import { hexToBytes, bytesToHex } from "../hex";
-import { arrayEq } from "../eq";
+import { CBORReader, bigintFromBytes } from "./lib/cbor/reader";
+import { CBORWriter } from "./lib/cbor/writer";
+import { GrowableBuffer } from "./lib/cbor/growable-buffer";
+import { hexToBytes, bytesToHex } from "./lib/hex";
+import { arrayEq } from "./lib/eq";
 import { bech32 } from "bech32";
-import * as cdlCrypto from "../bip32-ed25519";
+import * as cdlCrypto from "./lib/bip32-ed25519";
+import { Address, Credential } from "./address";
 
 function $$UN(id: string, ...args: any): any {
   throw "Undefined function: " + id;
@@ -2265,12 +2266,12 @@ export class Certificates {
 }
 
 export class ChangeConfig {
-  private _address: unknown;
+  private _address: Address;
   private _plutus_data: OutputDatum | undefined;
   private _script_ref: ScriptRef | undefined;
 
   constructor(
-    address: unknown,
+    address: Address,
     plutus_data: OutputDatum | undefined,
     script_ref: ScriptRef | undefined,
   ) {
@@ -2279,11 +2280,11 @@ export class ChangeConfig {
     this._script_ref = script_ref;
   }
 
-  address(): unknown {
+  address(): Address {
     return this._address;
   }
 
-  set_address(address: unknown): void {
+  set_address(address: Address): void {
     this._address = address;
   }
 
@@ -2312,7 +2313,7 @@ export class ChangeConfig {
       );
     }
 
-    let address = $$CANT_READ("Address");
+    let address = Address.deserialize(reader);
 
     let plutus_data =
       reader.readNullable((r) => OutputDatum.deserialize(r)) ?? undefined;
@@ -2326,7 +2327,7 @@ export class ChangeConfig {
   serialize(writer: CBORWriter): void {
     writer.writeArrayTag(3);
 
-    $$CANT_WRITE("Address");
+    this._address.serialize(writer);
     if (this._plutus_data == null) {
       writer.writeNull();
     } else {
@@ -2996,120 +2997,6 @@ export class Costmdls {
       }
     }
     return result;
-  }
-}
-
-export enum CredentialKind {
-  Ed25519KeyHash = 0,
-  ScriptHash = 1,
-}
-
-export type CredentialVariant =
-  | { kind: 0; value: Ed25519KeyHash }
-  | { kind: 1; value: ScriptHash };
-
-export class Credential {
-  private variant: CredentialVariant;
-
-  constructor(variant: CredentialVariant) {
-    this.variant = variant;
-  }
-
-  static new_keyhash(keyhash: Ed25519KeyHash): Credential {
-    return new Credential({ kind: 0, value: keyhash });
-  }
-
-  static new_scripthash(scripthash: ScriptHash): Credential {
-    return new Credential({ kind: 1, value: scripthash });
-  }
-
-  as_keyhash(): Ed25519KeyHash | undefined {
-    if (this.variant.kind == 0) return this.variant.value;
-  }
-
-  as_scripthash(): ScriptHash | undefined {
-    if (this.variant.kind == 1) return this.variant.value;
-  }
-
-  kind(): CredentialKind {
-    return this.variant.kind;
-  }
-
-  static deserialize(reader: CBORReader): Credential {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
-    let variant: CredentialVariant;
-
-    switch (tag) {
-      case 0:
-        if (len != null && len - 1 != 1) {
-          throw new Error("Expected 1 items to decode Ed25519KeyHash");
-        }
-        variant = {
-          kind: 0,
-          value: Ed25519KeyHash.deserialize(reader),
-        };
-
-        break;
-
-      case 1:
-        if (len != null && len - 1 != 1) {
-          throw new Error("Expected 1 items to decode ScriptHash");
-        }
-        variant = {
-          kind: 1,
-          value: ScriptHash.deserialize(reader),
-        };
-
-        break;
-    }
-
-    if (len == null) {
-      reader.readBreak();
-    }
-
-    throw new Error("Unexpected tag for Credential: " + tag);
-  }
-
-  serialize(writer: CBORWriter): void {
-    switch (this.variant.kind) {
-      case 0:
-        writer.writeArrayTag(2);
-        writer.writeInt(BigInt(0));
-        this.variant.value.serialize(writer);
-        break;
-      case 1:
-        writer.writeArrayTag(2);
-        writer.writeInt(BigInt(1));
-        this.variant.value.serialize(writer);
-        break;
-    }
-  }
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Credential {
-    let reader = new CBORReader(data);
-    return Credential.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Credential {
-    return Credential.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
-  clone(): Credential {
-    return Credential.from_bytes(this.to_bytes());
   }
 }
 
@@ -6305,99 +6192,6 @@ export class Languages {
       Language.new_plutus_v2(),
       Language.new_plutus_v3(),
     ]);
-  }
-}
-
-export class MIRToStakeCredentials {
-  _items: [Credential, Credential][];
-
-  constructor(items: [Credential, Credential][]) {
-    this._items = items;
-  }
-
-  static new(): MIRToStakeCredentials {
-    return new MIRToStakeCredentials([]);
-  }
-
-  len(): number {
-    return this._items.length;
-  }
-
-  insert(key: Credential, value: Credential): Credential | undefined {
-    let entry = this._items.find((x) =>
-      arrayEq(key.to_bytes(), x[0].to_bytes()),
-    );
-    if (entry != null) {
-      let ret = entry[1];
-      entry[1] = value;
-      return ret;
-    }
-    this._items.push([key, value]);
-    return undefined;
-  }
-
-  get(key: Credential): Credential | undefined {
-    let entry = this._items.find((x) =>
-      arrayEq(key.to_bytes(), x[0].to_bytes()),
-    );
-    if (entry == null) return undefined;
-    return entry[1];
-  }
-
-  _remove_many(keys: Credential[]): void {
-    this._items = this._items.filter(([k, _v]) =>
-      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
-    );
-  }
-
-  keys(): Credentials {
-    let keys = Credentials.new();
-    for (let [key, _] of this._items) keys.add(key);
-    return keys;
-  }
-
-  static deserialize(reader: CBORReader): MIRToStakeCredentials {
-    let ret = new MIRToStakeCredentials([]);
-    reader.readMap((reader) =>
-      ret.insert(
-        Credential.deserialize(reader),
-        Credential.deserialize(reader),
-      ),
-    );
-    return ret;
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeMap(this._items, (writer, x) => {
-      x[0].serialize(writer);
-      x[1].serialize(writer);
-    });
-  }
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): MIRToStakeCredentials {
-    let reader = new CBORReader(data);
-    return MIRToStakeCredentials.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): MIRToStakeCredentials {
-    return MIRToStakeCredentials.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
-  clone(): MIRToStakeCredentials {
-    return MIRToStakeCredentials.from_bytes(this.to_bytes());
   }
 }
 
@@ -14443,13 +14237,13 @@ export class TransactionMetadatumLabels {
 }
 
 export class TransactionOutput {
-  private _address: unknown;
+  private _address: Address;
   private _amount: Value;
   private _plutus_data: DataOption | undefined;
   private _script_ref: ScriptRef | undefined;
 
   constructor(
-    address: unknown,
+    address: Address,
     amount: Value,
     plutus_data: DataOption | undefined,
     script_ref: ScriptRef | undefined,
@@ -14461,7 +14255,7 @@ export class TransactionOutput {
   }
 
   static new(
-    address: unknown,
+    address: Address,
     amount: Value,
     plutus_data: DataOption | undefined,
     script_ref: ScriptRef | undefined,
@@ -14469,11 +14263,11 @@ export class TransactionOutput {
     return new TransactionOutput(address, amount, plutus_data, script_ref);
   }
 
-  address(): unknown {
+  address(): Address {
     return this._address;
   }
 
-  set_address(address: unknown): void {
+  set_address(address: Address): void {
     this._address = address;
   }
 
@@ -14507,7 +14301,7 @@ export class TransactionOutput {
       let key = Number(r.readUint());
       switch (key) {
         case 0:
-          fields.address = $$CANT_READ("Address");
+          fields.address = Address.deserialize(r);
           break;
 
         case 1:
@@ -14545,7 +14339,7 @@ export class TransactionOutput {
     writer.writeMapTag(len);
 
     writer.writeInt(0n);
-    $$CANT_WRITE("Address");
+    this._address.serialize(writer);
 
     writer.writeInt(1n);
     this._amount.serialize(writer);

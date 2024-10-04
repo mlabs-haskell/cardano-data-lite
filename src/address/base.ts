@@ -1,5 +1,5 @@
 import { Address, AddressKind } from ".";
-import { GrowableBuffer } from "../cbor/growable-buffer";
+import { GrowableBuffer } from "../lib/cbor/growable-buffer";
 import { Credential } from "./credential";
 
 export class BaseAddress {

@@ -1,7 +1,7 @@
-import { Ed25519KeyHash, ScriptHash } from "../generated/out";
-import { CBORReader } from "../cbor/reader";
-import { CBORWriter } from "../cbor/writer";
-import { bytesToHex, hexToBytes } from "../hex";
+import { Ed25519KeyHash, ScriptHash } from "../generated";
+import { CBORReader } from "../lib/cbor/reader";
+import { CBORWriter } from "../lib/cbor/writer";
+import { bytesToHex, hexToBytes } from "../lib/hex";
 
 export enum CredKind {
   Key = 0,
