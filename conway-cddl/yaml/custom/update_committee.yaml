@@ -1,0 +1,86 @@
+Committee:
+  type: custom
+  body: |
+    quorum_threshold_: UnitInterval;
+    members_: CommitteeEpochs;
+
+    constructor(
+      quorum_threshold: UnitInterval,
+      members: CommitteeEpochs,
+    ) {
+      this.quorum_threshold_ = quorum_threshold;
+      this.members_ = members;
+    }
+
+    static new(quorum_threshold: UnitInterval): Committee {
+      return new Committee(quorum_threshold, CommitteeEpochs.new());
+    }
+
+    members_keys(): Credentials {
+      return new Credentials(this.members_.items.map(([k, _v]) => k));
+    }
+
+    quorum_threshold(): UnitInterval {
+      return this.quorum_threshold_;
+    }
+
+    add_member(committee_cold_credential: Credential, epoch: number): void {
+      this.members_.insert(committee_cold_credential, epoch);
+    }
+
+    get_member_epoch(committee_cold_credential: Credential): number | undefined {
+      return this.members_.get(committee_cold_credential);
+    }
+
+CommitteeEpochs:
+  type: map
+  export: false
+  key: Credential
+  value: number
+
+UpdateCommitteeAction:
+  type: record_fragment
+  fields:
+    - name: gov_action_id
+      type: GovernanceActionId
+      nullable: true
+    - name: committee
+      type: Committee
+    - name: members_to_remove
+      type: Credentials
+  fragment_encode_len: 4
+  methods:
+    new: new_with_action_id
+  functions: |
+    static new(
+      committee: Committee,
+      members_to_remove: Credentials,
+    ): UpdateCommitteeAction {
+      return new UpdateCommitteeAction.new_with_action_id(
+        undefined,
+        committee,
+        members_to_remove
+      );
+    }
+
+    deserialize(reader: CBORReader): UpdateCommitteeAction {
+      let gov_action_id = reader.readNullable(reader => 
+        GovernanceActionId.deserialize(reader)
+      ); 
+      let members_to_remove = Credentials.deserialize(reader);
+      let members = CommitteeEpochs.deserialize(reader);
+      let quorum_threshold = UnitInterval.deserialize(reader);
+      return UpdateCommitteeAction.new(
+        gov_action_id,
+        Committee.new(quorum_threshold, members);
+        members_to_remove,
+      );
+    }
+
+    serialize(writer: CBORWriter): void {
+      if(this.gov_action_id == null) writer.writeNull()
+      else this.gov_action_id.serialize(writer);
+      this.members_to_remove.serialize(writer);
+      this.committee.members_.serialize(writer);
+      this.committee.quorum_threshold_.serialize(writer);
+    }

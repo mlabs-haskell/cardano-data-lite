@@ -388,19 +388,6 @@ NoConfidenceAction:
       type: GovernanceActionId
       nullable: true
 
-UpdateCommitteeAction:
-  type: record_fragment
-  fields:
-    - name: gov_action_id
-      type: GovernanceActionId
-      nullable: true
-    - name: members_to_remove
-      type: Credentials
-    - name: committee
-      type: Committee
-    - name: quorom_threshold
-      type: UnitInterval
-
 NewConstitutionAction:
   type: record_fragment
   fields:
