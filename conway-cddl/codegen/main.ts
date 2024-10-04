@@ -88,11 +88,11 @@ async function main() {
     fs.writeFileSync(outUnformattedFile, out);
     out = await prettier.format(out, { parser: "babel-ts" });
     fs.writeFileSync(outFile, out);
-    if (!hasAnyError) {
-      console.log("Success.");
-    } else {
-      console.log("Errors detected.");
-    }
+  }
+  if (!hasAnyError) {
+    console.log("Success.");
+  } else {
+    console.log("Errors detected.");
   }
 }
 
