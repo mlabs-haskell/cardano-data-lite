@@ -30,16 +30,20 @@ export class GenTaggedRecord extends CodeGeneratorBase {
     if (variant.value == null) return 0;
 
     let custom = this.typeUtils.customTypes[variant.value];
+    let inner: GenRecordFragment;
     if (custom instanceof GenRecordFragment) {
-      return custom.getFields().length;
+      inner = custom;
     } else if (custom instanceof GenRecordFragmentWrapper) {
-      let inner = this.typeUtils.customTypes[custom.getItem().type];
-      if (!(inner instanceof GenRecordFragment))
+      let inner_ = this.typeUtils.customTypes[custom.getItem().type];
+      if (!(inner_ instanceof GenRecordFragment))
         throw new Error("Expected GenRecordFragment");
-      return inner.getFields().length;
+      inner = inner_;
     } else {
       return 1;
     }
+
+    if (inner.fragmentEncodeLen != null) return inner.fragmentEncodeLen;
+    return inner.getFields().length;
   }
 
   deserializeVariant(
