@@ -4,6 +4,8 @@ import { EnterpriseAddress } from "./enterprise";
 import { BaseAddress } from "./base";
 import { Credential } from "./credential";
 import { RewardAddress } from "./reward";
+import { CBORWriter } from "../lib/cbor/writer";
+import { CBORReader } from "../lib/cbor/reader";
 
 export * from "./byron";
 export * from "./malformed";
@@ -141,5 +143,13 @@ export class Address {
           value: new MalformedAddress(bytes),
         });
     }
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): Address {
+    return Address.from_bytes(reader.readBytes());
   }
 }

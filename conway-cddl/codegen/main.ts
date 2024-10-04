@@ -30,8 +30,8 @@ async function main() {
   let curDir = path.dirname(curFile);
 
   let srcDir = path.join(curDir, "..", "..", "src");
-  let outUnformattedFile = path.join(srcDir, "generated", "out-unformatted.ts");
-  let outFile = path.join(srcDir, "generated", "out.ts");
+  let outUnformattedFile = path.join(srcDir, "generated-unformatted.ts");
+  let outFile = path.join(srcDir, "generated.ts");
 
   let yamlDir = path.join(curDir, "..", "yaml");
 
@@ -69,13 +69,14 @@ async function main() {
 
   if (!cliArgs.validateOnly) {
     let header = `
-    import {CBORReader, bigintFromBytes} from "../cbor/reader";
-    import {CBORWriter} from "../cbor/writer";
-    import {GrowableBuffer} from "../cbor/growable-buffer";
-    import {hexToBytes, bytesToHex} from "../hex";
-    import {arrayEq} from "../eq";
+    import {CBORReader, bigintFromBytes} from "./lib/cbor/reader";
+    import {CBORWriter} from "./lib/cbor/writer";
+    import {GrowableBuffer} from "./lib/cbor/growable-buffer";
+    import {hexToBytes, bytesToHex} from "./lib/hex";
+    import {arrayEq} from "./lib/eq";
     import {bech32} from "bech32";
-    import * as cdlCrypto from "../bip32-ed25519";
+    import * as cdlCrypto from "./lib/bip32-ed25519";
+    import {Address, Credential} from "./address";
 
     function $$UN(id: string, ...args: any): any {
       throw ("Undefined function: " + id);
