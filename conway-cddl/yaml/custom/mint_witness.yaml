@@ -1,0 +1,21 @@
+MintWitnessPlutus:
+  type: record
+  fields:
+    - name: script_source
+      type: PlutusScriptSource
+    - name: redeemer
+      type: Redeemer
+
+MintWitness:
+  type: tagged_record
+  variants:
+    - tag: 0
+      name: native_script
+      value: NativeScriptSource
+    - tag: 1
+      name: _plutus_script
+      value: MintWitnessPlutus
+  extra_methods: |
+    static new_plutus_script(plutus_script: PlutusScriptSource, redeemer: Redeemer): MintWitness {
+      return new MintWitness({ kind: 1, value: MintWitnessPlutus.new(plutus_script, redeemer)});
+    }
