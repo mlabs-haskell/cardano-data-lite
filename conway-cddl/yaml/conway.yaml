@@ -96,7 +96,7 @@ HeaderBody:
   fields:
     - name: block_number
       type: number
-    - name: slot
+    - name: slot_bignum
       type: BigNum
     - name: prev_hash
       type: BlockHash
@@ -115,6 +115,28 @@ HeaderBody:
       type: OperationalCert
     - name: protocol_version
       type: ProtocolVersion
+  extra_methods: |
+    slot(): number  {
+      return Number(this._slot_bignum);
+    }
+
+    static new_headerbody(block_number: number, slot: BigNum, prev_hash:
+      BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result:
+      VRFCert, block_body_size: number, block_body_hash: BlockHash,
+      operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody {
+      return new HeaderBody(
+        block_number,
+        slot,
+        prev_hash,
+        issuer_vkey,
+        vrf_vkey,
+        vrf_result,
+        block_body_size,
+        block_body_hash,
+        operational_cert,
+        protocol_version,
+      );
+    }
 
 # operational_cert =
 #   [ hot_vkey        : $kes_vkey
@@ -181,7 +203,7 @@ TransactionBody:
       name: fee
       type: BigNum
     - id: 3
-      name: ttl
+      name: ttl_bignum
       type: BigNum
       optional: true
       flags:
@@ -199,7 +221,7 @@ TransactionBody:
       type: AuxiliaryDataHash
       optional: true
     - id: 8
-      name: validity_start_interval
+      name: validity_start_interval_bignum
       type: BigNum
       optional: true
     - id: 9
@@ -250,6 +272,50 @@ TransactionBody:
       name: donation
       type: BigNum
       optional: true
+  extra_methods: |
+    ttl(): number | undefined {
+      if (this._ttl_bignum === undefined) return undefined;
+      return Number(this._ttl_bignum);
+    }
+    set_ttl(ttl: BigNum): void {
+      this._ttl_bignum = ttl;
+    }
+    remove_ttl(): void {
+      this._ttl_bignum = undefined;
+    }
+
+    validity_start_interval(): number | undefined {
+      if (this._validity_start_interval_bignum === undefined) return undefined;
+      return Number(this._validity_start_interval_bignum);
+    }
+    set_validity_start_interval(validity_start_interval: number): void {
+      this._validity_start_interval_bignum = BigNum.new(BigInt(validity_start_interval));
+    }
+
+    static new_tx_body(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum): TransactionBody {
+      return TransactionBody.new(
+        inputs.clone(),
+        outputs.clone(),
+        fee,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      );
+     }
 
 TransactionInputs:
   type: set
@@ -1604,14 +1670,30 @@ ScriptNOfK:
 TimelockStart:
   type: record_fragment
   fields:
-    - name: slot
+    - name: slot_bignum
       type: BigNum
+  extra_methods: |
+    slot(): number  {
+      return Number(this._slot_bignum);
+    }
+
+    static new_timelockexpiry(slot: BigNum): TimelockExpiry {
+      return new TimelockExpiry(slot);
+    }
 
 TimelockExpiry:
   type: record_fragment
   fields:
-    - name: slot
+    - name: slot_bignum
       type: BigNum
+  extra_methods: |
+    slot(): number  {
+      return Number(this._slot_bignum);
+    }
+
+    static new_timelockexpiry(slot: BigNum): TimelockExpiry {
+      return new TimelockExpiry(slot);
+    }
 
 # coin = uint
 
