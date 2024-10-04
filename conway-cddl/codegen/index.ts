@@ -14,6 +14,7 @@ import { GenRecordFragmentWrapper } from "./generators/structured/record_fragmen
 import { GenUnion } from "./generators/union";
 import { Value } from "@sinclair/typebox/value";
 import { GenHash } from "./generators/hash";
+import { GenCustom } from "./generators/custom";
 
 export type SchemaTable = { [key: string]: CodeGeneratorBase };
 
@@ -67,6 +68,8 @@ export class Codegen {
         return new GenUnion(name, this.customTypes, schema);
       case "hash":
         return new GenHash(name, this.customTypes, schema);
+      case "custom":
+        return new GenCustom(name, this.customTypes, schema);
     }
     throw new Error("Unknown type: " + schema_.type + " for " + name);
   }
