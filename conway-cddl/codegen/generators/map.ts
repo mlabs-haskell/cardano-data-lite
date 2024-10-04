@@ -28,14 +28,14 @@ export class GenMap extends CodeGeneratorBase {
 
   generateMembers(): string {
     return `      
-      private items: ${this.entryJsType()}[];
+      _items: ${this.entryJsType()}[];
     `;
   }
 
   generateConstructor(): string {
     return `
       constructor(items: ${this.entryJsType()}[]) {
-        this.items = items;
+        this._items = items;
       }
     `;
   }
@@ -56,7 +56,7 @@ export class GenMap extends CodeGeneratorBase {
         "len",
         (len) => `
       ${len}(): number {
-        return this.items.length;
+        return this._items.length;
       }`,
       )};
 
@@ -64,13 +64,13 @@ export class GenMap extends CodeGeneratorBase {
         "insert",
         (insert) => `
       ${insert}(key: ${keyJsType}, value: ${valueJsType}): ${valueJsType} | undefined {
-        let entry = this.items.find(x => ${this.typeUtils.eqType("key", "x[0]", this.key)});
+        let entry = this._items.find(x => ${this.typeUtils.eqType("key", "x[0]", this.key)});
         if(entry != null) {
           let ret = entry[1];
           entry[1] = value;
           return ret;
         }
-        this.items.push([key, value]);
+        this._items.push([key, value]);
         return undefined;
       }`,
       )};
@@ -79,14 +79,14 @@ export class GenMap extends CodeGeneratorBase {
         "get",
         (get) => `
       ${get}(key: ${keyJsType}): ${valueJsType} | undefined {
-        let entry = this.items.find(x => ${this.typeUtils.eqType("key", "x[0]", this.key)});
+        let entry = this._items.find(x => ${this.typeUtils.eqType("key", "x[0]", this.key)});
         if(entry == null) return undefined;
         return entry[1];
       }`,
       )};
 
       _remove_many(keys: ${keyJsType}[]): void {
-        this.items = this.items.filter(
+        this._items = this._items.filter(
           ([k, _v]) => keys.every(
             key => !(${this.typeUtils.eqType("key", "k", this.key)})
           )
@@ -112,7 +112,7 @@ export class GenMap extends CodeGeneratorBase {
 
   generateSerialize(writer: string): string {
     return `
-      ${writer}.writeMap(this.items, (writer, x) => {
+      ${writer}.writeMap(this._items, (writer, x) => {
         ${this.typeUtils.writeType("writer", "x[0]", this.key)};
         ${this.typeUtils.writeType("writer", "x[1]", this.value)};
       });
@@ -126,7 +126,7 @@ export class GenMap extends CodeGeneratorBase {
       (keys) => `
       ${keys}(): ${this.keys_method_type} {
         let keys = ${this.keys_method_type}.new();
-        for(let [key, _] of this.items) keys.add(key);
+        for(let [key, _] of this._items) keys.add(key);
         return keys;
       }
       `,

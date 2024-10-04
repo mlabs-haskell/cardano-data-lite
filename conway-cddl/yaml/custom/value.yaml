@@ -135,7 +135,7 @@ MultiAsset:
     }
 
     _inplace_checked_add(rhs: MultiAsset): void {
-      for(let [policy, rhs_assets] of rhs.items) {
+      for(let [policy, rhs_assets] of rhs._items) {
         let this_assets = this.get(policy);
         if(this_assets == null) {
           this_assets = Assets.new()
@@ -146,7 +146,7 @@ MultiAsset:
     }
 
     _inplace_clamped_sub(rhs: MultiAsset) {
-      for(let [policy, rhs_assets] of rhs.items) {
+      for(let [policy, rhs_assets] of rhs._items) {
         let this_assets = this.get(policy);
         if(this_assets == null) continue;
         this_assets._inplace_clamped_sub(rhs_assets);
@@ -157,7 +157,7 @@ MultiAsset:
 
     _normalize(): void {
       let to_remove: ScriptHash[] = [];
-      for(let [policy_id, assets] of this.items) {
+      for(let [policy_id, assets] of this._items) {
         if(assets.len() == 0) to_remove.push(policy_id);
       }
       this._remove_many(to_remove);
@@ -170,7 +170,7 @@ MultiAsset:
         false, // 0
         false, // 1
       ];
-      for(let [policy_id, this_assets] of this.items) {
+      for(let [policy_id, this_assets] of this._items) {
         let rhs_assets = rhs.get(policy_id);
         if(rhs_assets == null) rhs_assets = zero;
         let assets_cmp = this_assets._partial_cmp(rhs_assets);
@@ -178,7 +178,7 @@ MultiAsset:
         cmps[1 + assets_cmp] = true;
       }
 
-      for(let [policy_id, rhs_assets] of rhs.items) {
+      for(let [policy_id, rhs_assets] of rhs._items) {
         let this_assets = this.get(policy_id);
         if(this_assets == null) this_assets = zero;
         let assets_cmp = this_assets._partial_cmp(rhs_assets);
@@ -203,7 +203,7 @@ Assets:
   keys_method_type: AssetNames
   extra_methods: |
     _inplace_checked_add(rhs: Assets): void {
-      for(let [asset_name, amount] of rhs.items) {
+      for(let [asset_name, amount] of rhs._items) {
         let this_amount = this.get(asset_name);
         if(this_amount == null) this_amount = amount;
         else this_amount = this_amount.checked_add(amount);
@@ -212,7 +212,7 @@ Assets:
     }
 
     _inplace_clamped_sub(rhs: Assets): void {
-      for(let [asset_name, amount] of rhs.items) {
+      for(let [asset_name, amount] of rhs._items) {
         let this_amount = this.get(asset_name);
         if(this_amount == null) continue;
         this_amount = this_amount.clamped_sub(amount);
@@ -223,7 +223,7 @@ Assets:
 
     _normalize(): void {
       let to_remove: AssetName[] = [];
-      for(let [asset_name, amount] of this.items) {
+      for(let [asset_name, amount] of this._items) {
         if(amount.is_zero()) to_remove.push(asset_name);
       }
       this._remove_many(to_remove);
@@ -236,13 +236,13 @@ Assets:
         false, // 0
         false, // 1
       ];
-      for(let [asset_name, this_amount] of this.items) {
+      for(let [asset_name, this_amount] of this._items) {
          let rhs_amount = rhs.get(asset_name);
          if(rhs_amount == null) rhs_amount = zero;
          cmps[1 + this_amount.compare(rhs_amount)] = true;
       }
 
-      for(let [asset_name, rhs_amount] of rhs.items) {
+      for(let [asset_name, rhs_amount] of rhs._items) {
          let this_amount = this.get(asset_name);
          if(this_amount == null) this_amount = zero;
          cmps[1 + this_amount.compare(rhs_amount)];
