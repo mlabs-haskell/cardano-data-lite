@@ -3,6 +3,7 @@
     "GenesisKeyDelegation",
     "MoveInstantaneousReward",
     "MoveInstantaneousRewardsCert",
+    "MIRToStakeCredentials",
     "FixedBlock",
     "FixedTransaction",
     "FixedTransactionBodies",
@@ -19,6 +20,7 @@
     "TransactionUnspentOutput",
     "TransactionUnspentOutputs",
     "TransactionBatch",
-    "TransactionBatchList"
+    "TransactionBatchList",
+    "PlutusScript"
   ]
 }
