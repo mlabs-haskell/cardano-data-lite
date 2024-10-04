@@ -23,7 +23,7 @@ export enum AddressKind {
   Malformed,
 }
 
-type AddressVariant =
+export type AddressVariant =
   | {
       kind: AddressKind.Base;
       value: BaseAddress;
