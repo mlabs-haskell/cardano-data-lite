@@ -17,7 +17,11 @@ Committee:
     }
 
     members_keys(): Credentials {
-      return new Credentials(this.members_.items.map(([k, _v]) => k));
+      let credentials = new Credentials();
+      for(let [k, _] of this.members_._items) {
+        credentials.add(k);
+      }
+      return credentials;
     }
 
     quorum_threshold(): UnitInterval {

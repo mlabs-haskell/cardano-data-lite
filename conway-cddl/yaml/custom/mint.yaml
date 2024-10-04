@@ -8,7 +8,7 @@ Mint:
       const result = new MultiAsset([]);
 
       // Iterating over items in Mint class
-      const mintItems = this.items;
+      const mintItems = this._items;
 
       for (const [scriptHash, mintAssets] of mintItems) {
         const assets = new Assets([]);
@@ -47,4 +47,3 @@ Mint:
     as_negative_multiasset(): MultiAsset {
       return this._as_multiasset(false);
     }
-
