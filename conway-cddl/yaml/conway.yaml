@@ -35,8 +35,16 @@ AuxiliaryDataSet:
   type: map
   key: number
   value: AuxiliaryData
-  flags:
-    - indices_uint32array
+  extra_methods: |
+    indices(): Uint32Array {
+      let indices = new Uint32Array(this.items.length);
+      for(let i = 0; i < this.items.length; i++) {
+        let item = this.items[i];
+        let key = item[0];
+        indices[i] = key;
+      }
+      return indices;
+    }
 
 # transaction =
 #   [ transaction_body
@@ -845,15 +853,15 @@ StakeVoteRegistrationAndDelegation:
 CommitteeHotAuth:
   type: record_fragment
   fields:
-    - name: committee_cold_key
+    - name: committee_cold_credential
       type: Credential
-    - name: committee_hot_key
+    - name: committee_hot_credential
       type: Credential
 
 CommitteeColdResign:
   type: record_fragment
   fields:
-    - name: committee_cold_key
+    - name: committee_cold_credential
       type: Credential
     - name: anchor
       type: Anchor
@@ -1782,12 +1790,15 @@ TreasuryWithdrawals:
   value: BigNum
   keys_method_type: RewardAddresses
 
+RewardAddresses:
+  type: array
+  item: RewardAddress
+
 MIRToStakeCredentials:
   type: map
   key: Credential
   value: Credential
   keys_method_type: Credentials
-
 
 VRFCert:
   type: record
@@ -1796,4 +1807,3 @@ VRFCert:
       type: bytes
     - name: proof
       type: bytes
-
