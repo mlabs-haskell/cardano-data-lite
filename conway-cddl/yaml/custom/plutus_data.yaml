@@ -2,7 +2,7 @@ PlutusData:
   type: union
   variants:
     - tag: 0
-      peek_type: ConstrPlutusData
+      peek_type: "tagged"
       name: constr_plutus_data
       type: ConstrPlutusData
     - tag: 1
@@ -14,7 +14,7 @@ PlutusData:
       name: list
       type: PlutusList
     - tag: 3
-      peek_type: BigInt
+      peek_type: ["uint", "nint", "tagged"]
       name: integer
       type: BigInt
     - tag: 4
@@ -46,4 +46,3 @@ PlutusData:
     static from_address(address: Address): PlutusData {
       throw new Error("PlutusData.from_address: to be implemented");
     }
-
