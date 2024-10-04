@@ -7,7 +7,7 @@ import { Value } from "@sinclair/typebox/value";
 import { Schema } from "../conway-cddl/codegen/types";
 import { TransactionInfo } from "./test_types"; 
 import { test } from "@jest/globals";
-import * as Out from "./generated/out"
+import * as Out from "../src/generated/out"
 
 // Each component of a transaction is identified by its type and its location
 // in the transaction ('path').
@@ -25,31 +25,20 @@ let transactionsCsl: Array<csl.Transaction> = [];
 let testsTable: Array<TestParameters> = [];
 
 // Types we are not interested in (or that are not supported)
-const typeBlacklist = new Set([
-  // from_bytes not implemented for these types
-  "ScriptAll",
-  "StakeDeregistration",
-  "StakeDelegation",
-  "VoteKind", // not really broken: we don't suport deserialization for enum_simple (this is the only enum_simple)
-  "Ed25519KeyHash", 
-  "AuxiliaryData",
-  "TransactionOutput",
-  "TransactionOutputs",
+const typeBlacklist = new Set<string>([
   // Uninteresting
   "boolean",
   "bignum" 
 ]);
-// Unsupported fields
-const fieldsBlacklist = new Set([
-  "committee_cold_resign", // in conway.yaml this is a `CommiteeColdResign`. But in CSL, this is a `Credential`.
-  "committee_cold_key",    // tries to access 'committee_cold_key', but only 'committee_cold_credential' exists in CSL type
-  "plutus_scripts_v1",     // no accessor with this name
-  "plutus_scripts_v2",     // no accessor with this name
-  "plutus_scripts_v3"      // no accessor with this name
+// Unsupported fields during extraction
+const fieldsBlacklist = new Set<string>([
+  "plutus_scripts_v1",
+  "plutus_scripts_v2",
+  "plutus_scripts_v3",
 ]);
 
 // Whether to log extraction messages or not
-const traceExtraction = false;
+const traceExtraction = true;
 // Whether to succeed when a $$CANT_READ error is found
 const succeedWithUnimplementedFunctions = false;
 
