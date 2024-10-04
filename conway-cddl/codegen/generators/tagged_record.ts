@@ -133,6 +133,10 @@ export class GenTaggedRecord extends CodeGeneratorBase {
               : "",
           )
           .join("\n")}
+
+        kind(): ${this.name}Kind {
+          return this.variant.kind;
+        }
     `;
   }
 

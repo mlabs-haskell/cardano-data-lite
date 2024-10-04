@@ -79,6 +79,10 @@ export class GenUnion extends CodeGeneratorBase {
               `,
           )
           .join("\n")}
+
+        kind(): ${this.name}Kind {
+          return this.variant.kind;
+        }
     `;
   }
 
