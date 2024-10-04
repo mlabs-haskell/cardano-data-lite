@@ -50,4 +50,26 @@ export class BaseAddress {
     buf.pushByteArray(this._stake._to_raw_bytes());
     return buf.getBytes();
   }
+
+  static from_bytes(data: Uint8Array): BaseAddress {
+    const HASH_LEN = Credential.HASH_LEN;
+
+    if (data.length != 1 + 2 * HASH_LEN) {
+      throw new Error("Invalid BaseAddress data length");
+    }
+
+    let header = data[0];
+    let network = header & 0xf;
+    let payment_kind = (header >> 4) & 0x1;
+    let stake_kind = (header >> 5) & 0x1;
+    let payment = Credential._from_raw_bytes(
+      payment_kind,
+      data.slice(1, 1 + HASH_LEN),
+    );
+    let stake = Credential._from_raw_bytes(
+      stake_kind,
+      data.slice(1 + HASH_LEN, 1 + 2 * HASH_LEN),
+    );
+    return new BaseAddress(network, payment, stake);
+  }
 }

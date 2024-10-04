@@ -1,5 +1,4 @@
 import { ByronAddress } from "./byron";
-import { PointerAddress } from "./pointer";
 import { MalformedAddress } from "./malformed";
 import { EnterpriseAddress } from "./enterprise";
 import { BaseAddress } from "./base";
@@ -7,7 +6,6 @@ import { Credential } from "./credential";
 import { RewardAddress } from "./reward";
 
 export * from "./byron";
-export * from "./pointer";
 export * from "./malformed";
 export * from "./enterprise";
 export * from "./base";
@@ -17,7 +15,6 @@ export * from "./reward";
 
 export enum AddressKind {
   Base,
-  Pointer,
   Enterprise,
   Reward,
   Byron,
@@ -28,10 +25,6 @@ type AddressVariant =
   | {
       kind: AddressKind.Base;
       value: BaseAddress;
-    }
-  | {
-      kind: AddressKind.Pointer;
-      value: PointerAddress;
     }
   | {
       kind: AddressKind.Enterprise;
@@ -67,8 +60,6 @@ export class Address {
     switch (this._variant.kind) {
       case AddressKind.Base:
         return this._variant.value.payment_cred();
-      case AddressKind.Pointer:
-        return this._variant.value.payment_cred();
       case AddressKind.Enterprise:
         return this._variant.value.payment_cred();
       case AddressKind.Reward:
@@ -88,8 +79,6 @@ export class Address {
     switch (this._variant.kind) {
       case AddressKind.Base:
         return this._variant.value.network_id();
-      case AddressKind.Pointer:
-        return this._variant.value.network_id();
       case AddressKind.Enterprise:
         return this._variant.value.network_id();
       case AddressKind.Reward:
@@ -102,12 +91,55 @@ export class Address {
   }
 
   to_bytes(): Uint8Array {
-    // TODO
-    throw new Error("Not Implemented");
+    switch (this._variant.kind) {
+      case AddressKind.Base:
+        return this._variant.value.to_bytes();
+      case AddressKind.Enterprise:
+        return this._variant.value.to_bytes();
+      case AddressKind.Reward:
+        return this._variant.value.to_bytes();
+      case AddressKind.Byron:
+        return this._variant.value.to_bytes();
+      case AddressKind.Malformed:
+        return this._variant.value.original_bytes();
+    }
   }
 
   static from_bytes(bytes: Uint8Array): Address {
-    // TODO
-    throw new Error("Not Implemented");
+    if (bytes.length < 1) {
+      return new Address({
+        kind: AddressKind.Malformed,
+        value: new MalformedAddress(bytes),
+      });
+    }
+
+    const header = bytes[0];
+    switch (header & 0b1111) {
+      case 0b0000:
+      case 0b0001:
+      case 0b0010:
+      case 0b0011:
+        return new Address({
+          kind: AddressKind.Byron,
+          value: ByronAddress.from_bytes(bytes),
+        });
+      case 0b0110:
+      case 0b0111:
+        return new Address({
+          kind: AddressKind.Enterprise,
+          value: EnterpriseAddress.from_bytes(bytes),
+        });
+      case 0b1110:
+      case 0b1111:
+        return new Address({
+          kind: AddressKind.Reward,
+          value: RewardAddress.from_bytes(bytes),
+        });
+      default:
+        return new Address({
+          kind: AddressKind.Malformed,
+          value: new MalformedAddress(bytes),
+        });
+    }
   }
 }
