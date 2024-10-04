@@ -2262,6 +2262,121 @@ export class Certificates {
   }
 }
 
+export class ChangeConfig {
+  private _address: unknown;
+  private _plutus_data: OutputDatum | undefined;
+  private _script_ref: ScriptRef | undefined;
+
+  constructor(
+    address: unknown,
+    plutus_data: OutputDatum | undefined,
+    script_ref: ScriptRef | undefined,
+  ) {
+    this._address = address;
+    this._plutus_data = plutus_data;
+    this._script_ref = script_ref;
+  }
+
+  address(): unknown {
+    return this._address;
+  }
+
+  set_address(address: unknown): void {
+    this._address = address;
+  }
+
+  plutus_data(): OutputDatum | undefined {
+    return this._plutus_data;
+  }
+
+  set_plutus_data(plutus_data: OutputDatum | undefined): void {
+    this._plutus_data = plutus_data;
+  }
+
+  script_ref(): ScriptRef | undefined {
+    return this._script_ref;
+  }
+
+  set_script_ref(script_ref: ScriptRef | undefined): void {
+    this._script_ref = script_ref;
+  }
+
+  static deserialize(reader: CBORReader): ChangeConfig {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 3) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 3. Received " + len,
+      );
+    }
+
+    let address = $$CANT_READ("Address");
+
+    let plutus_data =
+      reader.readNullable((r) => OutputDatum.deserialize(r)) ?? undefined;
+
+    let script_ref =
+      reader.readNullable((r) => ScriptRef.deserialize(r)) ?? undefined;
+
+    return new ChangeConfig(address, plutus_data, script_ref);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(3);
+
+    $$CANT_WRITE("Address");
+    if (this._plutus_data == null) {
+      writer.writeNull();
+    } else {
+      this._plutus_data.serialize(writer);
+    }
+    if (this._script_ref == null) {
+      writer.writeNull();
+    } else {
+      this._script_ref.serialize(writer);
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ChangeConfig {
+    let reader = new CBORReader(data);
+    return ChangeConfig.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ChangeConfig {
+    return ChangeConfig.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): ChangeConfig {
+    return ChangeConfig.from_bytes(this.to_bytes());
+  }
+
+  static new(address: Address): ChangeConfig {
+    return new ChangeConfig(address, undefined, undefined);
+  }
+  change_address(address: Address): ChangeConfig {
+    return new ChangeConfig(address, this._plutus_data, this._script_ref);
+  }
+  change_plutus_data(plutus_data: OutputDatum): ChangeConfig {
+    return new ChangeConfig(this._address, plutus_data, this._script_ref);
+  }
+  change_script_ref(script_ref: ScriptRef): ChangeConfig {
+    return new ChangeConfig(this._address, this._plutus_data, script_ref);
+  }
+}
+
 export class Committee {
   quorum_threshold_: UnitInterval;
   members_: CommitteeEpochs;
@@ -3787,6 +3902,72 @@ export class DRepVotingThresholds {
 
   clone(): DRepVotingThresholds {
     return DRepVotingThresholds.from_bytes(this.to_bytes());
+  }
+}
+
+export class DataCost {
+  private _coins_per_byte: BigNum;
+
+  constructor(coins_per_byte: BigNum) {
+    this._coins_per_byte = coins_per_byte;
+  }
+
+  static new(coins_per_byte: BigNum) {
+    return new DataCost(coins_per_byte);
+  }
+
+  coins_per_byte(): BigNum {
+    return this._coins_per_byte;
+  }
+
+  set_coins_per_byte(coins_per_byte: BigNum): void {
+    this._coins_per_byte = coins_per_byte;
+  }
+
+  static deserialize(reader: CBORReader): DataCost {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 1) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 1. Received " + len,
+      );
+    }
+
+    let coins_per_byte = BigNum.deserialize(reader);
+
+    return new DataCost(coins_per_byte);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(1);
+
+    this._coins_per_byte.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DataCost {
+    let reader = new CBORReader(data);
+    return DataCost.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DataCost {
+    return DataCost.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): DataCost {
+    return DataCost.from_bytes(this.to_bytes());
   }
 }
 
@@ -6871,6 +7052,270 @@ export class MintAssets {
   }
 }
 
+export enum MintWitnessKind {
+  NativeScriptSource = 0,
+  MintWitnessPlutus = 1,
+}
+
+export type MintWitnessVariant =
+  | { kind: 0; value: NativeScriptSource }
+  | { kind: 1; value: MintWitnessPlutus };
+
+export class MintWitness {
+  private variant: MintWitnessVariant;
+
+  constructor(variant: MintWitnessVariant) {
+    this.variant = variant;
+  }
+
+  static new_native_script(native_script: NativeScriptSource): MintWitness {
+    return new MintWitness({ kind: 0, value: native_script });
+  }
+
+  static new__plutus_script(_plutus_script: MintWitnessPlutus): MintWitness {
+    return new MintWitness({ kind: 1, value: _plutus_script });
+  }
+
+  as_native_script(): NativeScriptSource | undefined {
+    if (this.variant.kind == 0) return this.variant.value;
+  }
+
+  as__plutus_script(): MintWitnessPlutus | undefined {
+    if (this.variant.kind == 1) return this.variant.value;
+  }
+
+  kind(): MintWitnessKind {
+    return this.variant.kind;
+  }
+
+  static deserialize(reader: CBORReader): MintWitness {
+    let len = reader.readArrayTag();
+    let tag = Number(reader.readUint());
+    let variant: MintWitnessVariant;
+
+    switch (tag) {
+      case 0:
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode NativeScriptSource");
+        }
+        variant = {
+          kind: 0,
+          value: NativeScriptSource.deserialize(reader),
+        };
+
+        break;
+
+      case 1:
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode MintWitnessPlutus");
+        }
+        variant = {
+          kind: 1,
+          value: MintWitnessPlutus.deserialize(reader),
+        };
+
+        break;
+    }
+
+    if (len == null) {
+      reader.readBreak();
+    }
+
+    throw new Error("Unexpected tag for MintWitness: " + tag);
+  }
+
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(0));
+        this.variant.value.serialize(writer);
+        break;
+      case 1:
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(1));
+        this.variant.value.serialize(writer);
+        break;
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MintWitness {
+    let reader = new CBORReader(data);
+    return MintWitness.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MintWitness {
+    return MintWitness.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MintWitness {
+    return MintWitness.from_bytes(this.to_bytes());
+  }
+
+  static new_plutus_script(
+    plutus_script: PlutusScriptSource,
+    redeemer: Redeemer,
+  ): MintWitness {
+    return new MintWitness({
+      kind: 1,
+      value: MintWitnessPlutus.new(plutus_script, redeemer),
+    });
+  }
+}
+
+export class MintWitnessPlutus {
+  private _script_source: PlutusScriptSource;
+  private _redeemer: Redeemer;
+
+  constructor(script_source: PlutusScriptSource, redeemer: Redeemer) {
+    this._script_source = script_source;
+    this._redeemer = redeemer;
+  }
+
+  static new(script_source: PlutusScriptSource, redeemer: Redeemer) {
+    return new MintWitnessPlutus(script_source, redeemer);
+  }
+
+  script_source(): PlutusScriptSource {
+    return this._script_source;
+  }
+
+  set_script_source(script_source: PlutusScriptSource): void {
+    this._script_source = script_source;
+  }
+
+  redeemer(): Redeemer {
+    return this._redeemer;
+  }
+
+  set_redeemer(redeemer: Redeemer): void {
+    this._redeemer = redeemer;
+  }
+
+  static deserialize(reader: CBORReader): MintWitnessPlutus {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " + len,
+      );
+    }
+
+    let script_source = PlutusScriptSource.deserialize(reader);
+
+    let redeemer = Redeemer.deserialize(reader);
+
+    return new MintWitnessPlutus(script_source, redeemer);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(2);
+
+    this._script_source.serialize(writer);
+    this._redeemer.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MintWitnessPlutus {
+    let reader = new CBORReader(data);
+    return MintWitnessPlutus.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MintWitnessPlutus {
+    return MintWitnessPlutus.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MintWitnessPlutus {
+    return MintWitnessPlutus.from_bytes(this.to_bytes());
+  }
+}
+
+export class MintsAssets {
+  private items: MintAssets[];
+
+  constructor(items: MintAssets[]) {
+    this.items = items;
+  }
+
+  static new(): MintsAssets {
+    return new MintsAssets([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): MintAssets {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: MintAssets): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): MintsAssets {
+    return new MintsAssets(
+      reader.readArray((reader) => MintAssets.deserialize(reader)),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MintsAssets {
+    let reader = new CBORReader(data);
+    return MintsAssets.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MintsAssets {
+    return MintsAssets.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MintsAssets {
+    return MintsAssets.from_bytes(this.to_bytes());
+  }
+}
+
 export class MoveInstantaneousReward {
   private _pot: MIRPot;
   private _variant: MIREnum;
@@ -8052,6 +8497,120 @@ export class OperationalCert {
   }
 }
 
+export enum OutputDatumKind {
+  DataHash = 0,
+  PlutusData = 1,
+}
+
+export type OutputDatumVariant =
+  | { kind: 0; value: DataHash }
+  | { kind: 1; value: PlutusData };
+
+export class OutputDatum {
+  private variant: OutputDatumVariant;
+
+  constructor(variant: OutputDatumVariant) {
+    this.variant = variant;
+  }
+
+  static new_data_hash(data_hash: DataHash): OutputDatum {
+    return new OutputDatum({ kind: 0, value: data_hash });
+  }
+
+  static new_data(data: PlutusData): OutputDatum {
+    return new OutputDatum({ kind: 1, value: data });
+  }
+
+  as_data_hash(): DataHash | undefined {
+    if (this.variant.kind == 0) return this.variant.value;
+  }
+
+  as_data(): PlutusData | undefined {
+    if (this.variant.kind == 1) return this.variant.value;
+  }
+
+  kind(): OutputDatumKind {
+    return this.variant.kind;
+  }
+
+  static deserialize(reader: CBORReader): OutputDatum {
+    let len = reader.readArrayTag();
+    let tag = Number(reader.readUint());
+    let variant: OutputDatumVariant;
+
+    switch (tag) {
+      case 0:
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode DataHash");
+        }
+        variant = {
+          kind: 0,
+          value: DataHash.deserialize(reader),
+        };
+
+        break;
+
+      case 1:
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode PlutusData");
+        }
+        variant = {
+          kind: 1,
+          value: PlutusData.deserialize(reader),
+        };
+
+        break;
+    }
+
+    if (len == null) {
+      reader.readBreak();
+    }
+
+    throw new Error("Unexpected tag for OutputDatum: " + tag);
+  }
+
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(0));
+        this.variant.value.serialize(writer);
+        break;
+      case 1:
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(1));
+        this.variant.value.serialize(writer);
+        break;
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): OutputDatum {
+    let reader = new CBORReader(data);
+    return OutputDatum.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): OutputDatum {
+    return OutputDatum.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): OutputDatum {
+    return OutputDatum.from_bytes(this.to_bytes());
+  }
+}
+
 export class ParameterChangeAction {
   private _gov_action_id: GovernanceActionId | undefined;
   private _protocol_param_updates: ProtocolParamUpdate;
@@ -8897,10 +9456,149 @@ export class PlutusScripts {
   }
 }
 
-export class PlutusWitnesses {
-  private items: unknown[];
+export class PlutusWitness {
+  private _script_source: PlutusScriptSource;
+  private _datum_source: DatumSource | undefined;
+  private _redeemer: Redeemer;
 
-  constructor(items: unknown[]) {
+  constructor(
+    script_source: PlutusScriptSource,
+    datum_source: DatumSource | undefined,
+    redeemer: Redeemer,
+  ) {
+    this._script_source = script_source;
+    this._datum_source = datum_source;
+    this._redeemer = redeemer;
+  }
+
+  script_source(): PlutusScriptSource {
+    return this._script_source;
+  }
+
+  set_script_source(script_source: PlutusScriptSource): void {
+    this._script_source = script_source;
+  }
+
+  datum_source(): DatumSource | undefined {
+    return this._datum_source;
+  }
+
+  set_datum_source(datum_source: DatumSource | undefined): void {
+    this._datum_source = datum_source;
+  }
+
+  redeemer(): Redeemer {
+    return this._redeemer;
+  }
+
+  set_redeemer(redeemer: Redeemer): void {
+    this._redeemer = redeemer;
+  }
+
+  static deserialize(reader: CBORReader): PlutusWitness {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 3) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 3. Received " + len,
+      );
+    }
+
+    let script_source = PlutusScriptSource.deserialize(reader);
+
+    let datum_source =
+      reader.readNullable((r) => DatumSource.deserialize(r)) ?? undefined;
+
+    let redeemer = Redeemer.deserialize(reader);
+
+    return new PlutusWitness(script_source, datum_source, redeemer);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(3);
+
+    this._script_source.serialize(writer);
+    if (this._datum_source == null) {
+      writer.writeNull();
+    } else {
+      this._datum_source.serialize(writer);
+    }
+    this._redeemer.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PlutusWitness {
+    let reader = new CBORReader(data);
+    return PlutusWitness.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PlutusWitness {
+    return PlutusWitness.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): PlutusWitness {
+    return PlutusWitness.from_bytes(this.to_bytes());
+  }
+
+  static new(
+    script: Uint8Array,
+    datum: PlutusData,
+    redeemer: Redeemer,
+  ): PlutusWitness {
+    return new PlutusWitness(
+      PlutusScriptSource.new(script),
+      DatumSource.new(datum),
+      redeemer,
+    );
+  }
+  static new_with_ref(
+    script: PlutusScriptSource,
+    datum: DatumSource,
+    redeemer: Redeemer,
+  ): PlutusWitness {
+    return new PlutusWitness(script, datum, redeemer);
+  }
+  static new_without_datum(
+    script: Uint8Array,
+    redeemer: Redeemer,
+  ): PlutusWitness {
+    return new PlutusWitness(
+      PlutusScriptSource.new(script),
+      undefined,
+      redeemer,
+    );
+  }
+  static new_with_ref_without_datum(
+    script: PlutusScriptSource,
+    redeemer: Redeemer,
+  ): PlutusWitness {
+    return new PlutusWitness(script, undefined, redeemer);
+  }
+  script(): Uint8Array | undefined {
+    return this._script_source.as_script();
+  }
+  datum(): PlutusData | undefined {
+    if (this._datum_source === undefined) return undefined;
+    return this._datum_source.as_datum();
+  }
+}
+
+export class PlutusWitnesses {
+  private items: PlutusWitness[];
+
+  constructor(items: PlutusWitness[]) {
     this.items = items;
   }
 
@@ -8912,23 +9610,23 @@ export class PlutusWitnesses {
     return this.items.length;
   }
 
-  get(index: number): unknown {
+  get(index: number): PlutusWitness {
     if (index >= this.items.length) throw new Error("Array out of bounds");
     return this.items[index];
   }
 
-  add(elem: unknown): void {
+  add(elem: PlutusWitness): void {
     this.items.push(elem);
   }
 
   static deserialize(reader: CBORReader): PlutusWitnesses {
     return new PlutusWitnesses(
-      reader.readArray((reader) => $$CANT_READ("PlutusWitness")),
+      reader.readArray((reader) => PlutusWitness.deserialize(reader)),
     );
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => $$CANT_WRITE("PlutusWitness"));
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
   // no-op
