@@ -41,7 +41,7 @@ const fieldsBlacklist = new Set<string>([
 ]);
 
 // Whether to log extraction messages or not
-const traceExtraction = true;
+const traceExtraction = false;
 // Whether to succeed when a $$CANT_READ error is found
 const succeedWithUnimplementedFunctions = false;
 
@@ -241,6 +241,17 @@ function getTagged(value: any, variantName: string, variantType: string, path: s
   }
   return {sub: value[accessor](), subPath: subPath };
 }
+// We export the missing classes and methods to CSV files, so we
+// create the dir in case it doesn't exist
+try {
+  fs.mkdirSync("tests/reports")
+} catch(_err) {
+  console.log("Failed to create reports directory");
+  console.log("Skipping dir creation...")
+};
+
+const reportFile: number = fs.openSync("tests/reports/serialization_failed_classes.csv", "w");
+fs.writeSync(reportFile, "Test number,Class,Failure reason");
 
 describe("Serialization/deserialization roundtrip tests", () => {
   // Used for debugging 
@@ -255,7 +266,17 @@ describe("Serialization/deserialization roundtrip tests", () => {
 
   test.each(testsTable)("($componentIndex) TX $txCount ($txHash)\n\tComponent $component.path ($component.type) ", (params) => {
     let class_key = params.component.type as keyof (typeof Out);
-    expect(roundtrip_eq(Out[class_key], params.component.cbor)).toBeTruthy();
+    let result: boolean = false;
+    try {
+      result = roundtrip_eq(Out[class_key], params.component.cbor);      
+    } catch(err) {
+      // if it will fail, we record it in the report file
+      fs.writeSync(reportFile, `${params.componentIndex},${class_key},throws exception\n`, null, "utf-8");
+    }
+    if (!result) {
+      fs.writeSync(reportFile, `${params.componentIndex},${class_key},deserialization/serialization fails\n`, null, "utf-8");
+    }
+    expect(result).toBeTruthy();
   });
 });
 
