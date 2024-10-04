@@ -9,15 +9,20 @@ export type Field = {
 
 export type GenRecordFragmentOptions = {
   fields: Field[];
+  // When implementing custom serialize/deserialize methods, set this
+  // value to how many entries are there in the encoded array.
+  fragment_encode_len?: number;
 } & GenStructuredBaseOptions<Field>;
 
 export class GenRecordFragment extends GenStructuredBase<Field> {
+  fragmentEncodeLen?: number;
   constructor(
     name: string,
     customTypes: SchemaTable,
     options: GenRecordFragmentOptions,
   ) {
     super(name, customTypes, { genCSL: true, ...options });
+    this.fragmentEncodeLen = this.fragmentEncodeLen;
   }
 
   generateDeserialize(reader: string): string {

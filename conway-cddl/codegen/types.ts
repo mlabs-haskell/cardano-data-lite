@@ -91,6 +91,7 @@ export const Schema = Type.Intersect([
           nullable: Type.Optional(Type.Boolean()),
         }),
       ),
+      fragment_encode_len: Type.Optional(Type.Number()),
       accessor_get_prefix: Type.Optional(Type.Boolean()),
     }),
     Type.Object({
