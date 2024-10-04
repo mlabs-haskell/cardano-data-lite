@@ -69,6 +69,7 @@ export const Schema = Type.Intersect([
           kind_name: Type.Optional(Type.String()),
         }),
       ),
+      accessor_get_prefix: Type.Optional(Type.Boolean()),
     }),
     Type.Object({
       type: Type.Literal("record"),
@@ -79,6 +80,7 @@ export const Schema = Type.Intersect([
           nullable: Type.Optional(Type.Boolean()),
         }),
       ),
+      accessor_get_prefix: Type.Optional(Type.Boolean()),
     }),
     Type.Object({
       type: Type.Literal("record_fragment"),
@@ -89,6 +91,7 @@ export const Schema = Type.Intersect([
           nullable: Type.Optional(Type.Boolean()),
         }),
       ),
+      accessor_get_prefix: Type.Optional(Type.Boolean()),
     }),
     Type.Object({
       type: Type.Literal("record_fragment_wrapper"),
@@ -107,6 +110,7 @@ export const Schema = Type.Intersect([
           optional: Type.Optional(Type.Boolean()),
         }),
       ),
+      accessor_get_prefix: Type.Optional(Type.Boolean()),
     }),
     Type.Object({
       type: Type.Literal("union"),
