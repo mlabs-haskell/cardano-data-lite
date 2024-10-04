@@ -16,14 +16,14 @@
   "license": "ISC",
   "type": "module",
   "devDependencies": {
-    "@jest/globals": "^29.5.13",
     "@blockfrost/blockfrost-js": "^5.5.0",
     "@emurgo/cardano-serialization-lib-nodejs-gc": "^12.1",
+    "@jest/globals": "^29.5.13",
     "@ohm-js/cli": "^2.0.0",
     "@prettier/sync": "^0.5.2",
     "@sinclair/typebox": "^0.33.7",
-    "@types/jest": "^29.5.13",
     "@tsconfig/recommended": "^1.0.7",
+    "@types/jest": "^29.5.13",
     "@types/node": "^20.12.7",
     "change-case": "^5.4.4",
     "esbuild": "^0.20.2",
@@ -39,6 +39,7 @@
     "yaml": "^2.4.5"
   },
   "dependencies": {
+    "@aws-crypto/crc32": "^5.2.0",
     "@noble/ed25519": "^2.1.0",
     "@noble/hashes": "^1.5.0",
     "bech32": "^2.0.0",
