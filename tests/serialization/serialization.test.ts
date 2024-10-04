@@ -4,10 +4,10 @@ import fs from "node:fs";
 import * as csl from "@emurgo/cardano-serialization-lib-nodejs-gc";
 import * as yaml from "yaml";
 import { Value } from "@sinclair/typebox/value";
-import { Schema } from "../conway-cddl/codegen/types";
-import { TransactionInfo } from "./test_types"; 
+import { Schema } from "../../conway-cddl/codegen/types";
+import { TransactionInfo } from "../test_types"; 
 import { test } from "@jest/globals";
-import * as Out from "../src/generated/out"
+import * as Out from "../../src/generated/out"
 
 // Each component of a transaction is identified by its type and its location
 // in the transaction ('path').
