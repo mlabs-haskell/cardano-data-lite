@@ -130,6 +130,10 @@ export const Schema = Type.Intersect([
       len: Type.Optional(Type.Number()),
       options_type: Type.Optional(Type.String()),
     }),
+    Type.Object({
+      type: Type.Literal("custom"),
+      body: Type.String(),
+    }),
   ]),
 ]);
 
