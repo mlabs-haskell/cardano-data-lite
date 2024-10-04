@@ -872,10 +872,6 @@ export class Bip32PrivateKey {
     return new Bip32PrivateKey(inner);
   }
 
-  static from_bytes(data: Uint8Array): Bip32PrivateKey {
-    return new Bip32PrivateKey(data);
-  }
-
   static from_hex(hex_str: string): Bip32PrivateKey {
     return Bip32PrivateKey.from_bytes(hexToBytes(hex_str));
   }
@@ -896,7 +892,12 @@ export class Bip32PrivateKey {
     writer.writeBytes(this.inner);
   }
 
+  static _LEN = 96;
   static _BECH32_HRP = "xprv";
+
+  free(): void {
+    for (let i = 0; i < this._inner.length; i++) this.inner[i] = 0x00;
+  }
 
   static from_bech32(bech_str: string): Bip32PrivateKey {
     let decoded = bech32.decode(bech_str);
@@ -910,9 +911,167 @@ export class Bip32PrivateKey {
     }
   }
 
-  to_bech32() {
+  to_bech32(): string {
     let prefix = Bip32PrivateKey._BECH32_HRP;
-    bech32.encode(prefix, this.inner);
+    return bech32.encode(prefix, this.inner);
+  }
+
+  to_raw_key(): PrivateKey {
+    PrivateKey.from_extended_bytes(this._inner.slice(0, 64));
+  }
+
+  to_public(): Bip32PublicKey {
+    let extended_secret = this._inner.slice(0, 64);
+    let cc = this.chaincode();
+    let pubkey = cdlCrypto.extendedToPubkey(extended_secret);
+    let buf = new Uint8Array(64);
+    buf.set(pubkey, 0);
+    buf.set(cc, 32);
+    return new Bip32PublicKey(buf);
+  }
+
+  static from_128_xprv(bytes: Uint8Array): Bip32PrivateKey {
+    let buf = new Uint8Array(96);
+    buf.set(bytes.slice(0, 64), 0);
+    buf.set(bytes.slice(96, 128), 64);
+    return Bip32PrivateKey.from_bytes(buf);
+  }
+
+  to_128_xprv(): Uint8Array {
+    let prv_key = this.to_raw_key().as_bytes();
+    let pub_key = this.to_public().as_bytes();
+    let cc = this.chaincode();
+
+    let buf = new Uint8Array(128);
+    buf.set(prv_key, 0);
+    buf.set(pub_key, 64);
+    buf.set(cc, 96);
+    return buf;
+  }
+
+  chaincode(): Uint8Array {
+    return this._inner.slice(64, 96);
+  }
+
+  derive(index: number): Bip32PrivateKey {
+    let { privateKey, chainCode } = cdlCrypto.derive.derivePrivate(
+      this._innner.slice(0, 64),
+      this._inner.slice(64, 96),
+      index,
+    );
+    let buf = new Uint8Array(Bip32PrivateKey._LEN);
+    buf.set(privateKey, 0);
+    buf.set(chainCode, 64);
+    return new Bip32PrivateKey(buf);
+  }
+
+  static generate_ed25519_bip32(): Bip32PrivateKey {
+    let buf = new Uint8Array(Bip32PrivateKey._LEN);
+    cdlCrypto.getRandomBytes(buf);
+    cdlCrypto.normalizeExtendedForBip32Ed25519(buf);
+    return cdlCrypto;
+  }
+
+  static from_bip39_entropy(
+    entropy: Uint8Array,
+    password: Uint8Array,
+  ): Bip32PrivateKey {
+    return cdlCrypto.bip32PrivateKeyFromEntropy(entropy, password);
+  }
+
+  static from_bytes(bytes: Uint8Array): Bip32PrivateKey {
+    if (bytes.length != Bip32PrivateKey._LEN) {
+      throw new Error("Invalid length");
+    }
+    let scalar = bytes.slice(0, 32);
+    let last = scalar[31];
+    let first = scalar[0];
+    if (
+      (last & 0b1100_0000) != 0b0100_0000 ||
+      (first & 0b0000_0111) == 0b0000_0000
+    ) {
+      throw new Error("invalid bytes");
+    }
+    return new Bip32PrivateKey(bytes);
+  }
+}
+
+export class Bip32PublicKey {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 64) throw new Error("Expected length to be 64");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): Bip32PublicKey {
+    return new Bip32PublicKey(inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Bip32PublicKey {
+    return new Bip32PublicKey(data);
+  }
+
+  static from_hex(hex_str: string): Bip32PublicKey {
+    return Bip32PublicKey.from_bytes(hexToBytes(hex_str));
+  }
+
+  as_bytes(): Uint8Array {
+    return this.inner;
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.as_bytes());
+  }
+
+  static deserialize(reader: CBORReader): Bip32PublicKey {
+    return new Bip32PublicKey(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  static _BECH32_HRP = "xpub";
+
+  chaincode(): Uint8Array {
+    return this._inner.slice(32, 64);
+  }
+
+  static from_bech32(bech_str: string): Bip32PublicKey {
+    let decoded = bech32.decode(bech_str);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
+    if (decoded.prefix == Bip32PublicKey._BECH32_HRP) {
+      return new Bip32PublicKey(bytes);
+    } else {
+      throw new Error("Invalid prefix for Bip32PublicKey: " + decoded.prefix);
+    }
+  }
+
+  to_bech32(): string {
+    let prefix = Bip32PublicKey._BECH32_HRP;
+    return bech32.encode(prefix, this.inner);
+  }
+
+  to_raw_key(): PublicKey {
+    PublicKey.from_bytes(this._inner.slice(0, 32));
+  }
+
+  derive(index: number): Bip32PublicKey {
+    let { publicKey, chainCode } = cdlCrypto.derive.derivePublic(
+      this._innner.slice(0, 32),
+      this._inner.slice(32, 64),
+      index,
+    );
+    let buf = new Uint8Array(Bip32PublicKey._LEN);
+    buf.set(publicKey, 0);
+    buf.set(chainCode, 32);
+    return new Bip32PublicKey(buf);
   }
 }
 
