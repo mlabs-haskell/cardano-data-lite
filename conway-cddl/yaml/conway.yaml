@@ -931,15 +931,7 @@ DRepUpdate:
 #   [  0, addr_keyhash
 #   // 1, scripthash
 #   ]
-Credential:
-  type: tagged_record
-  variants:
-    - name: keyhash
-      tag: 0
-      value: Ed25519KeyHash
-    - name: scripthash
-      tag: 1
-      value: ScriptHash
+# note: implemented in src/address/
 
 # drep =
 #   [ 0, addr_keyhash
@@ -1839,12 +1831,6 @@ TreasuryWithdrawals:
 RewardAddresses:
   type: array
   item: RewardAddress
-
-MIRToStakeCredentials:
-  type: map
-  key: Credential
-  value: Credential
-  keys_method_type: Credentials
 
 VRFCert:
   type: record
