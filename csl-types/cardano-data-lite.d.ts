@@ -1551,7 +1551,7 @@ export declare enum NativeScriptKind {
 }
 export type NativeScriptVariant = {
     kind: 0;
-    value: unknown;
+    value: ScriptPubkey;
 } | {
     kind: 1;
     value: ScriptAll;
@@ -1571,13 +1571,13 @@ export type NativeScriptVariant = {
 export declare class NativeScript {
     private variant;
     constructor(variant: NativeScriptVariant);
-    static new_script_pubkey(script_pubkey: unknown): NativeScript;
+    static new_script_pubkey(script_pubkey: ScriptPubkey): NativeScript;
     static new_script_all(script_all: ScriptAll): NativeScript;
     static new_script_any(script_any: ScriptAny): NativeScript;
     static new_script_n_of_k(script_n_of_k: ScriptNOfK): NativeScript;
     static new_timelock_start(timelock_start: TimelockStart): NativeScript;
     static new_timelock_expiry(timelock_expiry: TimelockExpiry): NativeScript;
-    as_script_pubkey(): unknown | undefined;
+    as_script_pubkey(): ScriptPubkey | undefined;
     as_script_all(): ScriptAll | undefined;
     as_script_any(): ScriptAny | undefined;
     as_script_n_of_k(): ScriptNOfK | undefined;
@@ -1809,7 +1809,7 @@ export declare enum PlutusDataKind {
     ConstrPlutusData = 0,
     PlutusMap = 1,
     PlutusList = 2,
-    BigInt = 3,
+    CSLBigInt = 3,
     Bytes = 4
 }
 export type PlutusDataVariant = {
@@ -1823,7 +1823,7 @@ export type PlutusDataVariant = {
     value: PlutusList;
 } | {
     kind: 3;
-    value: unknown;
+    value: CSLBigInt;
 } | {
     kind: 4;
     value: Uint8Array;
@@ -1834,12 +1834,12 @@ export declare class PlutusData {
     static new_constr_plutus_data(constr_plutus_data: ConstrPlutusData): PlutusData;
     static new_map(map: PlutusMap): PlutusData;
     static new_list(list: PlutusList): PlutusData;
-    static new_integer(integer: unknown): PlutusData;
+    static new_integer(integer: CSLBigInt): PlutusData;
     static new_bytes(bytes: Uint8Array): PlutusData;
     as_constr_plutus_data(): ConstrPlutusData;
     as_map(): PlutusMap;
     as_list(): PlutusList;
-    as_integer(): unknown;
+    as_integer(): CSLBigInt;
     as_bytes(): Uint8Array;
     kind(): PlutusDataKind;
     static deserialize(reader: CBORReader): PlutusData;
@@ -2086,8 +2086,8 @@ export declare class PoolParams {
     private _pool_owners;
     private _relays;
     private _pool_metadata;
-    constructor(operator: Ed25519KeyHash, vrf_keyhash: VRFKeyHash, pledge: BigNum, cost: BigNum, margin: UnitInterval, reward_account: unknown, pool_owners: Ed25519KeyHashes, relays: Relays, pool_metadata: PoolMetadata | undefined);
-    static new(operator: Ed25519KeyHash, vrf_keyhash: VRFKeyHash, pledge: BigNum, cost: BigNum, margin: UnitInterval, reward_account: unknown, pool_owners: Ed25519KeyHashes, relays: Relays, pool_metadata: PoolMetadata | undefined): PoolParams;
+    constructor(operator: Ed25519KeyHash, vrf_keyhash: VRFKeyHash, pledge: BigNum, cost: BigNum, margin: UnitInterval, reward_account: RewardAddress, pool_owners: Ed25519KeyHashes, relays: Relays, pool_metadata: PoolMetadata | undefined);
+    static new(operator: Ed25519KeyHash, vrf_keyhash: VRFKeyHash, pledge: BigNum, cost: BigNum, margin: UnitInterval, reward_account: RewardAddress, pool_owners: Ed25519KeyHashes, relays: Relays, pool_metadata: PoolMetadata | undefined): PoolParams;
     operator(): Ed25519KeyHash;
     set_operator(operator: Ed25519KeyHash): void;
     vrf_keyhash(): VRFKeyHash;
@@ -2098,8 +2098,8 @@ export declare class PoolParams {
     set_cost(cost: BigNum): void;
     margin(): UnitInterval;
     set_margin(margin: UnitInterval): void;
-    reward_account(): unknown;
-    set_reward_account(reward_account: unknown): void;
+    reward_account(): RewardAddress;
+    set_reward_account(reward_account: RewardAddress): void;
     pool_owners(): Ed25519KeyHashes;
     set_pool_owners(pool_owners: Ed25519KeyHashes): void;
     relays(): Relays;
@@ -2499,11 +2499,11 @@ export declare class Relays {
 }
 export declare class RewardAddresses {
     private items;
-    constructor(items: unknown[]);
+    constructor(items: RewardAddress[]);
     static new(): RewardAddresses;
     len(): number;
-    get(index: number): unknown;
-    add(elem: unknown): void;
+    get(index: number): RewardAddress;
+    add(elem: RewardAddress): void;
     static deserialize(reader: CBORReader): RewardAddresses;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -2606,6 +2606,20 @@ export declare class ScriptNOfK {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): ScriptNOfK;
+}
+export declare class ScriptPubkey {
+    private inner;
+    constructor(inner: Ed25519KeyHash);
+    static new(inner: Ed25519KeyHash): ScriptPubkey;
+    addr_keyhash(): Ed25519KeyHash;
+    static deserialize(reader: CBORReader): ScriptPubkey;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array): ScriptPubkey;
+    static from_hex(hex_str: string): ScriptPubkey;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(): ScriptPubkey;
 }
 export declare class ScriptPubname {
     private _addr_keyhash;
@@ -3172,13 +3186,13 @@ export declare class TransactionWitnessSets {
     clone(): TransactionWitnessSets;
 }
 export declare class TreasuryWithdrawals {
-    _items: [unknown, BigNum][];
-    constructor(items: [unknown, BigNum][]);
+    _items: [RewardAddress, BigNum][];
+    constructor(items: [RewardAddress, BigNum][]);
     static new(): TreasuryWithdrawals;
     len(): number;
-    insert(key: unknown, value: BigNum): BigNum | undefined;
-    get(key: unknown): BigNum | undefined;
-    _remove_many(keys: unknown[]): void;
+    insert(key: RewardAddress, value: BigNum): BigNum | undefined;
+    get(key: RewardAddress): BigNum | undefined;
+    _remove_many(keys: RewardAddress[]): void;
     keys(): RewardAddresses;
     static deserialize(reader: CBORReader): TreasuryWithdrawals;
     serialize(writer: CBORWriter): void;
@@ -3602,12 +3616,12 @@ export declare class VotingProposal {
     private _reward_account;
     private _governance_action;
     private _anchor;
-    constructor(deposit: BigNum, reward_account: unknown, governance_action: GovernanceAction, anchor: Anchor);
-    static new(deposit: BigNum, reward_account: unknown, governance_action: GovernanceAction, anchor: Anchor): VotingProposal;
+    constructor(deposit: BigNum, reward_account: RewardAddress, governance_action: GovernanceAction, anchor: Anchor);
+    static new(deposit: BigNum, reward_account: RewardAddress, governance_action: GovernanceAction, anchor: Anchor): VotingProposal;
     deposit(): BigNum;
     set_deposit(deposit: BigNum): void;
-    reward_account(): unknown;
-    set_reward_account(reward_account: unknown): void;
+    reward_account(): RewardAddress;
+    set_reward_account(reward_account: RewardAddress): void;
     governance_action(): GovernanceAction;
     set_governance_action(governance_action: GovernanceAction): void;
     anchor(): Anchor;
@@ -3639,13 +3653,13 @@ export declare class VotingProposals {
     clone(): VotingProposals;
 }
 export declare class Withdrawals {
-    _items: [unknown, BigNum][];
-    constructor(items: [unknown, BigNum][]);
+    _items: [RewardAddress, BigNum][];
+    constructor(items: [RewardAddress, BigNum][]);
     static new(): Withdrawals;
     len(): number;
-    insert(key: unknown, value: BigNum): BigNum | undefined;
-    get(key: unknown): BigNum | undefined;
-    _remove_many(keys: unknown[]): void;
+    insert(key: RewardAddress, value: BigNum): BigNum | undefined;
+    get(key: RewardAddress): BigNum | undefined;
+    _remove_many(keys: RewardAddress[]): void;
     static deserialize(reader: CBORReader): Withdrawals;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -3717,15 +3731,15 @@ export declare enum ByronAddressType {
     Script = 1,
     Redeem = 2
 }
-export declare enum CredKind {
+export declare enum CredentialKind {
     Key = 0,
     Script = 1
 }
 export type CredentialVariant = {
-    kind: CredKind.Key;
+    kind: CredentialKind.Key;
     value: Ed25519KeyHash;
 } | {
-    kind: CredKind.Script;
+    kind: CredentialKind.Script;
     value: ScriptHash;
 };
 export declare class Credential {
@@ -3737,7 +3751,7 @@ export declare class Credential {
     static _from_raw_bytes(kind: number, bytes: Uint8Array): Credential;
     to_keyhash(): Ed25519KeyHash | undefined;
     to_scripthash(): ScriptHash | undefined;
-    kind(): CredKind;
+    kind(): CredentialKind;
     has_script_hash(): boolean;
     serialize(writer: CBORWriter): void;
     static deserialize(reader: CBORReader): Credential;
@@ -3826,4 +3840,6 @@ export declare class RewardAddress {
     network_id(): number;
     to_bytes(): Uint8Array;
     static from_bytes(data: Uint8Array): RewardAddress;
+    serialize(writer: CBORWriter): void;
+    static deserialize(reader: CBORReader): RewardAddress;
 }

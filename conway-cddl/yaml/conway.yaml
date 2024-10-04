@@ -1633,6 +1633,11 @@ NativeScript:
       tag: 5
       value: TimelockExpiry
 
+ScriptPubkey:
+  type: newtype
+  item: Ed25519KeyHash
+  accessor: addr_keyhash
+
 ScriptPubname:
   type: record_fragment
   fields:

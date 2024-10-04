@@ -3,3 +3,6 @@ Address:
 
 Credential:
   type: external
+
+RewardAddress:
+  type: external

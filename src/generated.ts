@@ -5,7 +5,7 @@ import { hexToBytes, bytesToHex } from "./lib/hex";
 import { arrayEq } from "./lib/eq";
 import { bech32 } from "bech32";
 import * as cdlCrypto from "./lib/bip32-ed25519";
-import { Address, Credential, CredentialKind } from "./address";
+import { Address, Credential, CredentialKind, RewardAddress } from "./address";
 
 function $$UN(id: string, ...args: any): any {
   throw "Undefined function: " + id;
@@ -7124,7 +7124,7 @@ export enum NativeScriptKind {
 }
 
 export type NativeScriptVariant =
-  | { kind: 0; value: unknown }
+  | { kind: 0; value: ScriptPubkey }
   | { kind: 1; value: ScriptAll }
   | { kind: 2; value: ScriptAny }
   | { kind: 3; value: ScriptNOfK }
@@ -7138,7 +7138,7 @@ export class NativeScript {
     this.variant = variant;
   }
 
-  static new_script_pubkey(script_pubkey: unknown): NativeScript {
+  static new_script_pubkey(script_pubkey: ScriptPubkey): NativeScript {
     return new NativeScript({ kind: 0, value: script_pubkey });
   }
 
@@ -7162,7 +7162,7 @@ export class NativeScript {
     return new NativeScript({ kind: 5, value: timelock_expiry });
   }
 
-  as_script_pubkey(): unknown | undefined {
+  as_script_pubkey(): ScriptPubkey | undefined {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
@@ -7202,7 +7202,7 @@ export class NativeScript {
         }
         variant = {
           kind: 0,
-          value: $$CANT_READ("ScriptPubkey"),
+          value: ScriptPubkey.deserialize(reader),
         };
 
         break;
@@ -7275,7 +7275,7 @@ export class NativeScript {
       case 0:
         writer.writeArrayTag(2);
         writer.writeInt(BigInt(0));
-        $$CANT_WRITE("ScriptPubkey");
+        this.variant.value.serialize(writer);
         break;
       case 1:
         writer.writeArrayTag(2);
@@ -8255,7 +8255,7 @@ export enum PlutusDataKind {
   ConstrPlutusData = 0,
   PlutusMap = 1,
   PlutusList = 2,
-  BigInt = 3,
+  CSLBigInt = 3,
   Bytes = 4,
 }
 
@@ -8263,7 +8263,7 @@ export type PlutusDataVariant =
   | { kind: 0; value: ConstrPlutusData }
   | { kind: 1; value: PlutusMap }
   | { kind: 2; value: PlutusList }
-  | { kind: 3; value: unknown }
+  | { kind: 3; value: CSLBigInt }
   | { kind: 4; value: Uint8Array };
 
 export class PlutusData {
@@ -8287,7 +8287,7 @@ export class PlutusData {
     return new PlutusData({ kind: 2, value: list });
   }
 
-  static new_integer(integer: unknown): PlutusData {
+  static new_integer(integer: CSLBigInt): PlutusData {
     return new PlutusData({ kind: 3, value: integer });
   }
 
@@ -8310,7 +8310,7 @@ export class PlutusData {
     throw new Error("Incorrect cast");
   }
 
-  as_integer(): unknown {
+  as_integer(): CSLBigInt {
     if (this.variant.kind == 3) return this.variant.value;
     throw new Error("Incorrect cast");
   }
@@ -8354,8 +8354,8 @@ export class PlutusData {
       case "nint":
       case "tagged":
         variant = {
-          kind: PlutusDataKind.BigInt,
-          value: $$CANT_READ("BigInt"),
+          kind: PlutusDataKind.CSLBigInt,
+          value: CSLBigInt.deserialize(reader),
         };
         break;
 
@@ -8388,7 +8388,7 @@ export class PlutusData {
         break;
 
       case 3:
-        $$CANT_WRITE("BigInt");
+        this.variant.value.serialize(writer);
         break;
 
       case 4:
@@ -9440,7 +9440,7 @@ export class PoolParams {
   private _pledge: BigNum;
   private _cost: BigNum;
   private _margin: UnitInterval;
-  private _reward_account: unknown;
+  private _reward_account: RewardAddress;
   private _pool_owners: Ed25519KeyHashes;
   private _relays: Relays;
   private _pool_metadata: PoolMetadata | undefined;
@@ -9451,7 +9451,7 @@ export class PoolParams {
     pledge: BigNum,
     cost: BigNum,
     margin: UnitInterval,
-    reward_account: unknown,
+    reward_account: RewardAddress,
     pool_owners: Ed25519KeyHashes,
     relays: Relays,
     pool_metadata: PoolMetadata | undefined,
@@ -9473,7 +9473,7 @@ export class PoolParams {
     pledge: BigNum,
     cost: BigNum,
     margin: UnitInterval,
-    reward_account: unknown,
+    reward_account: RewardAddress,
     pool_owners: Ed25519KeyHashes,
     relays: Relays,
     pool_metadata: PoolMetadata | undefined,
@@ -9531,11 +9531,11 @@ export class PoolParams {
     this._margin = margin;
   }
 
-  reward_account(): unknown {
+  reward_account(): RewardAddress {
     return this._reward_account;
   }
 
-  set_reward_account(reward_account: unknown): void {
+  set_reward_account(reward_account: RewardAddress): void {
     this._reward_account = reward_account;
   }
 
@@ -9574,7 +9574,7 @@ export class PoolParams {
 
     let margin = UnitInterval.deserialize(reader);
 
-    let reward_account = $$CANT_READ("RewardAddress");
+    let reward_account = RewardAddress.deserialize(reader);
 
     let pool_owners = Ed25519KeyHashes.deserialize(reader);
 
@@ -9602,7 +9602,7 @@ export class PoolParams {
     this._pledge.serialize(writer);
     this._cost.serialize(writer);
     this._margin.serialize(writer);
-    $$CANT_WRITE("RewardAddress");
+    this._reward_account.serialize(writer);
     this._pool_owners.serialize(writer);
     this._relays.serialize(writer);
     if (this._pool_metadata == null) {
@@ -11653,9 +11653,9 @@ export class Relays {
 }
 
 export class RewardAddresses {
-  private items: unknown[];
+  private items: RewardAddress[];
 
-  constructor(items: unknown[]) {
+  constructor(items: RewardAddress[]) {
     this.items = items;
   }
 
@@ -11667,23 +11667,23 @@ export class RewardAddresses {
     return this.items.length;
   }
 
-  get(index: number): unknown {
+  get(index: number): RewardAddress {
     if (index >= this.items.length) throw new Error("Array out of bounds");
     return this.items[index];
   }
 
-  add(elem: unknown): void {
+  add(elem: RewardAddress): void {
     this.items.push(elem);
   }
 
   static deserialize(reader: CBORReader): RewardAddresses {
     return new RewardAddresses(
-      reader.readArray((reader) => $$CANT_READ("RewardAddress")),
+      reader.readArray((reader) => RewardAddress.deserialize(reader)),
     );
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => $$CANT_WRITE("RewardAddress"));
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
   // no-op
@@ -12068,6 +12068,56 @@ export class ScriptNOfK {
 
   clone(): ScriptNOfK {
     return ScriptNOfK.from_bytes(this.to_bytes());
+  }
+}
+
+export class ScriptPubkey {
+  private inner: Ed25519KeyHash;
+
+  constructor(inner: Ed25519KeyHash) {
+    this.inner = inner;
+  }
+
+  static new(inner: Ed25519KeyHash): ScriptPubkey {
+    return new ScriptPubkey(inner);
+  }
+
+  addr_keyhash(): Ed25519KeyHash {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader): ScriptPubkey {
+    return new ScriptPubkey(Ed25519KeyHash.deserialize(reader));
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.inner.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ScriptPubkey {
+    let reader = new CBORReader(data);
+    return ScriptPubkey.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ScriptPubkey {
+    return ScriptPubkey.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): ScriptPubkey {
+    return ScriptPubkey.from_bytes(this.to_bytes());
   }
 }
 
@@ -14839,9 +14889,9 @@ export class TransactionWitnessSets {
 }
 
 export class TreasuryWithdrawals {
-  _items: [unknown, BigNum][];
+  _items: [RewardAddress, BigNum][];
 
-  constructor(items: [unknown, BigNum][]) {
+  constructor(items: [RewardAddress, BigNum][]) {
     this._items = items;
   }
 
@@ -14853,8 +14903,10 @@ export class TreasuryWithdrawals {
     return this._items.length;
   }
 
-  insert(key: unknown, value: BigNum): BigNum | undefined {
-    let entry = this._items.find((x) => $$CANT_EQ("RewardAddress"));
+  insert(key: RewardAddress, value: BigNum): BigNum | undefined {
+    let entry = this._items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
     if (entry != null) {
       let ret = entry[1];
       entry[1] = value;
@@ -14864,15 +14916,17 @@ export class TreasuryWithdrawals {
     return undefined;
   }
 
-  get(key: unknown): BigNum | undefined {
-    let entry = this._items.find((x) => $$CANT_EQ("RewardAddress"));
+  get(key: RewardAddress): BigNum | undefined {
+    let entry = this._items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
     if (entry == null) return undefined;
     return entry[1];
   }
 
-  _remove_many(keys: unknown[]): void {
+  _remove_many(keys: RewardAddress[]): void {
     this._items = this._items.filter(([k, _v]) =>
-      keys.every((key) => !$$CANT_EQ("RewardAddress")),
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
@@ -14885,14 +14939,14 @@ export class TreasuryWithdrawals {
   static deserialize(reader: CBORReader): TreasuryWithdrawals {
     let ret = new TreasuryWithdrawals([]);
     reader.readMap((reader) =>
-      ret.insert($$CANT_READ("RewardAddress"), BigNum.deserialize(reader)),
+      ret.insert(RewardAddress.deserialize(reader), BigNum.deserialize(reader)),
     );
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeMap(this._items, (writer, x) => {
-      $$CANT_WRITE("RewardAddress");
+      x[0].serialize(writer);
       x[1].serialize(writer);
     });
   }
@@ -16765,13 +16819,13 @@ export class VotingProcedures {
 
 export class VotingProposal {
   private _deposit: BigNum;
-  private _reward_account: unknown;
+  private _reward_account: RewardAddress;
   private _governance_action: GovernanceAction;
   private _anchor: Anchor;
 
   constructor(
     deposit: BigNum,
-    reward_account: unknown,
+    reward_account: RewardAddress,
     governance_action: GovernanceAction,
     anchor: Anchor,
   ) {
@@ -16783,7 +16837,7 @@ export class VotingProposal {
 
   static new(
     deposit: BigNum,
-    reward_account: unknown,
+    reward_account: RewardAddress,
     governance_action: GovernanceAction,
     anchor: Anchor,
   ) {
@@ -16803,11 +16857,11 @@ export class VotingProposal {
     this._deposit = deposit;
   }
 
-  reward_account(): unknown {
+  reward_account(): RewardAddress {
     return this._reward_account;
   }
 
-  set_reward_account(reward_account: unknown): void {
+  set_reward_account(reward_account: RewardAddress): void {
     this._reward_account = reward_account;
   }
 
@@ -16838,7 +16892,7 @@ export class VotingProposal {
 
     let deposit = BigNum.deserialize(reader);
 
-    let reward_account = $$CANT_READ("RewardAddress");
+    let reward_account = RewardAddress.deserialize(reader);
 
     let governance_action = GovernanceAction.deserialize(reader);
 
@@ -16856,7 +16910,7 @@ export class VotingProposal {
     writer.writeArrayTag(4);
 
     this._deposit.serialize(writer);
-    $$CANT_WRITE("RewardAddress");
+    this._reward_account.serialize(writer);
     this._governance_action.serialize(writer);
     this._anchor.serialize(writer);
   }
@@ -16966,9 +17020,9 @@ export class VotingProposals {
 }
 
 export class Withdrawals {
-  _items: [unknown, BigNum][];
+  _items: [RewardAddress, BigNum][];
 
-  constructor(items: [unknown, BigNum][]) {
+  constructor(items: [RewardAddress, BigNum][]) {
     this._items = items;
   }
 
@@ -16980,8 +17034,10 @@ export class Withdrawals {
     return this._items.length;
   }
 
-  insert(key: unknown, value: BigNum): BigNum | undefined {
-    let entry = this._items.find((x) => $$CANT_EQ("RewardAddress"));
+  insert(key: RewardAddress, value: BigNum): BigNum | undefined {
+    let entry = this._items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
     if (entry != null) {
       let ret = entry[1];
       entry[1] = value;
@@ -16991,29 +17047,31 @@ export class Withdrawals {
     return undefined;
   }
 
-  get(key: unknown): BigNum | undefined {
-    let entry = this._items.find((x) => $$CANT_EQ("RewardAddress"));
+  get(key: RewardAddress): BigNum | undefined {
+    let entry = this._items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
     if (entry == null) return undefined;
     return entry[1];
   }
 
-  _remove_many(keys: unknown[]): void {
+  _remove_many(keys: RewardAddress[]): void {
     this._items = this._items.filter(([k, _v]) =>
-      keys.every((key) => !$$CANT_EQ("RewardAddress")),
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
   static deserialize(reader: CBORReader): Withdrawals {
     let ret = new Withdrawals([]);
     reader.readMap((reader) =>
-      ret.insert($$CANT_READ("RewardAddress"), BigNum.deserialize(reader)),
+      ret.insert(RewardAddress.deserialize(reader), BigNum.deserialize(reader)),
     );
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeMap(this._items, (writer, x) => {
-      $$CANT_WRITE("RewardAddress");
+      x[0].serialize(writer);
       x[1].serialize(writer);
     });
   }

@@ -1,6 +1,8 @@
 import { Address, AddressKind } from ".";
 import { GrowableBuffer } from "../lib/cbor/growable-buffer";
 import { Credential } from "./credential";
+import { CBORWriter } from "../lib/cbor/writer";
+import { CBORReader } from "../lib/cbor/reader";
 
 export class RewardAddress {
   _network: number;
@@ -62,5 +64,13 @@ export class RewardAddress {
     );
 
     return new RewardAddress(network, payment);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): RewardAddress {
+    return RewardAddress.from_bytes(reader.readBytes());
   }
 }

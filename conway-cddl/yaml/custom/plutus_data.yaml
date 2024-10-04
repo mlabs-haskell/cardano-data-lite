@@ -16,7 +16,7 @@ PlutusData:
     - tag: 3
       peek_type: ["uint", "nint", "tagged"]
       name: integer
-      type: BigInt
+      type: CSLBigInt
     - tag: 4
       peek_type: bytes
       name: bytes
