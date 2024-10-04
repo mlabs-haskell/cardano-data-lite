@@ -26,6 +26,9 @@ let testsTable: Array<TestParameters> = [];
 
 // Types we are not interested in (or that are not supported)
 const typeBlacklist = new Set<string>([
+  // Deprecated
+  "MoveInstantaneousRewards",
+  "GenesisKeyDelegation",
   // Uninteresting
   "boolean",
   "bignum" 
