@@ -264,10 +264,10 @@ export class AssetNames {
 }
 
 export class Assets {
-  private items: [AssetName, BigNum][];
+  _items: [AssetName, BigNum][];
 
   constructor(items: [AssetName, BigNum][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): Assets {
@@ -275,11 +275,11 @@ export class Assets {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(key: AssetName, value: BigNum): BigNum | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry != null) {
@@ -287,12 +287,12 @@ export class Assets {
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: AssetName): BigNum | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry == null) return undefined;
@@ -300,14 +300,14 @@ export class Assets {
   }
 
   _remove_many(keys: AssetName[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
   keys(): AssetNames {
     let keys = AssetNames.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -320,7 +320,7 @@ export class Assets {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
@@ -353,7 +353,7 @@ export class Assets {
   }
 
   _inplace_checked_add(rhs: Assets): void {
-    for (let [asset_name, amount] of rhs.items) {
+    for (let [asset_name, amount] of rhs._items) {
       let this_amount = this.get(asset_name);
       if (this_amount == null) this_amount = amount;
       else this_amount = this_amount.checked_add(amount);
@@ -362,7 +362,7 @@ export class Assets {
   }
 
   _inplace_clamped_sub(rhs: Assets): void {
-    for (let [asset_name, amount] of rhs.items) {
+    for (let [asset_name, amount] of rhs._items) {
       let this_amount = this.get(asset_name);
       if (this_amount == null) continue;
       this_amount = this_amount.clamped_sub(amount);
@@ -373,7 +373,7 @@ export class Assets {
 
   _normalize(): void {
     let to_remove: AssetName[] = [];
-    for (let [asset_name, amount] of this.items) {
+    for (let [asset_name, amount] of this._items) {
       if (amount.is_zero()) to_remove.push(asset_name);
     }
     this._remove_many(to_remove);
@@ -386,13 +386,13 @@ export class Assets {
       false, // 0
       false, // 1
     ];
-    for (let [asset_name, this_amount] of this.items) {
+    for (let [asset_name, this_amount] of this._items) {
       let rhs_amount = rhs.get(asset_name);
       if (rhs_amount == null) rhs_amount = zero;
       cmps[1 + this_amount.compare(rhs_amount)] = true;
     }
 
-    for (let [asset_name, rhs_amount] of rhs.items) {
+    for (let [asset_name, rhs_amount] of rhs._items) {
       let this_amount = this.get(asset_name);
       if (this_amount == null) this_amount = zero;
       cmps[1 + this_amount.compare(rhs_amount)];
@@ -645,10 +645,10 @@ export class AuxiliaryDataHash {
 }
 
 export class AuxiliaryDataSet {
-  private items: [number, AuxiliaryData][];
+  _items: [number, AuxiliaryData][];
 
   constructor(items: [number, AuxiliaryData][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): AuxiliaryDataSet {
@@ -656,28 +656,28 @@ export class AuxiliaryDataSet {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(key: number, value: AuxiliaryData): AuxiliaryData | undefined {
-    let entry = this.items.find((x) => key === x[0]);
+    let entry = this._items.find((x) => key === x[0]);
     if (entry != null) {
       let ret = entry[1];
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: number): AuxiliaryData | undefined {
-    let entry = this.items.find((x) => key === x[0]);
+    let entry = this._items.find((x) => key === x[0]);
     if (entry == null) return undefined;
     return entry[1];
   }
 
   _remove_many(keys: number[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !(key === k)),
     );
   }
@@ -691,7 +691,7 @@ export class AuxiliaryDataSet {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       writer.writeInt(BigInt(x[0]));
       x[1].serialize(writer);
     });
@@ -724,9 +724,9 @@ export class AuxiliaryDataSet {
   }
 
   indices(): Uint32Array {
-    let indices = new Uint32Array(this.items.length);
-    for (let i = 0; i < this.items.length; i++) {
-      let item = this.items[i];
+    let indices = new Uint32Array(this._items.length);
+    for (let i = 0; i < this._items.length; i++) {
+      let item = this._items[i];
       let key = item[0];
       indices[i] = key;
     }
@@ -896,7 +896,7 @@ export class Bip32PrivateKey {
   static _BECH32_HRP = "xprv";
 
   free(): void {
-    for (let i = 0; i < this._inner.length; i++) this.inner[i] = 0x00;
+    for (let i = 0; i < this.inner.length; i++) this.inner[i] = 0x00;
   }
 
   static from_bech32(bech_str: string): Bip32PrivateKey {
@@ -917,11 +917,11 @@ export class Bip32PrivateKey {
   }
 
   to_raw_key(): PrivateKey {
-    PrivateKey.from_extended_bytes(this._inner.slice(0, 64));
+    return PrivateKey.from_extended_bytes(this.inner.slice(0, 64));
   }
 
   to_public(): Bip32PublicKey {
-    let extended_secret = this._inner.slice(0, 64);
+    let extended_secret = this.inner.slice(0, 64);
     let cc = this.chaincode();
     let pubkey = cdlCrypto.extendedToPubkey(extended_secret);
     let buf = new Uint8Array(64);
@@ -950,13 +950,13 @@ export class Bip32PrivateKey {
   }
 
   chaincode(): Uint8Array {
-    return this._inner.slice(64, 96);
+    return this.inner.slice(64, 96);
   }
 
   derive(index: number): Bip32PrivateKey {
     let { privateKey, chainCode } = cdlCrypto.derive.derivePrivate(
-      this._innner.slice(0, 64),
-      this._inner.slice(64, 96),
+      this.inner.slice(0, 64),
+      this.inner.slice(64, 96),
       index,
     );
     let buf = new Uint8Array(Bip32PrivateKey._LEN);
@@ -966,17 +966,18 @@ export class Bip32PrivateKey {
   }
 
   static generate_ed25519_bip32(): Bip32PrivateKey {
-    let buf = new Uint8Array(Bip32PrivateKey._LEN);
-    cdlCrypto.getRandomBytes(buf);
-    cdlCrypto.normalizeExtendedForBip32Ed25519(buf);
-    return cdlCrypto;
+    let bytes = cdlCrypto.getRandomBytes(Bip32PrivateKey._LEN);
+    cdlCrypto.normalizeExtendedForBip32Ed25519(bytes);
+    return new Bip32PrivateKey(bytes);
   }
 
   static from_bip39_entropy(
     entropy: Uint8Array,
     password: Uint8Array,
   ): Bip32PrivateKey {
-    return cdlCrypto.bip32PrivateKeyFromEntropy(entropy, password);
+    return new Bip32PrivateKey(
+      cdlCrypto.bip32PrivateKeyFromEntropy(entropy, password),
+    );
   }
 
   static from_bytes(bytes: Uint8Array): Bip32PrivateKey {
@@ -1035,10 +1036,11 @@ export class Bip32PublicKey {
     writer.writeBytes(this.inner);
   }
 
+  static _LEN = 64;
   static _BECH32_HRP = "xpub";
 
   chaincode(): Uint8Array {
-    return this._inner.slice(32, 64);
+    return this.inner.slice(32, 64);
   }
 
   static from_bech32(bech_str: string): Bip32PublicKey {
@@ -1059,13 +1061,13 @@ export class Bip32PublicKey {
   }
 
   to_raw_key(): PublicKey {
-    PublicKey.from_bytes(this._inner.slice(0, 32));
+    return PublicKey.from_bytes(this.inner.slice(0, 32));
   }
 
   derive(index: number): Bip32PublicKey {
     let { publicKey, chainCode } = cdlCrypto.derive.derivePublic(
-      this._innner.slice(0, 32),
-      this._inner.slice(32, 64),
+      this.inner.slice(0, 32),
+      this.inner.slice(32, 64),
       index,
     );
     let buf = new Uint8Array(Bip32PublicKey._LEN);
@@ -2391,7 +2393,11 @@ export class Committee {
   }
 
   members_keys(): Credentials {
-    return new Credentials(this.members_.items.map(([k, _v]) => k));
+    let credentials = new Credentials();
+    for (let [k, _] of this.members_._items) {
+      credentials.add(k);
+    }
+    return credentials;
   }
 
   quorum_threshold(): UnitInterval {
@@ -2487,10 +2493,10 @@ export class CommitteeColdResign {
 }
 
 export class CommitteeEpochs {
-  private items: [Credential, number][];
+  _items: [Credential, number][];
 
   constructor(items: [Credential, number][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): CommitteeEpochs {
@@ -2498,11 +2504,11 @@ export class CommitteeEpochs {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(key: Credential, value: number): number | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry != null) {
@@ -2510,12 +2516,12 @@ export class CommitteeEpochs {
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: Credential): number | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry == null) return undefined;
@@ -2523,7 +2529,7 @@ export class CommitteeEpochs {
   }
 
   _remove_many(keys: Credential[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
@@ -2537,7 +2543,7 @@ export class CommitteeEpochs {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       x[0].serialize(writer);
       writer.writeInt(BigInt(x[1]));
     });
@@ -2891,10 +2897,10 @@ export class CostModel {
 }
 
 export class Costmdls {
-  private items: [Language, CostModel][];
+  _items: [Language, CostModel][];
 
   constructor(items: [Language, CostModel][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): Costmdls {
@@ -2902,11 +2908,11 @@ export class Costmdls {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(key: Language, value: CostModel): CostModel | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry != null) {
@@ -2914,12 +2920,12 @@ export class Costmdls {
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: Language): CostModel | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry == null) return undefined;
@@ -2927,14 +2933,14 @@ export class Costmdls {
   }
 
   _remove_many(keys: Language[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
   keys(): Languages {
     let keys = Languages.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -2947,7 +2953,7 @@ export class Costmdls {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
@@ -4613,10 +4619,10 @@ export class ExUnits {
 }
 
 export class GeneralTransactionMetadata {
-  private items: [BigNum, TransactionMetadatum][];
+  _items: [BigNum, TransactionMetadatum][];
 
   constructor(items: [BigNum, TransactionMetadatum][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): GeneralTransactionMetadata {
@@ -4624,14 +4630,14 @@ export class GeneralTransactionMetadata {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(
     key: BigNum,
     value: TransactionMetadatum,
   ): TransactionMetadatum | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry != null) {
@@ -4639,12 +4645,12 @@ export class GeneralTransactionMetadata {
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: BigNum): TransactionMetadatum | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry == null) return undefined;
@@ -4652,14 +4658,14 @@ export class GeneralTransactionMetadata {
   }
 
   _remove_many(keys: BigNum[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
   keys(): TransactionMetadatumLabels {
     let keys = TransactionMetadatumLabels.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -4675,7 +4681,7 @@ export class GeneralTransactionMetadata {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
@@ -5292,10 +5298,10 @@ export class GovernanceActionIds {
 }
 
 export class GovernanceActions {
-  private items: [GovernanceActionId, VotingProcedure][];
+  _items: [GovernanceActionId, VotingProcedure][];
 
   constructor(items: [GovernanceActionId, VotingProcedure][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): GovernanceActions {
@@ -5303,14 +5309,14 @@ export class GovernanceActions {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(
     key: GovernanceActionId,
     value: VotingProcedure,
   ): VotingProcedure | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry != null) {
@@ -5318,12 +5324,12 @@ export class GovernanceActions {
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: GovernanceActionId): VotingProcedure | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry == null) return undefined;
@@ -5331,14 +5337,14 @@ export class GovernanceActions {
   }
 
   _remove_many(keys: GovernanceActionId[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
   keys(): GovernanceActionIds {
     let keys = GovernanceActionIds.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -5354,7 +5360,7 @@ export class GovernanceActions {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
@@ -6539,10 +6545,10 @@ export class MIRPot {
 }
 
 export class MIRToStakeCredentials {
-  private items: [Credential, Credential][];
+  _items: [Credential, Credential][];
 
   constructor(items: [Credential, Credential][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): MIRToStakeCredentials {
@@ -6550,11 +6556,11 @@ export class MIRToStakeCredentials {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(key: Credential, value: Credential): Credential | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry != null) {
@@ -6562,12 +6568,12 @@ export class MIRToStakeCredentials {
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: Credential): Credential | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry == null) return undefined;
@@ -6575,14 +6581,14 @@ export class MIRToStakeCredentials {
   }
 
   _remove_many(keys: Credential[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
   keys(): Credentials {
     let keys = Credentials.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -6598,7 +6604,7 @@ export class MIRToStakeCredentials {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
@@ -6693,10 +6699,10 @@ export class MetadataList {
 }
 
 export class MetadataMap {
-  private items: [TransactionMetadatum, TransactionMetadatum][];
+  _items: [TransactionMetadatum, TransactionMetadatum][];
 
   constructor(items: [TransactionMetadatum, TransactionMetadatum][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): MetadataMap {
@@ -6704,14 +6710,14 @@ export class MetadataMap {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(
     key: TransactionMetadatum,
     value: TransactionMetadatum,
   ): TransactionMetadatum | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry != null) {
@@ -6719,12 +6725,12 @@ export class MetadataMap {
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   _get(key: TransactionMetadatum): TransactionMetadatum | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry == null) return undefined;
@@ -6732,14 +6738,14 @@ export class MetadataMap {
   }
 
   _remove_many(keys: TransactionMetadatum[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
   keys(): MetadataList {
     let keys = MetadataList.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -6755,7 +6761,7 @@ export class MetadataMap {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
@@ -6825,10 +6831,10 @@ export class MetadataMap {
 }
 
 export class Mint {
-  private items: [ScriptHash, MintAssets][];
+  _items: [ScriptHash, MintAssets][];
 
   constructor(items: [ScriptHash, MintAssets][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): Mint {
@@ -6836,11 +6842,11 @@ export class Mint {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(key: ScriptHash, value: MintAssets): MintAssets | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry != null) {
@@ -6848,12 +6854,12 @@ export class Mint {
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: ScriptHash): MintAssets | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry == null) return undefined;
@@ -6861,14 +6867,14 @@ export class Mint {
   }
 
   _remove_many(keys: ScriptHash[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
   keys(): ScriptHashes {
     let keys = ScriptHashes.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -6884,7 +6890,7 @@ export class Mint {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
@@ -6920,7 +6926,7 @@ export class Mint {
     const result = new MultiAsset([]);
 
     // Iterating over items in Mint class
-    const mintItems = this.items;
+    const mintItems = this._items;
 
     for (const [scriptHash, mintAssets] of mintItems) {
       const assets = new Assets([]);
@@ -6963,10 +6969,10 @@ export class Mint {
 }
 
 export class MintAssets {
-  private items: [AssetName, Int][];
+  _items: [AssetName, Int][];
 
   constructor(items: [AssetName, Int][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): MintAssets {
@@ -6974,11 +6980,11 @@ export class MintAssets {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(key: AssetName, value: Int): Int | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry != null) {
@@ -6986,12 +6992,12 @@ export class MintAssets {
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: AssetName): Int | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry == null) return undefined;
@@ -6999,14 +7005,14 @@ export class MintAssets {
   }
 
   _remove_many(keys: AssetName[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
   keys(): AssetNames {
     let keys = AssetNames.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -7019,7 +7025,7 @@ export class MintAssets {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
@@ -7432,10 +7438,10 @@ export class MoveInstantaneousReward {
 }
 
 export class MultiAsset {
-  private items: [ScriptHash, Assets][];
+  _items: [ScriptHash, Assets][];
 
   constructor(items: [ScriptHash, Assets][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): MultiAsset {
@@ -7443,11 +7449,11 @@ export class MultiAsset {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(key: ScriptHash, value: Assets): Assets | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry != null) {
@@ -7455,12 +7461,12 @@ export class MultiAsset {
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: ScriptHash): Assets | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry == null) return undefined;
@@ -7468,14 +7474,14 @@ export class MultiAsset {
   }
 
   _remove_many(keys: ScriptHash[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
   keys(): ScriptHashes {
     let keys = ScriptHashes.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -7488,7 +7494,7 @@ export class MultiAsset {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
@@ -7548,7 +7554,7 @@ export class MultiAsset {
   }
 
   _inplace_checked_add(rhs: MultiAsset): void {
-    for (let [policy, rhs_assets] of rhs.items) {
+    for (let [policy, rhs_assets] of rhs._items) {
       let this_assets = this.get(policy);
       if (this_assets == null) {
         this_assets = Assets.new();
@@ -7559,7 +7565,7 @@ export class MultiAsset {
   }
 
   _inplace_clamped_sub(rhs: MultiAsset) {
-    for (let [policy, rhs_assets] of rhs.items) {
+    for (let [policy, rhs_assets] of rhs._items) {
       let this_assets = this.get(policy);
       if (this_assets == null) continue;
       this_assets._inplace_clamped_sub(rhs_assets);
@@ -7569,7 +7575,7 @@ export class MultiAsset {
 
   _normalize(): void {
     let to_remove: ScriptHash[] = [];
-    for (let [policy_id, assets] of this.items) {
+    for (let [policy_id, assets] of this._items) {
       if (assets.len() == 0) to_remove.push(policy_id);
     }
     this._remove_many(to_remove);
@@ -7582,7 +7588,7 @@ export class MultiAsset {
       false, // 0
       false, // 1
     ];
-    for (let [policy_id, this_assets] of this.items) {
+    for (let [policy_id, this_assets] of this._items) {
       let rhs_assets = rhs.get(policy_id);
       if (rhs_assets == null) rhs_assets = zero;
       let assets_cmp = this_assets._partial_cmp(rhs_assets);
@@ -7590,7 +7596,7 @@ export class MultiAsset {
       cmps[1 + assets_cmp] = true;
     }
 
-    for (let [policy_id, rhs_assets] of rhs.items) {
+    for (let [policy_id, rhs_assets] of rhs._items) {
       let this_assets = this.get(policy_id);
       if (this_assets == null) this_assets = zero;
       let assets_cmp = this_assets._partial_cmp(rhs_assets);
@@ -8800,7 +8806,7 @@ export class PlutusData {
     let variant: PlutusDataVariant;
 
     switch (tag) {
-      case "ConstrPlutusData":
+      case "tagged":
         variant = {
           kind: PlutusDataKind.ConstrPlutusData,
           value: ConstrPlutusData.deserialize(reader),
@@ -8821,7 +8827,9 @@ export class PlutusData {
         };
         break;
 
-      case "BigInt":
+      case "uint":
+      case "nint":
+      case "tagged":
         variant = {
           kind: PlutusDataKind.BigInt,
           value: $$CANT_READ("BigInt"),
@@ -8994,10 +9002,10 @@ export class PlutusList {
 }
 
 export class PlutusMap {
-  private items: [PlutusData, PlutusMapValues][];
+  _items: [PlutusData, PlutusMapValues][];
 
   constructor(items: [PlutusData, PlutusMapValues][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): PlutusMap {
@@ -9005,11 +9013,11 @@ export class PlutusMap {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(key: PlutusData, value: PlutusMapValues): PlutusMapValues | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry != null) {
@@ -9017,12 +9025,12 @@ export class PlutusMap {
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: PlutusData): PlutusMapValues | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry == null) return undefined;
@@ -9030,14 +9038,14 @@ export class PlutusMap {
   }
 
   _remove_many(keys: PlutusData[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
   keys(): PlutusList {
     let keys = PlutusList.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -9053,7 +9061,7 @@ export class PlutusMap {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
@@ -10495,10 +10503,10 @@ export class PrivateKey {
 }
 
 export class ProposedProtocolParameterUpdates {
-  private items: [GenesisHash, ProtocolParamUpdate][];
+  _items: [GenesisHash, ProtocolParamUpdate][];
 
   constructor(items: [GenesisHash, ProtocolParamUpdate][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): ProposedProtocolParameterUpdates {
@@ -10506,14 +10514,14 @@ export class ProposedProtocolParameterUpdates {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(
     key: GenesisHash,
     value: ProtocolParamUpdate,
   ): ProtocolParamUpdate | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry != null) {
@@ -10521,12 +10529,12 @@ export class ProposedProtocolParameterUpdates {
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: GenesisHash): ProtocolParamUpdate | undefined {
-    let entry = this.items.find((x) =>
+    let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
     if (entry == null) return undefined;
@@ -10534,14 +10542,14 @@ export class ProposedProtocolParameterUpdates {
   }
 
   _remove_many(keys: GenesisHash[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
   keys(): GenesisHashes {
     let keys = GenesisHashes.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -10557,7 +10565,7 @@ export class ProposedProtocolParameterUpdates {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
@@ -15308,10 +15316,10 @@ export class TransactionWitnessSets {
 }
 
 export class TreasuryWithdrawals {
-  private items: [unknown, BigNum][];
+  _items: [unknown, BigNum][];
 
   constructor(items: [unknown, BigNum][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): TreasuryWithdrawals {
@@ -15319,35 +15327,35 @@ export class TreasuryWithdrawals {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(key: unknown, value: BigNum): BigNum | undefined {
-    let entry = this.items.find((x) => $$CANT_EQ("RewardAddress"));
+    let entry = this._items.find((x) => $$CANT_EQ("RewardAddress"));
     if (entry != null) {
       let ret = entry[1];
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: unknown): BigNum | undefined {
-    let entry = this.items.find((x) => $$CANT_EQ("RewardAddress"));
+    let entry = this._items.find((x) => $$CANT_EQ("RewardAddress"));
     if (entry == null) return undefined;
     return entry[1];
   }
 
   _remove_many(keys: unknown[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !$$CANT_EQ("RewardAddress")),
     );
   }
 
   keys(): RewardAddresses {
     let keys = RewardAddresses.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -15360,7 +15368,7 @@ export class TreasuryWithdrawals {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       $$CANT_WRITE("RewardAddress");
       x[1].serialize(writer);
     });
@@ -15830,32 +15838,6 @@ export class UpdateCommitteeAction {
     this._members_to_remove = members_to_remove;
   }
 
-  static deserialize(reader: CBORReader): UpdateCommitteeAction {
-    let gov_action_id =
-      reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
-      undefined;
-
-    let committee = Committee.deserialize(reader);
-
-    let members_to_remove = Credentials.deserialize(reader);
-
-    return new UpdateCommitteeAction(
-      gov_action_id,
-      committee,
-      members_to_remove,
-    );
-  }
-
-  serialize(writer: CBORWriter): void {
-    if (this._gov_action_id == null) {
-      writer.writeNull();
-    } else {
-      this._gov_action_id.serialize(writer);
-    }
-    this._committee.serialize(writer);
-    this._members_to_remove.serialize(writer);
-  }
-
   // no-op
   free(): void {}
 
@@ -15880,6 +15862,39 @@ export class UpdateCommitteeAction {
 
   clone(): UpdateCommitteeAction {
     return UpdateCommitteeAction.from_bytes(this.to_bytes());
+  }
+
+  static new(
+    committee: Committee,
+    members_to_remove: Credentials,
+  ): UpdateCommitteeAction {
+    return UpdateCommitteeAction.new_with_action_id(
+      undefined,
+      committee,
+      members_to_remove,
+    );
+  }
+
+  static deserialize(reader: CBORReader): UpdateCommitteeAction {
+    let gov_action_id = reader.readNullable((reader) =>
+      GovernanceActionId.deserialize(reader),
+    );
+    let members_to_remove = Credentials.deserialize(reader);
+    let members = CommitteeEpochs.deserialize(reader);
+    let quorum_threshold = UnitInterval.deserialize(reader);
+    return UpdateCommitteeAction.new_with_action_id(
+      gov_action_id != null ? gov_action_id : undefined,
+      new Committee(quorum_threshold, members),
+      members_to_remove,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    if (this._gov_action_id == null) writer.writeNull();
+    else this._gov_action_id.serialize(writer);
+    this._members_to_remove.serialize(writer);
+    this._committee.members_.serialize(writer);
+    this._committee.quorum_threshold_.serialize(writer);
   }
 }
 
@@ -16166,7 +16181,7 @@ export class Value {
   }
 
   is_zero(): boolean {
-    return this._coin == 0n;
+    return this._coin.is_zero();
   }
 
   static new(coin: BigNum): Value {
@@ -16719,10 +16734,10 @@ export class VotingProcedure {
 }
 
 export class VotingProcedures {
-  private items: [unknown, GovernanceActions][];
+  _items: [unknown, GovernanceActions][];
 
   constructor(items: [unknown, GovernanceActions][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): VotingProcedures {
@@ -16730,38 +16745,38 @@ export class VotingProcedures {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(
     key: unknown,
     value: GovernanceActions,
   ): GovernanceActions | undefined {
-    let entry = this.items.find((x) => $$CANT_EQ("Voter"));
+    let entry = this._items.find((x) => $$CANT_EQ("Voter"));
     if (entry != null) {
       let ret = entry[1];
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: unknown): GovernanceActions | undefined {
-    let entry = this.items.find((x) => $$CANT_EQ("Voter"));
+    let entry = this._items.find((x) => $$CANT_EQ("Voter"));
     if (entry == null) return undefined;
     return entry[1];
   }
 
   _remove_many(keys: unknown[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !$$CANT_EQ("Voter")),
     );
   }
 
   keys(): Voters {
     let keys = Voters.new();
-    for (let [key, _] of this.items) keys.add(key);
+    for (let [key, _] of this._items) keys.add(key);
     return keys;
   }
 
@@ -16774,7 +16789,7 @@ export class VotingProcedures {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       $$CANT_WRITE("Voter");
       x[1].serialize(writer);
     });
@@ -17042,10 +17057,10 @@ export class VotingProposals {
 }
 
 export class Withdrawals {
-  private items: [unknown, BigNum][];
+  _items: [unknown, BigNum][];
 
   constructor(items: [unknown, BigNum][]) {
-    this.items = items;
+    this._items = items;
   }
 
   static new(): Withdrawals {
@@ -17053,28 +17068,28 @@ export class Withdrawals {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   insert(key: unknown, value: BigNum): BigNum | undefined {
-    let entry = this.items.find((x) => $$CANT_EQ("RewardAddress"));
+    let entry = this._items.find((x) => $$CANT_EQ("RewardAddress"));
     if (entry != null) {
       let ret = entry[1];
       entry[1] = value;
       return ret;
     }
-    this.items.push([key, value]);
+    this._items.push([key, value]);
     return undefined;
   }
 
   get(key: unknown): BigNum | undefined {
-    let entry = this.items.find((x) => $$CANT_EQ("RewardAddress"));
+    let entry = this._items.find((x) => $$CANT_EQ("RewardAddress"));
     if (entry == null) return undefined;
     return entry[1];
   }
 
   _remove_many(keys: unknown[]): void {
-    this.items = this.items.filter(([k, _v]) =>
+    this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !$$CANT_EQ("RewardAddress")),
     );
   }
@@ -17088,7 +17103,7 @@ export class Withdrawals {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, x) => {
+    writer.writeMap(this._items, (writer, x) => {
       $$CANT_WRITE("RewardAddress");
       x[1].serialize(writer);
     });
