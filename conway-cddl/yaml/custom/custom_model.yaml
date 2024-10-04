@@ -21,14 +21,14 @@ CostModel:
       return old;
     }
 
-CostMdls:
+Costmdls:
   type: map
   key: Language
   value: CostModel
   keys_method_type: Languages
   extra_methods: |
-    retain_language_versions(languages: Languages): CostMdls {
-      const result = new CostMdls([]);
+    retain_language_versions(languages: Languages): Costmdls {
+      const result = new Costmdls([]);
 
       for (let i = 0; i < languages.len(); i++) {
         const lang = languages.get(i);
