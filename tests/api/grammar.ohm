@@ -22,7 +22,7 @@ TypeDefs  {
     DataDecl =
       "static" Data -- static
       | Data -- instance
-    Data = "private"? identifier "?"? (":" wordlike )? ";"?
+    Data = "private"? identifier "?"? (":" Type )? ";"?
     // Parameters
     Param =
         identifier #":" Type         -- mandatory
