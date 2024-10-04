@@ -54,4 +54,14 @@ export class GenRecordFragment extends GenStructuredBase<Field> {
         .join("\n")}
     `;
   }
+
+  generateExtraMethods(): string {
+    return (
+      super.generateExtraMethods() +
+      `
+        // no-op
+        free() { }
+      `
+    );
+  }
 }
