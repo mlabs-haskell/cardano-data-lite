@@ -76,7 +76,7 @@ async function main() {
     import {arrayEq} from "./lib/eq";
     import {bech32} from "bech32";
     import * as cdlCrypto from "./lib/bip32-ed25519";
-    import {Address, Credential} from "./address";
+    import {Address, Credential, CredentialKind} from "./address";
 
     function $$UN(id: string, ...args: any): any {
       throw ("Undefined function: " + id);

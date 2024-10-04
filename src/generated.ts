@@ -5,7 +5,7 @@ import { hexToBytes, bytesToHex } from "./lib/hex";
 import { arrayEq } from "./lib/eq";
 import { bech32 } from "bech32";
 import * as cdlCrypto from "./lib/bip32-ed25519";
-import { Address, Credential } from "./address";
+import { Address, Credential, CredentialKind } from "./address";
 
 function $$UN(id: string, ...args: any): any {
   throw "Undefined function: " + id;
@@ -16367,18 +16367,18 @@ export class Voter {
   kind(): VoterEnumKind {
     if (this._constitutional_committee_hot_credential) {
       switch (this._constitutional_committee_hot_credential.kind()) {
-        case CredentialKind.Ed25519KeyHash:
+        case CredentialKind.Key:
           return VoterEnumKind.ConstitutionalCommitteeHotKeyHash;
-        case CredentialKind.ScriptHash:
+        case CredentialKind.Script:
           return VoterEnumKind.ConstitutionalCommitteeHotScriptHash;
       }
     }
 
     if (this._drep_credential) {
       switch (this._drep_credential.kind()) {
-        case CredentialKind.Ed25519KeyHash:
+        case CredentialKind.Key:
           return VoterEnumKind.DRepKeyHash;
-        case CredentialKind.ScriptHash:
+        case CredentialKind.Script:
           return VoterEnumKind.DRepScriptHash;
       }
     }

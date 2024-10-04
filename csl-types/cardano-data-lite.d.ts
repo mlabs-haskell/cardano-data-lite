@@ -262,10 +262,10 @@ export declare class BootstrapWitness {
     private _signature;
     private _chain_code;
     private _attributes;
-    constructor(vkey: unknown, signature: Ed25519Signature, chain_code: Uint8Array, attributes: Uint8Array);
-    static new(vkey: unknown, signature: Ed25519Signature, chain_code: Uint8Array, attributes: Uint8Array): BootstrapWitness;
-    vkey(): unknown;
-    set_vkey(vkey: unknown): void;
+    constructor(vkey: Vkey, signature: Ed25519Signature, chain_code: Uint8Array, attributes: Uint8Array);
+    static new(vkey: Vkey, signature: Ed25519Signature, chain_code: Uint8Array, attributes: Uint8Array): BootstrapWitness;
+    vkey(): Vkey;
+    set_vkey(vkey: Vkey): void;
     signature(): Ed25519Signature;
     set_signature(signature: Ed25519Signature): void;
     chain_code(): Uint8Array;
@@ -1193,16 +1193,16 @@ export declare class HeaderBody {
     private _block_body_hash;
     private _operational_cert;
     private _protocol_version;
-    constructor(block_number: number, slot_bignum: BigNum, prev_hash: BlockHash | undefined, issuer_vkey: unknown, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion);
-    static new(block_number: number, slot_bignum: BigNum, prev_hash: BlockHash | undefined, issuer_vkey: unknown, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
+    constructor(block_number: number, slot_bignum: BigNum, prev_hash: BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion);
+    static new(block_number: number, slot_bignum: BigNum, prev_hash: BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
     block_number(): number;
     set_block_number(block_number: number): void;
     slot_bignum(): BigNum;
     set_slot_bignum(slot_bignum: BigNum): void;
     prev_hash(): BlockHash | undefined;
     set_prev_hash(prev_hash: BlockHash | undefined): void;
-    issuer_vkey(): unknown;
-    set_issuer_vkey(issuer_vkey: unknown): void;
+    issuer_vkey(): Vkey;
+    set_issuer_vkey(issuer_vkey: Vkey): void;
     vrf_vkey(): VRFVKey;
     set_vrf_vkey(vrf_vkey: VRFVKey): void;
     vrf_result(): VRFCert;
@@ -1713,6 +1713,24 @@ export declare class NoConfidenceAction {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): NoConfidenceAction;
+}
+export declare class Nonce {
+    private _hash;
+    constructor(hash: Uint8Array | undefined);
+    static new(hash: Uint8Array | undefined): Nonce;
+    hash(): Uint8Array | undefined;
+    set_hash(hash: Uint8Array | undefined): void;
+    static deserialize(reader: CBORReader): Nonce;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array): Nonce;
+    static from_hex(hex_str: string): Nonce;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(): Nonce;
+    static new_identity(): Nonce;
+    static new_from_hash(hash: Uint8Array): Nonce;
+    get_hash(): Uint8Array | undefined;
 }
 export declare class OperationalCert {
     private _hot_vkey;
@@ -3357,13 +3375,44 @@ export declare class Value {
     clamped_sub(rhs: Value): Value;
     compare(rhs_value: Value): number | undefined;
 }
+export declare class Vkey {
+    private _public_key;
+    constructor(public_key: PublicKey);
+    static new(public_key: PublicKey): Vkey;
+    public_key(): PublicKey;
+    set_public_key(public_key: PublicKey): void;
+    static deserialize(reader: CBORReader): Vkey;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array): Vkey;
+    static from_hex(hex_str: string): Vkey;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(): Vkey;
+}
+export declare class Vkeys {
+    private items;
+    constructor(items: Vkey[]);
+    static new(): Vkeys;
+    len(): number;
+    get(index: number): Vkey;
+    add(elem: Vkey): void;
+    static deserialize(reader: CBORReader): Vkeys;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array): Vkeys;
+    static from_hex(hex_str: string): Vkeys;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(): Vkeys;
+}
 export declare class Vkeywitness {
     private _vkey;
     private _signature;
-    constructor(vkey: unknown, signature: Ed25519Signature);
-    static new(vkey: unknown, signature: Ed25519Signature): Vkeywitness;
-    vkey(): unknown;
-    set_vkey(vkey: unknown): void;
+    constructor(vkey: Vkey, signature: Ed25519Signature);
+    static new(vkey: Vkey, signature: Ed25519Signature): Vkeywitness;
+    vkey(): Vkey;
+    set_vkey(vkey: Vkey): void;
     signature(): Ed25519Signature;
     set_signature(signature: Ed25519Signature): void;
     static deserialize(reader: CBORReader): Vkeywitness;
@@ -3438,13 +3487,67 @@ export declare class VoteRegistrationAndDelegation {
     to_hex(): string;
     clone(): VoteRegistrationAndDelegation;
 }
+export declare class Voter {
+    private _constitutional_committee_hot_credential;
+    private _drep_credential;
+    private _staking_pool_key_hash;
+    constructor(constitutional_committee_hot_credential: Credential | undefined, drep_credential: Credential | undefined, staking_pool_key_hash: Ed25519KeyHash | undefined);
+    constitutional_committee_hot_credential(): Credential | undefined;
+    set_constitutional_committee_hot_credential(constitutional_committee_hot_credential: Credential | undefined): void;
+    drep_credential(): Credential | undefined;
+    set_drep_credential(drep_credential: Credential | undefined): void;
+    staking_pool_key_hash(): Ed25519KeyHash | undefined;
+    set_staking_pool_key_hash(staking_pool_key_hash: Ed25519KeyHash | undefined): void;
+    static deserialize(reader: CBORReader): Voter;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array): Voter;
+    static from_hex(hex_str: string): Voter;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(): Voter;
+    static new_constitutional_committee_hot_credential(cred: Credential): Voter;
+    static new_drep_credential(cred: Credential): Voter;
+    static new_stake_pool_key_hash(key_hash: Ed25519KeyHash): Voter;
+    kind(): VoterEnumKind;
+    to_constitutional_committee_hot_credential(): Credential | undefined;
+    to_drep_credential(): Credential | undefined;
+    to_stake_pool_key_hash(): Ed25519KeyHash | undefined;
+    has_script_credentials(): boolean;
+    to_key_hash(): Ed25519KeyHash | undefined;
+}
+export declare enum VoterEnumKind {
+    ConstitutionalCommitteeHotKeyHash = 0,
+    ConstitutionalCommitteeHotScriptHash = 1,
+    DRepKeyHash = 2,
+    DRepScriptHash = 3,
+    StakingPoolKeyHash = 4
+}
+export declare class VoterEnum {
+    private kind_;
+    constructor(kind: VoterEnumKind);
+    static new_ConstitutionalCommitteeHotKeyHash(): VoterEnum;
+    static new_ConstitutionalCommitteeHotScriptHash(): VoterEnum;
+    static new_DRepKeyHash(): VoterEnum;
+    static new_DRepScriptHash(): VoterEnum;
+    static new_StakingPoolKeyHash(): VoterEnum;
+    kind(): VoterEnumKind;
+    static deserialize(reader: CBORReader): VoterEnum;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array): VoterEnum;
+    static from_hex(hex_str: string): VoterEnum;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(): VoterEnum;
+}
 export declare class Voters {
     private items;
-    constructor(items: unknown[]);
+    constructor(items: Voter[]);
     static new(): Voters;
     len(): number;
-    get(index: number): unknown;
-    add(elem: unknown): void;
+    get(index: number): Voter;
+    add(elem: Voter): void;
     static deserialize(reader: CBORReader): Voters;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -3473,13 +3576,13 @@ export declare class VotingProcedure {
     clone(): VotingProcedure;
 }
 export declare class VotingProcedures {
-    _items: [unknown, GovernanceActions][];
-    constructor(items: [unknown, GovernanceActions][]);
+    _items: [Voter, GovernanceActions][];
+    constructor(items: [Voter, GovernanceActions][]);
     static new(): VotingProcedures;
     len(): number;
-    insert(key: unknown, value: GovernanceActions): GovernanceActions | undefined;
-    get(key: unknown): GovernanceActions | undefined;
-    _remove_many(keys: unknown[]): void;
+    insert(key: Voter, value: GovernanceActions): GovernanceActions | undefined;
+    get(key: Voter): GovernanceActions | undefined;
+    _remove_many(keys: Voter[]): void;
     keys(): Voters;
     static deserialize(reader: CBORReader): VotingProcedures;
     serialize(writer: CBORWriter): void;

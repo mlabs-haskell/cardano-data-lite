@@ -60,18 +60,18 @@ Voter: # TODO (custom serializer)
     kind(): VoterEnumKind {
       if (this._constitutional_committee_hot_credential) {
         switch (this._constitutional_committee_hot_credential.kind()) {
-          case (CredentialKind.Ed25519KeyHash):
+          case (CredentialKind.Key):
             return VoterEnumKind.ConstitutionalCommitteeHotKeyHash;
-          case (CredentialKind.ScriptHash):
+          case (CredentialKind.Script):
             return VoterEnumKind.ConstitutionalCommitteeHotScriptHash;
         }
       }
 
       if (this._drep_credential) {
         switch (this._drep_credential.kind()) {
-          case (CredentialKind.Ed25519KeyHash):
+          case (CredentialKind.Key):
             return VoterEnumKind.DRepKeyHash;
-          case (CredentialKind.ScriptHash):
+          case (CredentialKind.Script):
             return VoterEnumKind.DRepScriptHash;
         }
       }
