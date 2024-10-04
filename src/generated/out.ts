@@ -1494,9 +1494,9 @@ export enum CertificateKind {
   StakeVoteRegistrationAndDelegation = 13,
   CommitteeHotAuth = 14,
   CommitteeColdResign = 15,
-  DrepRegistration = 16,
-  DrepDeregistration = 17,
-  DrepUpdate = 18,
+  DRepRegistration = 16,
+  DRepDeregistration = 17,
+  DRepUpdate = 18,
 }
 
 export type CertificateVariant =
@@ -1514,9 +1514,9 @@ export type CertificateVariant =
   | { kind: 13; value: StakeVoteRegistrationAndDelegation }
   | { kind: 14; value: CommitteeHotAuth }
   | { kind: 15; value: CommitteeColdResign }
-  | { kind: 16; value: DrepRegistration }
-  | { kind: 17; value: DrepDeregistration }
-  | { kind: 18; value: DrepUpdate };
+  | { kind: 16; value: DRepRegistration }
+  | { kind: 17; value: DRepDeregistration }
+  | { kind: 18; value: DRepUpdate };
 
 export class Certificate {
   private variant: CertificateVariant;
@@ -1609,18 +1609,18 @@ export class Certificate {
   }
 
   static new_drep_registration(
-    drep_registration: DrepRegistration,
+    drep_registration: DRepRegistration,
   ): Certificate {
     return new Certificate({ kind: 16, value: drep_registration });
   }
 
   static new_drep_deregistration(
-    drep_deregistration: DrepDeregistration,
+    drep_deregistration: DRepDeregistration,
   ): Certificate {
     return new Certificate({ kind: 17, value: drep_deregistration });
   }
 
-  static new_drep_update(drep_update: DrepUpdate): Certificate {
+  static new_drep_update(drep_update: DRepUpdate): Certificate {
     return new Certificate({ kind: 18, value: drep_update });
   }
 
@@ -1686,15 +1686,15 @@ export class Certificate {
     if (this.variant.kind == 15) return this.variant.value;
   }
 
-  as_drep_registration(): DrepRegistration | undefined {
+  as_drep_registration(): DRepRegistration | undefined {
     if (this.variant.kind == 16) return this.variant.value;
   }
 
-  as_drep_deregistration(): DrepDeregistration | undefined {
+  as_drep_deregistration(): DRepDeregistration | undefined {
     if (this.variant.kind == 17) return this.variant.value;
   }
 
-  as_drep_update(): DrepUpdate | undefined {
+  as_drep_update(): DRepUpdate | undefined {
     if (this.variant.kind == 18) return this.variant.value;
   }
 
@@ -1870,33 +1870,33 @@ export class Certificate {
 
       case 16:
         if (len != null && len - 1 != 3) {
-          throw new Error("Expected 3 items to decode DrepRegistration");
+          throw new Error("Expected 3 items to decode DRepRegistration");
         }
         variant = {
           kind: 16,
-          value: DrepRegistration.deserialize(reader),
+          value: DRepRegistration.deserialize(reader),
         };
 
         break;
 
       case 17:
         if (len != null && len - 1 != 2) {
-          throw new Error("Expected 2 items to decode DrepDeregistration");
+          throw new Error("Expected 2 items to decode DRepDeregistration");
         }
         variant = {
           kind: 17,
-          value: DrepDeregistration.deserialize(reader),
+          value: DRepDeregistration.deserialize(reader),
         };
 
         break;
 
       case 18:
         if (len != null && len - 1 != 2) {
-          throw new Error("Expected 2 items to decode DrepUpdate");
+          throw new Error("Expected 2 items to decode DRepUpdate");
         }
         variant = {
           kind: 18,
-          value: DrepUpdate.deserialize(reader),
+          value: DRepUpdate.deserialize(reader),
         };
 
         break;
@@ -3168,179 +3168,7 @@ export class DRep {
   }
 }
 
-export class DataHash {
-  private inner: Uint8Array;
-
-  constructor(inner: Uint8Array) {
-    if (inner.length != 32) throw new Error("Expected length to be 32");
-    this.inner = inner;
-  }
-
-  static new(inner: Uint8Array): DataHash {
-    return new DataHash(inner);
-  }
-
-  static from_bech32(bech_str: string): DataHash {
-    let decoded = bech32.decode(bech_str);
-    let words = decoded.words;
-    let bytesArray = bech32.fromWords(words);
-    let bytes = new Uint8Array(bytesArray);
-    return new DataHash(bytes);
-  }
-
-  to_bech32(prefix: string): string {
-    let bytes = this.to_bytes();
-    let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
-  }
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): DataHash {
-    return new DataHash(data);
-  }
-
-  static from_hex(hex_str: string): DataHash {
-    return DataHash.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    return this.inner;
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
-  clone(): DataHash {
-    return DataHash.from_bytes(this.to_bytes());
-  }
-
-  static deserialize(reader: CBORReader): DataHash {
-    return new DataHash(reader.readBytes());
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeBytes(this.inner);
-  }
-}
-
-export enum DataOptionKind {
-  DataHash = 0,
-  PlutusData = 1,
-}
-
-export type DataOptionVariant =
-  | { kind: 0; value: DataHash }
-  | { kind: 1; value: unknown };
-
-export class DataOption {
-  private variant: DataOptionVariant;
-
-  constructor(variant: DataOptionVariant) {
-    this.variant = variant;
-  }
-
-  static new_hash(hash: DataHash): DataOption {
-    return new DataOption({ kind: 0, value: hash });
-  }
-
-  static new_data(data: unknown): DataOption {
-    return new DataOption({ kind: 1, value: data });
-  }
-
-  as_hash(): DataHash | undefined {
-    if (this.variant.kind == 0) return this.variant.value;
-  }
-
-  as_data(): unknown | undefined {
-    if (this.variant.kind == 1) return this.variant.value;
-  }
-
-  kind(): DataOptionKind {
-    return this.variant.kind;
-  }
-
-  static deserialize(reader: CBORReader): DataOption {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
-    let variant: DataOptionVariant;
-
-    switch (tag) {
-      case 0:
-        if (len != null && len - 1 != 1) {
-          throw new Error("Expected 1 items to decode DataHash");
-        }
-        variant = {
-          kind: 0,
-          value: DataHash.deserialize(reader),
-        };
-
-        break;
-
-      case 1:
-        if (len != null && len - 1 != 1) {
-          throw new Error("Expected 1 items to decode PlutusData");
-        }
-        variant = {
-          kind: 1,
-          value: $$CANT_READ("PlutusData"),
-        };
-
-        break;
-    }
-
-    if (len == null) {
-      reader.readBreak();
-    }
-
-    throw new Error("Unexpected tag for DataOption: " + tag);
-  }
-
-  serialize(writer: CBORWriter): void {
-    switch (this.variant.kind) {
-      case 0:
-        writer.writeArrayTag(2);
-        writer.writeInt(BigInt(0));
-        this.variant.value.serialize(writer);
-        break;
-      case 1:
-        writer.writeArrayTag(2);
-        writer.writeInt(BigInt(1));
-        $$CANT_WRITE("PlutusData");
-        break;
-    }
-  }
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): DataOption {
-    let reader = new CBORReader(data);
-    return DataOption.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): DataOption {
-    return DataOption.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
-  clone(): DataOption {
-    return DataOption.from_bytes(this.to_bytes());
-  }
-}
-
-export class DrepDeregistration {
+export class DRepDeregistration {
   private _drep_credential: Credential;
   private _coin: BigNum;
 
@@ -3350,7 +3178,7 @@ export class DrepDeregistration {
   }
 
   static new(drep_credential: Credential, coin: BigNum) {
-    return new DrepDeregistration(drep_credential, coin);
+    return new DRepDeregistration(drep_credential, coin);
   }
 
   drep_credential(): Credential {
@@ -3369,12 +3197,12 @@ export class DrepDeregistration {
     this._coin = coin;
   }
 
-  static deserialize(reader: CBORReader): DrepDeregistration {
+  static deserialize(reader: CBORReader): DRepDeregistration {
     let drep_credential = Credential.deserialize(reader);
 
     let coin = BigNum.deserialize(reader);
 
-    return new DrepDeregistration(drep_credential, coin);
+    return new DRepDeregistration(drep_credential, coin);
   }
 
   serialize(writer: CBORWriter): void {
@@ -3385,13 +3213,13 @@ export class DrepDeregistration {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DrepDeregistration {
+  static from_bytes(data: Uint8Array): DRepDeregistration {
     let reader = new CBORReader(data);
-    return DrepDeregistration.deserialize(reader);
+    return DRepDeregistration.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): DrepDeregistration {
-    return DrepDeregistration.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): DRepDeregistration {
+    return DRepDeregistration.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -3404,12 +3232,12 @@ export class DrepDeregistration {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DrepDeregistration {
-    return DrepDeregistration.from_bytes(this.to_bytes());
+  clone(): DRepDeregistration {
+    return DRepDeregistration.from_bytes(this.to_bytes());
   }
 }
 
-export class DrepRegistration {
+export class DRepRegistration {
   private _voting_credential: Credential;
   private _coin: BigNum;
   private _anchor: Anchor | undefined;
@@ -3429,7 +3257,7 @@ export class DrepRegistration {
     coin: BigNum,
     anchor: Anchor | undefined,
   ) {
-    return new DrepRegistration(voting_credential, coin, anchor);
+    return new DRepRegistration(voting_credential, coin, anchor);
   }
 
   voting_credential(): Credential {
@@ -3456,14 +3284,14 @@ export class DrepRegistration {
     this._anchor = anchor;
   }
 
-  static deserialize(reader: CBORReader): DrepRegistration {
+  static deserialize(reader: CBORReader): DRepRegistration {
     let voting_credential = Credential.deserialize(reader);
 
     let coin = BigNum.deserialize(reader);
 
     let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
 
-    return new DrepRegistration(voting_credential, coin, anchor);
+    return new DRepRegistration(voting_credential, coin, anchor);
   }
 
   serialize(writer: CBORWriter): void {
@@ -3479,13 +3307,13 @@ export class DrepRegistration {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DrepRegistration {
+  static from_bytes(data: Uint8Array): DRepRegistration {
     let reader = new CBORReader(data);
-    return DrepRegistration.deserialize(reader);
+    return DRepRegistration.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): DrepRegistration {
-    return DrepRegistration.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): DRepRegistration {
+    return DRepRegistration.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -3498,12 +3326,12 @@ export class DrepRegistration {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DrepRegistration {
-    return DrepRegistration.from_bytes(this.to_bytes());
+  clone(): DRepRegistration {
+    return DRepRegistration.from_bytes(this.to_bytes());
   }
 }
 
-export class DrepUpdate {
+export class DRepUpdate {
   private _drep_credential: Credential;
   private _anchor: Anchor | undefined;
 
@@ -3513,7 +3341,7 @@ export class DrepUpdate {
   }
 
   static new(drep_credential: Credential, anchor: Anchor | undefined) {
-    return new DrepUpdate(drep_credential, anchor);
+    return new DRepUpdate(drep_credential, anchor);
   }
 
   drep_credential(): Credential {
@@ -3532,12 +3360,12 @@ export class DrepUpdate {
     this._anchor = anchor;
   }
 
-  static deserialize(reader: CBORReader): DrepUpdate {
+  static deserialize(reader: CBORReader): DRepUpdate {
     let drep_credential = Credential.deserialize(reader);
 
     let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
 
-    return new DrepUpdate(drep_credential, anchor);
+    return new DRepUpdate(drep_credential, anchor);
   }
 
   serialize(writer: CBORWriter): void {
@@ -3552,13 +3380,13 @@ export class DrepUpdate {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DrepUpdate {
+  static from_bytes(data: Uint8Array): DRepUpdate {
     let reader = new CBORReader(data);
-    return DrepUpdate.deserialize(reader);
+    return DRepUpdate.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): DrepUpdate {
-    return DrepUpdate.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): DRepUpdate {
+    return DRepUpdate.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -3571,12 +3399,12 @@ export class DrepUpdate {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DrepUpdate {
-    return DrepUpdate.from_bytes(this.to_bytes());
+  clone(): DRepUpdate {
+    return DRepUpdate.from_bytes(this.to_bytes());
   }
 }
 
-export class DrepVotingThresholds {
+export class DRepVotingThresholds {
   private _motion_no_confidence: UnitInterval;
   private _committee_normal: UnitInterval;
   private _committee_no_confidence: UnitInterval;
@@ -3624,7 +3452,7 @@ export class DrepVotingThresholds {
     pp_governance_group: UnitInterval,
     treasury_withdrawal: UnitInterval,
   ) {
-    return new DrepVotingThresholds(
+    return new DRepVotingThresholds(
       motion_no_confidence,
       committee_normal,
       committee_no_confidence,
@@ -3718,7 +3546,7 @@ export class DrepVotingThresholds {
     this._treasury_withdrawal = treasury_withdrawal;
   }
 
-  static deserialize(reader: CBORReader): DrepVotingThresholds {
+  static deserialize(reader: CBORReader): DRepVotingThresholds {
     let len = reader.readArrayTag();
 
     if (len != null && len < 10) {
@@ -3747,7 +3575,7 @@ export class DrepVotingThresholds {
 
     let treasury_withdrawal = UnitInterval.deserialize(reader);
 
-    return new DrepVotingThresholds(
+    return new DRepVotingThresholds(
       motion_no_confidence,
       committee_normal,
       committee_no_confidence,
@@ -3779,13 +3607,13 @@ export class DrepVotingThresholds {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DrepVotingThresholds {
+  static from_bytes(data: Uint8Array): DRepVotingThresholds {
     let reader = new CBORReader(data);
-    return DrepVotingThresholds.deserialize(reader);
+    return DRepVotingThresholds.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): DrepVotingThresholds {
-    return DrepVotingThresholds.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): DRepVotingThresholds {
+    return DRepVotingThresholds.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -3798,8 +3626,180 @@ export class DrepVotingThresholds {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DrepVotingThresholds {
-    return DrepVotingThresholds.from_bytes(this.to_bytes());
+  clone(): DRepVotingThresholds {
+    return DRepVotingThresholds.from_bytes(this.to_bytes());
+  }
+}
+
+export class DataHash {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 32) throw new Error("Expected length to be 32");
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): DataHash {
+    return new DataHash(inner);
+  }
+
+  static from_bech32(bech_str: string): DataHash {
+    let decoded = bech32.decode(bech_str);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
+    return new DataHash(bytes);
+  }
+
+  to_bech32(prefix: string): string {
+    let bytes = this.to_bytes();
+    let words = bech32.toWords(bytes);
+    return bech32.encode(prefix, words);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DataHash {
+    return new DataHash(data);
+  }
+
+  static from_hex(hex_str: string): DataHash {
+    return DataHash.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    return this.inner;
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): DataHash {
+    return DataHash.from_bytes(this.to_bytes());
+  }
+
+  static deserialize(reader: CBORReader): DataHash {
+    return new DataHash(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+}
+
+export enum DataOptionKind {
+  DataHash = 0,
+  PlutusData = 1,
+}
+
+export type DataOptionVariant =
+  | { kind: 0; value: DataHash }
+  | { kind: 1; value: PlutusData };
+
+export class DataOption {
+  private variant: DataOptionVariant;
+
+  constructor(variant: DataOptionVariant) {
+    this.variant = variant;
+  }
+
+  static new_hash(hash: DataHash): DataOption {
+    return new DataOption({ kind: 0, value: hash });
+  }
+
+  static new_data(data: PlutusData): DataOption {
+    return new DataOption({ kind: 1, value: data });
+  }
+
+  as_hash(): DataHash | undefined {
+    if (this.variant.kind == 0) return this.variant.value;
+  }
+
+  as_data(): PlutusData | undefined {
+    if (this.variant.kind == 1) return this.variant.value;
+  }
+
+  kind(): DataOptionKind {
+    return this.variant.kind;
+  }
+
+  static deserialize(reader: CBORReader): DataOption {
+    let len = reader.readArrayTag();
+    let tag = Number(reader.readUint());
+    let variant: DataOptionVariant;
+
+    switch (tag) {
+      case 0:
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode DataHash");
+        }
+        variant = {
+          kind: 0,
+          value: DataHash.deserialize(reader),
+        };
+
+        break;
+
+      case 1:
+        if (len != null && len - 1 != 1) {
+          throw new Error("Expected 1 items to decode PlutusData");
+        }
+        variant = {
+          kind: 1,
+          value: PlutusData.deserialize(reader),
+        };
+
+        break;
+    }
+
+    if (len == null) {
+      reader.readBreak();
+    }
+
+    throw new Error("Unexpected tag for DataOption: " + tag);
+  }
+
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(0));
+        this.variant.value.serialize(writer);
+        break;
+      case 1:
+        writer.writeArrayTag(2);
+        writer.writeInt(BigInt(1));
+        this.variant.value.serialize(writer);
+        break;
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DataOption {
+    let reader = new CBORReader(data);
+    return DataOption.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DataOption {
+    return DataOption.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): DataOption {
+    return DataOption.from_bytes(this.to_bytes());
   }
 }
 
@@ -5091,7 +5091,7 @@ export class Header {
 
 export class HeaderBody {
   private _block_number: number;
-  private _slot: BigNum;
+  private _slot_bignum: BigNum;
   private _prev_hash: BlockHash | undefined;
   private _issuer_vkey: unknown;
   private _vrf_vkey: VRFVKey;
@@ -5103,7 +5103,7 @@ export class HeaderBody {
 
   constructor(
     block_number: number,
-    slot: BigNum,
+    slot_bignum: BigNum,
     prev_hash: BlockHash | undefined,
     issuer_vkey: unknown,
     vrf_vkey: VRFVKey,
@@ -5114,7 +5114,7 @@ export class HeaderBody {
     protocol_version: ProtocolVersion,
   ) {
     this._block_number = block_number;
-    this._slot = slot;
+    this._slot_bignum = slot_bignum;
     this._prev_hash = prev_hash;
     this._issuer_vkey = issuer_vkey;
     this._vrf_vkey = vrf_vkey;
@@ -5127,7 +5127,7 @@ export class HeaderBody {
 
   static new(
     block_number: number,
-    slot: BigNum,
+    slot_bignum: BigNum,
     prev_hash: BlockHash | undefined,
     issuer_vkey: unknown,
     vrf_vkey: VRFVKey,
@@ -5139,7 +5139,7 @@ export class HeaderBody {
   ) {
     return new HeaderBody(
       block_number,
-      slot,
+      slot_bignum,
       prev_hash,
       issuer_vkey,
       vrf_vkey,
@@ -5159,12 +5159,12 @@ export class HeaderBody {
     this._block_number = block_number;
   }
 
-  slot(): BigNum {
-    return this._slot;
+  slot_bignum(): BigNum {
+    return this._slot_bignum;
   }
 
-  set_slot(slot: BigNum): void {
-    this._slot = slot;
+  set_slot_bignum(slot_bignum: BigNum): void {
+    this._slot_bignum = slot_bignum;
   }
 
   prev_hash(): BlockHash | undefined {
@@ -5242,7 +5242,7 @@ export class HeaderBody {
 
     let block_number = Number(reader.readInt());
 
-    let slot = BigNum.deserialize(reader);
+    let slot_bignum = BigNum.deserialize(reader);
 
     let prev_hash =
       reader.readNullable((r) => BlockHash.deserialize(r)) ?? undefined;
@@ -5263,7 +5263,7 @@ export class HeaderBody {
 
     return new HeaderBody(
       block_number,
-      slot,
+      slot_bignum,
       prev_hash,
       issuer_vkey,
       vrf_vkey,
@@ -5279,7 +5279,7 @@ export class HeaderBody {
     writer.writeArrayTag(10);
 
     writer.writeInt(BigInt(this._block_number));
-    this._slot.serialize(writer);
+    this._slot_bignum.serialize(writer);
     if (this._prev_hash == null) {
       writer.writeNull();
     } else {
@@ -5318,6 +5318,36 @@ export class HeaderBody {
 
   clone(): HeaderBody {
     return HeaderBody.from_bytes(this.to_bytes());
+  }
+
+  slot(): number {
+    return Number(this._slot_bignum);
+  }
+
+  static new_headerbody(
+    block_number: number,
+    slot: BigNum,
+    prev_hash: BlockHash | undefined,
+    issuer_vkey: Vkey,
+    vrf_vkey: VRFVKey,
+    vrf_result: VRFCert,
+    block_body_size: number,
+    block_body_hash: BlockHash,
+    operational_cert: OperationalCert,
+    protocol_version: ProtocolVersion,
+  ): HeaderBody {
+    return new HeaderBody(
+      block_number,
+      slot,
+      prev_hash,
+      issuer_vkey,
+      vrf_vkey,
+      vrf_result,
+      block_body_size,
+      block_body_hash,
+      operational_cert,
+      protocol_version,
+    );
   }
 }
 
@@ -5833,6 +5863,9 @@ export class MIR {
   static new_ToStakeCredentials(): MIR {
     return new MIR(1);
   }
+  kind(): MIRKind {
+    return this.kind_;
+  }
 
   static deserialize(reader: CBORReader): MIR {
     let kind = Number(reader.readInt());
@@ -5902,6 +5935,10 @@ export class MIREnum {
 
   as_to_stake_creds(): MIRToStakeCredentials | undefined {
     if (this.variant.kind == 1) return this.variant.value;
+  }
+
+  kind(): MIREnumKind {
+    return this.variant.kind;
   }
 
   static deserialize(reader: CBORReader): MIREnum {
@@ -6000,6 +6037,9 @@ export class MIRPot {
 
   static new_Treasury(): MIRPot {
     return new MIRPot(1);
+  }
+  kind(): MIRPotKind {
+    return this.kind_;
   }
 
   static deserialize(reader: CBORReader): MIRPot {
@@ -6567,7 +6607,7 @@ export class MoveInstantaneousReward {
     return new MoveInstantaneousReward(pot, variant);
   }
 
-  get_pot(): MIRPot {
+  pot(): MIRPot {
     return this._pot;
   }
 
@@ -6575,7 +6615,7 @@ export class MoveInstantaneousReward {
     this._pot = pot;
   }
 
-  get_variant(): MIREnum {
+  variant(): MIREnum {
     return this._variant;
   }
 
@@ -7612,8 +7652,208 @@ export class ParameterChangeAction {
   }
 }
 
+export enum PlutusDataKind {
+  ConstrPlutusData = 0,
+  PlutusMap = 1,
+  PlutusList = 2,
+  BigInt = 3,
+  Bytes = 4,
+}
+
+export type PlutusDataVariant =
+  | { kind: 0; value: ConstrPlutusData }
+  | { kind: 1; value: PlutusMap }
+  | { kind: 2; value: PlutusList }
+  | { kind: 3; value: unknown }
+  | { kind: 4; value: Uint8Array };
+
+export class PlutusData {
+  private variant: PlutusDataVariant;
+
+  constructor(variant: PlutusDataVariant) {
+    this.variant = variant;
+  }
+
+  static new_constr_plutus_data(
+    constr_plutus_data: ConstrPlutusData,
+  ): PlutusData {
+    return new PlutusData({ kind: 0, value: constr_plutus_data });
+  }
+
+  static new_map(map: PlutusMap): PlutusData {
+    return new PlutusData({ kind: 1, value: map });
+  }
+
+  static new_list(list: PlutusList): PlutusData {
+    return new PlutusData({ kind: 2, value: list });
+  }
+
+  static new_integer(integer: unknown): PlutusData {
+    return new PlutusData({ kind: 3, value: integer });
+  }
+
+  static new_bytes(bytes: Uint8Array): PlutusData {
+    return new PlutusData({ kind: 4, value: bytes });
+  }
+
+  as_constr_plutus_data(): ConstrPlutusData {
+    if (this.variant.kind == 0) return this.variant.value;
+    throw new Error("Incorrect cast");
+  }
+
+  as_map(): PlutusMap {
+    if (this.variant.kind == 1) return this.variant.value;
+    throw new Error("Incorrect cast");
+  }
+
+  as_list(): PlutusList {
+    if (this.variant.kind == 2) return this.variant.value;
+    throw new Error("Incorrect cast");
+  }
+
+  as_integer(): unknown {
+    if (this.variant.kind == 3) return this.variant.value;
+    throw new Error("Incorrect cast");
+  }
+
+  as_bytes(): Uint8Array {
+    if (this.variant.kind == 4) return this.variant.value;
+    throw new Error("Incorrect cast");
+  }
+
+  kind(): PlutusDataKind {
+    return this.variant.kind;
+  }
+
+  static deserialize(reader: CBORReader): PlutusData {
+    let tag = reader.peekType();
+    let variant: PlutusDataVariant;
+
+    switch (tag) {
+      case "ConstrPlutusData":
+        variant = {
+          kind: PlutusDataKind.ConstrPlutusData,
+          value: ConstrPlutusData.deserialize(reader),
+        };
+        break;
+
+      case "map":
+        variant = {
+          kind: PlutusDataKind.PlutusMap,
+          value: PlutusMap.deserialize(reader),
+        };
+        break;
+
+      case "array":
+        variant = {
+          kind: PlutusDataKind.PlutusList,
+          value: PlutusList.deserialize(reader),
+        };
+        break;
+
+      case "BigInt":
+        variant = {
+          kind: PlutusDataKind.BigInt,
+          value: $$CANT_READ("BigInt"),
+        };
+        break;
+
+      case "bytes":
+        variant = {
+          kind: PlutusDataKind.Bytes,
+          value: reader.readBytes(),
+        };
+        break;
+
+      default:
+        throw new Error("Unexpected subtype for PlutusData: " + tag);
+    }
+
+    return new PlutusData(variant);
+  }
+
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        this.variant.value.serialize(writer);
+        break;
+
+      case 1:
+        this.variant.value.serialize(writer);
+        break;
+
+      case 2:
+        this.variant.value.serialize(writer);
+        break;
+
+      case 3:
+        $$CANT_WRITE("BigInt");
+        break;
+
+      case 4:
+        writer.writeBytes(this.variant.value);
+        break;
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PlutusData {
+    let reader = new CBORReader(data);
+    return PlutusData.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PlutusData {
+    return PlutusData.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): PlutusData {
+    return PlutusData.from_bytes(this.to_bytes());
+  }
+
+  static new_empty_constr_plutus_data(alternative: BigNum): PlutusData {
+    return new PlutusData({
+      kind: 0,
+      value: ConstrPlutusData.new(alternative, PlutusList.new()),
+    });
+  }
+
+  static new_single_value_constr_plutus_data(
+    alternative: BigNum,
+    plutus_data: PlutusData,
+  ): PlutusData {
+    let plutus_list = PlutusList.new();
+    plutus_list.add(plutus_data);
+    return new PlutusData({
+      kind: 0,
+      value: ConstrPlutusData.new(alternative, plutus_list),
+    });
+  }
+
+  to_json(schema: PlutusDatumSchema): string {
+    throw new Error("PlutusData.to_json: to be implemented");
+  }
+  static from_json(json: string, schema: PlutusDatumSchema): PlutusData {
+    throw new Error("PlutusData.from_json: to be implemented");
+  }
+  static from_address(address: Address): PlutusData {
+    throw new Error("PlutusData.from_address: to be implemented");
+  }
+}
+
 export class PlutusList {
-  private items: unknown[];
+  private items: PlutusData[];
 
   constructor() {
     this.items = [];
@@ -7627,20 +7867,20 @@ export class PlutusList {
     return this.items.length;
   }
 
-  get(index: number): unknown {
+  get(index: number): PlutusData {
     if (index >= this.items.length) throw new Error("Array out of bounds");
     return this.items[index];
   }
 
-  add(elem: unknown): boolean {
+  add(elem: PlutusData): boolean {
     if (this.contains(elem)) return true;
     this.items.push(elem);
     return false;
   }
 
-  contains(elem: unknown): boolean {
+  contains(elem: PlutusData): boolean {
     for (let item of this.items) {
-      if ($$CANT_EQ("PlutusData")) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
         return true;
       }
     }
@@ -7653,13 +7893,13 @@ export class PlutusList {
       let tag = reader.readTaggedTag();
       if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
     }
-    reader.readArray((reader) => ret.add($$CANT_READ("PlutusData")));
+    reader.readArray((reader) => ret.add(PlutusData.deserialize(reader)));
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeTaggedTag(258);
-    writer.writeArray(this.items, (writer, x) => $$CANT_WRITE("PlutusData"));
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
   // no-op
@@ -7690,9 +7930,9 @@ export class PlutusList {
 }
 
 export class PlutusMap {
-  private items: [unknown, PlutusMapValues][];
+  private items: [PlutusData, PlutusMapValues][];
 
-  constructor(items: [unknown, PlutusMapValues][]) {
+  constructor(items: [PlutusData, PlutusMapValues][]) {
     this.items = items;
   }
 
@@ -7704,8 +7944,10 @@ export class PlutusMap {
     return this.items.length;
   }
 
-  insert(key: unknown, value: PlutusMapValues): PlutusMapValues | undefined {
-    let entry = this.items.find((x) => $$CANT_EQ("PlutusData"));
+  insert(key: PlutusData, value: PlutusMapValues): PlutusMapValues | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
     if (entry != null) {
       let ret = entry[1];
       entry[1] = value;
@@ -7715,15 +7957,17 @@ export class PlutusMap {
     return undefined;
   }
 
-  get(key: unknown): PlutusMapValues | undefined {
-    let entry = this.items.find((x) => $$CANT_EQ("PlutusData"));
+  get(key: PlutusData): PlutusMapValues | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
     if (entry == null) return undefined;
     return entry[1];
   }
 
-  _remove_many(keys: unknown[]): void {
+  _remove_many(keys: PlutusData[]): void {
     this.items = this.items.filter(([k, _v]) =>
-      keys.every((key) => !$$CANT_EQ("PlutusData")),
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
@@ -7737,7 +7981,7 @@ export class PlutusMap {
     let ret = new PlutusMap([]);
     reader.readMap((reader) =>
       ret.insert(
-        $$CANT_READ("PlutusData"),
+        PlutusData.deserialize(reader),
         PlutusMapValues.deserialize(reader),
       ),
     );
@@ -7746,7 +7990,7 @@ export class PlutusMap {
 
   serialize(writer: CBORWriter): void {
     writer.writeMap(this.items, (writer, x) => {
-      $$CANT_WRITE("PlutusData");
+      x[0].serialize(writer);
       x[1].serialize(writer);
     });
   }
@@ -7779,9 +8023,9 @@ export class PlutusMap {
 }
 
 export class PlutusMapValues {
-  private items: unknown[];
+  private items: PlutusData[];
 
-  constructor(items: unknown[]) {
+  constructor(items: PlutusData[]) {
     this.items = items;
   }
 
@@ -7793,23 +8037,23 @@ export class PlutusMapValues {
     return this.items.length;
   }
 
-  get(index: number): unknown {
+  get(index: number): PlutusData {
     if (index >= this.items.length) throw new Error("Array out of bounds");
     return this.items[index];
   }
 
-  add(elem: unknown): void {
+  add(elem: PlutusData): void {
     this.items.push(elem);
   }
 
   static deserialize(reader: CBORReader): PlutusMapValues {
     return new PlutusMapValues(
-      reader.readArray((reader) => $$CANT_READ("PlutusData")),
+      reader.readArray((reader) => PlutusData.deserialize(reader)),
     );
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => $$CANT_WRITE("PlutusData"));
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
   // no-op
@@ -8916,7 +9160,7 @@ export class ProtocolParamUpdate {
   private _collateral_percentage: number | undefined;
   private _max_collateral_inputs: number | undefined;
   private _pool_voting_thresholds: PoolVotingThresholds | undefined;
-  private _drep_voting_thresholds: DrepVotingThresholds | undefined;
+  private _drep_voting_thresholds: DRepVotingThresholds | undefined;
   private _min_committee_size: number | undefined;
   private _committee_term_limit: number | undefined;
   private _governance_action_validity_period: number | undefined;
@@ -8948,7 +9192,7 @@ export class ProtocolParamUpdate {
     collateral_percentage: number | undefined,
     max_collateral_inputs: number | undefined,
     pool_voting_thresholds: PoolVotingThresholds | undefined,
-    drep_voting_thresholds: DrepVotingThresholds | undefined,
+    drep_voting_thresholds: DRepVotingThresholds | undefined,
     min_committee_size: number | undefined,
     committee_term_limit: number | undefined,
     governance_action_validity_period: number | undefined,
@@ -9012,7 +9256,7 @@ export class ProtocolParamUpdate {
     collateral_percentage: number | undefined,
     max_collateral_inputs: number | undefined,
     pool_voting_thresholds: PoolVotingThresholds | undefined,
-    drep_voting_thresholds: DrepVotingThresholds | undefined,
+    drep_voting_thresholds: DRepVotingThresholds | undefined,
     min_committee_size: number | undefined,
     committee_term_limit: number | undefined,
     governance_action_validity_period: number | undefined,
@@ -9237,12 +9481,12 @@ export class ProtocolParamUpdate {
     this._pool_voting_thresholds = pool_voting_thresholds;
   }
 
-  drep_voting_thresholds(): DrepVotingThresholds | undefined {
+  drep_voting_thresholds(): DRepVotingThresholds | undefined {
     return this._drep_voting_thresholds;
   }
 
   set_drep_voting_thresholds(
-    drep_voting_thresholds: DrepVotingThresholds | undefined,
+    drep_voting_thresholds: DRepVotingThresholds | undefined,
   ): void {
     this._drep_voting_thresholds = drep_voting_thresholds;
   }
@@ -9403,7 +9647,7 @@ export class ProtocolParamUpdate {
           break;
 
         case 26:
-          fields.drep_voting_thresholds = DrepVotingThresholds.deserialize(r);
+          fields.drep_voting_thresholds = DRepVotingThresholds.deserialize(r);
           break;
 
         case 27:
@@ -9866,14 +10110,14 @@ export class PublicKey {
 export class Redeemer {
   private _tag: RedeemerTag;
   private _index: BigNum;
-  private _data: unknown;
+  private _data: PlutusData;
   private _ex_units: ExUnits;
   private _invalid_transactions: Uint32Array;
 
   constructor(
     tag: RedeemerTag,
     index: BigNum,
-    data: unknown,
+    data: PlutusData,
     ex_units: ExUnits,
     invalid_transactions: Uint32Array,
   ) {
@@ -9887,7 +10131,7 @@ export class Redeemer {
   static new(
     tag: RedeemerTag,
     index: BigNum,
-    data: unknown,
+    data: PlutusData,
     ex_units: ExUnits,
     invalid_transactions: Uint32Array,
   ) {
@@ -9910,11 +10154,11 @@ export class Redeemer {
     this._index = index;
   }
 
-  data(): unknown {
+  data(): PlutusData {
     return this._data;
   }
 
-  set_data(data: unknown): void {
+  set_data(data: PlutusData): void {
     this._data = data;
   }
 
@@ -9947,7 +10191,7 @@ export class Redeemer {
 
     let index = BigNum.deserialize(reader);
 
-    let data = $$CANT_READ("PlutusData");
+    let data = PlutusData.deserialize(reader);
 
     let ex_units = ExUnits.deserialize(reader);
 
@@ -9963,7 +10207,7 @@ export class Redeemer {
 
     this._tag.serialize(writer);
     this._index.serialize(writer);
-    $$CANT_WRITE("PlutusData");
+    this._data.serialize(writer);
     this._ex_units.serialize(writer);
     writer.writeArray(this._invalid_transactions, (writer, x) =>
       writer.writeInt(BigInt(x)),
@@ -11725,32 +11969,32 @@ export class StakeVoteRegistrationAndDelegation {
 }
 
 export class TimelockExpiry {
-  private _slot: BigNum;
+  private _slot_bignum: BigNum;
 
-  constructor(slot: BigNum) {
-    this._slot = slot;
+  constructor(slot_bignum: BigNum) {
+    this._slot_bignum = slot_bignum;
   }
 
-  static new(slot: BigNum) {
-    return new TimelockExpiry(slot);
+  static new(slot_bignum: BigNum) {
+    return new TimelockExpiry(slot_bignum);
   }
 
-  slot(): BigNum {
-    return this._slot;
+  slot_bignum(): BigNum {
+    return this._slot_bignum;
   }
 
-  set_slot(slot: BigNum): void {
-    this._slot = slot;
+  set_slot_bignum(slot_bignum: BigNum): void {
+    this._slot_bignum = slot_bignum;
   }
 
   static deserialize(reader: CBORReader): TimelockExpiry {
-    let slot = BigNum.deserialize(reader);
+    let slot_bignum = BigNum.deserialize(reader);
 
-    return new TimelockExpiry(slot);
+    return new TimelockExpiry(slot_bignum);
   }
 
   serialize(writer: CBORWriter): void {
-    this._slot.serialize(writer);
+    this._slot_bignum.serialize(writer);
   }
 
   // no-op
@@ -11778,35 +12022,43 @@ export class TimelockExpiry {
   clone(): TimelockExpiry {
     return TimelockExpiry.from_bytes(this.to_bytes());
   }
+
+  slot(): number {
+    return Number(this._slot_bignum);
+  }
+
+  static new_timelockexpiry(slot: BigNum): TimelockExpiry {
+    return new TimelockExpiry(slot);
+  }
 }
 
 export class TimelockStart {
-  private _slot: BigNum;
+  private _slot_bignum: BigNum;
 
-  constructor(slot: BigNum) {
-    this._slot = slot;
+  constructor(slot_bignum: BigNum) {
+    this._slot_bignum = slot_bignum;
   }
 
-  static new(slot: BigNum) {
-    return new TimelockStart(slot);
+  static new(slot_bignum: BigNum) {
+    return new TimelockStart(slot_bignum);
   }
 
-  slot(): BigNum {
-    return this._slot;
+  slot_bignum(): BigNum {
+    return this._slot_bignum;
   }
 
-  set_slot(slot: BigNum): void {
-    this._slot = slot;
+  set_slot_bignum(slot_bignum: BigNum): void {
+    this._slot_bignum = slot_bignum;
   }
 
   static deserialize(reader: CBORReader): TimelockStart {
-    let slot = BigNum.deserialize(reader);
+    let slot_bignum = BigNum.deserialize(reader);
 
-    return new TimelockStart(slot);
+    return new TimelockStart(slot_bignum);
   }
 
   serialize(writer: CBORWriter): void {
-    this._slot.serialize(writer);
+    this._slot_bignum.serialize(writer);
   }
 
   // no-op
@@ -11833,6 +12085,14 @@ export class TimelockStart {
 
   clone(): TimelockStart {
     return TimelockStart.from_bytes(this.to_bytes());
+  }
+
+  slot(): number {
+    return Number(this._slot_bignum);
+  }
+
+  static new_timelockexpiry(slot: BigNum): TimelockExpiry {
+    return new TimelockExpiry(slot);
   }
 }
 
@@ -12021,11 +12281,11 @@ export class TransactionBody {
   private _inputs: TransactionInputs;
   private _outputs: TransactionOutputs;
   private _fee: BigNum;
-  private _ttl: BigNum | undefined;
+  private _ttl_bignum: BigNum | undefined;
   private _certs: Certificates | undefined;
   private _withdrawals: Withdrawals | undefined;
   private _auxiliary_data_hash: AuxiliaryDataHash | undefined;
-  private _validity_start_interval: BigNum | undefined;
+  private _validity_start_interval_bignum: BigNum | undefined;
   private _mint: Mint | undefined;
   private _script_data_hash: ScriptDataHash | undefined;
   private _collateral: TransactionInputs | undefined;
@@ -12043,11 +12303,11 @@ export class TransactionBody {
     inputs: TransactionInputs,
     outputs: TransactionOutputs,
     fee: BigNum,
-    ttl: BigNum | undefined,
+    ttl_bignum: BigNum | undefined,
     certs: Certificates | undefined,
     withdrawals: Withdrawals | undefined,
     auxiliary_data_hash: AuxiliaryDataHash | undefined,
-    validity_start_interval: BigNum | undefined,
+    validity_start_interval_bignum: BigNum | undefined,
     mint: Mint | undefined,
     script_data_hash: ScriptDataHash | undefined,
     collateral: TransactionInputs | undefined,
@@ -12064,11 +12324,11 @@ export class TransactionBody {
     this._inputs = inputs;
     this._outputs = outputs;
     this._fee = fee;
-    this._ttl = ttl;
+    this._ttl_bignum = ttl_bignum;
     this._certs = certs;
     this._withdrawals = withdrawals;
     this._auxiliary_data_hash = auxiliary_data_hash;
-    this._validity_start_interval = validity_start_interval;
+    this._validity_start_interval_bignum = validity_start_interval_bignum;
     this._mint = mint;
     this._script_data_hash = script_data_hash;
     this._collateral = collateral;
@@ -12087,11 +12347,11 @@ export class TransactionBody {
     inputs: TransactionInputs,
     outputs: TransactionOutputs,
     fee: BigNum,
-    ttl: BigNum | undefined,
+    ttl_bignum: BigNum | undefined,
     certs: Certificates | undefined,
     withdrawals: Withdrawals | undefined,
     auxiliary_data_hash: AuxiliaryDataHash | undefined,
-    validity_start_interval: BigNum | undefined,
+    validity_start_interval_bignum: BigNum | undefined,
     mint: Mint | undefined,
     script_data_hash: ScriptDataHash | undefined,
     collateral: TransactionInputs | undefined,
@@ -12109,11 +12369,11 @@ export class TransactionBody {
       inputs,
       outputs,
       fee,
-      ttl,
+      ttl_bignum,
       certs,
       withdrawals,
       auxiliary_data_hash,
-      validity_start_interval,
+      validity_start_interval_bignum,
       mint,
       script_data_hash,
       collateral,
@@ -12153,12 +12413,12 @@ export class TransactionBody {
     this._fee = fee;
   }
 
-  ttl(): BigNum | undefined {
-    return this._ttl;
+  ttl_bignum(): BigNum | undefined {
+    return this._ttl_bignum;
   }
 
-  set_ttl(ttl: BigNum | undefined): void {
-    this._ttl = ttl;
+  set_ttl_bignum(ttl_bignum: BigNum | undefined): void {
+    this._ttl_bignum = ttl_bignum;
   }
 
   certs(): Certificates | undefined {
@@ -12187,14 +12447,14 @@ export class TransactionBody {
     this._auxiliary_data_hash = auxiliary_data_hash;
   }
 
-  validity_start_interval(): BigNum | undefined {
-    return this._validity_start_interval;
+  validity_start_interval_bignum(): BigNum | undefined {
+    return this._validity_start_interval_bignum;
   }
 
-  set_validity_start_interval(
-    validity_start_interval: BigNum | undefined,
+  set_validity_start_interval_bignum(
+    validity_start_interval_bignum: BigNum | undefined,
   ): void {
-    this._validity_start_interval = validity_start_interval;
+    this._validity_start_interval_bignum = validity_start_interval_bignum;
   }
 
   mint(): Mint | undefined {
@@ -12313,7 +12573,7 @@ export class TransactionBody {
           break;
 
         case 3:
-          fields.ttl = BigNum.deserialize(r);
+          fields.ttl_bignum = BigNum.deserialize(r);
           break;
 
         case 4:
@@ -12329,7 +12589,7 @@ export class TransactionBody {
           break;
 
         case 8:
-          fields.validity_start_interval = BigNum.deserialize(r);
+          fields.validity_start_interval_bignum = BigNum.deserialize(r);
           break;
 
         case 9:
@@ -12392,7 +12652,7 @@ export class TransactionBody {
       throw new Error("Value not provided for field 2 (fee)");
     let fee = fields.fee;
 
-    let ttl = fields.ttl;
+    let ttl_bignum = fields.ttl_bignum;
 
     let certs = fields.certs;
 
@@ -12400,7 +12660,7 @@ export class TransactionBody {
 
     let auxiliary_data_hash = fields.auxiliary_data_hash;
 
-    let validity_start_interval = fields.validity_start_interval;
+    let validity_start_interval_bignum = fields.validity_start_interval_bignum;
 
     let mint = fields.mint;
 
@@ -12430,11 +12690,11 @@ export class TransactionBody {
       inputs,
       outputs,
       fee,
-      ttl,
+      ttl_bignum,
       certs,
       withdrawals,
       auxiliary_data_hash,
-      validity_start_interval,
+      validity_start_interval_bignum,
       mint,
       script_data_hash,
       collateral,
@@ -12452,11 +12712,11 @@ export class TransactionBody {
 
   serialize(writer: CBORWriter): void {
     let len = 20;
-    if (this._ttl === undefined) len -= 1;
+    if (this._ttl_bignum === undefined) len -= 1;
     if (this._certs === undefined) len -= 1;
     if (this._withdrawals === undefined) len -= 1;
     if (this._auxiliary_data_hash === undefined) len -= 1;
-    if (this._validity_start_interval === undefined) len -= 1;
+    if (this._validity_start_interval_bignum === undefined) len -= 1;
     if (this._mint === undefined) len -= 1;
     if (this._script_data_hash === undefined) len -= 1;
     if (this._collateral === undefined) len -= 1;
@@ -12480,9 +12740,9 @@ export class TransactionBody {
     writer.writeInt(2n);
     this._fee.serialize(writer);
 
-    if (this._ttl !== undefined) {
+    if (this._ttl_bignum !== undefined) {
       writer.writeInt(3n);
-      this._ttl.serialize(writer);
+      this._ttl_bignum.serialize(writer);
     }
     if (this._certs !== undefined) {
       writer.writeInt(4n);
@@ -12496,9 +12756,9 @@ export class TransactionBody {
       writer.writeInt(7n);
       this._auxiliary_data_hash.serialize(writer);
     }
-    if (this._validity_start_interval !== undefined) {
+    if (this._validity_start_interval_bignum !== undefined) {
       writer.writeInt(8n);
-      this._validity_start_interval.serialize(writer);
+      this._validity_start_interval_bignum.serialize(writer);
     }
     if (this._mint !== undefined) {
       writer.writeInt(9n);
@@ -12574,6 +12834,56 @@ export class TransactionBody {
 
   clone(): TransactionBody {
     return TransactionBody.from_bytes(this.to_bytes());
+  }
+
+  ttl(): number | undefined {
+    if (this._ttl_bignum === undefined) return undefined;
+    return Number(this._ttl_bignum);
+  }
+  set_ttl(ttl: BigNum): void {
+    this._ttl_bignum = ttl;
+  }
+  remove_ttl(): void {
+    this._ttl_bignum = undefined;
+  }
+
+  validity_start_interval(): number | undefined {
+    if (this._validity_start_interval_bignum === undefined) return undefined;
+    return Number(this._validity_start_interval_bignum);
+  }
+  set_validity_start_interval(validity_start_interval: number): void {
+    this._validity_start_interval_bignum = BigNum.new(
+      BigInt(validity_start_interval),
+    );
+  }
+
+  static new_tx_body(
+    inputs: TransactionInputs,
+    outputs: TransactionOutputs,
+    fee: BigNum,
+  ): TransactionBody {
+    return TransactionBody.new(
+      inputs.clone(),
+      outputs.clone(),
+      fee,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
   }
 }
 
