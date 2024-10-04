@@ -233,7 +233,7 @@ Bip32PrivateKey:
       let scalar = bytes.slice(0, 32);
       let last = scalar[31];
       let first = scalar[0];
-      if((last & 0b1100_000) != 0b0100_0000 || (first & 0b0000_0111) = 0b0000_0000) {
+      if((last & 0b1100_0000) != 0b0100_0000 || (first & 0b0000_0111) == 0b0000_0000) {
         throw new Error("invalid bytes");
       }
       return new Bip32PrivateKey(bytes);
