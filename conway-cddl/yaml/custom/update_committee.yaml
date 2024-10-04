@@ -55,36 +55,38 @@ UpdateCommitteeAction:
   fragment_encode_len: 4
   methods:
     new: new_with_action_id
-  functions: |
+    deserialize: null
+    serialize: null
+  extra_methods: |
     static new(
       committee: Committee,
       members_to_remove: Credentials,
     ): UpdateCommitteeAction {
-      return new UpdateCommitteeAction.new_with_action_id(
+      return UpdateCommitteeAction.new_with_action_id(
         undefined,
         committee,
         members_to_remove
       );
     }
 
-    deserialize(reader: CBORReader): UpdateCommitteeAction {
+    static deserialize(reader: CBORReader): UpdateCommitteeAction {
       let gov_action_id = reader.readNullable(reader => 
         GovernanceActionId.deserialize(reader)
       ); 
       let members_to_remove = Credentials.deserialize(reader);
       let members = CommitteeEpochs.deserialize(reader);
       let quorum_threshold = UnitInterval.deserialize(reader);
-      return UpdateCommitteeAction.new(
-        gov_action_id,
-        Committee.new(quorum_threshold, members);
+      return UpdateCommitteeAction.new_with_action_id(
+        gov_action_id != null ? gov_action_id : undefined,
+        new Committee(quorum_threshold, members),
         members_to_remove,
       );
     }
 
     serialize(writer: CBORWriter): void {
-      if(this.gov_action_id == null) writer.writeNull()
-      else this.gov_action_id.serialize(writer);
-      this.members_to_remove.serialize(writer);
-      this.committee.members_.serialize(writer);
-      this.committee.quorum_threshold_.serialize(writer);
+      if(this._gov_action_id == null) writer.writeNull()
+      else this._gov_action_id.serialize(writer);
+      this._members_to_remove.serialize(writer);
+      this._committee.members_.serialize(writer);
+      this._committee.quorum_threshold_.serialize(writer);
     }

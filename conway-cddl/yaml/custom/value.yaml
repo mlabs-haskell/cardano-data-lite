@@ -16,7 +16,7 @@ Value:
     }
 
     is_zero(): boolean {
-      return this._coin == 0n;
+      return this._coin.is_zero();
     }
 
     static new(coin: BigNum): Value {

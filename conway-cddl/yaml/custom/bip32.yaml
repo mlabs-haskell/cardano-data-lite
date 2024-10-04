@@ -145,7 +145,7 @@ Bip32PrivateKey:
     static _BECH32_HRP = "xprv";
 
     free(): void {
-      for(let i = 0; i < this._inner.length; i++) 
+      for(let i = 0; i < this.inner.length; i++) 
         this.inner[i] = 0x00;
     }
 
@@ -167,11 +167,11 @@ Bip32PrivateKey:
     }
 
     to_raw_key(): PrivateKey {
-      PrivateKey.from_extended_bytes(this._inner.slice(0, 64));
+      return PrivateKey.from_extended_bytes(this.inner.slice(0, 64));
     }
 
     to_public(): Bip32PublicKey {
-      let extended_secret = this._inner.slice(0, 64);
+      let extended_secret = this.inner.slice(0, 64);
       let cc = this.chaincode();
       let pubkey = cdlCrypto.extendedToPubkey(extended_secret);
       let buf = new Uint8Array(64);
@@ -200,13 +200,13 @@ Bip32PrivateKey:
     }
 
     chaincode(): Uint8Array {
-      return this._inner.slice(64, 96);
+      return this.inner.slice(64, 96);
     }
 
     derive(index: number): Bip32PrivateKey {
       let {privateKey, chainCode} = cdlCrypto.derive.derivePrivate(
-          this._innner.slice(0, 64),
-          this._inner.slice(64, 96),
+          this.inner.slice(0, 64),
+          this.inner.slice(64, 96),
           index
         );
       let buf = new Uint8Array(Bip32PrivateKey._LEN);
@@ -216,14 +216,13 @@ Bip32PrivateKey:
     }
 
     static generate_ed25519_bip32(): Bip32PrivateKey {
-      let buf = new Uint8Array(Bip32PrivateKey._LEN);
-      cdlCrypto.getRandomBytes(buf);
-      cdlCrypto.normalizeExtendedForBip32Ed25519(buf);
-      return cdlCrypto;
+      let bytes = cdlCrypto.getRandomBytes(Bip32PrivateKey._LEN);
+      cdlCrypto.normalizeExtendedForBip32Ed25519(bytes);
+      return new Bip32PrivateKey(bytes);
     }
 
     static from_bip39_entropy(entropy: Uint8Array, password: Uint8Array): Bip32PrivateKey {
-      return cdlCrypto.bip32PrivateKeyFromEntropy(entropy, password);
+      return new Bip32PrivateKey(cdlCrypto.bip32PrivateKeyFromEntropy(entropy, password));
     }
 
     static from_bytes(bytes: Uint8Array): Bip32PrivateKey {
@@ -248,10 +247,11 @@ Bip32PublicKey:
     to_bech32: null
     clone: null
   extra_methods: |
+    static _LEN = 64;
     static _BECH32_HRP = "xpub";
 
     chaincode(): Uint8Array {
-      return this._inner.slice(32, 64);
+      return this.inner.slice(32, 64);
     }
 
     static from_bech32(bech_str: string): Bip32PublicKey {
@@ -272,13 +272,13 @@ Bip32PublicKey:
     }
 
     to_raw_key(): PublicKey {
-      PublicKey.from_bytes(this._inner.slice(0, 32));
+      return PublicKey.from_bytes(this.inner.slice(0, 32));
     }
 
     derive(index: number): Bip32PublicKey {
       let {publicKey, chainCode} = cdlCrypto.derive.derivePublic(
-          this._innner.slice(0, 32),
-          this._inner.slice(32, 64),
+          this.inner.slice(0, 32),
+          this.inner.slice(32, 64),
           index
         );
       let buf = new Uint8Array(Bip32PublicKey._LEN);
