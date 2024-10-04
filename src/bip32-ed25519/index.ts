@@ -1,4 +1,6 @@
 import { sha512 } from "@noble/hashes/sha2";
+import { pbkdf2 } from "@noble/hashes/pbkdf2";
+import { hmac } from "@noble/hashes/hmac";
 import { blake2b } from "@noble/hashes/blake2b";
 import nacl from "tweetnacl";
 import * as naclExt from "./nacl-extended";
@@ -50,9 +52,26 @@ export function secretToExtended(secret: Uint8Array) {
  * Modifies the extendedKey in place.
  */
 export function normalizeExtendedForBip32Ed25519(extendedKey: Uint8Array) {
+  extendedKey[0] &= 0b1111_1000; // clear last 3 bits
+  extendedKey[31] &= 0b0111_1111; // clear the highest bit
+  extendedKey[31] |= 0b0100_0000; // set the second highest bit
+
   extendedKey[31] &= 0b1101_1111;
 }
 
 export function blake2b224(data: Uint8Array): Uint8Array {
   return blake2b(data, { dkLen: 28 });
+}
+
+export function bip32PrivateKeyFromEntropy(
+  entropy: Uint8Array,
+  password: Uint8Array,
+): Uint8Array {
+  const LEN = 96;
+  const ITER = 4096;
+
+  let bytes = pbkdf2(sha512, password, entropy, { c: ITER, dkLen: LEN });
+  normalizeExtendedForBip32Ed25519(bytes);
+
+  return bytes;
 }
