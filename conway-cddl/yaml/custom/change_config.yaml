@@ -1,0 +1,27 @@
+ChangeConfig:
+  type: record
+  fields:
+    - name: address
+      type: Address
+    - name: plutus_data
+      type: OutputDatum
+      nullable: true
+    - name: script_ref
+      type: ScriptRef
+      nullable: true
+  methods:
+    new: null
+  extra_methods: |
+    static new(address: Address): ChangeConfig {
+      return new ChangeConfig(address, undefined, undefined);
+    }
+    change_address(address: Address): ChangeConfig {
+      return new ChangeConfig(address, this._plutus_data, this._script_ref);
+    }
+    change_plutus_data(plutus_data: OutputDatum): ChangeConfig {
+      return new ChangeConfig(this._address, plutus_data, this._script_ref);
+    }
+    change_script_ref(script_ref: ScriptRef): ChangeConfig {
+      return new ChangeConfig(this._address, this._plutus_data, script_ref);
+    }
+
