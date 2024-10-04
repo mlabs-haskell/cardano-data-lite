@@ -134,6 +134,9 @@ export const Schema = Type.Intersect([
       type: Type.Literal("custom"),
       body: Type.String(),
     }),
+    Type.Object({
+      type: Type.Literal("external"),
+    }),
   ]),
 ]);
 

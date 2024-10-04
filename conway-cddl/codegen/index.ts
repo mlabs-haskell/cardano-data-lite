@@ -15,6 +15,7 @@ import { GenUnion } from "./generators/union";
 import { Value } from "@sinclair/typebox/value";
 import { GenHash } from "./generators/hash";
 import { GenCustom } from "./generators/custom";
+import { GenExternal } from "./generators/external";
 
 export type SchemaTable = { [key: string]: CodeGeneratorBase };
 
@@ -70,6 +71,8 @@ export class Codegen {
         return new GenHash(name, this.customTypes, schema);
       case "custom":
         return new GenCustom(name, this.customTypes, schema);
+      case "external":
+        return new GenExternal(name, this.customTypes, schema);
     }
     throw new Error("Unknown type: " + schema_.type + " for " + name);
   }
