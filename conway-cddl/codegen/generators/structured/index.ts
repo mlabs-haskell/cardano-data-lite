@@ -11,12 +11,14 @@ type StructureField = {
 export type GenStructuredBaseOptions<Field extends StructureField> =
   CodeGeneratorBaseOptions & {
     fields: Field[];
+    accessor_get_prefix?: boolean;
   };
 
 export class GenStructuredBase<
   Field extends StructureField,
 > extends CodeGeneratorBase {
   options: GenStructuredBaseOptions<Field>;
+  accessorGetPrefix?: boolean;
 
   constructor(
     name: string,
@@ -25,6 +27,7 @@ export class GenStructuredBase<
   ) {
     super(name, customTypes, options);
     this.options = options;
+    this.accessorGetPrefix = options.accessor_get_prefix;
   }
 
   private fieldType(field: Field) {
@@ -69,7 +72,7 @@ export class GenStructuredBase<
     return this.getFields()
       .map(
         (x) => `
-        get_${x.name}(): ${this.fieldType(x)} {
+        ${this.accessorGetPrefix ? "get_" : ""}${x.name}(): ${this.fieldType(x)} {
           return this._${x.name};
         }
 
