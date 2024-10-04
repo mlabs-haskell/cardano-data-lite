@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 export function min_fee(tx: Transaction, linear_fee: LinearFee): BigNum;
 export function calculate_ex_units_ceil_cost(ex_units: ExUnits, ex_unit_prices: ExUnitPrices): BigNum;
 export function min_script_fee(tx: Transaction, ex_unit_prices: ExUnitPrices): BigNum;

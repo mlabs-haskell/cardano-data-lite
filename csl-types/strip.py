@@ -12,7 +12,7 @@ with open("./cardano_serialization_lib.d.ts") as f:
                 if line_ == skip_till_line:
                     skip_till_line = None
                 continue
-            if line_.startswith(r"/**"):
+            if line_.startswith(r"/*"):
                 skip_till_token = r"*/"
             elif line_.startswith("export interface") and "JSON" in line:
                 skip_till_line = "}"

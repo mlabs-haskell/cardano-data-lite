@@ -17,4 +17,8 @@ export type SomeType =
   {
     tag: "simple"
     ident: string
+  } |
+  {
+    tag: "object",
+    attrMap: Map<string, SomeType>
   }
