@@ -17,7 +17,7 @@ export class GenRecordFragment extends GenStructuredBase<Field> {
     customTypes: SchemaTable,
     options: GenRecordFragmentOptions,
   ) {
-    super(name, customTypes, { genCSL: false, ...options });
+    super(name, customTypes, { genCSL: true, ...options });
   }
 
   generateDeserialize(reader: string): string {
@@ -53,15 +53,5 @@ export class GenRecordFragment extends GenStructuredBase<Field> {
         )
         .join("\n")}
     `;
-  }
-
-  generateExtraMethods(): string {
-    return (
-      super.generateExtraMethods() +
-      `
-        // no-op
-        free() { }
-      `
-    );
   }
 }
