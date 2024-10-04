@@ -1860,3 +1860,12 @@ DataCost:
     - name: coins_per_byte
       type: BigNum
 
+OutputDatum:
+  type: tagged_record
+  variants:
+    - name: data_hash
+      tag: 0
+      value: DataHash
+    - name: data
+      tag: 1
+      value: PlutusData
