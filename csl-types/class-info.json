@@ -1,0 +1,24 @@
+{
+  "ignore": [
+    "GenesisKeyDelegation",
+    "MoveInstantaneousReward",
+    "MoveInstantaneousRewardsCert",
+    "FixedBlock",
+    "FixedTransaction",
+    "FixedTransactionBodies",
+    "FixedTransactionBody",
+    "FixedTxWitnessesSet",
+    "FixedVersionedBlock",
+    "Pointer",
+    "PointerAddress",
+    "PublicKeys",
+    "VersionedBlock",
+    "LinearFee",
+    "LegacyDaedalusPrivateKey",
+    "Strings",
+    "TransactionUnspentOutput",
+    "TransactionUnspentOutputs",
+    "TransactionBatch",
+    "TransactionBatchList"
+  ]
+}

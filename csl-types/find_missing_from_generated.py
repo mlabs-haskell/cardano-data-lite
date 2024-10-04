@@ -3,42 +3,27 @@ Find class exports which are present in csl-stripped.d.ts, but not in generated/
 """
 
 import re
+import json
 
-RE_CLASS_EXPORT = r'export class (\w+)'
-RE_ENUM_EXPORT = r'export enum (\w+)'
-RE_RENAME_EXPORT = r'export { (\w+) as (\w+) }'
+RE_CLASS_EXPORT = r"export class (\w+)"
+RE_ENUM_EXPORT = r"export enum (\w+)"
+RE_RENAME_EXPORT = r"export { (\w+) as (\w+) }"
 
-excluded = [
-    "TransactionBatch",
-    "TransactionBatchList",
-    "Strings",
-    "ChangeConfig",
-    "FixedBlock",
-    "FixedTransaction",
-    "FixedTransactionBodies",
-    "FixedTransactionBody",
-    "FixedTxWitnessesSet",
-    "FixedVersionedBlock",
-    "LinearFee",  # used in min_fee
-    "DataCost",  # used in min_ada_for_output)
-    "TransactionUnspentOutput",  # used in create_send_all
-    "TransactionUnspentOutputs",  # used in create_send_all
-    "NetworkInfo",
-    "Committee",  # TODO: Why?
-    "VersionedBlock",
-]
+excluded = json.load(open("./class-info.json"))["ignore"]
+
 
 def parse_line(line: str):
     line = line.strip()
     if not line.startswith("export"):
         return None
-    if (match := re.search(RE_CLASS_EXPORT, line)) is not None: 
-        return ('class', match.group(1))
+    if (match := re.search(RE_CLASS_EXPORT, line)) is not None:
+        return ("class", match.group(1))
     if (match := re.search(RE_ENUM_EXPORT, line)) is not None:
-        return ('enum', match.group(1))
+        return ("enum", match.group(1))
     if (match := re.search(RE_RENAME_EXPORT, line)) is not None:
-        return ('rename', match.group(1), match.group(2))
+        return ("rename", match.group(1), match.group(2))
     return None
+
 
 def parse_file(filename: str):
     exports = {}
@@ -47,20 +32,21 @@ def parse_file(filename: str):
     with open(filename) as f:
         for line in f:
             match = parse_line(line)
-            if match is None: 
+            if match is None:
                 continue
             kind, *args = match
-            if kind == 'class':
-                exports[args[0]] = 'class'
-            elif kind == 'enum':
-                exports[args[0]] = 'enum'
-            elif kind == 'rename':
+            if kind == "class":
+                exports[args[0]] = "class"
+            elif kind == "enum":
+                exports[args[0]] = "enum"
+            elif kind == "rename":
                 aliases.append(args)
 
     for old_name, new_name in aliases:
         exports[new_name] = exports[old_name]
 
     return exports
+
 
 src_exports = parse_file("./csl-stripped.d.ts")
 gen_exports = parse_file("../src/generated/out.ts")
