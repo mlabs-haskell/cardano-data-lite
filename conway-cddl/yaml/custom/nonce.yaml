@@ -1,0 +1,16 @@
+Nonce:
+  type: record
+  fields:
+    - name: hash
+      type: bytes
+      nullable: true
+  extra_methods: |
+    static new_identity(): Nonce {
+      return new Nonce(undefined);
+    }
+    static new_from_hash(hash: Uint8Array): Nonce {
+      return new Nonce(hash);
+    }
+    get_hash(): Uint8Array | undefined {
+      return this._hash;
+    }
