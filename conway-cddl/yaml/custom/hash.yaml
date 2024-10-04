@@ -69,6 +69,7 @@ Ed25519Signature:
 KESSignature:
   type: newtype
   item: bytes
+  accessor: toJsValue
   constraints:
     len:
       eq: 448
