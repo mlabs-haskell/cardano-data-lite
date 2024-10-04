@@ -1285,13 +1285,13 @@ export class BlockHash {
 }
 
 export class BootstrapWitness {
-  private _vkey: unknown;
+  private _vkey: Vkey;
   private _signature: Ed25519Signature;
   private _chain_code: Uint8Array;
   private _attributes: Uint8Array;
 
   constructor(
-    vkey: unknown,
+    vkey: Vkey,
     signature: Ed25519Signature,
     chain_code: Uint8Array,
     attributes: Uint8Array,
@@ -1303,7 +1303,7 @@ export class BootstrapWitness {
   }
 
   static new(
-    vkey: unknown,
+    vkey: Vkey,
     signature: Ed25519Signature,
     chain_code: Uint8Array,
     attributes: Uint8Array,
@@ -1311,11 +1311,11 @@ export class BootstrapWitness {
     return new BootstrapWitness(vkey, signature, chain_code, attributes);
   }
 
-  vkey(): unknown {
+  vkey(): Vkey {
     return this._vkey;
   }
 
-  set_vkey(vkey: unknown): void {
+  set_vkey(vkey: Vkey): void {
     this._vkey = vkey;
   }
 
@@ -1352,7 +1352,7 @@ export class BootstrapWitness {
       );
     }
 
-    let vkey = $$CANT_READ("Vkey");
+    let vkey = Vkey.deserialize(reader);
 
     let signature = Ed25519Signature.deserialize(reader);
 
@@ -1366,7 +1366,7 @@ export class BootstrapWitness {
   serialize(writer: CBORWriter): void {
     writer.writeArrayTag(4);
 
-    $$CANT_WRITE("Vkey");
+    this._vkey.serialize(writer);
     this._signature.serialize(writer);
     writer.writeBytes(this._chain_code);
     writer.writeBytes(this._attributes);
@@ -5444,7 +5444,7 @@ export class HeaderBody {
   private _block_number: number;
   private _slot_bignum: BigNum;
   private _prev_hash: BlockHash | undefined;
-  private _issuer_vkey: unknown;
+  private _issuer_vkey: Vkey;
   private _vrf_vkey: VRFVKey;
   private _vrf_result: VRFCert;
   private _block_body_size: number;
@@ -5456,7 +5456,7 @@ export class HeaderBody {
     block_number: number,
     slot_bignum: BigNum,
     prev_hash: BlockHash | undefined,
-    issuer_vkey: unknown,
+    issuer_vkey: Vkey,
     vrf_vkey: VRFVKey,
     vrf_result: VRFCert,
     block_body_size: number,
@@ -5480,7 +5480,7 @@ export class HeaderBody {
     block_number: number,
     slot_bignum: BigNum,
     prev_hash: BlockHash | undefined,
-    issuer_vkey: unknown,
+    issuer_vkey: Vkey,
     vrf_vkey: VRFVKey,
     vrf_result: VRFCert,
     block_body_size: number,
@@ -5526,11 +5526,11 @@ export class HeaderBody {
     this._prev_hash = prev_hash;
   }
 
-  issuer_vkey(): unknown {
+  issuer_vkey(): Vkey {
     return this._issuer_vkey;
   }
 
-  set_issuer_vkey(issuer_vkey: unknown): void {
+  set_issuer_vkey(issuer_vkey: Vkey): void {
     this._issuer_vkey = issuer_vkey;
   }
 
@@ -5598,7 +5598,7 @@ export class HeaderBody {
     let prev_hash =
       reader.readNullable((r) => BlockHash.deserialize(r)) ?? undefined;
 
-    let issuer_vkey = $$CANT_READ("Vkey");
+    let issuer_vkey = Vkey.deserialize(reader);
 
     let vrf_vkey = VRFVKey.deserialize(reader);
 
@@ -5636,7 +5636,7 @@ export class HeaderBody {
     } else {
       this._prev_hash.serialize(writer);
     }
-    $$CANT_WRITE("Vkey");
+    this._issuer_vkey.serialize(writer);
     this._vrf_vkey.serialize(writer);
     this._vrf_result.serialize(writer);
     writer.writeInt(BigInt(this._block_body_size));
@@ -7828,6 +7828,86 @@ export class NoConfidenceAction {
 
   clone(): NoConfidenceAction {
     return NoConfidenceAction.from_bytes(this.to_bytes());
+  }
+}
+
+export class Nonce {
+  private _hash: Uint8Array | undefined;
+
+  constructor(hash: Uint8Array | undefined) {
+    this._hash = hash;
+  }
+
+  static new(hash: Uint8Array | undefined) {
+    return new Nonce(hash);
+  }
+
+  hash(): Uint8Array | undefined {
+    return this._hash;
+  }
+
+  set_hash(hash: Uint8Array | undefined): void {
+    this._hash = hash;
+  }
+
+  static deserialize(reader: CBORReader): Nonce {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 1) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 1. Received " + len,
+      );
+    }
+
+    let hash = reader.readNullable((r) => r.readBytes()) ?? undefined;
+
+    return new Nonce(hash);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(1);
+
+    if (this._hash == null) {
+      writer.writeNull();
+    } else {
+      writer.writeBytes(this._hash);
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Nonce {
+    let reader = new CBORReader(data);
+    return Nonce.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Nonce {
+    return Nonce.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Nonce {
+    return Nonce.from_bytes(this.to_bytes());
+  }
+
+  static new_identity(): Nonce {
+    return new Nonce(undefined);
+  }
+  static new_from_hash(hash: Uint8Array): Nonce {
+    return new Nonce(hash);
+  }
+  get_hash(): Uint8Array | undefined {
+    return this._hash;
   }
 }
 
@@ -15704,24 +15784,149 @@ export class Value {
   }
 }
 
+export class Vkey {
+  private _public_key: PublicKey;
+
+  constructor(public_key: PublicKey) {
+    this._public_key = public_key;
+  }
+
+  static new(public_key: PublicKey) {
+    return new Vkey(public_key);
+  }
+
+  public_key(): PublicKey {
+    return this._public_key;
+  }
+
+  set_public_key(public_key: PublicKey): void {
+    this._public_key = public_key;
+  }
+
+  static deserialize(reader: CBORReader): Vkey {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 1) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 1. Received " + len,
+      );
+    }
+
+    let public_key = PublicKey.deserialize(reader);
+
+    return new Vkey(public_key);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(1);
+
+    this._public_key.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Vkey {
+    let reader = new CBORReader(data);
+    return Vkey.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Vkey {
+    return Vkey.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Vkey {
+    return Vkey.from_bytes(this.to_bytes());
+  }
+}
+
+export class Vkeys {
+  private items: Vkey[];
+
+  constructor(items: Vkey[]) {
+    this.items = items;
+  }
+
+  static new(): Vkeys {
+    return new Vkeys([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): Vkey {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: Vkey): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): Vkeys {
+    return new Vkeys(reader.readArray((reader) => Vkey.deserialize(reader)));
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Vkeys {
+    let reader = new CBORReader(data);
+    return Vkeys.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Vkeys {
+    return Vkeys.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Vkeys {
+    return Vkeys.from_bytes(this.to_bytes());
+  }
+}
+
 export class Vkeywitness {
-  private _vkey: unknown;
+  private _vkey: Vkey;
   private _signature: Ed25519Signature;
 
-  constructor(vkey: unknown, signature: Ed25519Signature) {
+  constructor(vkey: Vkey, signature: Ed25519Signature) {
     this._vkey = vkey;
     this._signature = signature;
   }
 
-  static new(vkey: unknown, signature: Ed25519Signature) {
+  static new(vkey: Vkey, signature: Ed25519Signature) {
     return new Vkeywitness(vkey, signature);
   }
 
-  vkey(): unknown {
+  vkey(): Vkey {
     return this._vkey;
   }
 
-  set_vkey(vkey: unknown): void {
+  set_vkey(vkey: Vkey): void {
     this._vkey = vkey;
   }
 
@@ -15742,7 +15947,7 @@ export class Vkeywitness {
       );
     }
 
-    let vkey = $$CANT_READ("Vkey");
+    let vkey = Vkey.deserialize(reader);
 
     let signature = Ed25519Signature.deserialize(reader);
 
@@ -15752,7 +15957,7 @@ export class Vkeywitness {
   serialize(writer: CBORWriter): void {
     writer.writeArrayTag(2);
 
-    $$CANT_WRITE("Vkey");
+    this._vkey.serialize(writer);
     this._signature.serialize(writer);
   }
 
@@ -16034,10 +16239,267 @@ export class VoteRegistrationAndDelegation {
   }
 }
 
-export class Voters {
-  private items: unknown[];
+export class Voter {
+  private _constitutional_committee_hot_credential: Credential | undefined;
+  private _drep_credential: Credential | undefined;
+  private _staking_pool_key_hash: Ed25519KeyHash | undefined;
 
-  constructor(items: unknown[]) {
+  constructor(
+    constitutional_committee_hot_credential: Credential | undefined,
+    drep_credential: Credential | undefined,
+    staking_pool_key_hash: Ed25519KeyHash | undefined,
+  ) {
+    this._constitutional_committee_hot_credential =
+      constitutional_committee_hot_credential;
+    this._drep_credential = drep_credential;
+    this._staking_pool_key_hash = staking_pool_key_hash;
+  }
+
+  constitutional_committee_hot_credential(): Credential | undefined {
+    return this._constitutional_committee_hot_credential;
+  }
+
+  set_constitutional_committee_hot_credential(
+    constitutional_committee_hot_credential: Credential | undefined,
+  ): void {
+    this._constitutional_committee_hot_credential =
+      constitutional_committee_hot_credential;
+  }
+
+  drep_credential(): Credential | undefined {
+    return this._drep_credential;
+  }
+
+  set_drep_credential(drep_credential: Credential | undefined): void {
+    this._drep_credential = drep_credential;
+  }
+
+  staking_pool_key_hash(): Ed25519KeyHash | undefined {
+    return this._staking_pool_key_hash;
+  }
+
+  set_staking_pool_key_hash(
+    staking_pool_key_hash: Ed25519KeyHash | undefined,
+  ): void {
+    this._staking_pool_key_hash = staking_pool_key_hash;
+  }
+
+  static deserialize(reader: CBORReader): Voter {
+    let len = reader.readArrayTag();
+
+    if (len != null && len < 3) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 3. Received " + len,
+      );
+    }
+
+    let constitutional_committee_hot_credential =
+      reader.readNullable((r) => Credential.deserialize(r)) ?? undefined;
+
+    let drep_credential =
+      reader.readNullable((r) => Credential.deserialize(r)) ?? undefined;
+
+    let staking_pool_key_hash =
+      reader.readNullable((r) => Ed25519KeyHash.deserialize(r)) ?? undefined;
+
+    return new Voter(
+      constitutional_committee_hot_credential,
+      drep_credential,
+      staking_pool_key_hash,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(3);
+
+    if (this._constitutional_committee_hot_credential == null) {
+      writer.writeNull();
+    } else {
+      this._constitutional_committee_hot_credential.serialize(writer);
+    }
+    if (this._drep_credential == null) {
+      writer.writeNull();
+    } else {
+      this._drep_credential.serialize(writer);
+    }
+    if (this._staking_pool_key_hash == null) {
+      writer.writeNull();
+    } else {
+      this._staking_pool_key_hash.serialize(writer);
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): Voter {
+    let reader = new CBORReader(data);
+    return Voter.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): Voter {
+    return Voter.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): Voter {
+    return Voter.from_bytes(this.to_bytes());
+  }
+
+  static new_constitutional_committee_hot_credential(cred: Credential): Voter {
+    return new Voter(cred, undefined, undefined);
+  }
+  static new_drep_credential(cred: Credential): Voter {
+    return new Voter(undefined, cred, undefined);
+  }
+  static new_stake_pool_key_hash(key_hash: Ed25519KeyHash): Voter {
+    return new Voter(undefined, undefined, key_hash);
+  }
+  kind(): VoterEnumKind {
+    if (this._constitutional_committee_hot_credential) {
+      switch (this._constitutional_committee_hot_credential.kind()) {
+        case CredentialKind.Ed25519KeyHash:
+          return VoterEnumKind.ConstitutionalCommitteeHotKeyHash;
+        case CredentialKind.ScriptHash:
+          return VoterEnumKind.ConstitutionalCommitteeHotScriptHash;
+      }
+    }
+
+    if (this._drep_credential) {
+      switch (this._drep_credential.kind()) {
+        case CredentialKind.Ed25519KeyHash:
+          return VoterEnumKind.DRepKeyHash;
+        case CredentialKind.ScriptHash:
+          return VoterEnumKind.DRepScriptHash;
+      }
+    }
+
+    return VoterEnumKind.StakingPoolKeyHash;
+  }
+
+  to_constitutional_committee_hot_credential(): Credential | undefined {
+    return this._constitutional_committee_hot_credential;
+  }
+  to_drep_credential(): Credential | undefined {
+    return this._drep_credential;
+  }
+  to_stake_pool_key_hash(): Ed25519KeyHash | undefined {
+    return this._staking_pool_key_hash;
+  }
+
+  has_script_credentials(): boolean {
+    if (this._constitutional_committee_hot_credential) {
+      // TODO: uncomment when implemented
+      // return this._constitutional_committee_hot_credential.has_script_hash();
+    }
+
+    if (this._drep_credential) {
+      // TODO: uncomment when implemented
+      // return this._drep_credential.has_script_hash();
+    }
+
+    return false;
+  }
+  to_key_hash(): Ed25519KeyHash | undefined {
+    if (this._staking_pool_key_hash) {
+      return this._staking_pool_key_hash;
+    }
+    return undefined;
+  }
+}
+
+export enum VoterEnumKind {
+  ConstitutionalCommitteeHotKeyHash = 0,
+  ConstitutionalCommitteeHotScriptHash = 1,
+  DRepKeyHash = 2,
+  DRepScriptHash = 3,
+  StakingPoolKeyHash = 4,
+}
+
+export class VoterEnum {
+  private kind_: VoterEnumKind;
+
+  constructor(kind: VoterEnumKind) {
+    this.kind_ = kind;
+  }
+
+  static new_ConstitutionalCommitteeHotKeyHash(): VoterEnum {
+    return new VoterEnum(0);
+  }
+
+  static new_ConstitutionalCommitteeHotScriptHash(): VoterEnum {
+    return new VoterEnum(1);
+  }
+
+  static new_DRepKeyHash(): VoterEnum {
+    return new VoterEnum(2);
+  }
+
+  static new_DRepScriptHash(): VoterEnum {
+    return new VoterEnum(3);
+  }
+
+  static new_StakingPoolKeyHash(): VoterEnum {
+    return new VoterEnum(4);
+  }
+  kind(): VoterEnumKind {
+    return this.kind_;
+  }
+
+  static deserialize(reader: CBORReader): VoterEnum {
+    let kind = Number(reader.readInt());
+    if (kind == 0) return new VoterEnum(0);
+    if (kind == 1) return new VoterEnum(1);
+    if (kind == 2) return new VoterEnum(2);
+    if (kind == 3) return new VoterEnum(3);
+    if (kind == 4) return new VoterEnum(4);
+    throw "Unrecognized enum value: " + kind + " for " + VoterEnum;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeInt(BigInt(this.kind_));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): VoterEnum {
+    let reader = new CBORReader(data);
+    return VoterEnum.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): VoterEnum {
+    return VoterEnum.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): VoterEnum {
+    return VoterEnum.from_bytes(this.to_bytes());
+  }
+}
+
+export class Voters {
+  private items: Voter[];
+
+  constructor(items: Voter[]) {
     this.items = items;
   }
 
@@ -16049,21 +16511,21 @@ export class Voters {
     return this.items.length;
   }
 
-  get(index: number): unknown {
+  get(index: number): Voter {
     if (index >= this.items.length) throw new Error("Array out of bounds");
     return this.items[index];
   }
 
-  add(elem: unknown): void {
+  add(elem: Voter): void {
     this.items.push(elem);
   }
 
   static deserialize(reader: CBORReader): Voters {
-    return new Voters(reader.readArray((reader) => $$CANT_READ("Voter")));
+    return new Voters(reader.readArray((reader) => Voter.deserialize(reader)));
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => $$CANT_WRITE("Voter"));
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
   // no-op
@@ -16177,9 +16639,9 @@ export class VotingProcedure {
 }
 
 export class VotingProcedures {
-  _items: [unknown, GovernanceActions][];
+  _items: [Voter, GovernanceActions][];
 
-  constructor(items: [unknown, GovernanceActions][]) {
+  constructor(items: [Voter, GovernanceActions][]) {
     this._items = items;
   }
 
@@ -16191,11 +16653,10 @@ export class VotingProcedures {
     return this._items.length;
   }
 
-  insert(
-    key: unknown,
-    value: GovernanceActions,
-  ): GovernanceActions | undefined {
-    let entry = this._items.find((x) => $$CANT_EQ("Voter"));
+  insert(key: Voter, value: GovernanceActions): GovernanceActions | undefined {
+    let entry = this._items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
     if (entry != null) {
       let ret = entry[1];
       entry[1] = value;
@@ -16205,15 +16666,17 @@ export class VotingProcedures {
     return undefined;
   }
 
-  get(key: unknown): GovernanceActions | undefined {
-    let entry = this._items.find((x) => $$CANT_EQ("Voter"));
+  get(key: Voter): GovernanceActions | undefined {
+    let entry = this._items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
     if (entry == null) return undefined;
     return entry[1];
   }
 
-  _remove_many(keys: unknown[]): void {
+  _remove_many(keys: Voter[]): void {
     this._items = this._items.filter(([k, _v]) =>
-      keys.every((key) => !$$CANT_EQ("Voter")),
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
   }
 
@@ -16226,14 +16689,17 @@ export class VotingProcedures {
   static deserialize(reader: CBORReader): VotingProcedures {
     let ret = new VotingProcedures([]);
     reader.readMap((reader) =>
-      ret.insert($$CANT_READ("Voter"), GovernanceActions.deserialize(reader)),
+      ret.insert(
+        Voter.deserialize(reader),
+        GovernanceActions.deserialize(reader),
+      ),
     );
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeMap(this._items, (writer, x) => {
-      $$CANT_WRITE("Voter");
+      x[0].serialize(writer);
       x[1].serialize(writer);
     });
   }
