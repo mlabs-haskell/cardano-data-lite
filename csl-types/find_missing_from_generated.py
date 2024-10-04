@@ -1,9 +1,10 @@
 """
-Find class exports which are present in csl-stripped.d.ts, but not in generated/out.ts
+Find class exports which are present in csl-stripped.d.ts, but not in CDL
 """
 
 import re
 import json
+import glob
 
 RE_CLASS_EXPORT = r"export class (\w+)"
 RE_ENUM_EXPORT = r"export enum (\w+)"
@@ -49,7 +50,10 @@ def parse_file(filename: str):
 
 
 src_exports = parse_file("./csl-stripped.d.ts")
-gen_exports = parse_file("../src/generated/out.ts")
+gen_exports = {}
+for file in ["../src/generated.ts", *glob.glob("../src/address/*.ts")]:
+    exports = parse_file(file)
+    gen_exports.update(exports)
 
 missing_types = []
 
