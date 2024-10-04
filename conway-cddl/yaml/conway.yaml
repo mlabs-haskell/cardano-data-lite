@@ -1853,3 +1853,10 @@ VRFCert:
       type: bytes
     - name: proof
       type: bytes
+
+DataCost:
+  type: record
+  fields:
+    - name: coins_per_byte
+      type: BigNum
+
