@@ -9,7 +9,7 @@
     "test-api": "npm run generate-cdl-definitions ; NODE_OPTIONS=--experimental-vm-modules jest api",
     "codegen": "tsx conway-cddl/codegen/main.ts",
     "generate-grammar-bundle": "npx ohm generateBundles -e -t tests/api/grammar.ohm",
-    "generate-cdl-definitions": "tsc --declaration src/generated/out.ts; mv src/generated/out.d.ts csl-types/cardano-data-lite.d.ts; npm run cleanup-compilation-artifacts",
+    "generate-cdl-definitions": "tsc --target ES2020 --declaration src/generated/out.ts; mv src/generated/out.d.ts csl-types/cardano-data-lite.d.ts; npm run cleanup-compilation-artifacts",
     "cleanup-compilation-artifacts": "rm -f src/**/*.d.ts; rm -f src/**/*.js; rm -f src/*.d.ts; rm -f src/*.js; npm run generate-grammar-bundle"
   },
   "author": "",
