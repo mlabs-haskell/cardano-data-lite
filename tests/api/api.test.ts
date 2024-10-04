@@ -1,8 +1,8 @@
 // This module tests that the classes generated in out.ts match the CSL API
 // at the method level
 import fs from "node:fs";
-import { ClassInfo, MethodInfo, ParamInfo, SomeType } from "./test_types";
-import grammar, { TypeDefsSemantics } from "../src/generated/grammar.ohm-bundle"
+import { ClassInfo, MethodInfo, ParamInfo, SomeType } from "../test_types";
+import grammar, { TypeDefsSemantics } from "./grammar.ohm-bundle"
 import { describe, test } from "@jest/globals";
 
 //// TEST CONFIG ////
@@ -180,7 +180,13 @@ console.log("Missing classes:\n\t", missingClasses.join("\n\t"))
 console.log("Missing methods:\n\t", missingMethods.join("\n\t"))
 
 // We export the missing classes and methods to CSV files
-fs.mkdirSync("tests/reports");
+try {
+  fs.mkdirSync("tests/reports")
+} catch(_err) {
+  console.log("Failed to create reports directory");
+  console.log("Skipping dir creation...")
+};
+
 let missingClassesCsv = "Missing Class\n";
 missingClassesCsv += missingClasses.join("\n");
 fs.writeFileSync("tests/reports/api_missing_classes.csv", missingClassesCsv);
