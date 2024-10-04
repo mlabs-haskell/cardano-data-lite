@@ -41,14 +41,21 @@ export class GenEnum extends CodeGeneratorBase {
   }
 
   generateExtraMethods(): string {
-    return this.values
-      .map(
-        (x) => `
+    return (
+      this.values
+        .map(
+          (x) => `
         static new_${x.name}(): ${this.name} {
           return new ${this.name}(${x.value});
         }`,
-      )
-      .join("\n");
+        )
+        .join("\n") +
+      `
+        kind(): ${this.name}Kind {
+          return this.kind_;
+        }
+      `
+    );
   }
 
   generateDeserialize(reader: string): string {
