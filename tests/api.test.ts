@@ -2,7 +2,7 @@
 // at the method level
 import fs from "node:fs";
 import { ClassInfo, MethodInfo, ParamInfo, SomeType } from "./test_types";
-import grammar, { ClassesSemantics } from "./generated/grammar.ohm-bundle";
+import grammar, { ClassesSemantics } from "../src/generated/grammar.ohm-bundle"
 import { describe, test } from "@jest/globals";
 
 //// TEST CONFIG ////
@@ -124,7 +124,7 @@ if (traceClassInfos) {
   }
 }
 // We filter out missing classes/methods
-let missingClasses = [];
+let missingClasses: Array<String> = [];
 for (const cls of cslClassesMap.keys()) {
   if (!cdlClassesMap.has(cls)) {
     missingClasses.push(cls);
@@ -132,7 +132,7 @@ for (const cls of cslClassesMap.keys()) {
   }
 }
 
-let missingMethods = [];
+let missingMethods: Array<String> = [];
 for (const [cls, methods] of cslClassesMap) {
   for (const method of methods) {
     const cdlMethods = cdlClassesMap.get(cls);
