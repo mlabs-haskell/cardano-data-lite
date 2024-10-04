@@ -26,7 +26,7 @@ export class Anchor {
     return new Anchor(url, anchor_data_hash);
   }
 
-  get_url(): URL {
+  url(): URL {
     return this._url;
   }
 
@@ -34,7 +34,7 @@ export class Anchor {
     this._url = url;
   }
 
-  get_anchor_data_hash(): AnchorDataHash {
+  anchor_data_hash(): AnchorDataHash {
     return this._anchor_data_hash;
   }
 
@@ -446,7 +446,7 @@ export class AuxiliaryData {
     );
   }
 
-  get_metadata(): GeneralTransactionMetadata {
+  metadata(): GeneralTransactionMetadata {
     return this._metadata;
   }
 
@@ -454,7 +454,7 @@ export class AuxiliaryData {
     this._metadata = metadata;
   }
 
-  get_native_scripts(): NativeScripts {
+  native_scripts(): NativeScripts {
     return this._native_scripts;
   }
 
@@ -462,7 +462,7 @@ export class AuxiliaryData {
     this._native_scripts = native_scripts;
   }
 
-  get_plutus_scripts_v1(): PlutusScripts {
+  plutus_scripts_v1(): PlutusScripts {
     return this._plutus_scripts_v1;
   }
 
@@ -470,7 +470,7 @@ export class AuxiliaryData {
     this._plutus_scripts_v1 = plutus_scripts_v1;
   }
 
-  get_plutus_scripts_v2(): PlutusScripts {
+  plutus_scripts_v2(): PlutusScripts {
     return this._plutus_scripts_v2;
   }
 
@@ -478,7 +478,7 @@ export class AuxiliaryData {
     this._plutus_scripts_v2 = plutus_scripts_v2;
   }
 
-  get_plutus_scripts_v3(): PlutusScripts {
+  plutus_scripts_v3(): PlutusScripts {
     return this._plutus_scripts_v3;
   }
 
@@ -722,6 +722,16 @@ export class AuxiliaryDataSet {
   clone(): AuxiliaryDataSet {
     return AuxiliaryDataSet.from_bytes(this.to_bytes());
   }
+
+  indices(): Uint32Array {
+    let indices = new Uint32Array(this.items.length);
+    for (let i = 0; i < this.items.length; i++) {
+      let item = this.items[i];
+      let key = item[0];
+      indices[i] = key;
+    }
+    return indices;
+  }
 }
 
 export class BigNum {
@@ -943,7 +953,7 @@ export class Block {
     );
   }
 
-  get_header(): Header {
+  header(): Header {
     return this._header;
   }
 
@@ -951,7 +961,7 @@ export class Block {
     this._header = header;
   }
 
-  get_transaction_bodies(): TransactionBodies {
+  transaction_bodies(): TransactionBodies {
     return this._transaction_bodies;
   }
 
@@ -959,7 +969,7 @@ export class Block {
     this._transaction_bodies = transaction_bodies;
   }
 
-  get_transaction_witness_sets(): TransactionWitnessSets {
+  transaction_witness_sets(): TransactionWitnessSets {
     return this._transaction_witness_sets;
   }
 
@@ -969,7 +979,7 @@ export class Block {
     this._transaction_witness_sets = transaction_witness_sets;
   }
 
-  get_auxiliary_data_set(): AuxiliaryDataSet {
+  auxiliary_data_set(): AuxiliaryDataSet {
     return this._auxiliary_data_set;
   }
 
@@ -977,7 +987,7 @@ export class Block {
     this._auxiliary_data_set = auxiliary_data_set;
   }
 
-  get_invalid_transactions(): Uint32Array {
+  invalid_transactions(): Uint32Array {
     return this._invalid_transactions;
   }
 
@@ -1139,7 +1149,7 @@ export class BootstrapWitness {
     return new BootstrapWitness(vkey, signature, chain_code, attributes);
   }
 
-  get_vkey(): unknown {
+  vkey(): unknown {
     return this._vkey;
   }
 
@@ -1147,7 +1157,7 @@ export class BootstrapWitness {
     this._vkey = vkey;
   }
 
-  get_signature(): Ed25519Signature {
+  signature(): Ed25519Signature {
     return this._signature;
   }
 
@@ -1155,7 +1165,7 @@ export class BootstrapWitness {
     this._signature = signature;
   }
 
-  get_chain_code(): Uint8Array {
+  chain_code(): Uint8Array {
     return this._chain_code;
   }
 
@@ -1163,7 +1173,7 @@ export class BootstrapWitness {
     this._chain_code = chain_code;
   }
 
-  get_attributes(): Uint8Array {
+  attributes(): Uint8Array {
     return this._attributes;
   }
 
@@ -1688,6 +1698,10 @@ export class Certificate {
     if (this.variant.kind == 18) return this.variant.value;
   }
 
+  kind(): CertificateKind {
+    return this.variant.kind;
+  }
+
   static deserialize(reader: CBORReader): Certificate {
     let len = reader.readArrayTag();
     let tag = Number(reader.readUint());
@@ -2089,28 +2103,64 @@ export class Certificates {
   }
 }
 
+export class Committee {
+  quorum_threshold_: UnitInterval;
+  members_: CommitteeEpochs;
+
+  constructor(quorum_threshold: UnitInterval, members: CommitteeEpochs) {
+    this.quorum_threshold_ = quorum_threshold;
+    this.members_ = members;
+  }
+
+  static new(quorum_threshold: UnitInterval): Committee {
+    return new Committee(quorum_threshold, CommitteeEpochs.new());
+  }
+
+  members_keys(): Credentials {
+    return new Credentials(this.members_.items.map(([k, _v]) => k));
+  }
+
+  quorum_threshold(): UnitInterval {
+    return this.quorum_threshold_;
+  }
+
+  add_member(committee_cold_credential: Credential, epoch: number): void {
+    this.members_.insert(committee_cold_credential, epoch);
+  }
+
+  get_member_epoch(committee_cold_credential: Credential): number | undefined {
+    return this.members_.get(committee_cold_credential);
+  }
+}
+
 export class CommitteeColdResign {
-  private _committee_cold_key: Credential;
+  private _committee_cold_credential: Credential;
   private _anchor: Anchor | undefined;
 
-  constructor(committee_cold_key: Credential, anchor: Anchor | undefined) {
-    this._committee_cold_key = committee_cold_key;
+  constructor(
+    committee_cold_credential: Credential,
+    anchor: Anchor | undefined,
+  ) {
+    this._committee_cold_credential = committee_cold_credential;
     this._anchor = anchor;
   }
 
-  static new(committee_cold_key: Credential, anchor: Anchor | undefined) {
-    return new CommitteeColdResign(committee_cold_key, anchor);
+  static new(
+    committee_cold_credential: Credential,
+    anchor: Anchor | undefined,
+  ) {
+    return new CommitteeColdResign(committee_cold_credential, anchor);
   }
 
-  get_committee_cold_key(): Credential {
-    return this._committee_cold_key;
+  committee_cold_credential(): Credential {
+    return this._committee_cold_credential;
   }
 
-  set_committee_cold_key(committee_cold_key: Credential): void {
-    this._committee_cold_key = committee_cold_key;
+  set_committee_cold_credential(committee_cold_credential: Credential): void {
+    this._committee_cold_credential = committee_cold_credential;
   }
 
-  get_anchor(): Anchor | undefined {
+  anchor(): Anchor | undefined {
     return this._anchor;
   }
 
@@ -2119,63 +2169,211 @@ export class CommitteeColdResign {
   }
 
   static deserialize(reader: CBORReader): CommitteeColdResign {
-    let committee_cold_key = Credential.deserialize(reader);
+    let committee_cold_credential = Credential.deserialize(reader);
 
     let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
 
-    return new CommitteeColdResign(committee_cold_key, anchor);
+    return new CommitteeColdResign(committee_cold_credential, anchor);
   }
 
   serialize(writer: CBORWriter): void {
-    this._committee_cold_key.serialize(writer);
+    this._committee_cold_credential.serialize(writer);
     if (this._anchor == null) {
       writer.writeNull();
     } else {
       this._anchor.serialize(writer);
     }
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): CommitteeColdResign {
+    let reader = new CBORReader(data);
+    return CommitteeColdResign.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): CommitteeColdResign {
+    return CommitteeColdResign.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): CommitteeColdResign {
+    return CommitteeColdResign.from_bytes(this.to_bytes());
+  }
 }
 
-export class CommitteeHotAuth {
-  private _committee_cold_key: Credential;
-  private _committee_hot_key: Credential;
+export class CommitteeEpochs {
+  private items: [Credential, number][];
 
-  constructor(committee_cold_key: Credential, committee_hot_key: Credential) {
-    this._committee_cold_key = committee_cold_key;
-    this._committee_hot_key = committee_hot_key;
+  constructor(items: [Credential, number][]) {
+    this.items = items;
   }
 
-  static new(committee_cold_key: Credential, committee_hot_key: Credential) {
-    return new CommitteeHotAuth(committee_cold_key, committee_hot_key);
+  static new(): CommitteeEpochs {
+    return new CommitteeEpochs([]);
   }
 
-  get_committee_cold_key(): Credential {
-    return this._committee_cold_key;
+  len(): number {
+    return this.items.length;
   }
 
-  set_committee_cold_key(committee_cold_key: Credential): void {
-    this._committee_cold_key = committee_cold_key;
+  insert(key: Credential, value: number): number | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this.items.push([key, value]);
+    return undefined;
   }
 
-  get_committee_hot_key(): Credential {
-    return this._committee_hot_key;
+  get(key: Credential): number | undefined {
+    let entry = this.items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry == null) return undefined;
+    return entry[1];
   }
 
-  set_committee_hot_key(committee_hot_key: Credential): void {
-    this._committee_hot_key = committee_hot_key;
+  _remove_many(keys: Credential[]): void {
+    this.items = this.items.filter(([k, _v]) =>
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+    );
   }
 
-  static deserialize(reader: CBORReader): CommitteeHotAuth {
-    let committee_cold_key = Credential.deserialize(reader);
-
-    let committee_hot_key = Credential.deserialize(reader);
-
-    return new CommitteeHotAuth(committee_cold_key, committee_hot_key);
+  static deserialize(reader: CBORReader): CommitteeEpochs {
+    let ret = new CommitteeEpochs([]);
+    reader.readMap((reader) =>
+      ret.insert(Credential.deserialize(reader), Number(reader.readInt())),
+    );
+    return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    this._committee_cold_key.serialize(writer);
-    this._committee_hot_key.serialize(writer);
+    writer.writeMap(this.items, (writer, x) => {
+      x[0].serialize(writer);
+      writer.writeInt(BigInt(x[1]));
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): CommitteeEpochs {
+    let reader = new CBORReader(data);
+    return CommitteeEpochs.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): CommitteeEpochs {
+    return CommitteeEpochs.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): CommitteeEpochs {
+    return CommitteeEpochs.from_bytes(this.to_bytes());
+  }
+}
+
+export class CommitteeHotAuth {
+  private _committee_cold_credential: Credential;
+  private _committee_hot_credential: Credential;
+
+  constructor(
+    committee_cold_credential: Credential,
+    committee_hot_credential: Credential,
+  ) {
+    this._committee_cold_credential = committee_cold_credential;
+    this._committee_hot_credential = committee_hot_credential;
+  }
+
+  static new(
+    committee_cold_credential: Credential,
+    committee_hot_credential: Credential,
+  ) {
+    return new CommitteeHotAuth(
+      committee_cold_credential,
+      committee_hot_credential,
+    );
+  }
+
+  committee_cold_credential(): Credential {
+    return this._committee_cold_credential;
+  }
+
+  set_committee_cold_credential(committee_cold_credential: Credential): void {
+    this._committee_cold_credential = committee_cold_credential;
+  }
+
+  committee_hot_credential(): Credential {
+    return this._committee_hot_credential;
+  }
+
+  set_committee_hot_credential(committee_hot_credential: Credential): void {
+    this._committee_hot_credential = committee_hot_credential;
+  }
+
+  static deserialize(reader: CBORReader): CommitteeHotAuth {
+    let committee_cold_credential = Credential.deserialize(reader);
+
+    let committee_hot_credential = Credential.deserialize(reader);
+
+    return new CommitteeHotAuth(
+      committee_cold_credential,
+      committee_hot_credential,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    this._committee_cold_credential.serialize(writer);
+    this._committee_hot_credential.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): CommitteeHotAuth {
+    let reader = new CBORReader(data);
+    return CommitteeHotAuth.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): CommitteeHotAuth {
+    return CommitteeHotAuth.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): CommitteeHotAuth {
+    return CommitteeHotAuth.from_bytes(this.to_bytes());
   }
 }
 
@@ -2192,7 +2390,7 @@ export class Constitution {
     return new Constitution(anchor, scripthash);
   }
 
-  get_anchor(): Anchor {
+  anchor(): Anchor {
     return this._anchor;
   }
 
@@ -2200,7 +2398,7 @@ export class Constitution {
     this._anchor = anchor;
   }
 
-  get_scripthash(): ScriptHash | undefined {
+  scripthash(): ScriptHash | undefined {
     return this._scripthash;
   }
 
@@ -2276,7 +2474,7 @@ export class ConstrPlutusData {
     return new ConstrPlutusData(alternative, data);
   }
 
-  get_alternative(): BigNum {
+  alternative(): BigNum {
     return this._alternative;
   }
 
@@ -2284,7 +2482,7 @@ export class ConstrPlutusData {
     this._alternative = alternative;
   }
 
-  get_data(): PlutusList {
+  data(): PlutusList {
     return this._data;
   }
 
@@ -2551,6 +2749,10 @@ export class Credential {
 
   as_scripthash(): ScriptHash | undefined {
     if (this.variant.kind == 1) return this.variant.value;
+  }
+
+  kind(): CredentialKind {
+    return this.variant.kind;
   }
 
   static deserialize(reader: CBORReader): Credential {
@@ -2856,6 +3058,10 @@ export class DRep {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
+  kind(): DRepKind {
+    return this.variant.kind;
+  }
+
   static deserialize(reader: CBORReader): DRep {
     let len = reader.readArrayTag();
     let tag = Number(reader.readUint());
@@ -3052,6 +3258,10 @@ export class DataOption {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
+  kind(): DataOptionKind {
+    return this.variant.kind;
+  }
+
   static deserialize(reader: CBORReader): DataOption {
     let len = reader.readArrayTag();
     let tag = Number(reader.readUint());
@@ -3143,7 +3353,7 @@ export class DrepDeregistration {
     return new DrepDeregistration(drep_credential, coin);
   }
 
-  get_drep_credential(): Credential {
+  drep_credential(): Credential {
     return this._drep_credential;
   }
 
@@ -3151,7 +3361,7 @@ export class DrepDeregistration {
     this._drep_credential = drep_credential;
   }
 
-  get_coin(): BigNum {
+  coin(): BigNum {
     return this._coin;
   }
 
@@ -3170,6 +3380,32 @@ export class DrepDeregistration {
   serialize(writer: CBORWriter): void {
     this._drep_credential.serialize(writer);
     this._coin.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DrepDeregistration {
+    let reader = new CBORReader(data);
+    return DrepDeregistration.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DrepDeregistration {
+    return DrepDeregistration.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): DrepDeregistration {
+    return DrepDeregistration.from_bytes(this.to_bytes());
   }
 }
 
@@ -3196,7 +3432,7 @@ export class DrepRegistration {
     return new DrepRegistration(voting_credential, coin, anchor);
   }
 
-  get_voting_credential(): Credential {
+  voting_credential(): Credential {
     return this._voting_credential;
   }
 
@@ -3204,7 +3440,7 @@ export class DrepRegistration {
     this._voting_credential = voting_credential;
   }
 
-  get_coin(): BigNum {
+  coin(): BigNum {
     return this._coin;
   }
 
@@ -3212,7 +3448,7 @@ export class DrepRegistration {
     this._coin = coin;
   }
 
-  get_anchor(): Anchor | undefined {
+  anchor(): Anchor | undefined {
     return this._anchor;
   }
 
@@ -3239,6 +3475,32 @@ export class DrepRegistration {
       this._anchor.serialize(writer);
     }
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DrepRegistration {
+    let reader = new CBORReader(data);
+    return DrepRegistration.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DrepRegistration {
+    return DrepRegistration.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): DrepRegistration {
+    return DrepRegistration.from_bytes(this.to_bytes());
+  }
 }
 
 export class DrepUpdate {
@@ -3254,7 +3516,7 @@ export class DrepUpdate {
     return new DrepUpdate(drep_credential, anchor);
   }
 
-  get_drep_credential(): Credential {
+  drep_credential(): Credential {
     return this._drep_credential;
   }
 
@@ -3262,7 +3524,7 @@ export class DrepUpdate {
     this._drep_credential = drep_credential;
   }
 
-  get_anchor(): Anchor | undefined {
+  anchor(): Anchor | undefined {
     return this._anchor;
   }
 
@@ -3285,6 +3547,32 @@ export class DrepUpdate {
     } else {
       this._anchor.serialize(writer);
     }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): DrepUpdate {
+    let reader = new CBORReader(data);
+    return DrepUpdate.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): DrepUpdate {
+    return DrepUpdate.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): DrepUpdate {
+    return DrepUpdate.from_bytes(this.to_bytes());
   }
 }
 
@@ -3350,7 +3638,7 @@ export class DrepVotingThresholds {
     );
   }
 
-  get_motion_no_confidence(): UnitInterval {
+  motion_no_confidence(): UnitInterval {
     return this._motion_no_confidence;
   }
 
@@ -3358,7 +3646,7 @@ export class DrepVotingThresholds {
     this._motion_no_confidence = motion_no_confidence;
   }
 
-  get_committee_normal(): UnitInterval {
+  committee_normal(): UnitInterval {
     return this._committee_normal;
   }
 
@@ -3366,7 +3654,7 @@ export class DrepVotingThresholds {
     this._committee_normal = committee_normal;
   }
 
-  get_committee_no_confidence(): UnitInterval {
+  committee_no_confidence(): UnitInterval {
     return this._committee_no_confidence;
   }
 
@@ -3374,7 +3662,7 @@ export class DrepVotingThresholds {
     this._committee_no_confidence = committee_no_confidence;
   }
 
-  get_update_constitution(): UnitInterval {
+  update_constitution(): UnitInterval {
     return this._update_constitution;
   }
 
@@ -3382,7 +3670,7 @@ export class DrepVotingThresholds {
     this._update_constitution = update_constitution;
   }
 
-  get_hard_fork_initiation(): UnitInterval {
+  hard_fork_initiation(): UnitInterval {
     return this._hard_fork_initiation;
   }
 
@@ -3390,7 +3678,7 @@ export class DrepVotingThresholds {
     this._hard_fork_initiation = hard_fork_initiation;
   }
 
-  get_pp_network_group(): UnitInterval {
+  pp_network_group(): UnitInterval {
     return this._pp_network_group;
   }
 
@@ -3398,7 +3686,7 @@ export class DrepVotingThresholds {
     this._pp_network_group = pp_network_group;
   }
 
-  get_pp_economic_group(): UnitInterval {
+  pp_economic_group(): UnitInterval {
     return this._pp_economic_group;
   }
 
@@ -3406,7 +3694,7 @@ export class DrepVotingThresholds {
     this._pp_economic_group = pp_economic_group;
   }
 
-  get_pp_technical_group(): UnitInterval {
+  pp_technical_group(): UnitInterval {
     return this._pp_technical_group;
   }
 
@@ -3414,7 +3702,7 @@ export class DrepVotingThresholds {
     this._pp_technical_group = pp_technical_group;
   }
 
-  get_pp_governance_group(): UnitInterval {
+  pp_governance_group(): UnitInterval {
     return this._pp_governance_group;
   }
 
@@ -3422,7 +3710,7 @@ export class DrepVotingThresholds {
     this._pp_governance_group = pp_governance_group;
   }
 
-  get_treasury_withdrawal(): UnitInterval {
+  treasury_withdrawal(): UnitInterval {
     return this._treasury_withdrawal;
   }
 
@@ -3721,7 +4009,7 @@ export class ExUnitPrices {
     return new ExUnitPrices(mem_price, step_price);
   }
 
-  get_mem_price(): UnitInterval {
+  mem_price(): UnitInterval {
     return this._mem_price;
   }
 
@@ -3729,7 +4017,7 @@ export class ExUnitPrices {
     this._mem_price = mem_price;
   }
 
-  get_step_price(): UnitInterval {
+  step_price(): UnitInterval {
     return this._step_price;
   }
 
@@ -3800,7 +4088,7 @@ export class ExUnits {
     return new ExUnits(mem, steps);
   }
 
-  get_mem(): BigNum {
+  mem(): BigNum {
     return this._mem;
   }
 
@@ -3808,7 +4096,7 @@ export class ExUnits {
     this._mem = mem;
   }
 
-  get_steps(): BigNum {
+  steps(): BigNum {
     return this._steps;
   }
 
@@ -4239,6 +4527,10 @@ export class GovernanceAction {
     if (this.variant.kind == 6) return this.variant.value;
   }
 
+  kind(): GovernanceActionKind {
+    return this.variant.kind;
+  }
+
   static deserialize(reader: CBORReader): GovernanceAction {
     let len = reader.readArrayTag();
     let tag = Number(reader.readUint());
@@ -4294,8 +4586,8 @@ export class GovernanceAction {
         break;
 
       case 4:
-        if (len != null && len - 1 != 4) {
-          throw new Error("Expected 4 items to decode UpdateCommitteeAction");
+        if (len != null && len - 1 != 3) {
+          throw new Error("Expected 3 items to decode UpdateCommitteeAction");
         }
         variant = {
           kind: 4,
@@ -4357,7 +4649,7 @@ export class GovernanceAction {
         this.variant.value.serialize(writer);
         break;
       case 4:
-        writer.writeArrayTag(5);
+        writer.writeArrayTag(4);
         writer.writeInt(BigInt(4));
         this.variant.value.serialize(writer);
         break;
@@ -4414,7 +4706,7 @@ export class GovernanceActionId {
     return new GovernanceActionId(transaction_id, index);
   }
 
-  get_transaction_id(): TransactionHash {
+  transaction_id(): TransactionHash {
     return this._transaction_id;
   }
 
@@ -4422,7 +4714,7 @@ export class GovernanceActionId {
     this._transaction_id = transaction_id;
   }
 
-  get_index(): number {
+  index(): number {
     return this._index;
   }
 
@@ -4656,7 +4948,7 @@ export class HardForkInitiationAction {
     return new HardForkInitiationAction(gov_action_id, protocol_version);
   }
 
-  get_gov_action_id(): GovernanceActionId | undefined {
+  gov_action_id(): GovernanceActionId | undefined {
     return this._gov_action_id;
   }
 
@@ -4664,7 +4956,7 @@ export class HardForkInitiationAction {
     this._gov_action_id = gov_action_id;
   }
 
-  get_protocol_version(): ProtocolVersion {
+  protocol_version(): ProtocolVersion {
     return this._protocol_version;
   }
 
@@ -4690,22 +4982,48 @@ export class HardForkInitiationAction {
     }
     this._protocol_version.serialize(writer);
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): HardForkInitiationAction {
+    let reader = new CBORReader(data);
+    return HardForkInitiationAction.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): HardForkInitiationAction {
+    return HardForkInitiationAction.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): HardForkInitiationAction {
+    return HardForkInitiationAction.from_bytes(this.to_bytes());
+  }
 }
 
 export class Header {
   private _header_body: HeaderBody;
-  private _body_signature: unknown;
+  private _body_signature: KESSignature;
 
-  constructor(header_body: HeaderBody, body_signature: unknown) {
+  constructor(header_body: HeaderBody, body_signature: KESSignature) {
     this._header_body = header_body;
     this._body_signature = body_signature;
   }
 
-  static new(header_body: HeaderBody, body_signature: unknown) {
+  static new(header_body: HeaderBody, body_signature: KESSignature) {
     return new Header(header_body, body_signature);
   }
 
-  get_header_body(): HeaderBody {
+  header_body(): HeaderBody {
     return this._header_body;
   }
 
@@ -4713,11 +5031,11 @@ export class Header {
     this._header_body = header_body;
   }
 
-  get_body_signature(): unknown {
+  body_signature(): KESSignature {
     return this._body_signature;
   }
 
-  set_body_signature(body_signature: unknown): void {
+  set_body_signature(body_signature: KESSignature): void {
     this._body_signature = body_signature;
   }
 
@@ -4732,7 +5050,7 @@ export class Header {
 
     let header_body = HeaderBody.deserialize(reader);
 
-    let body_signature = $$CANT_READ("KESSignature");
+    let body_signature = KESSignature.deserialize(reader);
 
     return new Header(header_body, body_signature);
   }
@@ -4741,7 +5059,7 @@ export class Header {
     writer.writeArrayTag(2);
 
     this._header_body.serialize(writer);
-    $$CANT_WRITE("KESSignature");
+    this._body_signature.serialize(writer);
   }
 
   // no-op
@@ -4833,7 +5151,7 @@ export class HeaderBody {
     );
   }
 
-  get_block_number(): number {
+  block_number(): number {
     return this._block_number;
   }
 
@@ -4841,7 +5159,7 @@ export class HeaderBody {
     this._block_number = block_number;
   }
 
-  get_slot(): BigNum {
+  slot(): BigNum {
     return this._slot;
   }
 
@@ -4849,7 +5167,7 @@ export class HeaderBody {
     this._slot = slot;
   }
 
-  get_prev_hash(): BlockHash | undefined {
+  prev_hash(): BlockHash | undefined {
     return this._prev_hash;
   }
 
@@ -4857,7 +5175,7 @@ export class HeaderBody {
     this._prev_hash = prev_hash;
   }
 
-  get_issuer_vkey(): unknown {
+  issuer_vkey(): unknown {
     return this._issuer_vkey;
   }
 
@@ -4865,7 +5183,7 @@ export class HeaderBody {
     this._issuer_vkey = issuer_vkey;
   }
 
-  get_vrf_vkey(): VRFVKey {
+  vrf_vkey(): VRFVKey {
     return this._vrf_vkey;
   }
 
@@ -4873,7 +5191,7 @@ export class HeaderBody {
     this._vrf_vkey = vrf_vkey;
   }
 
-  get_vrf_result(): VRFCert {
+  vrf_result(): VRFCert {
     return this._vrf_result;
   }
 
@@ -4881,7 +5199,7 @@ export class HeaderBody {
     this._vrf_result = vrf_result;
   }
 
-  get_block_body_size(): number {
+  block_body_size(): number {
     return this._block_body_size;
   }
 
@@ -4889,7 +5207,7 @@ export class HeaderBody {
     this._block_body_size = block_body_size;
   }
 
-  get_block_body_hash(): BlockHash {
+  block_body_hash(): BlockHash {
     return this._block_body_hash;
   }
 
@@ -4897,7 +5215,7 @@ export class HeaderBody {
     this._block_body_hash = block_body_hash;
   }
 
-  get_operational_cert(): OperationalCert {
+  operational_cert(): OperationalCert {
     return this._operational_cert;
   }
 
@@ -4905,7 +5223,7 @@ export class HeaderBody {
     this._operational_cert = operational_cert;
   }
 
-  get_protocol_version(): ProtocolVersion {
+  protocol_version(): ProtocolVersion {
     return this._protocol_version;
   }
 
@@ -5015,6 +5333,32 @@ export class InfoAction {
   }
 
   serialize(writer: CBORWriter): void {}
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): InfoAction {
+    let reader = new CBORReader(data);
+    return InfoAction.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): InfoAction {
+    return InfoAction.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): InfoAction {
+    return InfoAction.from_bytes(this.to_bytes());
+  }
 }
 
 export class Int {
@@ -5224,6 +5568,58 @@ export class Ipv6 {
   }
 }
 
+export class KESSignature {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    if (inner.length != 448) throw new Error("Expected length to be 448");
+
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): KESSignature {
+    return new KESSignature(inner);
+  }
+
+  toJsValue(): Uint8Array {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader): KESSignature {
+    return new KESSignature(reader.readBytes());
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): KESSignature {
+    let reader = new CBORReader(data);
+    return KESSignature.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): KESSignature {
+    return KESSignature.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): KESSignature {
+    return KESSignature.from_bytes(this.to_bytes());
+  }
+}
+
 export class KESVKey {
   private inner: Uint8Array;
 
@@ -5305,6 +5701,9 @@ export class Language {
 
   static new_plutus_v3(): Language {
     return new Language(2);
+  }
+  kind(): LanguageKind {
+    return this.kind_;
   }
 
   static deserialize(reader: CBORReader): Language {
@@ -6118,7 +6517,7 @@ export class MultiHostName {
     return new MultiHostName(dns_name);
   }
 
-  get_dns_name(): DNSRecordSRV {
+  dns_name(): DNSRecordSRV {
     return this._dns_name;
   }
 
@@ -6134,6 +6533,32 @@ export class MultiHostName {
 
   serialize(writer: CBORWriter): void {
     this._dns_name.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): MultiHostName {
+    let reader = new CBORReader(data);
+    return MultiHostName.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): MultiHostName {
+    return MultiHostName.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): MultiHostName {
+    return MultiHostName.from_bytes(this.to_bytes());
   }
 }
 
@@ -6207,6 +6632,10 @@ export class NativeScript {
 
   as_timelock_expiry(): TimelockExpiry | undefined {
     if (this.variant.kind == 5) return this.variant.value;
+  }
+
+  kind(): NativeScriptKind {
+    return this.variant.kind;
   }
 
   static deserialize(reader: CBORReader): NativeScript {
@@ -6431,6 +6860,9 @@ export class NetworkId {
   static new_testnet(): NetworkId {
     return new NetworkId(1);
   }
+  kind(): NetworkIdKind {
+    return this.kind_;
+  }
 
   static deserialize(reader: CBORReader): NetworkId {
     let kind = Number(reader.readInt());
@@ -6489,7 +6921,7 @@ export class NewConstitutionAction {
     return new NewConstitutionAction(gov_action_id, constitution);
   }
 
-  get_gov_action_id(): GovernanceActionId | undefined {
+  gov_action_id(): GovernanceActionId | undefined {
     return this._gov_action_id;
   }
 
@@ -6497,7 +6929,7 @@ export class NewConstitutionAction {
     this._gov_action_id = gov_action_id;
   }
 
-  get_constitution(): Constitution {
+  constitution(): Constitution {
     return this._constitution;
   }
 
@@ -6523,6 +6955,32 @@ export class NewConstitutionAction {
     }
     this._constitution.serialize(writer);
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): NewConstitutionAction {
+    let reader = new CBORReader(data);
+    return NewConstitutionAction.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): NewConstitutionAction {
+    return NewConstitutionAction.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): NewConstitutionAction {
+    return NewConstitutionAction.from_bytes(this.to_bytes());
+  }
 }
 
 export class NoConfidenceAction {
@@ -6536,7 +6994,7 @@ export class NoConfidenceAction {
     return new NoConfidenceAction(gov_action_id);
   }
 
-  get_gov_action_id(): GovernanceActionId | undefined {
+  gov_action_id(): GovernanceActionId | undefined {
     return this._gov_action_id;
   }
 
@@ -6558,6 +7016,32 @@ export class NoConfidenceAction {
     } else {
       this._gov_action_id.serialize(writer);
     }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): NoConfidenceAction {
+    let reader = new CBORReader(data);
+    return NoConfidenceAction.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): NoConfidenceAction {
+    return NoConfidenceAction.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): NoConfidenceAction {
+    return NoConfidenceAction.from_bytes(this.to_bytes());
   }
 }
 
@@ -6588,7 +7072,7 @@ export class OperationalCert {
     return new OperationalCert(hot_vkey, sequence_number, kes_period, sigma);
   }
 
-  get_hot_vkey(): KESVKey {
+  hot_vkey(): KESVKey {
     return this._hot_vkey;
   }
 
@@ -6596,7 +7080,7 @@ export class OperationalCert {
     this._hot_vkey = hot_vkey;
   }
 
-  get_sequence_number(): number {
+  sequence_number(): number {
     return this._sequence_number;
   }
 
@@ -6604,7 +7088,7 @@ export class OperationalCert {
     this._sequence_number = sequence_number;
   }
 
-  get_kes_period(): number {
+  kes_period(): number {
     return this._kes_period;
   }
 
@@ -6612,7 +7096,7 @@ export class OperationalCert {
     this._kes_period = kes_period;
   }
 
-  get_sigma(): Ed25519Signature {
+  sigma(): Ed25519Signature {
     return this._sigma;
   }
 
@@ -6703,7 +7187,7 @@ export class ParameterChangeAction {
     );
   }
 
-  get_gov_action_id(): GovernanceActionId | undefined {
+  gov_action_id(): GovernanceActionId | undefined {
     return this._gov_action_id;
   }
 
@@ -6711,7 +7195,7 @@ export class ParameterChangeAction {
     this._gov_action_id = gov_action_id;
   }
 
-  get_protocol_param_updates(): ProtocolParamUpdate {
+  protocol_param_updates(): ProtocolParamUpdate {
     return this._protocol_param_updates;
   }
 
@@ -6721,7 +7205,7 @@ export class ParameterChangeAction {
     this._protocol_param_updates = protocol_param_updates;
   }
 
-  get_policy_hash(): ScriptHash | undefined {
+  policy_hash(): ScriptHash | undefined {
     return this._policy_hash;
   }
 
@@ -6758,6 +7242,32 @@ export class ParameterChangeAction {
     } else {
       this._policy_hash.serialize(writer);
     }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ParameterChangeAction {
+    let reader = new CBORReader(data);
+    return ParameterChangeAction.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ParameterChangeAction {
+    return ParameterChangeAction.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): ParameterChangeAction {
+    return ParameterChangeAction.from_bytes(this.to_bytes());
   }
 }
 
@@ -7131,7 +7641,7 @@ export class Pointer {
     return new Pointer(slot_bignum, tx_index_bignum, cert_index_bignum);
   }
 
-  get_slot_bignum(): BigNum {
+  slot_bignum(): BigNum {
     return this._slot_bignum;
   }
 
@@ -7139,7 +7649,7 @@ export class Pointer {
     this._slot_bignum = slot_bignum;
   }
 
-  get_tx_index_bignum(): BigNum {
+  tx_index_bignum(): BigNum {
     return this._tx_index_bignum;
   }
 
@@ -7147,7 +7657,7 @@ export class Pointer {
     this._tx_index_bignum = tx_index_bignum;
   }
 
-  get_cert_index_bignum(): BigNum {
+  cert_index_bignum(): BigNum {
     return this._cert_index_bignum;
   }
 
@@ -7231,7 +7741,7 @@ export class PoolMetadata {
     return new PoolMetadata(url, pool_metadata_hash);
   }
 
-  get_url(): URL {
+  url(): URL {
     return this._url;
   }
 
@@ -7239,7 +7749,7 @@ export class PoolMetadata {
     this._url = url;
   }
 
-  get_pool_metadata_hash(): PoolMetadataHash {
+  pool_metadata_hash(): PoolMetadataHash {
     return this._pool_metadata_hash;
   }
 
@@ -7412,7 +7922,7 @@ export class PoolParams {
     );
   }
 
-  get_operator(): Ed25519KeyHash {
+  operator(): Ed25519KeyHash {
     return this._operator;
   }
 
@@ -7420,7 +7930,7 @@ export class PoolParams {
     this._operator = operator;
   }
 
-  get_vrf_keyhash(): VRFKeyHash {
+  vrf_keyhash(): VRFKeyHash {
     return this._vrf_keyhash;
   }
 
@@ -7428,7 +7938,7 @@ export class PoolParams {
     this._vrf_keyhash = vrf_keyhash;
   }
 
-  get_pledge(): BigNum {
+  pledge(): BigNum {
     return this._pledge;
   }
 
@@ -7436,7 +7946,7 @@ export class PoolParams {
     this._pledge = pledge;
   }
 
-  get_cost(): BigNum {
+  cost(): BigNum {
     return this._cost;
   }
 
@@ -7444,7 +7954,7 @@ export class PoolParams {
     this._cost = cost;
   }
 
-  get_margin(): UnitInterval {
+  margin(): UnitInterval {
     return this._margin;
   }
 
@@ -7452,7 +7962,7 @@ export class PoolParams {
     this._margin = margin;
   }
 
-  get_reward_account(): unknown {
+  reward_account(): unknown {
     return this._reward_account;
   }
 
@@ -7460,7 +7970,7 @@ export class PoolParams {
     this._reward_account = reward_account;
   }
 
-  get_pool_owners(): Ed25519KeyHashes {
+  pool_owners(): Ed25519KeyHashes {
     return this._pool_owners;
   }
 
@@ -7468,7 +7978,7 @@ export class PoolParams {
     this._pool_owners = pool_owners;
   }
 
-  get_relays(): Relays {
+  relays(): Relays {
     return this._relays;
   }
 
@@ -7476,7 +7986,7 @@ export class PoolParams {
     this._relays = relays;
   }
 
-  get_pool_metadata(): PoolMetadata | undefined {
+  pool_metadata(): PoolMetadata | undefined {
     return this._pool_metadata;
   }
 
@@ -7532,6 +8042,32 @@ export class PoolParams {
       this._pool_metadata.serialize(writer);
     }
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PoolParams {
+    let reader = new CBORReader(data);
+    return PoolParams.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PoolParams {
+    return PoolParams.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): PoolParams {
+    return PoolParams.from_bytes(this.to_bytes());
+  }
 }
 
 export class PoolRegistration {
@@ -7545,7 +8081,7 @@ export class PoolRegistration {
     return new PoolRegistration(pool_params);
   }
 
-  get_pool_params(): PoolParams {
+  pool_params(): PoolParams {
     return this._pool_params;
   }
 
@@ -7602,7 +8138,7 @@ export class PoolRetirement {
     return new PoolRetirement(pool_keyhash, epoch);
   }
 
-  get_pool_keyhash(): Ed25519KeyHash {
+  pool_keyhash(): Ed25519KeyHash {
     return this._pool_keyhash;
   }
 
@@ -7610,7 +8146,7 @@ export class PoolRetirement {
     this._pool_keyhash = pool_keyhash;
   }
 
-  get_epoch(): number {
+  epoch(): number {
     return this._epoch;
   }
 
@@ -7629,6 +8165,32 @@ export class PoolRetirement {
   serialize(writer: CBORWriter): void {
     this._pool_keyhash.serialize(writer);
     writer.writeInt(BigInt(this._epoch));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): PoolRetirement {
+    let reader = new CBORReader(data);
+    return PoolRetirement.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): PoolRetirement {
+    return PoolRetirement.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): PoolRetirement {
+    return PoolRetirement.from_bytes(this.to_bytes());
   }
 }
 
@@ -7669,7 +8231,7 @@ export class PoolVotingThresholds {
     );
   }
 
-  get_motion_no_confidence(): UnitInterval {
+  motion_no_confidence(): UnitInterval {
     return this._motion_no_confidence;
   }
 
@@ -7677,7 +8239,7 @@ export class PoolVotingThresholds {
     this._motion_no_confidence = motion_no_confidence;
   }
 
-  get_committee_normal(): UnitInterval {
+  committee_normal(): UnitInterval {
     return this._committee_normal;
   }
 
@@ -7685,7 +8247,7 @@ export class PoolVotingThresholds {
     this._committee_normal = committee_normal;
   }
 
-  get_committee_no_confidence(): UnitInterval {
+  committee_no_confidence(): UnitInterval {
     return this._committee_no_confidence;
   }
 
@@ -7693,7 +8255,7 @@ export class PoolVotingThresholds {
     this._committee_no_confidence = committee_no_confidence;
   }
 
-  get_hard_fork_initiation(): UnitInterval {
+  hard_fork_initiation(): UnitInterval {
     return this._hard_fork_initiation;
   }
 
@@ -7701,7 +8263,7 @@ export class PoolVotingThresholds {
     this._hard_fork_initiation = hard_fork_initiation;
   }
 
-  get_security_relevant_threshold(): UnitInterval {
+  security_relevant_threshold(): UnitInterval {
     return this._security_relevant_threshold;
   }
 
@@ -8152,7 +8714,7 @@ export class ProtocolParamUpdate {
     );
   }
 
-  get_minfee_a(): BigNum | undefined {
+  minfee_a(): BigNum | undefined {
     return this._minfee_a;
   }
 
@@ -8160,7 +8722,7 @@ export class ProtocolParamUpdate {
     this._minfee_a = minfee_a;
   }
 
-  get_minfee_b(): BigNum | undefined {
+  minfee_b(): BigNum | undefined {
     return this._minfee_b;
   }
 
@@ -8168,7 +8730,7 @@ export class ProtocolParamUpdate {
     this._minfee_b = minfee_b;
   }
 
-  get_max_block_body_size(): number | undefined {
+  max_block_body_size(): number | undefined {
     return this._max_block_body_size;
   }
 
@@ -8176,7 +8738,7 @@ export class ProtocolParamUpdate {
     this._max_block_body_size = max_block_body_size;
   }
 
-  get_max_tx_size(): number | undefined {
+  max_tx_size(): number | undefined {
     return this._max_tx_size;
   }
 
@@ -8184,7 +8746,7 @@ export class ProtocolParamUpdate {
     this._max_tx_size = max_tx_size;
   }
 
-  get_max_block_header_size(): number | undefined {
+  max_block_header_size(): number | undefined {
     return this._max_block_header_size;
   }
 
@@ -8192,7 +8754,7 @@ export class ProtocolParamUpdate {
     this._max_block_header_size = max_block_header_size;
   }
 
-  get_key_deposit(): BigNum | undefined {
+  key_deposit(): BigNum | undefined {
     return this._key_deposit;
   }
 
@@ -8200,7 +8762,7 @@ export class ProtocolParamUpdate {
     this._key_deposit = key_deposit;
   }
 
-  get_pool_deposit(): BigNum | undefined {
+  pool_deposit(): BigNum | undefined {
     return this._pool_deposit;
   }
 
@@ -8208,7 +8770,7 @@ export class ProtocolParamUpdate {
     this._pool_deposit = pool_deposit;
   }
 
-  get_max_epoch(): number | undefined {
+  max_epoch(): number | undefined {
     return this._max_epoch;
   }
 
@@ -8216,7 +8778,7 @@ export class ProtocolParamUpdate {
     this._max_epoch = max_epoch;
   }
 
-  get_n_opt(): number | undefined {
+  n_opt(): number | undefined {
     return this._n_opt;
   }
 
@@ -8224,7 +8786,7 @@ export class ProtocolParamUpdate {
     this._n_opt = n_opt;
   }
 
-  get_pool_pledge_influence(): UnitInterval | undefined {
+  pool_pledge_influence(): UnitInterval | undefined {
     return this._pool_pledge_influence;
   }
 
@@ -8234,7 +8796,7 @@ export class ProtocolParamUpdate {
     this._pool_pledge_influence = pool_pledge_influence;
   }
 
-  get_expansion_rate(): UnitInterval | undefined {
+  expansion_rate(): UnitInterval | undefined {
     return this._expansion_rate;
   }
 
@@ -8242,7 +8804,7 @@ export class ProtocolParamUpdate {
     this._expansion_rate = expansion_rate;
   }
 
-  get_treasury_growth_rate(): UnitInterval | undefined {
+  treasury_growth_rate(): UnitInterval | undefined {
     return this._treasury_growth_rate;
   }
 
@@ -8252,7 +8814,7 @@ export class ProtocolParamUpdate {
     this._treasury_growth_rate = treasury_growth_rate;
   }
 
-  get_min_pool_cost(): BigNum | undefined {
+  min_pool_cost(): BigNum | undefined {
     return this._min_pool_cost;
   }
 
@@ -8260,7 +8822,7 @@ export class ProtocolParamUpdate {
     this._min_pool_cost = min_pool_cost;
   }
 
-  get_ada_per_utxo_byte(): BigNum | undefined {
+  ada_per_utxo_byte(): BigNum | undefined {
     return this._ada_per_utxo_byte;
   }
 
@@ -8268,7 +8830,7 @@ export class ProtocolParamUpdate {
     this._ada_per_utxo_byte = ada_per_utxo_byte;
   }
 
-  get_costmdls(): unknown | undefined {
+  costmdls(): unknown | undefined {
     return this._costmdls;
   }
 
@@ -8276,7 +8838,7 @@ export class ProtocolParamUpdate {
     this._costmdls = costmdls;
   }
 
-  get_execution_costs(): ExUnitPrices | undefined {
+  execution_costs(): ExUnitPrices | undefined {
     return this._execution_costs;
   }
 
@@ -8284,7 +8846,7 @@ export class ProtocolParamUpdate {
     this._execution_costs = execution_costs;
   }
 
-  get_max_tx_ex_units(): ExUnits | undefined {
+  max_tx_ex_units(): ExUnits | undefined {
     return this._max_tx_ex_units;
   }
 
@@ -8292,7 +8854,7 @@ export class ProtocolParamUpdate {
     this._max_tx_ex_units = max_tx_ex_units;
   }
 
-  get_max_block_ex_units(): ExUnits | undefined {
+  max_block_ex_units(): ExUnits | undefined {
     return this._max_block_ex_units;
   }
 
@@ -8300,7 +8862,7 @@ export class ProtocolParamUpdate {
     this._max_block_ex_units = max_block_ex_units;
   }
 
-  get_max_value_size(): number | undefined {
+  max_value_size(): number | undefined {
     return this._max_value_size;
   }
 
@@ -8308,7 +8870,7 @@ export class ProtocolParamUpdate {
     this._max_value_size = max_value_size;
   }
 
-  get_collateral_percentage(): number | undefined {
+  collateral_percentage(): number | undefined {
     return this._collateral_percentage;
   }
 
@@ -8316,7 +8878,7 @@ export class ProtocolParamUpdate {
     this._collateral_percentage = collateral_percentage;
   }
 
-  get_max_collateral_inputs(): number | undefined {
+  max_collateral_inputs(): number | undefined {
     return this._max_collateral_inputs;
   }
 
@@ -8324,7 +8886,7 @@ export class ProtocolParamUpdate {
     this._max_collateral_inputs = max_collateral_inputs;
   }
 
-  get_pool_voting_thresholds(): PoolVotingThresholds | undefined {
+  pool_voting_thresholds(): PoolVotingThresholds | undefined {
     return this._pool_voting_thresholds;
   }
 
@@ -8334,7 +8896,7 @@ export class ProtocolParamUpdate {
     this._pool_voting_thresholds = pool_voting_thresholds;
   }
 
-  get_drep_voting_thresholds(): DrepVotingThresholds | undefined {
+  drep_voting_thresholds(): DrepVotingThresholds | undefined {
     return this._drep_voting_thresholds;
   }
 
@@ -8344,7 +8906,7 @@ export class ProtocolParamUpdate {
     this._drep_voting_thresholds = drep_voting_thresholds;
   }
 
-  get_min_committee_size(): number | undefined {
+  min_committee_size(): number | undefined {
     return this._min_committee_size;
   }
 
@@ -8352,7 +8914,7 @@ export class ProtocolParamUpdate {
     this._min_committee_size = min_committee_size;
   }
 
-  get_committee_term_limit(): number | undefined {
+  committee_term_limit(): number | undefined {
     return this._committee_term_limit;
   }
 
@@ -8360,7 +8922,7 @@ export class ProtocolParamUpdate {
     this._committee_term_limit = committee_term_limit;
   }
 
-  get_governance_action_validity_period(): number | undefined {
+  governance_action_validity_period(): number | undefined {
     return this._governance_action_validity_period;
   }
 
@@ -8370,7 +8932,7 @@ export class ProtocolParamUpdate {
     this._governance_action_validity_period = governance_action_validity_period;
   }
 
-  get_governance_action_deposit(): BigNum | undefined {
+  governance_action_deposit(): BigNum | undefined {
     return this._governance_action_deposit;
   }
 
@@ -8380,7 +8942,7 @@ export class ProtocolParamUpdate {
     this._governance_action_deposit = governance_action_deposit;
   }
 
-  get_drep_deposit(): BigNum | undefined {
+  drep_deposit(): BigNum | undefined {
     return this._drep_deposit;
   }
 
@@ -8388,7 +8950,7 @@ export class ProtocolParamUpdate {
     this._drep_deposit = drep_deposit;
   }
 
-  get_drep_inactivity_period(): number | undefined {
+  drep_inactivity_period(): number | undefined {
     return this._drep_inactivity_period;
   }
 
@@ -8396,7 +8958,7 @@ export class ProtocolParamUpdate {
     this._drep_inactivity_period = drep_inactivity_period;
   }
 
-  get_script_cost_per_byte(): UnitInterval | undefined {
+  script_cost_per_byte(): UnitInterval | undefined {
     return this._script_cost_per_byte;
   }
 
@@ -8823,7 +9385,7 @@ export class ProtocolVersion {
     return new ProtocolVersion(major, minor);
   }
 
-  get_major(): number {
+  major(): number {
     return this._major;
   }
 
@@ -8831,7 +9393,7 @@ export class ProtocolVersion {
     this._major = major;
   }
 
-  get_minor(): number {
+  minor(): number {
     return this._minor;
   }
 
@@ -8991,7 +9553,7 @@ export class Redeemer {
     return new Redeemer(tag, index, data, ex_units, invalid_transactions);
   }
 
-  get_tag(): RedeemerTag {
+  tag(): RedeemerTag {
     return this._tag;
   }
 
@@ -8999,7 +9561,7 @@ export class Redeemer {
     this._tag = tag;
   }
 
-  get_index(): BigNum {
+  index(): BigNum {
     return this._index;
   }
 
@@ -9007,7 +9569,7 @@ export class Redeemer {
     this._index = index;
   }
 
-  get_data(): unknown {
+  data(): unknown {
     return this._data;
   }
 
@@ -9015,7 +9577,7 @@ export class Redeemer {
     this._data = data;
   }
 
-  get_ex_units(): ExUnits {
+  ex_units(): ExUnits {
     return this._ex_units;
   }
 
@@ -9023,7 +9585,7 @@ export class Redeemer {
     this._ex_units = ex_units;
   }
 
-  get_invalid_transactions(): Uint32Array {
+  invalid_transactions(): Uint32Array {
     return this._invalid_transactions;
   }
 
@@ -9132,6 +9694,9 @@ export class RedeemerTag {
 
   static new_proposing(): RedeemerTag {
     return new RedeemerTag(5);
+  }
+  kind(): RedeemerTagKind {
+    return this.kind_;
   }
 
   static deserialize(reader: CBORReader): RedeemerTag {
@@ -9242,9 +9807,9 @@ export class Redeemers {
 
     for (let i = 0; i < this.items.length; i++) {
       const r = this.items[i];
-      const exUnits = r.get_ex_units();
-      tot_mem = tot_mem.checked_add(exUnits.get_mem());
-      tot_steps = tot_steps.checked_add(exUnits.get_steps());
+      const exUnits = r.ex_units();
+      tot_mem = tot_mem.checked_add(exUnits.mem());
+      tot_steps = tot_steps.checked_add(exUnits.steps());
     }
     return ExUnits.new(tot_mem, tot_steps);
   }
@@ -9263,7 +9828,7 @@ export class RegCert {
     return new RegCert(stake_credential, coin);
   }
 
-  get_stake_credential(): Credential {
+  stake_credential(): Credential {
     return this._stake_credential;
   }
 
@@ -9271,7 +9836,7 @@ export class RegCert {
     this._stake_credential = stake_credential;
   }
 
-  get_coin(): BigNum {
+  coin(): BigNum {
     return this._coin;
   }
 
@@ -9290,6 +9855,32 @@ export class RegCert {
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
     this._coin.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): RegCert {
+    let reader = new CBORReader(data);
+    return RegCert.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): RegCert {
+    return RegCert.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): RegCert {
+    return RegCert.from_bytes(this.to_bytes());
   }
 }
 
@@ -9333,6 +9924,10 @@ export class Relay {
 
   as_multi_host_name(): MultiHostName | undefined {
     if (this.variant.kind == 2) return this.variant.value;
+  }
+
+  kind(): RelayKind {
+    return this.variant.kind;
   }
 
   static deserialize(reader: CBORReader): Relay {
@@ -9488,6 +10083,67 @@ export class Relays {
   }
 }
 
+export class RewardAddresses {
+  private items: unknown[];
+
+  constructor(items: unknown[]) {
+    this.items = items;
+  }
+
+  static new(): RewardAddresses {
+    return new RewardAddresses([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): unknown {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: unknown): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader): RewardAddresses {
+    return new RewardAddresses(
+      reader.readArray((reader) => $$CANT_READ("RewardAddress")),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => $$CANT_WRITE("RewardAddress"));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): RewardAddresses {
+    let reader = new CBORReader(data);
+    return RewardAddresses.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): RewardAddresses {
+    return RewardAddresses.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): RewardAddresses {
+    return RewardAddresses.from_bytes(this.to_bytes());
+  }
+}
+
 export class ScriptAll {
   private _native_scripts: NativeScripts;
 
@@ -9499,7 +10155,7 @@ export class ScriptAll {
     return new ScriptAll(native_scripts);
   }
 
-  get_native_scripts(): NativeScripts {
+  native_scripts(): NativeScripts {
     return this._native_scripts;
   }
 
@@ -9516,6 +10172,32 @@ export class ScriptAll {
   serialize(writer: CBORWriter): void {
     this._native_scripts.serialize(writer);
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ScriptAll {
+    let reader = new CBORReader(data);
+    return ScriptAll.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ScriptAll {
+    return ScriptAll.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): ScriptAll {
+    return ScriptAll.from_bytes(this.to_bytes());
+  }
 }
 
 export class ScriptAny {
@@ -9529,7 +10211,7 @@ export class ScriptAny {
     return new ScriptAny(native_scripts);
   }
 
-  get_native_scripts(): NativeScripts {
+  native_scripts(): NativeScripts {
     return this._native_scripts;
   }
 
@@ -9545,6 +10227,32 @@ export class ScriptAny {
 
   serialize(writer: CBORWriter): void {
     this._native_scripts.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ScriptAny {
+    let reader = new CBORReader(data);
+    return ScriptAny.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ScriptAny {
+    return ScriptAny.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): ScriptAny {
+    return ScriptAny.from_bytes(this.to_bytes());
   }
 }
 
@@ -9738,7 +10446,7 @@ export class ScriptNOfK {
     return new ScriptNOfK(n, native_scripts);
   }
 
-  get_n(): number {
+  n(): number {
     return this._n;
   }
 
@@ -9746,7 +10454,7 @@ export class ScriptNOfK {
     this._n = n;
   }
 
-  get_native_scripts(): NativeScripts {
+  native_scripts(): NativeScripts {
     return this._native_scripts;
   }
 
@@ -9766,6 +10474,32 @@ export class ScriptNOfK {
     writer.writeInt(BigInt(this._n));
     this._native_scripts.serialize(writer);
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ScriptNOfK {
+    let reader = new CBORReader(data);
+    return ScriptNOfK.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ScriptNOfK {
+    return ScriptNOfK.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): ScriptNOfK {
+    return ScriptNOfK.from_bytes(this.to_bytes());
+  }
 }
 
 export class ScriptPubname {
@@ -9779,7 +10513,7 @@ export class ScriptPubname {
     return new ScriptPubname(addr_keyhash);
   }
 
-  get_addr_keyhash(): Ed25519KeyHash {
+  addr_keyhash(): Ed25519KeyHash {
     return this._addr_keyhash;
   }
 
@@ -9795,6 +10529,32 @@ export class ScriptPubname {
 
   serialize(writer: CBORWriter): void {
     this._addr_keyhash.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): ScriptPubname {
+    let reader = new CBORReader(data);
+    return ScriptPubname.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): ScriptPubname {
+    return ScriptPubname.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): ScriptPubname {
+    return ScriptPubname.from_bytes(this.to_bytes());
   }
 }
 
@@ -9848,6 +10608,10 @@ export class ScriptRef {
 
   as_plutus_script_v3(): Uint8Array | undefined {
     if (this.variant.kind == 3) return this.variant.value;
+  }
+
+  kind(): ScriptRefKind {
+    return this.variant.kind;
   }
 
   static deserialize(reader: CBORReader): ScriptRef {
@@ -9983,7 +10747,7 @@ export class SingleHostAddr {
     return new SingleHostAddr(port, ipv4, ipv6);
   }
 
-  get_port(): number | undefined {
+  port(): number | undefined {
     return this._port;
   }
 
@@ -9991,7 +10755,7 @@ export class SingleHostAddr {
     this._port = port;
   }
 
-  get_ipv4(): Ipv4 | undefined {
+  ipv4(): Ipv4 | undefined {
     return this._ipv4;
   }
 
@@ -9999,7 +10763,7 @@ export class SingleHostAddr {
     this._ipv4 = ipv4;
   }
 
-  get_ipv6(): Ipv6 | undefined {
+  ipv6(): Ipv6 | undefined {
     return this._ipv6;
   }
 
@@ -10034,6 +10798,32 @@ export class SingleHostAddr {
       this._ipv6.serialize(writer);
     }
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): SingleHostAddr {
+    let reader = new CBORReader(data);
+    return SingleHostAddr.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): SingleHostAddr {
+    return SingleHostAddr.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): SingleHostAddr {
+    return SingleHostAddr.from_bytes(this.to_bytes());
+  }
 }
 
 export class SingleHostName {
@@ -10049,7 +10839,7 @@ export class SingleHostName {
     return new SingleHostName(port, dns_name);
   }
 
-  get_port(): number | undefined {
+  port(): number | undefined {
     return this._port;
   }
 
@@ -10057,7 +10847,7 @@ export class SingleHostName {
     this._port = port;
   }
 
-  get_dns_name(): DNSRecordAorAAAA {
+  dns_name(): DNSRecordAorAAAA {
     return this._dns_name;
   }
 
@@ -10080,6 +10870,32 @@ export class SingleHostName {
       writer.writeInt(BigInt(this._port));
     }
     this._dns_name.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): SingleHostName {
+    let reader = new CBORReader(data);
+    return SingleHostName.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): SingleHostName {
+    return SingleHostName.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): SingleHostName {
+    return SingleHostName.from_bytes(this.to_bytes());
   }
 }
 
@@ -10106,7 +10922,7 @@ export class StakeAndVoteDelegation {
     return new StakeAndVoteDelegation(stake_credential, pool_keyhash, drep);
   }
 
-  get_stake_credential(): Credential {
+  stake_credential(): Credential {
     return this._stake_credential;
   }
 
@@ -10114,7 +10930,7 @@ export class StakeAndVoteDelegation {
     this._stake_credential = stake_credential;
   }
 
-  get_pool_keyhash(): Ed25519KeyHash {
+  pool_keyhash(): Ed25519KeyHash {
     return this._pool_keyhash;
   }
 
@@ -10122,7 +10938,7 @@ export class StakeAndVoteDelegation {
     this._pool_keyhash = pool_keyhash;
   }
 
-  get_drep(): DRep {
+  drep(): DRep {
     return this._drep;
   }
 
@@ -10145,6 +10961,32 @@ export class StakeAndVoteDelegation {
     this._pool_keyhash.serialize(writer);
     this._drep.serialize(writer);
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): StakeAndVoteDelegation {
+    let reader = new CBORReader(data);
+    return StakeAndVoteDelegation.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): StakeAndVoteDelegation {
+    return StakeAndVoteDelegation.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): StakeAndVoteDelegation {
+    return StakeAndVoteDelegation.from_bytes(this.to_bytes());
+  }
 }
 
 export class StakeDelegation {
@@ -10160,7 +11002,7 @@ export class StakeDelegation {
     return new StakeDelegation(stake_credential, pool_keyhash);
   }
 
-  get_stake_credential(): Credential {
+  stake_credential(): Credential {
     return this._stake_credential;
   }
 
@@ -10168,7 +11010,7 @@ export class StakeDelegation {
     this._stake_credential = stake_credential;
   }
 
-  get_pool_keyhash(): Ed25519KeyHash {
+  pool_keyhash(): Ed25519KeyHash {
     return this._pool_keyhash;
   }
 
@@ -10188,6 +11030,32 @@ export class StakeDelegation {
     this._stake_credential.serialize(writer);
     this._pool_keyhash.serialize(writer);
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): StakeDelegation {
+    let reader = new CBORReader(data);
+    return StakeDelegation.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): StakeDelegation {
+    return StakeDelegation.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): StakeDelegation {
+    return StakeDelegation.from_bytes(this.to_bytes());
+  }
 }
 
 export class StakeDeregistration {
@@ -10201,7 +11069,7 @@ export class StakeDeregistration {
     return new StakeDeregistration(stake_credential);
   }
 
-  get_stake_credential(): Credential {
+  stake_credential(): Credential {
     return this._stake_credential;
   }
 
@@ -10218,6 +11086,32 @@ export class StakeDeregistration {
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): StakeDeregistration {
+    let reader = new CBORReader(data);
+    return StakeDeregistration.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): StakeDeregistration {
+    return StakeDeregistration.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): StakeDeregistration {
+    return StakeDeregistration.from_bytes(this.to_bytes());
+  }
 }
 
 export class StakeRegistration {
@@ -10231,7 +11125,7 @@ export class StakeRegistration {
     return new StakeRegistration(stake_credential);
   }
 
-  get_stake_credential(): Credential {
+  stake_credential(): Credential {
     return this._stake_credential;
   }
 
@@ -10247,6 +11141,32 @@ export class StakeRegistration {
 
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): StakeRegistration {
+    let reader = new CBORReader(data);
+    return StakeRegistration.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): StakeRegistration {
+    return StakeRegistration.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): StakeRegistration {
+    return StakeRegistration.from_bytes(this.to_bytes());
   }
 }
 
@@ -10277,7 +11197,7 @@ export class StakeRegistrationAndDelegation {
     );
   }
 
-  get_stake_credential(): Credential {
+  stake_credential(): Credential {
     return this._stake_credential;
   }
 
@@ -10285,7 +11205,7 @@ export class StakeRegistrationAndDelegation {
     this._stake_credential = stake_credential;
   }
 
-  get_pool_keyhash(): Ed25519KeyHash {
+  pool_keyhash(): Ed25519KeyHash {
     return this._pool_keyhash;
   }
 
@@ -10293,7 +11213,7 @@ export class StakeRegistrationAndDelegation {
     this._pool_keyhash = pool_keyhash;
   }
 
-  get_coin(): BigNum {
+  coin(): BigNum {
     return this._coin;
   }
 
@@ -10319,6 +11239,32 @@ export class StakeRegistrationAndDelegation {
     this._stake_credential.serialize(writer);
     this._pool_keyhash.serialize(writer);
     this._coin.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): StakeRegistrationAndDelegation {
+    let reader = new CBORReader(data);
+    return StakeRegistrationAndDelegation.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): StakeRegistrationAndDelegation {
+    return StakeRegistrationAndDelegation.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): StakeRegistrationAndDelegation {
+    return StakeRegistrationAndDelegation.from_bytes(this.to_bytes());
   }
 }
 
@@ -10354,7 +11300,7 @@ export class StakeVoteRegistrationAndDelegation {
     );
   }
 
-  get_stake_credential(): Credential {
+  stake_credential(): Credential {
     return this._stake_credential;
   }
 
@@ -10362,7 +11308,7 @@ export class StakeVoteRegistrationAndDelegation {
     this._stake_credential = stake_credential;
   }
 
-  get_pool_keyhash(): Ed25519KeyHash {
+  pool_keyhash(): Ed25519KeyHash {
     return this._pool_keyhash;
   }
 
@@ -10370,7 +11316,7 @@ export class StakeVoteRegistrationAndDelegation {
     this._pool_keyhash = pool_keyhash;
   }
 
-  get_drep(): DRep {
+  drep(): DRep {
     return this._drep;
   }
 
@@ -10378,7 +11324,7 @@ export class StakeVoteRegistrationAndDelegation {
     this._drep = drep;
   }
 
-  get_coin(): BigNum {
+  coin(): BigNum {
     return this._coin;
   }
 
@@ -10409,6 +11355,32 @@ export class StakeVoteRegistrationAndDelegation {
     this._drep.serialize(writer);
     this._coin.serialize(writer);
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): StakeVoteRegistrationAndDelegation {
+    let reader = new CBORReader(data);
+    return StakeVoteRegistrationAndDelegation.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): StakeVoteRegistrationAndDelegation {
+    return StakeVoteRegistrationAndDelegation.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): StakeVoteRegistrationAndDelegation {
+    return StakeVoteRegistrationAndDelegation.from_bytes(this.to_bytes());
+  }
 }
 
 export class TimelockExpiry {
@@ -10422,7 +11394,7 @@ export class TimelockExpiry {
     return new TimelockExpiry(slot);
   }
 
-  get_slot(): BigNum {
+  slot(): BigNum {
     return this._slot;
   }
 
@@ -10439,6 +11411,32 @@ export class TimelockExpiry {
   serialize(writer: CBORWriter): void {
     this._slot.serialize(writer);
   }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TimelockExpiry {
+    let reader = new CBORReader(data);
+    return TimelockExpiry.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TimelockExpiry {
+    return TimelockExpiry.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): TimelockExpiry {
+    return TimelockExpiry.from_bytes(this.to_bytes());
+  }
 }
 
 export class TimelockStart {
@@ -10452,7 +11450,7 @@ export class TimelockStart {
     return new TimelockStart(slot);
   }
 
-  get_slot(): BigNum {
+  slot(): BigNum {
     return this._slot;
   }
 
@@ -10468,6 +11466,32 @@ export class TimelockStart {
 
   serialize(writer: CBORWriter): void {
     this._slot.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TimelockStart {
+    let reader = new CBORReader(data);
+    return TimelockStart.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TimelockStart {
+    return TimelockStart.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): TimelockStart {
+    return TimelockStart.from_bytes(this.to_bytes());
   }
 }
 
@@ -10498,7 +11522,7 @@ export class Transaction {
     return new Transaction(body, witness_set, is_valid, auxiliary_data);
   }
 
-  get_body(): TransactionBody {
+  body(): TransactionBody {
     return this._body;
   }
 
@@ -10506,7 +11530,7 @@ export class Transaction {
     this._body = body;
   }
 
-  get_witness_set(): TransactionWitnessSet {
+  witness_set(): TransactionWitnessSet {
     return this._witness_set;
   }
 
@@ -10514,7 +11538,7 @@ export class Transaction {
     this._witness_set = witness_set;
   }
 
-  get_is_valid(): boolean {
+  is_valid(): boolean {
     return this._is_valid;
   }
 
@@ -10522,7 +11546,7 @@ export class Transaction {
     this._is_valid = is_valid;
   }
 
-  get_auxiliary_data(): AuxiliaryData | undefined {
+  auxiliary_data(): AuxiliaryData | undefined {
     return this._auxiliary_data;
   }
 
@@ -10764,7 +11788,7 @@ export class TransactionBody {
     );
   }
 
-  get_inputs(): TransactionInputs {
+  inputs(): TransactionInputs {
     return this._inputs;
   }
 
@@ -10772,7 +11796,7 @@ export class TransactionBody {
     this._inputs = inputs;
   }
 
-  get_outputs(): TransactionOutputs {
+  outputs(): TransactionOutputs {
     return this._outputs;
   }
 
@@ -10780,7 +11804,7 @@ export class TransactionBody {
     this._outputs = outputs;
   }
 
-  get_fee(): BigNum {
+  fee(): BigNum {
     return this._fee;
   }
 
@@ -10788,7 +11812,7 @@ export class TransactionBody {
     this._fee = fee;
   }
 
-  get_ttl(): BigNum | undefined {
+  ttl(): BigNum | undefined {
     return this._ttl;
   }
 
@@ -10796,7 +11820,7 @@ export class TransactionBody {
     this._ttl = ttl;
   }
 
-  get_certs(): Certificates | undefined {
+  certs(): Certificates | undefined {
     return this._certs;
   }
 
@@ -10804,7 +11828,7 @@ export class TransactionBody {
     this._certs = certs;
   }
 
-  get_withdrawals(): Withdrawals | undefined {
+  withdrawals(): Withdrawals | undefined {
     return this._withdrawals;
   }
 
@@ -10812,7 +11836,7 @@ export class TransactionBody {
     this._withdrawals = withdrawals;
   }
 
-  get_auxiliary_data_hash(): AuxiliaryDataHash | undefined {
+  auxiliary_data_hash(): AuxiliaryDataHash | undefined {
     return this._auxiliary_data_hash;
   }
 
@@ -10822,7 +11846,7 @@ export class TransactionBody {
     this._auxiliary_data_hash = auxiliary_data_hash;
   }
 
-  get_validity_start_interval(): BigNum | undefined {
+  validity_start_interval(): BigNum | undefined {
     return this._validity_start_interval;
   }
 
@@ -10832,7 +11856,7 @@ export class TransactionBody {
     this._validity_start_interval = validity_start_interval;
   }
 
-  get_mint(): Mint | undefined {
+  mint(): Mint | undefined {
     return this._mint;
   }
 
@@ -10840,7 +11864,7 @@ export class TransactionBody {
     this._mint = mint;
   }
 
-  get_script_data_hash(): ScriptDataHash | undefined {
+  script_data_hash(): ScriptDataHash | undefined {
     return this._script_data_hash;
   }
 
@@ -10848,7 +11872,7 @@ export class TransactionBody {
     this._script_data_hash = script_data_hash;
   }
 
-  get_collateral(): TransactionInputs | undefined {
+  collateral(): TransactionInputs | undefined {
     return this._collateral;
   }
 
@@ -10856,7 +11880,7 @@ export class TransactionBody {
     this._collateral = collateral;
   }
 
-  get_required_signers(): Ed25519KeyHashes | undefined {
+  required_signers(): Ed25519KeyHashes | undefined {
     return this._required_signers;
   }
 
@@ -10864,7 +11888,7 @@ export class TransactionBody {
     this._required_signers = required_signers;
   }
 
-  get_network_id(): NetworkId | undefined {
+  network_id(): NetworkId | undefined {
     return this._network_id;
   }
 
@@ -10872,7 +11896,7 @@ export class TransactionBody {
     this._network_id = network_id;
   }
 
-  get_collateral_return(): TransactionOutput | undefined {
+  collateral_return(): TransactionOutput | undefined {
     return this._collateral_return;
   }
 
@@ -10882,7 +11906,7 @@ export class TransactionBody {
     this._collateral_return = collateral_return;
   }
 
-  get_total_collateral(): BigNum | undefined {
+  total_collateral(): BigNum | undefined {
     return this._total_collateral;
   }
 
@@ -10890,7 +11914,7 @@ export class TransactionBody {
     this._total_collateral = total_collateral;
   }
 
-  get_reference_inputs(): TransactionInputs | undefined {
+  reference_inputs(): TransactionInputs | undefined {
     return this._reference_inputs;
   }
 
@@ -10898,7 +11922,7 @@ export class TransactionBody {
     this._reference_inputs = reference_inputs;
   }
 
-  get_voting_procedures(): VotingProcedures | undefined {
+  voting_procedures(): VotingProcedures | undefined {
     return this._voting_procedures;
   }
 
@@ -10906,7 +11930,7 @@ export class TransactionBody {
     this._voting_procedures = voting_procedures;
   }
 
-  get_voting_proposals(): VotingProposals | undefined {
+  voting_proposals(): VotingProposals | undefined {
     return this._voting_proposals;
   }
 
@@ -10914,7 +11938,7 @@ export class TransactionBody {
     this._voting_proposals = voting_proposals;
   }
 
-  get_current_treasury_value(): BigNum | undefined {
+  current_treasury_value(): BigNum | undefined {
     return this._current_treasury_value;
   }
 
@@ -10922,7 +11946,7 @@ export class TransactionBody {
     this._current_treasury_value = current_treasury_value;
   }
 
-  get_donation(): BigNum | undefined {
+  donation(): BigNum | undefined {
     return this._donation;
   }
 
@@ -11283,7 +12307,7 @@ export class TransactionInput {
     return new TransactionInput(transaction_id, index);
   }
 
-  get_transaction_id(): TransactionHash {
+  transaction_id(): TransactionHash {
     return this._transaction_id;
   }
 
@@ -11291,7 +12315,7 @@ export class TransactionInput {
     this._transaction_id = transaction_id;
   }
 
-  get_index(): number {
+  index(): number {
     return this._index;
   }
 
@@ -11493,6 +12517,10 @@ export class TransactionMetadatum {
     throw new Error("Incorrect cast");
   }
 
+  kind(): TransactionMetadatumKind {
+    return this.variant.kind;
+  }
+
   static deserialize(reader: CBORReader): TransactionMetadatum {
     let tag = reader.peekType();
     let variant: TransactionMetadatumVariant;
@@ -11680,7 +12708,7 @@ export class TransactionOutput {
     return new TransactionOutput(address, amount, plutus_data, script_ref);
   }
 
-  get_address(): unknown {
+  address(): unknown {
     return this._address;
   }
 
@@ -11688,7 +12716,7 @@ export class TransactionOutput {
     this._address = address;
   }
 
-  get_amount(): Value {
+  amount(): Value {
     return this._amount;
   }
 
@@ -11696,7 +12724,7 @@ export class TransactionOutput {
     this._amount = amount;
   }
 
-  get_plutus_data(): DataOption | undefined {
+  plutus_data(): DataOption | undefined {
     return this._plutus_data;
   }
 
@@ -11704,7 +12732,7 @@ export class TransactionOutput {
     this._plutus_data = plutus_data;
   }
 
-  get_script_ref(): ScriptRef | undefined {
+  script_ref(): ScriptRef | undefined {
     return this._script_ref;
   }
 
@@ -11911,7 +12939,7 @@ export class TransactionWitnessSet {
     );
   }
 
-  get_vkeys(): Vkeywitnesses | undefined {
+  vkeys(): Vkeywitnesses | undefined {
     return this._vkeys;
   }
 
@@ -11919,7 +12947,7 @@ export class TransactionWitnessSet {
     this._vkeys = vkeys;
   }
 
-  get_native_scripts(): NativeScripts | undefined {
+  native_scripts(): NativeScripts | undefined {
     return this._native_scripts;
   }
 
@@ -11927,7 +12955,7 @@ export class TransactionWitnessSet {
     this._native_scripts = native_scripts;
   }
 
-  get_bootstraps(): BootstrapWitnesses | undefined {
+  bootstraps(): BootstrapWitnesses | undefined {
     return this._bootstraps;
   }
 
@@ -11935,7 +12963,7 @@ export class TransactionWitnessSet {
     this._bootstraps = bootstraps;
   }
 
-  get_plutus_scripts_v1(): PlutusScripts | undefined {
+  plutus_scripts_v1(): PlutusScripts | undefined {
     return this._plutus_scripts_v1;
   }
 
@@ -11943,7 +12971,7 @@ export class TransactionWitnessSet {
     this._plutus_scripts_v1 = plutus_scripts_v1;
   }
 
-  get_plutus_data(): PlutusList | undefined {
+  plutus_data(): PlutusList | undefined {
     return this._plutus_data;
   }
 
@@ -11951,7 +12979,7 @@ export class TransactionWitnessSet {
     this._plutus_data = plutus_data;
   }
 
-  get_redeemers(): Redeemers | undefined {
+  redeemers(): Redeemers | undefined {
     return this._redeemers;
   }
 
@@ -11959,7 +12987,7 @@ export class TransactionWitnessSet {
     this._redeemers = redeemers;
   }
 
-  get_plutus_scripts_v2(): PlutusScripts | undefined {
+  plutus_scripts_v2(): PlutusScripts | undefined {
     return this._plutus_scripts_v2;
   }
 
@@ -11967,7 +12995,7 @@ export class TransactionWitnessSet {
     this._plutus_scripts_v2 = plutus_scripts_v2;
   }
 
-  get_plutus_scripts_v3(): PlutusScripts | undefined {
+  plutus_scripts_v3(): PlutusScripts | undefined {
     return this._plutus_scripts_v3;
   }
 
@@ -12280,7 +13308,7 @@ export class TreasuryWithdrawalsAction {
     return new TreasuryWithdrawalsAction(withdrawals, policy_hash);
   }
 
-  get_withdrawals(): TreasuryWithdrawals {
+  withdrawals(): TreasuryWithdrawals {
     return this._withdrawals;
   }
 
@@ -12288,7 +13316,7 @@ export class TreasuryWithdrawalsAction {
     this._withdrawals = withdrawals;
   }
 
-  get_policy_hash(): ScriptHash | undefined {
+  policy_hash(): ScriptHash | undefined {
     return this._policy_hash;
   }
 
@@ -12312,6 +13340,32 @@ export class TreasuryWithdrawalsAction {
     } else {
       this._policy_hash.serialize(writer);
     }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): TreasuryWithdrawalsAction {
+    let reader = new CBORReader(data);
+    return TreasuryWithdrawalsAction.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): TreasuryWithdrawalsAction {
+    return TreasuryWithdrawalsAction.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): TreasuryWithdrawalsAction {
+    return TreasuryWithdrawalsAction.from_bytes(this.to_bytes());
   }
 }
 
@@ -12381,7 +13435,7 @@ export class UnitInterval {
     return new UnitInterval(numerator, denominator);
   }
 
-  get_numerator(): BigNum {
+  numerator(): BigNum {
     return this._numerator;
   }
 
@@ -12389,7 +13443,7 @@ export class UnitInterval {
     this._numerator = numerator;
   }
 
-  get_denominator(): BigNum {
+  denominator(): BigNum {
     return this._denominator;
   }
 
@@ -12475,7 +13529,7 @@ export class UnregCert {
     return new UnregCert(stake_credential, coin);
   }
 
-  get_stake_credential(): Credential {
+  stake_credential(): Credential {
     return this._stake_credential;
   }
 
@@ -12483,7 +13537,7 @@ export class UnregCert {
     this._stake_credential = stake_credential;
   }
 
-  get_coin(): BigNum {
+  coin(): BigNum {
     return this._coin;
   }
 
@@ -12502,6 +13556,32 @@ export class UnregCert {
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
     this._coin.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): UnregCert {
+    let reader = new CBORReader(data);
+    return UnregCert.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): UnregCert {
+    return UnregCert.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): UnregCert {
+    return UnregCert.from_bytes(this.to_bytes());
   }
 }
 
@@ -12525,7 +13605,7 @@ export class Update {
     return new Update(proposed_protocol_parameter_updates, epoch);
   }
 
-  get_proposed_protocol_parameter_updates(): ProposedProtocolParameterUpdates {
+  proposed_protocol_parameter_updates(): ProposedProtocolParameterUpdates {
     return this._proposed_protocol_parameter_updates;
   }
 
@@ -12536,7 +13616,7 @@ export class Update {
       proposed_protocol_parameter_updates;
   }
 
-  get_epoch(): number {
+  epoch(): number {
     return this._epoch;
   }
 
@@ -12597,37 +13677,32 @@ export class Update {
 
 export class UpdateCommitteeAction {
   private _gov_action_id: GovernanceActionId | undefined;
+  private _committee: Committee;
   private _members_to_remove: Credentials;
-  private _committee: unknown;
-  private _quorom_threshold: UnitInterval;
 
   constructor(
     gov_action_id: GovernanceActionId | undefined,
+    committee: Committee,
     members_to_remove: Credentials,
-    committee: unknown,
-    quorom_threshold: UnitInterval,
   ) {
     this._gov_action_id = gov_action_id;
-    this._members_to_remove = members_to_remove;
     this._committee = committee;
-    this._quorom_threshold = quorom_threshold;
+    this._members_to_remove = members_to_remove;
   }
 
-  static new(
+  static new_with_action_id(
     gov_action_id: GovernanceActionId | undefined,
+    committee: Committee,
     members_to_remove: Credentials,
-    committee: unknown,
-    quorom_threshold: UnitInterval,
   ) {
     return new UpdateCommitteeAction(
       gov_action_id,
-      members_to_remove,
       committee,
-      quorom_threshold,
+      members_to_remove,
     );
   }
 
-  get_gov_action_id(): GovernanceActionId | undefined {
+  gov_action_id(): GovernanceActionId | undefined {
     return this._gov_action_id;
   }
 
@@ -12635,7 +13710,15 @@ export class UpdateCommitteeAction {
     this._gov_action_id = gov_action_id;
   }
 
-  get_members_to_remove(): Credentials {
+  committee(): Committee {
+    return this._committee;
+  }
+
+  set_committee(committee: Committee): void {
+    this._committee = committee;
+  }
+
+  members_to_remove(): Credentials {
     return this._members_to_remove;
   }
 
@@ -12643,38 +13726,19 @@ export class UpdateCommitteeAction {
     this._members_to_remove = members_to_remove;
   }
 
-  get_committee(): unknown {
-    return this._committee;
-  }
-
-  set_committee(committee: unknown): void {
-    this._committee = committee;
-  }
-
-  get_quorom_threshold(): UnitInterval {
-    return this._quorom_threshold;
-  }
-
-  set_quorom_threshold(quorom_threshold: UnitInterval): void {
-    this._quorom_threshold = quorom_threshold;
-  }
-
   static deserialize(reader: CBORReader): UpdateCommitteeAction {
     let gov_action_id =
       reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
       undefined;
 
+    let committee = Committee.deserialize(reader);
+
     let members_to_remove = Credentials.deserialize(reader);
-
-    let committee = $$CANT_READ("Committee");
-
-    let quorom_threshold = UnitInterval.deserialize(reader);
 
     return new UpdateCommitteeAction(
       gov_action_id,
-      members_to_remove,
       committee,
-      quorom_threshold,
+      members_to_remove,
     );
   }
 
@@ -12684,9 +13748,34 @@ export class UpdateCommitteeAction {
     } else {
       this._gov_action_id.serialize(writer);
     }
+    this._committee.serialize(writer);
     this._members_to_remove.serialize(writer);
-    $$CANT_WRITE("Committee");
-    this._quorom_threshold.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): UpdateCommitteeAction {
+    let reader = new CBORReader(data);
+    return UpdateCommitteeAction.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): UpdateCommitteeAction {
+    return UpdateCommitteeAction.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): UpdateCommitteeAction {
+    return UpdateCommitteeAction.from_bytes(this.to_bytes());
   }
 }
 
@@ -12703,7 +13792,7 @@ export class VRFCert {
     return new VRFCert(output, proof);
   }
 
-  get_output(): Uint8Array {
+  output(): Uint8Array {
     return this._output;
   }
 
@@ -12711,7 +13800,7 @@ export class VRFCert {
     this._output = output;
   }
 
-  get_proof(): Uint8Array {
+  proof(): Uint8Array {
     return this._proof;
   }
 
@@ -12898,7 +13987,7 @@ export class Value {
     return new Value(coin, multiasset);
   }
 
-  get_coin(): BigNum {
+  coin(): BigNum {
     return this._coin;
   }
 
@@ -12906,7 +13995,7 @@ export class Value {
     this._coin = coin;
   }
 
-  get_multiasset(): MultiAsset | undefined {
+  multiasset(): MultiAsset | undefined {
     return this._multiasset;
   }
 
@@ -12970,6 +14059,10 @@ export class Value {
 
   static zero(): Value {
     return Value.new(BigNum.zero());
+  }
+
+  is_zero(): boolean {
+    return this._coin == 0n;
   }
 
   static new(coin: BigNum): Value {
@@ -13062,7 +14155,7 @@ export class Vkeywitness {
     return new Vkeywitness(vkey, signature);
   }
 
-  get_vkey(): unknown {
+  vkey(): unknown {
     return this._vkey;
   }
 
@@ -13070,7 +14163,7 @@ export class Vkeywitness {
     this._vkey = vkey;
   }
 
-  get_signature(): Ed25519Signature {
+  signature(): Ed25519Signature {
     return this._signature;
   }
 
@@ -13218,7 +14311,7 @@ export class VoteDelegation {
     return new VoteDelegation(stake_credential, drep);
   }
 
-  get_stake_credential(): Credential {
+  stake_credential(): Credential {
     return this._stake_credential;
   }
 
@@ -13226,7 +14319,7 @@ export class VoteDelegation {
     this._stake_credential = stake_credential;
   }
 
-  get_drep(): DRep {
+  drep(): DRep {
     return this._drep;
   }
 
@@ -13245,6 +14338,32 @@ export class VoteDelegation {
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
     this._drep.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array): VoteDelegation {
+    let reader = new CBORReader(data);
+    return VoteDelegation.deserialize(reader);
+  }
+
+  static from_hex(hex_str: string): VoteDelegation {
+    return VoteDelegation.from_bytes(hexToBytes(hex_str));
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(): VoteDelegation {
+    return VoteDelegation.from_bytes(this.to_bytes());
   }
 }
 
@@ -13286,7 +14405,7 @@ export class VoteRegistrationAndDelegation {
     return new VoteRegistrationAndDelegation(stake_credential, drep, coin);
   }
 
-  get_stake_credential(): Credential {
+  stake_credential(): Credential {
     return this._stake_credential;
   }
 
@@ -13294,7 +14413,7 @@ export class VoteRegistrationAndDelegation {
     this._stake_credential = stake_credential;
   }
 
-  get_drep(): DRep {
+  drep(): DRep {
     return this._drep;
   }
 
@@ -13302,7 +14421,7 @@ export class VoteRegistrationAndDelegation {
     this._drep = drep;
   }
 
-  get_coin(): BigNum {
+  coin(): BigNum {
     return this._coin;
   }
 
@@ -13325,93 +14444,17 @@ export class VoteRegistrationAndDelegation {
     this._drep.serialize(writer);
     this._coin.serialize(writer);
   }
-}
-
-export class Voter {
-  private _constitutional_committee_hot_key: Credential;
-  private _drep: Credential;
-  private _staking_pool: Ed25519KeyHash;
-
-  constructor(
-    constitutional_committee_hot_key: Credential,
-    drep: Credential,
-    staking_pool: Ed25519KeyHash,
-  ) {
-    this._constitutional_committee_hot_key = constitutional_committee_hot_key;
-    this._drep = drep;
-    this._staking_pool = staking_pool;
-  }
-
-  static new(
-    constitutional_committee_hot_key: Credential,
-    drep: Credential,
-    staking_pool: Ed25519KeyHash,
-  ) {
-    return new Voter(constitutional_committee_hot_key, drep, staking_pool);
-  }
-
-  get_constitutional_committee_hot_key(): Credential {
-    return this._constitutional_committee_hot_key;
-  }
-
-  set_constitutional_committee_hot_key(
-    constitutional_committee_hot_key: Credential,
-  ): void {
-    this._constitutional_committee_hot_key = constitutional_committee_hot_key;
-  }
-
-  get_drep(): Credential {
-    return this._drep;
-  }
-
-  set_drep(drep: Credential): void {
-    this._drep = drep;
-  }
-
-  get_staking_pool(): Ed25519KeyHash {
-    return this._staking_pool;
-  }
-
-  set_staking_pool(staking_pool: Ed25519KeyHash): void {
-    this._staking_pool = staking_pool;
-  }
-
-  static deserialize(reader: CBORReader): Voter {
-    let len = reader.readArrayTag();
-
-    if (len != null && len < 3) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " + len,
-      );
-    }
-
-    let constitutional_committee_hot_key = Credential.deserialize(reader);
-
-    let drep = Credential.deserialize(reader);
-
-    let staking_pool = Ed25519KeyHash.deserialize(reader);
-
-    return new Voter(constitutional_committee_hot_key, drep, staking_pool);
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(3);
-
-    this._constitutional_committee_hot_key.serialize(writer);
-    this._drep.serialize(writer);
-    this._staking_pool.serialize(writer);
-  }
 
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Voter {
+  static from_bytes(data: Uint8Array): VoteRegistrationAndDelegation {
     let reader = new CBORReader(data);
-    return Voter.deserialize(reader);
+    return VoteRegistrationAndDelegation.deserialize(reader);
   }
 
-  static from_hex(hex_str: string): Voter {
-    return Voter.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string): VoteRegistrationAndDelegation {
+    return VoteRegistrationAndDelegation.from_bytes(hexToBytes(hex_str));
   }
 
   to_bytes(): Uint8Array {
@@ -13424,15 +14467,15 @@ export class Voter {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Voter {
-    return Voter.from_bytes(this.to_bytes());
+  clone(): VoteRegistrationAndDelegation {
+    return VoteRegistrationAndDelegation.from_bytes(this.to_bytes());
   }
 }
 
 export class Voters {
-  private items: Voter[];
+  private items: unknown[];
 
-  constructor(items: Voter[]) {
+  constructor(items: unknown[]) {
     this.items = items;
   }
 
@@ -13444,21 +14487,21 @@ export class Voters {
     return this.items.length;
   }
 
-  get(index: number): Voter {
+  get(index: number): unknown {
     if (index >= this.items.length) throw new Error("Array out of bounds");
     return this.items[index];
   }
 
-  add(elem: Voter): void {
+  add(elem: unknown): void {
     this.items.push(elem);
   }
 
   static deserialize(reader: CBORReader): Voters {
-    return new Voters(reader.readArray((reader) => Voter.deserialize(reader)));
+    return new Voters(reader.readArray((reader) => $$CANT_READ("Voter")));
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(this.items, (writer, x) => $$CANT_WRITE("Voter"));
   }
 
   // no-op
@@ -13501,7 +14544,7 @@ export class VotingProcedure {
     return new VotingProcedure(vote, anchor);
   }
 
-  get_vote(): VoteKind {
+  vote(): VoteKind {
     return this._vote;
   }
 
@@ -13509,7 +14552,7 @@ export class VotingProcedure {
     this._vote = vote;
   }
 
-  get_anchor(): Anchor | undefined {
+  anchor(): Anchor | undefined {
     return this._anchor;
   }
 
@@ -13572,9 +14615,9 @@ export class VotingProcedure {
 }
 
 export class VotingProcedures {
-  private items: [Voter, GovernanceActions][];
+  private items: [unknown, GovernanceActions][];
 
-  constructor(items: [Voter, GovernanceActions][]) {
+  constructor(items: [unknown, GovernanceActions][]) {
     this.items = items;
   }
 
@@ -13586,10 +14629,11 @@ export class VotingProcedures {
     return this.items.length;
   }
 
-  insert(key: Voter, value: GovernanceActions): GovernanceActions | undefined {
-    let entry = this.items.find((x) =>
-      arrayEq(key.to_bytes(), x[0].to_bytes()),
-    );
+  insert(
+    key: unknown,
+    value: GovernanceActions,
+  ): GovernanceActions | undefined {
+    let entry = this.items.find((x) => $$CANT_EQ("Voter"));
     if (entry != null) {
       let ret = entry[1];
       entry[1] = value;
@@ -13599,17 +14643,15 @@ export class VotingProcedures {
     return undefined;
   }
 
-  get(key: Voter): GovernanceActions | undefined {
-    let entry = this.items.find((x) =>
-      arrayEq(key.to_bytes(), x[0].to_bytes()),
-    );
+  get(key: unknown): GovernanceActions | undefined {
+    let entry = this.items.find((x) => $$CANT_EQ("Voter"));
     if (entry == null) return undefined;
     return entry[1];
   }
 
-  _remove_many(keys: Voter[]): void {
+  _remove_many(keys: unknown[]): void {
     this.items = this.items.filter(([k, _v]) =>
-      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+      keys.every((key) => !$$CANT_EQ("Voter")),
     );
   }
 
@@ -13622,17 +14664,14 @@ export class VotingProcedures {
   static deserialize(reader: CBORReader): VotingProcedures {
     let ret = new VotingProcedures([]);
     reader.readMap((reader) =>
-      ret.insert(
-        Voter.deserialize(reader),
-        GovernanceActions.deserialize(reader),
-      ),
+      ret.insert($$CANT_READ("Voter"), GovernanceActions.deserialize(reader)),
     );
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeMap(this.items, (writer, x) => {
-      x[0].serialize(writer);
+      $$CANT_WRITE("Voter");
       x[1].serialize(writer);
     });
   }
@@ -13728,7 +14767,7 @@ export class VotingProposal {
     );
   }
 
-  get_deposit(): BigNum {
+  deposit(): BigNum {
     return this._deposit;
   }
 
@@ -13736,7 +14775,7 @@ export class VotingProposal {
     this._deposit = deposit;
   }
 
-  get_reward_account(): unknown {
+  reward_account(): unknown {
     return this._reward_account;
   }
 
@@ -13744,7 +14783,7 @@ export class VotingProposal {
     this._reward_account = reward_account;
   }
 
-  get_governance_action(): GovernanceAction {
+  governance_action(): GovernanceAction {
     return this._governance_action;
   }
 
@@ -13752,7 +14791,7 @@ export class VotingProposal {
     this._governance_action = governance_action;
   }
 
-  get_anchor(): Anchor {
+  anchor(): Anchor {
     return this._anchor;
   }
 
