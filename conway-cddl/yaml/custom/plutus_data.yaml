@@ -43,12 +43,6 @@ PlutusData:
       });
     }
 
-    to_json(schema: PlutusDatumSchema): string {
-      throw new Error("PlutusData.to_json: to be implemented");
-    }
-    static from_json(json: string, schema: PlutusDatumSchema): PlutusData {
-      throw new Error("PlutusData.from_json: to be implemented");
-    }
     static from_address(address: Address): PlutusData {
       throw new Error("PlutusData.from_address: to be implemented");
     }
