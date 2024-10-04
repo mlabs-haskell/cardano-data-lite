@@ -22,10 +22,9 @@ Redeemers:
 
       for (let i = 0; i < this.items.length; i++) {
         const r = this.items[i];
-        const exUnits = r.get_ex_units();
-        tot_mem = tot_mem.checked_add(exUnits.get_mem());
-        tot_steps = tot_steps.checked_add(exUnits.get_steps());
+        const exUnits = r.ex_units();
+        tot_mem = tot_mem.checked_add(exUnits.mem());
+        tot_steps = tot_steps.checked_add(exUnits.steps());
       }
       return ExUnits.new(tot_mem, tot_steps);
     }
-
