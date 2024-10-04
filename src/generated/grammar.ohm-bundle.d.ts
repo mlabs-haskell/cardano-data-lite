@@ -11,8 +11,14 @@ import {
   TerminalNode
 } from 'ohm-js';
 
-export interface ClassesActionDict<T> extends BaseActionDict<T> {
-  ClassesDecl?: (this: NonterminalNode, arg0: IterationNode) => T;
+export interface TypeDefsActionDict<T> extends BaseActionDict<T> {
+  TopLevel?: (this: NonterminalNode, arg0: IterationNode) => T;
+  Import?: (this: NonterminalNode, arg0: TerminalNode, arg1: TerminalNode, arg2: NonterminalNode, arg3: TerminalNode, arg4: TerminalNode, arg5: NonterminalNode, arg6: IterationNode) => T;
+  OtherExport_export?: (this: NonterminalNode, arg0: TerminalNode, arg1: NonterminalNode, arg2: IterationNode) => T;
+  OtherExport_export_enum?: (this: NonterminalNode, arg0: TerminalNode, arg1: IterationNode, arg2: TerminalNode, arg3: NonterminalNode, arg4: NonterminalNode) => T;
+  OtherExport_export_function?: (this: NonterminalNode, arg0: TerminalNode, arg1: IterationNode, arg2: TerminalNode, arg3: NonterminalNode, arg4: NonterminalNode, arg5: IterationNode, arg6: IterationNode, arg7: IterationNode) => T;
+  OtherExport_export_type?: (this: NonterminalNode, arg0: TerminalNode, arg1: TerminalNode, arg2: NonterminalNode, arg3: TerminalNode, arg4: NonterminalNode, arg5: IterationNode) => T;
+  OtherExport?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   ClassDecl?: (this: NonterminalNode, arg0: TerminalNode, arg1: IterationNode, arg2: TerminalNode, arg3: NonterminalNode, arg4: TerminalNode, arg5: IterationNode, arg6: TerminalNode) => T;
   MethodDecl_static?: (this: NonterminalNode, arg0: TerminalNode, arg1: NonterminalNode) => T;
   MethodDecl_instance?: (this: NonterminalNode, arg0: NonterminalNode) => T;
@@ -21,33 +27,47 @@ export interface ClassesActionDict<T> extends BaseActionDict<T> {
   Method_with_type?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode, arg2: NonterminalNode, arg3: TerminalNode, arg4: TerminalNode, arg5: NonterminalNode, arg6: IterationNode) => T;
   Method_without_type?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode, arg2: NonterminalNode, arg3: TerminalNode, arg4: IterationNode) => T;
   Method?: (this: NonterminalNode, arg0: NonterminalNode) => T;
-  DataDecl?: (this: NonterminalNode, arg0: TerminalNode, arg1: NonterminalNode, arg2: IterationNode, arg3: IterationNode) => T;
+  DataDecl_static?: (this: NonterminalNode, arg0: TerminalNode, arg1: NonterminalNode) => T;
+  DataDecl_instance?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  DataDecl?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  Data?: (this: NonterminalNode, arg0: IterationNode, arg1: NonterminalNode, arg2: IterationNode, arg3: IterationNode, arg4: IterationNode, arg5: IterationNode) => T;
   Param_mandatory?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode, arg2: NonterminalNode) => T;
   Param_nullable?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode, arg2: TerminalNode, arg3: NonterminalNode) => T;
   Param?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   Type_nullable?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode, arg2: TerminalNode) => T;
   Type_array?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode) => T;
+  Type_object?: (this: NonterminalNode, arg0: TerminalNode, arg1: IterationNode, arg2: TerminalNode) => T;
   Type_tuple?: (this: NonterminalNode, arg0: TerminalNode, arg1: NonterminalNode, arg2: TerminalNode) => T;
   Type_simple?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   Type?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  ObjectAttribute_mandatory?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode, arg2: NonterminalNode, arg3: TerminalNode) => T;
+  ObjectAttribute_nullable?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode, arg2: TerminalNode, arg3: NonterminalNode, arg4: TerminalNode) => T;
+  ObjectAttribute?: (this: NonterminalNode, arg0: NonterminalNode) => T;
   identifier?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  path?: (this: NonterminalNode, arg0: TerminalNode, arg1: IterationNode, arg2: IterationNode, arg3: TerminalNode) => T;
+  path_component?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  path_dots?: (this: NonterminalNode, arg0: TerminalNode) => T;
   wordlike?: (this: NonterminalNode, arg0: NonterminalNode | TerminalNode, arg1: NonterminalNode) => T;
   anyseq?: (this: NonterminalNode, arg0: IterationNode) => T;
   underscores?: (this: NonterminalNode, arg0: IterationNode) => T;
+  Block?: (this: NonterminalNode, arg0: TerminalNode, arg1: IterationNode, arg2: TerminalNode) => T;
+  between_braces?: (this: NonterminalNode, arg0: TerminalNode) => T;
+  Parens?: (this: NonterminalNode, arg0: TerminalNode, arg1: IterationNode, arg2: TerminalNode) => T;
+  between_parens?: (this: NonterminalNode, arg0: TerminalNode) => T;
 }
 
-export interface ClassesSemantics extends Semantics {
-  addOperation<T>(name: string, actionDict: ClassesActionDict<T>): this;
-  extendOperation<T>(name: string, actionDict: ClassesActionDict<T>): this;
-  addAttribute<T>(name: string, actionDict: ClassesActionDict<T>): this;
-  extendAttribute<T>(name: string, actionDict: ClassesActionDict<T>): this;
+export interface TypeDefsSemantics extends Semantics {
+  addOperation<T>(name: string, actionDict: TypeDefsActionDict<T>): this;
+  extendOperation<T>(name: string, actionDict: TypeDefsActionDict<T>): this;
+  addAttribute<T>(name: string, actionDict: TypeDefsActionDict<T>): this;
+  extendAttribute<T>(name: string, actionDict: TypeDefsActionDict<T>): this;
 }
 
-export interface ClassesGrammar extends Grammar {
-  createSemantics(): ClassesSemantics;
-  extendSemantics(superSemantics: ClassesSemantics): ClassesSemantics;
+export interface TypeDefsGrammar extends Grammar {
+  createSemantics(): TypeDefsSemantics;
+  extendSemantics(superSemantics: TypeDefsSemantics): TypeDefsSemantics;
 }
 
-declare const grammar: ClassesGrammar;
+declare const grammar: TypeDefsGrammar;
 export default grammar;
 

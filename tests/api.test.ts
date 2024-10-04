@@ -2,7 +2,7 @@
 // at the method level
 import fs from "node:fs";
 import { ClassInfo, MethodInfo, ParamInfo, SomeType } from "./test_types";
-import grammar, { ClassesSemantics } from "../src/generated/grammar.ohm-bundle"
+import grammar, { TypeDefsSemantics } from "../src/generated/grammar.ohm-bundle"
 import { describe, test } from "@jest/globals";
 
 //// TEST CONFIG ////
@@ -12,7 +12,7 @@ const traceClassInfos = false;
 // The test parameters for constructing the table
 type TestParameters = { n: number, comparedToMethod: MethodInfo, class: string };
 
-const cslStrippedTxt = fs.readFileSync("csl-types/csl-stripped-classes-only.d.ts", { "encoding": "utf8" });
+const cslStrippedTxt = fs.readFileSync("csl-types/csl-stripped.d.ts", { "encoding": "utf8" });
 const cdlTxt = fs.readFileSync("csl-types/cardano-data-lite.d.ts", { "encoding": "utf8" });
 
 // Arrays of parameters for the tests
@@ -33,8 +33,15 @@ if (cdlMatch.failed()) {
 // We traverse the syntactic tree to obtain a simplified description of the
 // classes and method types. We only define the operations on the syntax nodes
 // where it makes sense.
-let semantics: ClassesSemantics = grammar.createSemantics();
-semantics.addOperation<SomeType>("type()", {
+let semantics: TypeDefsSemantics = grammar.createSemantics();
+semantics.addOperation<string>("attrName()", {
+  ObjectAttribute_mandatory(ident, _colon, _type, _semicolon) {
+    return ident.sourceString;
+  },
+  ObjectAttribute_nullable(ident, _question, _colon, _type, _semicolon) {
+    return ident.sourceString;
+  }
+}).addOperation<SomeType>("type()", {
   Type_simple(ident) {
     return { tag: "simple", ident: ident.sourceString };
   },
@@ -50,6 +57,21 @@ semantics.addOperation<SomeType>("type()", {
       types.push(typeNode.type());
     }
     return { tag: "tuple", types: types };
+  },
+  Type_object(_braceOpen, attrsIter, _braceClose) {
+    let attrsMap: Map<string, SomeType> = new Map();
+    for (const attr of attrsIter.children) {
+      const name = attr.attrName();       
+      const type = attr.type();
+      attrsMap.set(name, type);
+    }
+    return { tag: "object", attrMap: attrsMap}
+  },
+  ObjectAttribute_mandatory(_ident, _colon, type, _semicolon) {
+    return type.type();
+  },
+  ObjectAttribute_nullable(_ident, _question, _colon, type, _semicolon) {
+    return { tag: "nullable", type: type.type()};
   }
 }).addOperation<ParamInfo>("param()", {
   Param_mandatory(paramName, _colon, type) {
@@ -78,11 +100,11 @@ semantics.addOperation<SomeType>("type()", {
   Method_without_type(name, _parens_open, paramsList, _parens_close, _semicolon) {
     return { name: name.sourceString, static: false, params: paramsList.asIteration().children.map((param) => param.param()), returnType: { tag: "simple", ident: "undefined" } };
   },
-  DataDecl(_0, _1, _2, _3) {
+  DataDecl(_0) {
     // ignore
     return undefined;
   }
-}).addOperation<ClassInfo>("class()", {
+}).addOperation<ClassInfo | undefined>("class()", {
   ClassDecl(_export, _declare, _class, className, _braceOpen, memberDecls, _braceClose) {
     let methods: Array<MethodInfo> = [];
     for (const member of memberDecls.children) {
@@ -92,12 +114,20 @@ semantics.addOperation<SomeType>("type()", {
       }
     }
     return { name: className.sourceString, methods: methods }
+  },
+  Import(_1, _2, _3, _4, _5, _6, _7) {
+    // ignore
+    return undefined;
+  },
+  OtherExport(_0) {
+    // ignore
+    return undefined;
   }
 }).addOperation<Array<ClassInfo>>("classes()", {
-  ClassesDecl(classDecls) {
+  TopLevel(topLevelDecl) {
     let classes: Array<ClassInfo> = [];
-    for (const classDecl of classDecls.children) {
-      let cls: ClassInfo = classDecl.class();
+    for (const decl of topLevelDecl.children) {
+      let cls: ClassInfo | undefined = decl.class();
       if (cls) {
         classes.push(cls);
       }
@@ -252,6 +282,13 @@ function normalizeType(ty: SomeType): SomeType {
     }
     case "tuple": {
       return { tag: "tuple", types: ty.types.map(normalizeType) }
+    }
+    case "object": {
+      let normalized: SomeType = { tag: "object", attrMap: new Map };
+      for (const [attrName, attrType] of ty.attrMap) {
+        normalized.attrMap.set(attrName, normalizeType(attrType));
+      }
+      return normalized;
     }
     case "simple": {
       if (ty.ident == "BigNum") {

@@ -1,6 +1,14 @@
-Classes  {
-    // Classes
-    ClassesDecl = ClassDecl*
+TypeDefs  {
+    TopLevel = (Import | OtherExport | ClassDecl)*
+    // Imports
+    Import =
+       "import" "{" ListOf<wordlike, ",">  "}" "from" path ";"?
+    // Other exports (we don't care about these)
+    OtherExport =
+        "export" Block ";"? -- export
+        | "export" "declare"? "enum" identifier Block -- export_enum
+        | "export" "declare"? "function" identifier Parens (":" wordlike )? ";"? -- export_function
+        | "export" "type" identifier "=" ListOf<Block, "|"> ";"? -- export_type
     ClassDecl =  "export" "declare"? "class" identifier "{" (MethodDecl | DataDecl)* "}"
     // Methods
     MethodDecl =
@@ -11,7 +19,10 @@ Classes  {
         | identifier #"(" ListOf<Param, ","> ")" (":" Type) ";"? -- with_type
         | identifier #"(" ListOf<Param, ","> ")" ";"?            -- without_type
     // Data members
-    DataDecl = "private" identifier "?"? ";"?
+    DataDecl =
+      "static" Data -- static
+      | Data -- instance
+    Data = "private"? identifier "?"? (":" wordlike )? ";"?
     // Parameters
     Param =
         identifier #":" Type         -- mandatory
@@ -20,11 +31,23 @@ Classes  {
     Type =
         | Type "|" "undefined"      -- nullable
         | Type #"[]"                -- array
+        | "{" ObjectAttribute* "}"  -- object
         | "[" ListOf<Type, ","> "]" -- tuple
         | identifier                -- simple
+    ObjectAttribute =
+        identifier #":" Type ";" -- mandatory
+        | identifier #("?" ":") Type ";" -- nullable
     // Identifiers
     identifier = wordlike
+    path = "\"" #(path_component "/"?)* "\""
+    path_component = path_dots | wordlike
+    path_dots = "." | ".."
     wordlike = (letter | "_") anyseq
-    anyseq = (alnum | underscores)*
+    anyseq = (alnum | underscores)* // any sequence of letters and alphanumeric characters with underscores interspersed
     underscores = "_"+
+    // Unspecified blocks
+    Block = "{" between_braces* "}" // a block of code with anything inside
+    between_braces = ("\u{21}".."\u{7a}") |"\u{7c}" | "\u{7e}" // all ASCII except spaces and braces
+    Parens = "(" between_parens* ")" // a parens group with anything inside
+    between_parens = ("\u{21}".."\u{28}") | ("\u{2a}".."\u{7e}") // all ASCII expect spaces and parens
  }
