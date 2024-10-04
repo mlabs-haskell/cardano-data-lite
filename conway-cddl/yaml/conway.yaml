@@ -1855,3 +1855,12 @@ OutputDatum:
     - name: data
       tag: 1
       value: PlutusData
+
+Vkey:
+  type: record
+  fields:
+    - name: public_key
+      type: PublicKey
+Vkeys:
+  type: array
+  item: Vkey
