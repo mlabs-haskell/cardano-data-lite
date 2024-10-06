@@ -14,11 +14,12 @@ import {
 export interface TypeDefsActionDict<T> extends BaseActionDict<T> {
   TopLevel?: (this: NonterminalNode, arg0: IterationNode) => T;
   Import?: (this: NonterminalNode, arg0: TerminalNode, arg1: TerminalNode, arg2: NonterminalNode, arg3: TerminalNode, arg4: TerminalNode, arg5: NonterminalNode, arg6: IterationNode) => T;
-  OtherExport_export?: (this: NonterminalNode, arg0: TerminalNode, arg1: NonterminalNode, arg2: IterationNode) => T;
+  OtherExport_export_rename?: (this: NonterminalNode, arg0: TerminalNode, arg1: TerminalNode, arg2: NonterminalNode, arg3: TerminalNode, arg4: IterationNode) => T;
   OtherExport_export_enum?: (this: NonterminalNode, arg0: TerminalNode, arg1: IterationNode, arg2: TerminalNode, arg3: NonterminalNode, arg4: NonterminalNode) => T;
   OtherExport_export_function?: (this: NonterminalNode, arg0: TerminalNode, arg1: IterationNode, arg2: TerminalNode, arg3: NonterminalNode, arg4: NonterminalNode, arg5: IterationNode, arg6: IterationNode, arg7: IterationNode) => T;
   OtherExport_export_type?: (this: NonterminalNode, arg0: TerminalNode, arg1: TerminalNode, arg2: NonterminalNode, arg3: TerminalNode, arg4: NonterminalNode, arg5: IterationNode) => T;
   OtherExport?: (this: NonterminalNode, arg0: NonterminalNode) => T;
+  Rename?: (this: NonterminalNode, arg0: NonterminalNode, arg1: TerminalNode, arg2: NonterminalNode) => T;
   ClassDecl?: (this: NonterminalNode, arg0: TerminalNode, arg1: IterationNode, arg2: TerminalNode, arg3: NonterminalNode, arg4: TerminalNode, arg5: IterationNode, arg6: TerminalNode) => T;
   MethodDecl_static?: (this: NonterminalNode, arg0: TerminalNode, arg1: NonterminalNode) => T;
   MethodDecl_instance?: (this: NonterminalNode, arg0: NonterminalNode) => T;

@@ -1,7 +1,7 @@
 // This module tests that the classes generated in out.ts match the CSL API
 // at the method level
 import fs from "node:fs";
-import { ClassInfo, MethodInfo, ParamInfo, SomeType } from "../test_types";
+import { ClassInfo, ClassRename, MethodInfo, ParamInfo, SomeType } from "../test_types";
 import grammar, { TypeDefsSemantics } from "./grammar.ohm-bundle"
 import { describe, test } from "@jest/globals";
 
@@ -134,6 +134,51 @@ semantics.addOperation<string>("attrName()", {
     }
     return classes;
   }
+// These operations are unrelated to the previous ones. They are only used
+// for parsing renaming exports.
+}).addOperation<ClassRename>("rename()", {
+  Rename(originalName, _as, newName) {
+    // console.log("Rename");
+    return { originalName: originalName.sourceString, newName: newName.sourceString };
+  }
+}).addOperation<Array<ClassRename> | undefined>("renames_maybe()", {
+  OtherExport(otherExportNode) {
+    // console.log("OtherExport");
+    if (otherExportNode.ctorName == "OtherExport_export_rename") {
+      return otherExportNode.renames();      
+    } else {
+      return undefined;
+    }
+  },
+  Import(_0, _1, _2, _3, _4, _5, _6) {
+    // console.log("Import");
+    return undefined;
+  },
+  ClassDecl(_0, _1, _2, _3, _4, _5, _6) {
+    // console.log("ClassDecl");
+    return undefined
+  }
+}).addOperation<Array<ClassRename>>("renames()", {
+  TopLevel(topLevelNodes) {
+    // console.log("TopLevel");
+    let renames: Array<ClassRename> = [];
+    for (const node of topLevelNodes.children) {
+      const rename: Array<ClassRename> | undefined = node.renames_maybe();
+      if (rename) {
+        renames = renames.concat(rename);
+      }
+    }
+    return renames;
+  },
+  OtherExport_export_rename(_export, _braceOpen, renamesList, _braceClose, _semicolon) {
+    // console.log("OtherExport_export_rename")
+    let renames: Array<ClassRename> = [];
+    for (const renameNode of renamesList.asIteration().children) {
+      const rename: ClassRename = renameNode.rename();
+      renames.push(rename);
+    }
+    return renames
+  },
 });
 
 
@@ -143,6 +188,8 @@ let cslClassesMap: Map<string, MethodInfo[]> = new Map(cslClasses.map((cls) => [
 console.log("Traversing parse tree of CDL type definitions...");
 const cdlClasses: Array<ClassInfo> = semantics(cdlMatch).classes();
 let cdlClassesMap: Map<string, MethodInfo[]> = new Map(cdlClasses.map((cls) => [cls.name, cls.methods]))
+console.log("Extracting renaming exports from CDL type definitions...");
+const classRenames: Array<ClassRename> = semantics(cdlMatch).renames();
 
 // We trace all the classes as parsed
 if (traceClassInfos) {
@@ -153,7 +200,17 @@ if (traceClassInfos) {
     }
   }
 }
-// First we filter out the ignored classes from clsClassesMap based on the classInfo file.
+
+// Before filtering, we rename all classes that are re-exported with a different name
+for(const rename of classRenames) {
+  const clsValue = cdlClassesMap.get(rename.originalName)
+  if(clsValue) {
+    cdlClassesMap.delete(rename.originalName);
+    cdlClassesMap.set(rename.newName, clsValue);
+  }
+}
+
+// We filter out the ignored classes from clsClassesMap based on the classInfo file.
 // We don't want to fail when checking methods if cdlClassesMap does not contain these classes.
 const classInfo: { ignore: Array<string> } = JSON.parse(fs.readFileSync("csl-types/class-info.json", "utf-8"));
 for (const cls of classInfo.ignore) {
