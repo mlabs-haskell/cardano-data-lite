@@ -1,7 +1,7 @@
 // This module tests that the classes generated in out.ts match the CSL API
 // at the method level
 import fs from "node:fs";
-import { ClassInfo, ClassRename, MethodInfo, ParamInfo, SomeType } from "../test_types";
+import { ClassInfo, ClassRename, MethodComparisonResult, MethodInfo, ParamInfo, SomeType, TypeComparisonResult } from "../test_types";
 import grammar, { TypeDefsSemantics } from "./grammar.ohm-bundle"
 import { describe, test } from "@jest/globals";
 
@@ -190,6 +190,7 @@ const cdlClasses: Array<ClassInfo> = semantics(cdlMatch).classes();
 let cdlClassesMap: Map<string, MethodInfo[]> = new Map(cdlClasses.map((cls) => [cls.name, cls.methods]))
 console.log("Extracting renaming exports from CDL type definitions...");
 const classRenames: Array<ClassRename> = semantics(cdlMatch).renames();
+const classRenamesMap: Map<string, string> = new Map(classRenames.map((rename) => [rename.originalName, rename.newName]))
 
 // We trace all the classes as parsed
 if (traceClassInfos) {
@@ -201,11 +202,10 @@ if (traceClassInfos) {
   }
 }
 
-// Before filtering, we rename all classes that are re-exported with a different name
+// Before filtering, we add all classes that are re-exported with a different name
 for(const rename of classRenames) {
   const clsValue = cdlClassesMap.get(rename.originalName)
   if(clsValue) {
-    cdlClassesMap.delete(rename.originalName);
     cdlClassesMap.set(rename.newName, clsValue);
   }
 }
@@ -277,9 +277,12 @@ for (const cls of cdlClasses) {
 console.log("compareToCslTests.length: ", compareToCslTests.length)
 console.log("compareToCdlTests.length: ", compareToCdlTests.length)
 
+// We open a report file to write down each method comparison failure as we find it
+let methodFailuresFile = fs.openSync("tests/reports/api_failing_methods.csv", "w");
+fs.writeFileSync(methodFailuresFile, "Affected class,Method,Failure reason,Failure message\n");
+
 // Used for debugging 
-// 984
-const testN = 984;
+const testN = 2752;
 const testNConfig = { testTable: compareToCdlTests, srcMap: cslClassesMap };
 test.skip(`Test N. ${testN}`, () => {
   const { testTable, srcMap } = testNConfig;
@@ -288,25 +291,19 @@ test.skip(`Test N. ${testN}`, () => {
 });
 
 // Tests
-describe("API coverage tests", () => {
-  test("There should be no missing classes", () => {
-    expect(missingClasses).toHaveLength(0);
-  })
-  test("There should be no missing methods", () => {
-    expect(missingMethods).toHaveLength(0);
-  })
-})
-describe("Compare each CSL class/method to its CDL counterpart", () => {
-  test.each(compareToCslTests)("($n) Comparing CDL's $class . $comparedToMethod.name to CSL's", (params) => {
-    compareToClass(cdlClassesMap, params.class, params.comparedToMethod);
-  })
-});
-
-describe("Compare each CDL class/method to its CSL counterpart", () => {
-  test.each(compareToCdlTests)("($n) Comparing CSL's $class . $comparedToMethod.name to CDL's", (params) => {
-    compareToClass(cslClassesMap, params.class, params.comparedToMethod);
-  })
-});
+ describe("API coverage tests", () => {
+   test("There should be no missing classes", () => {
+     expect(missingClasses).toHaveLength(0);
+   })
+   test("There should be no missing methods", () => {
+     expect(missingMethods).toHaveLength(0);
+   })
+ })
+ describe("Compare each CDL class/method to its CSL counterpart", () => {
+   test.each(compareToCdlTests)("($n) Comparing CSL's $class . $comparedToMethod.name to CDL's", (params) => {
+     compareToClass(cslClassesMap, params.class, params.comparedToMethod);
+   })
+ });
 
 // Test Utils
 function prettyClassInfo(cls: ClassInfo): void {
@@ -320,36 +317,82 @@ function prettyClassInfo(cls: ClassInfo): void {
   console.log(msg);
 }
 
-function compareToClass(clss: Map<string, MethodInfo[]>, cls: string, comparedToMethod: MethodInfo) {
-  const methods = clss.get(cls);
-  if (methods) {
-    const method = methods.find((info) => info.name == comparedToMethod.name)
-    compareToMethod(method, comparedToMethod);
-  }
-}
-
-function compareToMethod(method1: MethodInfo | undefined, method2: MethodInfo) {
-  if (method1) {
-    // Method names should match
-    expect(method1.name).toEqual(method2.name);
-    // Return types should match
-    compareTypes(method1.returnType, method2.returnType);
-    // Static qualifiers should match
-    expect(method1.static).toEqual(method2.static);
-    // Methods should have the same number of parameters
-    expect(method1.params.length).toEqual(method2.params.length);
-    // All parameter types should match (names do not, however)
-    for (let i = 0; i < method1.params.length; i++) {
-      const param1 = method1.params[i];
-      const param2 = method2.params[i];
-      // Types should match
-      compareTypes(param1.type, param2.type);
+function prettyType(ty: SomeType): string {
+  switch(ty.tag) {
+    case "simple":
+      return ty.ident;
+    case "array":
+      return `${prettyType(ty.type)}[]`;
+    case "tuple":
+      let tyStrs = ty.types.map((ty) => prettyType(ty));
+      return `[${tyStrs.join(", ")}]`;
+    case "nullable":
+      return `(${prettyType(ty.type)} | undefined)`
+    case "object": {
+      let msg = "{";
+      for (const [attrName, attrType] of ty.attrMap.entries()) {        
+        msg = `${msg} ${attrName}: ${prettyType(attrType)};`;
+      }
+      msg = `${msg} }`;
+      return msg;
     }
   }
 }
 
+function compareToClass(clss: Map<string, MethodInfo[]>, cls: string, comparedToMethod: MethodInfo) {
+  const methods = clss.get(cls);
+  if (methods) {
+    const method = methods.find((info) => info.name == comparedToMethod.name)
+    if (method) {
+      const cmpResult = compareToMethod(method, comparedToMethod);
+      // Before testing, we write the result in the report file
+      if (cmpResult != "success") {
+        fs.writeFileSync(methodFailuresFile, `${cls},${method.name},${cmpResult.reason},${cmpResult.msg}\n`);
+      }
+      expect(cmpResult).toStrictEqual("success");
+    }
+  }
+}
+
+function compareToMethod(method1: MethodInfo, method2: MethodInfo): MethodComparisonResult {
+  // Method names should match
+  if (method1.name != method2.name) {
+    return { reason: "method_names_dont_match", msg: `Expected ${method2.name}, received ${method1.name}`};
+  }
+  // Return types should match
+  const returnCmp = compareTypes(method1.returnType, method2.returnType);
+  if (returnCmp != "success") {
+    return { reason: "return_types_dont_match", msg: `Expected ${prettyType(returnCmp.expected)}, received ${prettyType(returnCmp.received)}`};
+  }
+  // Static qualifiers should match
+  if (method1.static != method2.static) {
+    return { reason: "static_qualifiers_dont_match", msg: `Expected ${method2.static}, received ${method1.static}`};
+  }
+  // Methods should have the same number of parameters
+  if (method1.params.length != method2.params.length) {
+    return { reason: "number_of_parameters_doesnt_match", msg: `Expected ${method2.params.length}, received ${method1.params.length}`}
+  }
+  // All parameter types should match (names do not, however)
+  let paramErrMsgs: Array<string> = [];
+  for (let i = 0; i < method1.params.length; i++) {
+    const param1 = method1.params[i];
+    const param2 = method2.params[i];
+    // Types should match
+    const paramCmp = compareTypes(param1.type, param2.type);
+    if (paramCmp != "success") {
+      paramErrMsgs.push(`Expected ${param1.name} to have type ${prettyType(paramCmp.expected)}, instead it has type ${prettyType(paramCmp.received)}`);
+    }
+  }
+  if (paramErrMsgs.length > 0) {
+    return { reason: "parameter_types_dont_match", msg:paramErrMsgs.join(" | ")}
+  }
+
+  return "success";
+}
+
 // We normalize types. At runtime, `undefined` and `T` are equivalent, and so are `undefined | T`
 // and `T`. For this reason, we strip the `undefined`s to make type comparisons simpler.
+// We also take into account classes that are exported under a different name.
 function normalizeType(ty: SomeType): SomeType {
   switch (ty.tag) {
     case "nullable": {
@@ -369,8 +412,11 @@ function normalizeType(ty: SomeType): SomeType {
       return normalized;
     }
     case "simple": {
+      const renamedTo = classRenamesMap.get(ty.ident);
       if (ty.ident == "BigNum") {
         return { tag: "simple", ident: "bigint" }
+      } else if (renamedTo){
+        return { tag: "simple", ident: renamedTo };
       } else {
         return ty;
       }
@@ -378,13 +424,62 @@ function normalizeType(ty: SomeType): SomeType {
   }
 }
 
-function compareTypes(ty1: SomeType, ty2: SomeType) {
+function compareTypes(ty1: SomeType, ty2: SomeType): TypeComparisonResult {
   const nty1 = normalizeType(ty1);
   const nty2 = normalizeType(ty2);
   // if one of the types is undefined, then the types are equivalent
   if ((nty1.tag == "simple" && nty1.ident == "undefined") || (nty2.tag == "simple" && nty2.ident == "undefined")) {
-    expect(true).toBeTruthy();
+    return "success";
+  // otherwise, check for strict equality
+  } else if (!someTypeEquals(nty1, nty2)) {
+    return { expected: nty2, received: nty1 }
   } else {
-    expect(nty1).toEqual(nty2);
+    return "success";
   }
+}
+
+// strict SomeType equality
+function someTypeEquals(ty1: SomeType, ty2: SomeType) {
+  if (ty1.tag == "simple" && ty2.tag == "simple") {
+    // console.log("comparing simples")
+    return ty1.ident === ty2.ident;
+  }
+
+  if (ty1.tag == "nullable" && ty2.tag == "nullable") {
+    // console.log("comparing nullables")
+    return someTypeEquals(ty1.type, ty2.type);
+  }
+
+  if (ty1.tag == "array" && ty2.tag == "array") {
+    // console.log("comparing arrays")
+    return someTypeEquals(ty1.type, ty2.type);
+  }
+
+  if (ty1.tag == "tuple" && ty2.tag == "tuple") {
+    // console.log("comparing tuples")
+    if (ty1.types.length != ty2.types.length) {
+      return false;
+    }
+    for (let i = 0; i < ty1.types.length; i++) {
+      if (!someTypeEquals(ty1.types[i], ty2.types[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  if (ty1.tag == "object" && ty2.tag == "object") {
+    // console.log("comparing objects")
+    for (const [attrName, attrType1] of ty1.attrMap.entries()) {
+      const attrType2 = ty2.attrMap.get(attrName);
+      if (!attrType2 || !someTypeEquals(attrType1, attrType2)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // tags don't match
+  // console.log("tags don't match")
+  return false;
 }
