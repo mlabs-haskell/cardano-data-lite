@@ -153,7 +153,14 @@ if (traceClassInfos) {
     }
   }
 }
-// We filter out missing classes/methods
+// First we filter out the ignored classes from clsClassesMap based on the classInfo file.
+// We don't want to fail when checking methods if cdlClassesMap does not contain these classes.
+const classInfo: { ignore: Array<string> } = JSON.parse(fs.readFileSync("csl-types/class-info.json", "utf-8"));
+for (const cls of classInfo.ignore) {
+  cslClassesMap.delete(cls);
+}
+
+// We filter out missing classes/methods in CDL. We do it for the same reason as above.
 let missingClasses: Array<String> = [];
 for (const cls of cslClassesMap.keys()) {
   if (!cdlClassesMap.has(cls)) {
@@ -192,7 +199,7 @@ missingClassesCsv += missingClasses.join("\n");
 fs.writeFileSync("tests/reports/api_missing_classes.csv", missingClassesCsv);
 let missingMethodsCsv = "Missing method\n"
 missingMethodsCsv += missingMethods.join("\n");
-fs.writeFileSync("tests/reports/api_missing_methods.csv", missingClassesCsv);
+fs.writeFileSync("tests/reports/api_missing_methods.csv", missingMethodsCsv);
 
 // We construct the test tables
 let n: number = 0;
