@@ -3,12 +3,14 @@ TypeDefs  {
     // Imports
     Import =
        "import" "{" ListOf<wordlike, ",">  "}" "from" path ";"?
-    // Other exports (we don't care about these)
+    // Rename exports
+    // Other exports (we don't generally care about these)
     OtherExport =
-        "export" Block ";"? -- export
+        "export" "{" ListOf<Rename, ","> "}" ";"? -- export_rename
         | "export" "declare"? "enum" identifier Block -- export_enum
         | "export" "declare"? "function" identifier Parens (":" wordlike )? ";"? -- export_function
         | "export" "type" identifier "=" ListOf<Block, "|"> ";"? -- export_type
+    Rename = identifier "as" identifier
     ClassDecl =  "export" "declare"? "class" identifier "{" (MethodDecl | DataDecl)* "}"
     // Methods
     MethodDecl =

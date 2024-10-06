@@ -22,3 +22,4 @@ export type SomeType =
     tag: "object",
     attrMap: Map<string, SomeType>
   }
+export type ClassRename = { originalName: string, newName: string };
