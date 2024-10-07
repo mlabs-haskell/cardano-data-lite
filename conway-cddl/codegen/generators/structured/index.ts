@@ -23,7 +23,7 @@ export class GenStructuredBase<
   constructor(
     name: string,
     customTypes: SchemaTable,
-    options: GenStructuredBaseOptions<Field>,
+    options: GenStructuredBaseOptions<Field>
   ) {
     super(name, customTypes, options);
     this.options = options;
@@ -63,7 +63,7 @@ export class GenStructuredBase<
             .map((x) => x.name)
             .join(",")});
         }
-      `,
+      `
       )}
     `;
   }
@@ -72,14 +72,22 @@ export class GenStructuredBase<
     return this.getFields()
       .map(
         (x) => `
-        ${this.accessorGetPrefix ? "get_" : ""}${x.name}(): ${this.fieldType(x)} {
-          return this._${x.name};
-        }
+        ${this.renameMethod(
+          this.accessorGetPrefix ? `get_${x.name}` : x.name,
+          (get) => ` 
+            ${get}(): ${this.fieldType(x)} {
+              return this._${x.name};
+            }`
+        )}
 
-        set_${x.name}(${x.name}: ${this.fieldType(x)}): void {
-          this._${x.name} = ${x.name};
-        }
-      `,
+        ${this.renameMethod(
+          `set_${x.name}`,
+          (set) => `
+            ${set}(${x.name}: ${this.fieldType(x)}): void {
+              this._${x.name} = ${x.name};
+            }`
+        )}
+      `
       )
       .join("\n");
   }
