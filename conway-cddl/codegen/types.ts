@@ -69,7 +69,7 @@ export const Schema = Type.Intersect([
           kind_name: Type.Optional(Type.String()),
         }),
       ),
-      accessor_get_prefix: Type.Optional(Type.Boolean()),
+      accessor_prefix: Type.Optional(Type.String()),
     }),
     Type.Object({
       type: Type.Literal("record"),

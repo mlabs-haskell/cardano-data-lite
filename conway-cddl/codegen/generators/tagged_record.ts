@@ -12,10 +12,12 @@ export type Variant = {
 
 export type GenTaggedRecordOptions = {
   variants: Variant[];
+  accessor_prefix?: string;
 } & CodeGeneratorBaseOptions;
 
 export class GenTaggedRecord extends CodeGeneratorBase {
   variants: Variant[];
+  accessorPrefix?: string;
 
   constructor(
     name: string,
@@ -24,6 +26,7 @@ export class GenTaggedRecord extends CodeGeneratorBase {
   ) {
     super(name, customTypes, { genCSL: true, ...options });
     this.variants = options.variants;
+    this.accessorPrefix = options.accessor_prefix;
   }
 
   getVariantLen(variant: Variant) {
@@ -130,7 +133,7 @@ export class GenTaggedRecord extends CodeGeneratorBase {
           .map((x) =>
             x.value != null
               ? `
-        as_${x.name}(): ${this.typeUtils.jsType(x.value)} | undefined {
+        ${this.accessorPrefix || "as"}_${x.name}(): ${this.typeUtils.jsType(x.value)} | undefined {
           if(this.variant.kind == ${x.tag}) return this.variant.value;
         }
               `
