@@ -210,11 +210,23 @@ for(const rename of classRenames) {
   }
 }
 
-// We filter out the ignored classes from clsClassesMap based on the classInfo file.
-// We don't want to fail when checking methods if cdlClassesMap does not contain these classes.
-const classInfo: { ignore_classes: Array<string> } = JSON.parse(fs.readFileSync("tests/class-info.json", "utf-8"));
+// We filter out the ignored classes and methods from clsClassesMap based on the classInfo file.
+// We don't want to fail when checking methods if cdlClassesMap does not contain these classes/methods.
+type ClassInfoFile = {
+  "ignore_classes": Array<string>,
+  "ignore_methods": { [cls: string]: Array<string> }
+}
+const classInfo: ClassInfoFile = JSON.parse(fs.readFileSync("tests/class-info.json", "utf-8"));
 for (const cls of classInfo.ignore_classes) {
   cslClassesMap.delete(cls);
+}
+for (const cls in classInfo.ignore_methods) {
+  console.log(cls);
+  let methodInfos = cslClassesMap.get(cls);
+  if (methodInfos) {
+    let filteredMethodInfos = methodInfos.filter((info) => !classInfo.ignore_methods[cls].includes(info.name))
+    cslClassesMap.set(cls, filteredMethodInfos);
+  }
 }
 
 // We filter out missing classes/methods in CDL. We do it for the same reason as above.
@@ -291,19 +303,19 @@ test.skip(`Test N. ${testN}`, () => {
 });
 
 // Tests
- describe("API coverage tests", () => {
-   test("There should be no missing classes", () => {
-     expect(missingClasses).toHaveLength(0);
-   })
-   test("There should be no missing methods", () => {
-     expect(missingMethods).toHaveLength(0);
-   })
- })
- describe("Compare each CDL class/method to its CSL counterpart", () => {
-   test.each(compareToCdlTests)("($n) Comparing CSL's $class . $comparedToMethod.name to CDL's", (params) => {
-     compareToClass(cslClassesMap, params.class, params.comparedToMethod);
-   })
- });
+describe("API coverage tests", () => {
+  test("There should be no missing classes", () => {
+    expect(missingClasses).toHaveLength(0);
+  })
+  test("There should be no missing methods", () => {
+    expect(missingMethods).toHaveLength(0);
+  })
+})
+describe("Compare each CDL class/method to its CSL counterpart", () => {
+  test.each(compareToCdlTests)("($n) Comparing CSL's $class . $comparedToMethod.name to CDL's", (params) => {
+    compareToClass(cslClassesMap, params.class, params.comparedToMethod);
+  })
+});
 
 // Test Utils
 function prettyClassInfo(cls: ClassInfo): void {
