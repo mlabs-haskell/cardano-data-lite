@@ -19,6 +19,11 @@ const cdlTxt = fs.readFileSync("csl-types/cardano-data-lite.d.ts", { "encoding":
 let compareToCslTests: Array<TestParameters> = [];
 let compareToCdlTests: Array<TestParameters> = [];
 
+// Paths where the reports will be saved
+const missingClassesPath = "tests/reports/api_missing_classes.csv";
+const missingMethodsPath = "tests/reports/api_missing_methods.csv";
+const methodFailuresPath = "tests/reports/api_failing_methods.csv"
+
 console.log("Parsing CSL declaration files...")
 const cslMatch = grammar.match(cslStrippedTxt);
 if (cslMatch.failed()) {
@@ -138,12 +143,10 @@ semantics.addOperation<string>("attrName()", {
 // for parsing renaming exports.
 }).addOperation<ClassRename>("rename()", {
   Rename(originalName, _as, newName) {
-    // console.log("Rename");
     return { originalName: originalName.sourceString, newName: newName.sourceString };
   }
 }).addOperation<Array<ClassRename> | undefined>("renames_maybe()", {
   OtherExport(otherExportNode) {
-    // console.log("OtherExport");
     if (otherExportNode.ctorName == "OtherExport_export_rename") {
       return otherExportNode.renames();      
     } else {
@@ -151,16 +154,13 @@ semantics.addOperation<string>("attrName()", {
     }
   },
   Import(_0, _1, _2, _3, _4, _5, _6) {
-    // console.log("Import");
     return undefined;
   },
   ClassDecl(_0, _1, _2, _3, _4, _5, _6) {
-    // console.log("ClassDecl");
     return undefined
   }
 }).addOperation<Array<ClassRename>>("renames()", {
   TopLevel(topLevelNodes) {
-    // console.log("TopLevel");
     let renames: Array<ClassRename> = [];
     for (const node of topLevelNodes.children) {
       const rename: Array<ClassRename> | undefined = node.renames_maybe();
@@ -171,7 +171,6 @@ semantics.addOperation<string>("attrName()", {
     return renames;
   },
   OtherExport_export_rename(_export, _braceOpen, renamesList, _braceClose, _semicolon) {
-    // console.log("OtherExport_export_rename")
     let renames: Array<ClassRename> = [];
     for (const renameNode of renamesList.asIteration().children) {
       const rename: ClassRename = renameNode.rename();
@@ -258,8 +257,20 @@ for (const [cls, methods] of cslClassesMap) {
   }
 }
 
-console.log("Missing classes:\n\t", missingClasses.join("\n\t"))
-console.log("Missing methods:\n\t", missingMethods.join("\n\t"))
+console.log(
+  "Missing classes:\n\t"
+  , missingClasses.length
+  ? `${missingClasses.length} missing classes found. Check ${missingClassesPath} for more details.`
+  : "(No missing classes)"
+)
+
+console.log(
+  "Missing methods:\n\t"
+  , missingClasses.length
+  ? `${missingMethods.length} missing methods found. Check ${missingMethodsPath} for more details.`
+  : "(No missing methods)"
+)
+
 
 // We export the missing classes and methods to CSV files
 try {
@@ -271,10 +282,10 @@ try {
 
 let missingClassesCsv = "Missing Class\n";
 missingClassesCsv += missingClasses.join("\n");
-fs.writeFileSync("tests/reports/api_missing_classes.csv", missingClassesCsv);
+fs.writeFileSync(missingClassesPath, missingClassesCsv);
 let missingMethodsCsv = "Missing method\n"
 missingMethodsCsv += missingMethods.join("\n");
-fs.writeFileSync("tests/reports/api_missing_methods.csv", missingMethodsCsv);
+fs.writeFileSync(missingMethodsPath, missingMethodsCsv);
 
 // We construct the test tables
 let n: number = 0;
@@ -296,17 +307,15 @@ console.log("compareToCslTests.length: ", compareToCslTests.length)
 console.log("compareToCdlTests.length: ", compareToCdlTests.length)
 
 // We open a report file to write down each method comparison failure as we find it
-let methodFailuresFile = fs.openSync("tests/reports/api_failing_methods.csv", "w");
+let methodFailuresFile = fs.openSync(methodFailuresPath, "w");
 fs.writeFileSync(methodFailuresFile, "Affected class,Method,Failure reason,Failure message\n");
 
 // Used for debugging 
-const testN = 2752;
-const testNConfig = { testTable: compareToCdlTests, srcMap: cslClassesMap };
-test.skip(`Test N. ${testN}`, () => {
-  const { testTable, srcMap } = testNConfig;
-  const params = testTable[testN];
-  compareToClass(srcMap, params.class, params.comparedToMethod);
-});
+// const testN = 2752;
+// test.skip(`Test N. ${testN}`, () => {
+//   const params = compareToCslTests[testN];
+//   compareToClass(cslClassesMap, params.class, params.comparedToMethod);
+// });
 
 // Tests
 describe("API coverage tests", () => {
