@@ -21,7 +21,8 @@
     "TransactionUnspentOutputs",
     "TransactionBatch",
     "TransactionBatchList",
-    "PlutusScript"
+    "PlutusWitness",
+    "PlutusWitnesses"
   ],
   "ignore_methods": {
     "Certificate": [
@@ -30,6 +31,6 @@
       "as_reg_cert",
       "as_unreg_cert"
     ],
-    "PlutusScripts": ["get", "add"]
+    "PlutusScript": ["hash"]
   }
 }
