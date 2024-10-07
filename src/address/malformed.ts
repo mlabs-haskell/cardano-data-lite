@@ -11,7 +11,7 @@ export class MalformedAddress {
     return new Uint8Array(this._bytes);
   }
 
-  from_address(addr: Address): MalformedAddress | undefined {
+  static from_address(addr: Address): MalformedAddress | undefined {
     if (addr._variant.kind == AddressKind.Malformed) {
       return addr._variant.value;
     }
