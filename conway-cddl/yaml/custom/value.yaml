@@ -261,13 +261,3 @@ Assets:
 AssetNames:
   type: array
   item: AssetName
-
-MintAssets:
-  type: map
-  key: AssetName
-  value: Int
-  keys_method_type: AssetNames
-
-MintsAssets:
-  type: array
-  item: MintAssets

@@ -91,7 +91,7 @@ PrivateKey:
       }
     }
 
-    from_hex(hex_str: string): PrivateKey {
+    static from_hex(hex_str: string): PrivateKey {
       return PrivateKey._from_bytes(hexToBytes(hex_str));
     }
 

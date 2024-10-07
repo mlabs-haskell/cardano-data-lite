@@ -696,7 +696,7 @@ TransactionOutput:
       type: Value
     - id: 2
       name: plutus_data
-      type: DataOption
+      type: PlutusData
       optional: true
     - id: 3
       name: script_ref
@@ -1422,6 +1422,43 @@ ProtocolParamUpdate:
       name: script_cost_per_byte
       type: UnitInterval
       optional: true
+  methods:
+    new: null
+  extra_methods: |
+    static new(): ProtocolParamUpdate {
+      return new ProtocolParamUpdate(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      );
+    }
 
 # pool_voting_thresholds =
 #   [ unit_interval ; motion no confidence

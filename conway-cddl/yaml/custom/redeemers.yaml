@@ -9,22 +9,101 @@ Redeemer:
       type: PlutusData
     - name: ex_units
       type: ExUnits
-    - name: invalid_transactions
-      type: arrayToUint32Array
 
 Redeemers:
   type: array
   item: Redeemer
+  methods:
+    serialize: null
+    deserialize: null
   extra_methods: |
     total_ex_units(): ExUnits {
-      let tot_mem = BigNum.zero();
-      let tot_steps = BigNum.zero();
-
-      for (let i = 0; i < this.items.length; i++) {
-        const r = this.items[i];
-        const exUnits = r.ex_units();
-        tot_mem = tot_mem.checked_add(exUnits.mem());
-        tot_steps = tot_steps.checked_add(exUnits.steps());
+      let mems = BigNum.zero(), steps = BigNum.zero();
+      for(let item of this.items) {
+        mems = mems.checked_add(item.ex_units().mem());
+        steps = steps.checked_add(item.ex_units().steps());
       }
-      return ExUnits.new(tot_mem, tot_steps);
+      return ExUnits.new(mems, steps);
     }
+
+    static deserialize(reader: CBORReader): Redeemers {
+      if(reader.peekType() == 'array') {
+        return Redeemers.deserializeArray(reader);
+      } else if(reader.peekType() == 'map') {
+        return Redeemers.deserializeMap(reader);
+      }
+      throw new Error("Expected either an array or a map");
+    }
+
+    static deserializeArray(reader: CBORReader): Redeemers {
+      let redeemers = Redeemers.new();
+      reader.readArray(reader => {
+        let item = RedeemersArrayItem.deserialize(reader);
+        redeemers.add(
+          Redeemer.new(
+            item.tag(),
+            item.index(),
+            item.data(),
+            item.ex_units(),
+          )
+        )
+      });
+      return redeemers;
+    }
+
+    static deserializeMap(reader: CBORReader): Redeemers {
+      let redeemers = Redeemers.new();
+      reader.readMap(reader => {
+        let key = RedeemersKey.deserialize(reader);
+        let value = RedeemersValue.deserialize(reader);
+        redeemers.add(
+            Redeemer.new(
+              key.tag(),
+              key.index(),
+              value.data(),
+              value.ex_units(),
+            )
+        )
+      });
+      return redeemers;
+    }
+
+    serialize(writer: CBORWriter): void {
+      writer.writeMap(this.items, (writer, redeemer) => {
+        let key = RedeemersKey.new(redeemer.tag(), redeemer.index());
+        let value = RedeemersValue.new(redeemer.data(), redeemer.ex_units());
+        key.serialize(writer);
+        value.serialize(writer);
+      });
+    }
+
+RedeemersArrayItem:
+  type: record
+  export: false
+  fields:
+    - name: tag
+      type: RedeemerTag
+    - name: index
+      type: BigNum
+    - name: data
+      type: PlutusData
+    - name: ex_units
+      type: ExUnits
+
+RedeemersKey:
+  type: record
+  export: false
+  fields:
+    - name: tag
+      type: RedeemerTag
+    - name: index
+      type: BigNum
+
+RedeemersValue:
+  type: record
+  export: false
+  fields:
+    - name: data
+      type: PlutusData
+    - name: ex_units
+      type: ExUnits
