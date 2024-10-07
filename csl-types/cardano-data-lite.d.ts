@@ -90,7 +90,6 @@ export declare class AuxiliaryData {
     private _plutus_scripts_v2;
     private _plutus_scripts_v3;
     constructor(metadata: GeneralTransactionMetadata, native_scripts: NativeScripts, plutus_scripts_v1: PlutusScripts, plutus_scripts_v2: PlutusScripts, plutus_scripts_v3: PlutusScripts);
-    static new(metadata: GeneralTransactionMetadata, native_scripts: NativeScripts, plutus_scripts_v1: PlutusScripts, plutus_scripts_v2: PlutusScripts, plutus_scripts_v3: PlutusScripts): AuxiliaryData;
     metadata(): GeneralTransactionMetadata;
     set_metadata(metadata: GeneralTransactionMetadata): void;
     native_scripts(): NativeScripts;
@@ -109,6 +108,7 @@ export declare class AuxiliaryData {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): AuxiliaryData;
+    static new(): AuxiliaryData;
 }
 export declare class AuxiliaryDataHash {
     private inner;
@@ -171,6 +171,8 @@ export declare class BigNum {
     less_than(rhs_value: BigNum): boolean;
     static max_value(): BigNum;
     static max(a: BigNum, b: BigNum): BigNum;
+    static _from_number(x: number): BigNum;
+    _to_number(): number;
 }
 export declare class Bip32PrivateKey {
     private inner;
@@ -501,7 +503,6 @@ export declare class CommitteeColdResign {
     private _committee_cold_credential;
     private _anchor;
     constructor(committee_cold_credential: Credential, anchor: Anchor | undefined);
-    static new(committee_cold_credential: Credential, anchor: Anchor | undefined): CommitteeColdResign;
     committee_cold_credential(): Credential;
     set_committee_cold_credential(committee_cold_credential: Credential): void;
     anchor(): Anchor | undefined;
@@ -514,6 +515,7 @@ export declare class CommitteeColdResign {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): CommitteeColdResign;
+    static new(committee_cold_credential: Credential): CommitteeColdResign;
 }
 export declare class CommitteeEpochs {
     _items: [Credential, number][];
@@ -554,7 +556,6 @@ export declare class Constitution {
     private _anchor;
     private _scripthash;
     constructor(anchor: Anchor, scripthash: ScriptHash | undefined);
-    static new(anchor: Anchor, scripthash: ScriptHash | undefined): Constitution;
     anchor(): Anchor;
     set_anchor(anchor: Anchor): void;
     scripthash(): ScriptHash | undefined;
@@ -567,6 +568,7 @@ export declare class Constitution {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): Constitution;
+    static new(anchor: Anchor): Constitution;
 }
 export declare class ConstrPlutusData {
     private _alternative;
@@ -726,7 +728,6 @@ export declare class DRepRegistration {
     private _coin;
     private _anchor;
     constructor(voting_credential: Credential, coin: BigNum, anchor: Anchor | undefined);
-    static new(voting_credential: Credential, coin: BigNum, anchor: Anchor | undefined): DRepRegistration;
     voting_credential(): Credential;
     set_voting_credential(voting_credential: Credential): void;
     coin(): BigNum;
@@ -741,12 +742,12 @@ export declare class DRepRegistration {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): DRepRegistration;
+    static new(voting_credential: Credential, coin: BigNum): DRepRegistration;
 }
 export declare class DRepUpdate {
     private _drep_credential;
     private _anchor;
     constructor(drep_credential: Credential, anchor: Anchor | undefined);
-    static new(drep_credential: Credential, anchor: Anchor | undefined): DRepUpdate;
     drep_credential(): Credential;
     set_drep_credential(drep_credential: Credential): void;
     anchor(): Anchor | undefined;
@@ -759,6 +760,7 @@ export declare class DRepUpdate {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): DRepUpdate;
+    static new(drep_credential: Credential): DRepUpdate;
 }
 export declare class DRepVotingThresholds {
     private _motion_no_confidence;
@@ -925,8 +927,6 @@ export declare class Ed25519Signature {
     private inner;
     constructor(inner: Uint8Array);
     static new(inner: Uint8Array): Ed25519Signature;
-    static from_bech32(bech_str: string): Ed25519Signature;
-    to_bech32(prefix: string): string;
     free(): void;
     static from_bytes(data: Uint8Array): Ed25519Signature;
     static from_hex(hex_str: string): Ed25519Signature;
@@ -935,6 +935,9 @@ export declare class Ed25519Signature {
     clone(): Ed25519Signature;
     static deserialize(reader: CBORReader): Ed25519Signature;
     serialize(writer: CBORWriter): void;
+    static _BECH32_HRP: string;
+    static from_bech32(bech_str: string): Ed25519Signature;
+    to_bech32(): void;
 }
 export declare class ExUnitPrices {
     private _mem_price;
@@ -1150,7 +1153,7 @@ export declare class HardForkInitiationAction {
     private _gov_action_id;
     private _protocol_version;
     constructor(gov_action_id: GovernanceActionId | undefined, protocol_version: ProtocolVersion);
-    static new(gov_action_id: GovernanceActionId | undefined, protocol_version: ProtocolVersion): HardForkInitiationAction;
+    static new_with_action_id(gov_action_id: GovernanceActionId | undefined, protocol_version: ProtocolVersion): HardForkInitiationAction;
     gov_action_id(): GovernanceActionId | undefined;
     set_gov_action_id(gov_action_id: GovernanceActionId | undefined): void;
     protocol_version(): ProtocolVersion;
@@ -1163,6 +1166,7 @@ export declare class HardForkInitiationAction {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): HardForkInitiationAction;
+    static new(protocol_version: ProtocolVersion): HardForkInitiationAction;
 }
 export declare class Header {
     private _header_body;
@@ -1184,7 +1188,7 @@ export declare class Header {
 }
 export declare class HeaderBody {
     private _block_number;
-    private _slot_bignum;
+    private _slot;
     private _prev_hash;
     private _issuer_vkey;
     private _vrf_vkey;
@@ -1193,12 +1197,12 @@ export declare class HeaderBody {
     private _block_body_hash;
     private _operational_cert;
     private _protocol_version;
-    constructor(block_number: number, slot_bignum: BigNum, prev_hash: BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion);
-    static new(block_number: number, slot_bignum: BigNum, prev_hash: BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
+    constructor(block_number: number, slot: BigNum, prev_hash: BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion);
+    static new_headerbody(block_number: number, slot: BigNum, prev_hash: BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
     block_number(): number;
     set_block_number(block_number: number): void;
     slot_bignum(): BigNum;
-    set_slot_bignum(slot_bignum: BigNum): void;
+    set_slot(slot: BigNum): void;
     prev_hash(): BlockHash | undefined;
     set_prev_hash(prev_hash: BlockHash | undefined): void;
     issuer_vkey(): Vkey;
@@ -1224,7 +1228,7 @@ export declare class HeaderBody {
     to_hex(): string;
     clone(): HeaderBody;
     slot(): number;
-    static new_headerbody(block_number: number, slot: BigNum, prev_hash: BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
+    static new(block_number: number, slot: number, prev_hash: BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
 }
 export declare class InfoAction {
     constructor();
@@ -1405,7 +1409,6 @@ export declare class Mint {
     static new(): Mint;
     len(): number;
     insert(key: ScriptHash, value: MintAssets): MintAssets | undefined;
-    get(key: ScriptHash): MintAssets | undefined;
     _remove_many(keys: ScriptHash[]): void;
     keys(): ScriptHashes;
     static deserialize(reader: CBORReader): Mint;
@@ -1416,6 +1419,7 @@ export declare class Mint {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): Mint;
+    get(key: ScriptHash): MintsAssets | undefined;
     _as_multiasset(isPositive: boolean): MultiAsset;
     as_positive_multiasset(): MultiAsset;
     as_negative_multiasset(): MultiAsset;
@@ -1437,53 +1441,6 @@ export declare class MintAssets {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): MintAssets;
-}
-export declare enum MintWitnessKind {
-    NativeScriptSource = 0,
-    MintWitnessPlutus = 1
-}
-export type MintWitnessVariant = {
-    kind: 0;
-    value: NativeScriptSource;
-} | {
-    kind: 1;
-    value: MintWitnessPlutus;
-};
-export declare class MintWitness {
-    private variant;
-    constructor(variant: MintWitnessVariant);
-    static new_native_script(native_script: NativeScriptSource): MintWitness;
-    static new__plutus_script(_plutus_script: MintWitnessPlutus): MintWitness;
-    as_native_script(): NativeScriptSource | undefined;
-    as__plutus_script(): MintWitnessPlutus | undefined;
-    kind(): MintWitnessKind;
-    static deserialize(reader: CBORReader): MintWitness;
-    serialize(writer: CBORWriter): void;
-    free(): void;
-    static from_bytes(data: Uint8Array): MintWitness;
-    static from_hex(hex_str: string): MintWitness;
-    to_bytes(): Uint8Array;
-    to_hex(): string;
-    clone(): MintWitness;
-    static new_plutus_script(plutus_script: PlutusScriptSource, redeemer: Redeemer): MintWitness;
-}
-export declare class MintWitnessPlutus {
-    private _script_source;
-    private _redeemer;
-    constructor(script_source: PlutusScriptSource, redeemer: Redeemer);
-    static new(script_source: PlutusScriptSource, redeemer: Redeemer): MintWitnessPlutus;
-    script_source(): PlutusScriptSource;
-    set_script_source(script_source: PlutusScriptSource): void;
-    redeemer(): Redeemer;
-    set_redeemer(redeemer: Redeemer): void;
-    static deserialize(reader: CBORReader): MintWitnessPlutus;
-    serialize(writer: CBORWriter): void;
-    free(): void;
-    static from_bytes(data: Uint8Array): MintWitnessPlutus;
-    static from_hex(hex_str: string): MintWitnessPlutus;
-    to_bytes(): Uint8Array;
-    to_hex(): string;
-    clone(): MintWitnessPlutus;
 }
 export declare class MintsAssets {
     private items;
@@ -1685,7 +1642,7 @@ export declare class NewConstitutionAction {
     private _gov_action_id;
     private _constitution;
     constructor(gov_action_id: GovernanceActionId | undefined, constitution: Constitution);
-    static new(gov_action_id: GovernanceActionId | undefined, constitution: Constitution): NewConstitutionAction;
+    static new_with_action_id(gov_action_id: GovernanceActionId | undefined, constitution: Constitution): NewConstitutionAction;
     gov_action_id(): GovernanceActionId | undefined;
     set_gov_action_id(gov_action_id: GovernanceActionId | undefined): void;
     constitution(): Constitution;
@@ -1698,11 +1655,12 @@ export declare class NewConstitutionAction {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): NewConstitutionAction;
+    static new(constitution: Constitution): NewConstitutionAction;
 }
 export declare class NoConfidenceAction {
     private _gov_action_id;
     constructor(gov_action_id: GovernanceActionId | undefined);
-    static new(gov_action_id: GovernanceActionId | undefined): NoConfidenceAction;
+    static new_with_action_id(gov_action_id: GovernanceActionId | undefined): NoConfidenceAction;
     gov_action_id(): GovernanceActionId | undefined;
     set_gov_action_id(gov_action_id: GovernanceActionId | undefined): void;
     static deserialize(reader: CBORReader): NoConfidenceAction;
@@ -1713,6 +1671,7 @@ export declare class NoConfidenceAction {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): NoConfidenceAction;
+    static new(): NoConfidenceAction;
 }
 export declare class Nonce {
     private _hash;
@@ -1789,7 +1748,7 @@ export declare class ParameterChangeAction {
     private _protocol_param_updates;
     private _policy_hash;
     constructor(gov_action_id: GovernanceActionId | undefined, protocol_param_updates: ProtocolParamUpdate, policy_hash: ScriptHash | undefined);
-    static new(gov_action_id: GovernanceActionId | undefined, protocol_param_updates: ProtocolParamUpdate, policy_hash: ScriptHash | undefined): ParameterChangeAction;
+    static new_with_policy_hash_and_action_id(gov_action_id: GovernanceActionId | undefined, protocol_param_updates: ProtocolParamUpdate, policy_hash: ScriptHash | undefined): ParameterChangeAction;
     gov_action_id(): GovernanceActionId | undefined;
     set_gov_action_id(gov_action_id: GovernanceActionId | undefined): void;
     protocol_param_updates(): ProtocolParamUpdate;
@@ -1804,6 +1763,9 @@ export declare class ParameterChangeAction {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): ParameterChangeAction;
+    static new(protocol_param_updates: ProtocolParamUpdate): ParameterChangeAction;
+    static new_with_action_id(gov_action_id: GovernanceActionId, protocol_param_updates: ProtocolParamUpdate): ParameterChangeAction;
+    static new_with_policy_hash(protocol_param_updates: ProtocolParamUpdate, policy_hash: ScriptHash): ParameterChangeAction;
 }
 export declare enum PlutusDataKind {
     ConstrPlutusData = 0,
@@ -1905,69 +1867,28 @@ export declare class PlutusMapValues {
     to_hex(): string;
     clone(): PlutusMapValues;
 }
-export declare class PlutusScriptRefInput {
-    private _script_hash;
-    private _input;
-    private _lang_ver;
-    private _script_size;
-    constructor(script_hash: ScriptHash, input: TransactionInput, lang_ver: Language, script_size: number);
-    static new(script_hash: ScriptHash, input: TransactionInput, lang_ver: Language, script_size: number): PlutusScriptRefInput;
-    script_hash(): ScriptHash;
-    set_script_hash(script_hash: ScriptHash): void;
-    input(): TransactionInput;
-    set_input(input: TransactionInput): void;
-    lang_ver(): Language;
-    set_lang_ver(lang_ver: Language): void;
-    script_size(): number;
-    set_script_size(script_size: number): void;
-    static deserialize(reader: CBORReader): PlutusScriptRefInput;
+export declare class PlutusScript {
+    private inner;
+    constructor(inner: Uint8Array);
+    static new(inner: Uint8Array): PlutusScript;
+    bytes(): Uint8Array;
+    static deserialize(reader: CBORReader): PlutusScript;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): PlutusScriptRefInput;
-    static from_hex(hex_str: string): PlutusScriptRefInput;
+    static from_bytes(data: Uint8Array): PlutusScript;
+    static from_hex(hex_str: string): PlutusScript;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): PlutusScriptRefInput;
-}
-export declare enum PlutusScriptSourceKind {
-    bytes = 0,
-    PlutusScriptRefInput = 1
-}
-export type PlutusScriptSourceVariant = {
-    kind: 0;
-    value: Uint8Array;
-} | {
-    kind: 1;
-    value: PlutusScriptRefInput;
-};
-export declare class PlutusScriptSource {
-    private variant;
-    constructor(variant: PlutusScriptSourceVariant);
-    static new_script(script: Uint8Array): PlutusScriptSource;
-    static new__ref_input(_ref_input: PlutusScriptRefInput): PlutusScriptSource;
-    as_script(): Uint8Array | undefined;
-    as__ref_input(): PlutusScriptRefInput | undefined;
-    kind(): PlutusScriptSourceKind;
-    static deserialize(reader: CBORReader): PlutusScriptSource;
-    serialize(writer: CBORWriter): void;
-    free(): void;
-    static from_bytes(data: Uint8Array): PlutusScriptSource;
-    static from_hex(hex_str: string): PlutusScriptSource;
-    to_bytes(): Uint8Array;
-    to_hex(): string;
-    clone(): PlutusScriptSource;
-    static new(script: Uint8Array): PlutusScriptSource;
-    static new_ref_input(script_hash: ScriptHash, input: TransactionInput, lang_ver: Language, script_size: number): PlutusScriptSource;
-    set_required_signers(key_hashes: Ed25519KeyHashes): void;
-    get_ref_script_size(): number | undefined;
+    clone(): PlutusScript;
+    hash(language_version: number): ScriptHash;
 }
 export declare class PlutusScripts {
     private items;
-    constructor(items: Uint8Array[]);
+    constructor(items: PlutusScript[]);
     static new(): PlutusScripts;
     len(): number;
-    get(index: number): Uint8Array;
-    add(elem: Uint8Array): void;
+    get(index: number): PlutusScript;
+    add(elem: PlutusScript): void;
     static deserialize(reader: CBORReader): PlutusScripts;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -1976,48 +1897,6 @@ export declare class PlutusScripts {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): PlutusScripts;
-}
-export declare class PlutusWitness {
-    private _script_source;
-    private _datum_source;
-    private _redeemer;
-    constructor(script_source: PlutusScriptSource, datum_source: DatumSource | undefined, redeemer: Redeemer);
-    script_source(): PlutusScriptSource;
-    set_script_source(script_source: PlutusScriptSource): void;
-    datum_source(): DatumSource | undefined;
-    set_datum_source(datum_source: DatumSource | undefined): void;
-    redeemer(): Redeemer;
-    set_redeemer(redeemer: Redeemer): void;
-    static deserialize(reader: CBORReader): PlutusWitness;
-    serialize(writer: CBORWriter): void;
-    free(): void;
-    static from_bytes(data: Uint8Array): PlutusWitness;
-    static from_hex(hex_str: string): PlutusWitness;
-    to_bytes(): Uint8Array;
-    to_hex(): string;
-    clone(): PlutusWitness;
-    static new(script: Uint8Array, datum: PlutusData, redeemer: Redeemer): PlutusWitness;
-    static new_with_ref(script: PlutusScriptSource, datum: DatumSource, redeemer: Redeemer): PlutusWitness;
-    static new_without_datum(script: Uint8Array, redeemer: Redeemer): PlutusWitness;
-    static new_with_ref_without_datum(script: PlutusScriptSource, redeemer: Redeemer): PlutusWitness;
-    script(): Uint8Array | undefined;
-    datum(): PlutusData | undefined;
-}
-export declare class PlutusWitnesses {
-    private items;
-    constructor(items: PlutusWitness[]);
-    static new(): PlutusWitnesses;
-    len(): number;
-    get(index: number): PlutusWitness;
-    add(elem: PlutusWitness): void;
-    static deserialize(reader: CBORReader): PlutusWitnesses;
-    serialize(writer: CBORWriter): void;
-    free(): void;
-    static from_bytes(data: Uint8Array): PlutusWitnesses;
-    static from_hex(hex_str: string): PlutusWitnesses;
-    to_bytes(): Uint8Array;
-    to_hex(): string;
-    clone(): PlutusWitnesses;
 }
 export declare class Pointer {
     private _slot_bignum;
@@ -2200,7 +2079,7 @@ export declare class PrivateKey {
     sign(message: Uint8Array): Ed25519Signature;
     to_public(): PublicKey;
     static _from_bytes(bytes: Uint8Array): PrivateKey;
-    from_hex(hex_str: string): PrivateKey;
+    static from_hex(hex_str: string): PrivateKey;
 }
 export declare class ProposedProtocolParameterUpdates {
     _items: [GenesisHash, ProtocolParamUpdate][];
@@ -2252,7 +2131,6 @@ export declare class ProtocolParamUpdate {
     private _drep_inactivity_period;
     private _script_cost_per_byte;
     constructor(minfee_a: BigNum | undefined, minfee_b: BigNum | undefined, max_block_body_size: number | undefined, max_tx_size: number | undefined, max_block_header_size: number | undefined, key_deposit: BigNum | undefined, pool_deposit: BigNum | undefined, max_epoch: number | undefined, n_opt: number | undefined, pool_pledge_influence: UnitInterval | undefined, expansion_rate: UnitInterval | undefined, treasury_growth_rate: UnitInterval | undefined, min_pool_cost: BigNum | undefined, ada_per_utxo_byte: BigNum | undefined, costmdls: Costmdls | undefined, execution_costs: ExUnitPrices | undefined, max_tx_ex_units: ExUnits | undefined, max_block_ex_units: ExUnits | undefined, max_value_size: number | undefined, collateral_percentage: number | undefined, max_collateral_inputs: number | undefined, pool_voting_thresholds: PoolVotingThresholds | undefined, drep_voting_thresholds: DRepVotingThresholds | undefined, min_committee_size: number | undefined, committee_term_limit: number | undefined, governance_action_validity_period: number | undefined, governance_action_deposit: BigNum | undefined, drep_deposit: BigNum | undefined, drep_inactivity_period: number | undefined, script_cost_per_byte: UnitInterval | undefined);
-    static new(minfee_a: BigNum | undefined, minfee_b: BigNum | undefined, max_block_body_size: number | undefined, max_tx_size: number | undefined, max_block_header_size: number | undefined, key_deposit: BigNum | undefined, pool_deposit: BigNum | undefined, max_epoch: number | undefined, n_opt: number | undefined, pool_pledge_influence: UnitInterval | undefined, expansion_rate: UnitInterval | undefined, treasury_growth_rate: UnitInterval | undefined, min_pool_cost: BigNum | undefined, ada_per_utxo_byte: BigNum | undefined, costmdls: Costmdls | undefined, execution_costs: ExUnitPrices | undefined, max_tx_ex_units: ExUnits | undefined, max_block_ex_units: ExUnits | undefined, max_value_size: number | undefined, collateral_percentage: number | undefined, max_collateral_inputs: number | undefined, pool_voting_thresholds: PoolVotingThresholds | undefined, drep_voting_thresholds: DRepVotingThresholds | undefined, min_committee_size: number | undefined, committee_term_limit: number | undefined, governance_action_validity_period: number | undefined, governance_action_deposit: BigNum | undefined, drep_deposit: BigNum | undefined, drep_inactivity_period: number | undefined, script_cost_per_byte: UnitInterval | undefined): ProtocolParamUpdate;
     minfee_a(): BigNum | undefined;
     set_minfee_a(minfee_a: BigNum | undefined): void;
     minfee_b(): BigNum | undefined;
@@ -2321,6 +2199,7 @@ export declare class ProtocolParamUpdate {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): ProtocolParamUpdate;
+    static new(): ProtocolParamUpdate;
 }
 export declare class ProtocolVersion {
     private _major;
@@ -2363,9 +2242,8 @@ export declare class Redeemer {
     private _index;
     private _data;
     private _ex_units;
-    private _invalid_transactions;
-    constructor(tag: RedeemerTag, index: BigNum, data: PlutusData, ex_units: ExUnits, invalid_transactions: Uint32Array);
-    static new(tag: RedeemerTag, index: BigNum, data: PlutusData, ex_units: ExUnits, invalid_transactions: Uint32Array): Redeemer;
+    constructor(tag: RedeemerTag, index: BigNum, data: PlutusData, ex_units: ExUnits);
+    static new(tag: RedeemerTag, index: BigNum, data: PlutusData, ex_units: ExUnits): Redeemer;
     tag(): RedeemerTag;
     set_tag(tag: RedeemerTag): void;
     index(): BigNum;
@@ -2374,8 +2252,6 @@ export declare class Redeemer {
     set_data(data: PlutusData): void;
     ex_units(): ExUnits;
     set_ex_units(ex_units: ExUnits): void;
-    invalid_transactions(): Uint32Array;
-    set_invalid_transactions(invalid_transactions: Uint32Array): void;
     static deserialize(reader: CBORReader): Redeemer;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -2419,8 +2295,6 @@ export declare class Redeemers {
     len(): number;
     get(index: number): Redeemer;
     add(elem: Redeemer): void;
-    static deserialize(reader: CBORReader): Redeemers;
-    serialize(writer: CBORWriter): void;
     free(): void;
     static from_bytes(data: Uint8Array): Redeemers;
     static from_hex(hex_str: string): Redeemers;
@@ -2428,6 +2302,70 @@ export declare class Redeemers {
     to_hex(): string;
     clone(): Redeemers;
     total_ex_units(): ExUnits;
+    static deserialize(reader: CBORReader): Redeemers;
+    static deserializeArray(reader: CBORReader): Redeemers;
+    static deserializeMap(reader: CBORReader): Redeemers;
+    serialize(writer: CBORWriter): void;
+}
+export declare class RedeemersArrayItem {
+    private _tag;
+    private _index;
+    private _data;
+    private _ex_units;
+    constructor(tag: RedeemerTag, index: BigNum, data: PlutusData, ex_units: ExUnits);
+    static new(tag: RedeemerTag, index: BigNum, data: PlutusData, ex_units: ExUnits): RedeemersArrayItem;
+    tag(): RedeemerTag;
+    set_tag(tag: RedeemerTag): void;
+    index(): BigNum;
+    set_index(index: BigNum): void;
+    data(): PlutusData;
+    set_data(data: PlutusData): void;
+    ex_units(): ExUnits;
+    set_ex_units(ex_units: ExUnits): void;
+    static deserialize(reader: CBORReader): RedeemersArrayItem;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array): RedeemersArrayItem;
+    static from_hex(hex_str: string): RedeemersArrayItem;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(): RedeemersArrayItem;
+}
+export declare class RedeemersKey {
+    private _tag;
+    private _index;
+    constructor(tag: RedeemerTag, index: BigNum);
+    static new(tag: RedeemerTag, index: BigNum): RedeemersKey;
+    tag(): RedeemerTag;
+    set_tag(tag: RedeemerTag): void;
+    index(): BigNum;
+    set_index(index: BigNum): void;
+    static deserialize(reader: CBORReader): RedeemersKey;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array): RedeemersKey;
+    static from_hex(hex_str: string): RedeemersKey;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(): RedeemersKey;
+}
+export declare class RedeemersValue {
+    private _data;
+    private _ex_units;
+    constructor(data: PlutusData, ex_units: ExUnits);
+    static new(data: PlutusData, ex_units: ExUnits): RedeemersValue;
+    data(): PlutusData;
+    set_data(data: PlutusData): void;
+    ex_units(): ExUnits;
+    set_ex_units(ex_units: ExUnits): void;
+    static deserialize(reader: CBORReader): RedeemersValue;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array): RedeemersValue;
+    static from_hex(hex_str: string): RedeemersValue;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(): RedeemersValue;
 }
 export declare class RegCert {
     private _stake_credential;
@@ -2647,25 +2585,25 @@ export type ScriptRefVariant = {
     value: NativeScript;
 } | {
     kind: 1;
-    value: Uint8Array;
+    value: PlutusScript;
 } | {
     kind: 2;
-    value: Uint8Array;
+    value: PlutusScript;
 } | {
     kind: 3;
-    value: Uint8Array;
+    value: PlutusScript;
 };
 export declare class ScriptRef {
     private variant;
     constructor(variant: ScriptRefVariant);
     static new_native_script(native_script: NativeScript): ScriptRef;
-    static new_plutus_script_v1(plutus_script_v1: Uint8Array): ScriptRef;
-    static new_plutus_script_v2(plutus_script_v2: Uint8Array): ScriptRef;
-    static new_plutus_script_v3(plutus_script_v3: Uint8Array): ScriptRef;
+    static new_plutus_script_v1(plutus_script_v1: PlutusScript): ScriptRef;
+    static new_plutus_script_v2(plutus_script_v2: PlutusScript): ScriptRef;
+    static new_plutus_script_v3(plutus_script_v3: PlutusScript): ScriptRef;
     as_native_script(): NativeScript | undefined;
-    as_plutus_script_v1(): Uint8Array | undefined;
-    as_plutus_script_v2(): Uint8Array | undefined;
-    as_plutus_script_v3(): Uint8Array | undefined;
+    as_plutus_script_v1(): PlutusScript | undefined;
+    as_plutus_script_v2(): PlutusScript | undefined;
+    as_plutus_script_v3(): PlutusScript | undefined;
     kind(): ScriptRefKind;
     static deserialize(reader: CBORReader): ScriptRef;
     serialize(writer: CBORWriter): void;
@@ -2830,11 +2768,11 @@ export declare class StakeVoteRegistrationAndDelegation {
     clone(): StakeVoteRegistrationAndDelegation;
 }
 export declare class TimelockExpiry {
-    private _slot_bignum;
-    constructor(slot_bignum: BigNum);
-    static new(slot_bignum: BigNum): TimelockExpiry;
+    private _slot;
+    constructor(slot: BigNum);
+    static new_timelockexpiry(slot: BigNum): TimelockExpiry;
     slot_bignum(): BigNum;
-    set_slot_bignum(slot_bignum: BigNum): void;
+    set_slot(slot: BigNum): void;
     static deserialize(reader: CBORReader): TimelockExpiry;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -2844,14 +2782,14 @@ export declare class TimelockExpiry {
     to_hex(): string;
     clone(): TimelockExpiry;
     slot(): number;
-    static new_timelockexpiry(slot: BigNum): TimelockExpiry;
+    static new(slot: number): TimelockExpiry;
 }
 export declare class TimelockStart {
-    private _slot_bignum;
-    constructor(slot_bignum: BigNum);
-    static new(slot_bignum: BigNum): TimelockStart;
+    private _slot;
+    constructor(slot: BigNum);
+    static new_timelockstart(slot: BigNum): TimelockStart;
     slot_bignum(): BigNum;
-    set_slot_bignum(slot_bignum: BigNum): void;
+    set_slot(slot: BigNum): void;
     static deserialize(reader: CBORReader): TimelockStart;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -2861,7 +2799,7 @@ export declare class TimelockStart {
     to_hex(): string;
     clone(): TimelockStart;
     slot(): number;
-    static new_timelockexpiry(slot: BigNum): TimelockExpiry;
+    static new(slot: number): TimelockStart;
 }
 export declare class Transaction {
     private _body;
@@ -2869,7 +2807,6 @@ export declare class Transaction {
     private _is_valid;
     private _auxiliary_data;
     constructor(body: TransactionBody, witness_set: TransactionWitnessSet, is_valid: boolean, auxiliary_data: AuxiliaryData | undefined);
-    static new(body: TransactionBody, witness_set: TransactionWitnessSet, is_valid: boolean, auxiliary_data: AuxiliaryData | undefined): Transaction;
     body(): TransactionBody;
     set_body(body: TransactionBody): void;
     witness_set(): TransactionWitnessSet;
@@ -2886,6 +2823,7 @@ export declare class Transaction {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): Transaction;
+    static new(body: TransactionBody, witness_set: TransactionWitnessSet, auxiliary_data: AuxiliaryData): Transaction;
 }
 export declare class TransactionBodies {
     private items;
@@ -2907,11 +2845,11 @@ export declare class TransactionBody {
     private _inputs;
     private _outputs;
     private _fee;
-    private _ttl_bignum;
+    private _ttl;
     private _certs;
     private _withdrawals;
     private _auxiliary_data_hash;
-    private _validity_start_interval_bignum;
+    private _validity_start_interval;
     private _mint;
     private _script_data_hash;
     private _collateral;
@@ -2924,8 +2862,7 @@ export declare class TransactionBody {
     private _voting_proposals;
     private _current_treasury_value;
     private _donation;
-    constructor(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum, ttl_bignum: BigNum | undefined, certs: Certificates | undefined, withdrawals: Withdrawals | undefined, auxiliary_data_hash: AuxiliaryDataHash | undefined, validity_start_interval_bignum: BigNum | undefined, mint: Mint | undefined, script_data_hash: ScriptDataHash | undefined, collateral: TransactionInputs | undefined, required_signers: Ed25519KeyHashes | undefined, network_id: NetworkId | undefined, collateral_return: TransactionOutput | undefined, total_collateral: BigNum | undefined, reference_inputs: TransactionInputs | undefined, voting_procedures: VotingProcedures | undefined, voting_proposals: VotingProposals | undefined, current_treasury_value: BigNum | undefined, donation: BigNum | undefined);
-    static new(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum, ttl_bignum: BigNum | undefined, certs: Certificates | undefined, withdrawals: Withdrawals | undefined, auxiliary_data_hash: AuxiliaryDataHash | undefined, validity_start_interval_bignum: BigNum | undefined, mint: Mint | undefined, script_data_hash: ScriptDataHash | undefined, collateral: TransactionInputs | undefined, required_signers: Ed25519KeyHashes | undefined, network_id: NetworkId | undefined, collateral_return: TransactionOutput | undefined, total_collateral: BigNum | undefined, reference_inputs: TransactionInputs | undefined, voting_procedures: VotingProcedures | undefined, voting_proposals: VotingProposals | undefined, current_treasury_value: BigNum | undefined, donation: BigNum | undefined): TransactionBody;
+    constructor(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum, ttl: BigNum | undefined, certs: Certificates | undefined, withdrawals: Withdrawals | undefined, auxiliary_data_hash: AuxiliaryDataHash | undefined, validity_start_interval: BigNum | undefined, mint: Mint | undefined, script_data_hash: ScriptDataHash | undefined, collateral: TransactionInputs | undefined, required_signers: Ed25519KeyHashes | undefined, network_id: NetworkId | undefined, collateral_return: TransactionOutput | undefined, total_collateral: BigNum | undefined, reference_inputs: TransactionInputs | undefined, voting_procedures: VotingProcedures | undefined, voting_proposals: VotingProposals | undefined, current_treasury_value: BigNum | undefined, donation: BigNum | undefined);
     inputs(): TransactionInputs;
     set_inputs(inputs: TransactionInputs): void;
     outputs(): TransactionOutputs;
@@ -2933,7 +2870,7 @@ export declare class TransactionBody {
     fee(): BigNum;
     set_fee(fee: BigNum): void;
     ttl_bignum(): BigNum | undefined;
-    set_ttl_bignum(ttl_bignum: BigNum | undefined): void;
+    set_ttl(ttl: BigNum | undefined): void;
     certs(): Certificates | undefined;
     set_certs(certs: Certificates | undefined): void;
     withdrawals(): Withdrawals | undefined;
@@ -2941,7 +2878,7 @@ export declare class TransactionBody {
     auxiliary_data_hash(): AuxiliaryDataHash | undefined;
     set_auxiliary_data_hash(auxiliary_data_hash: AuxiliaryDataHash | undefined): void;
     validity_start_interval_bignum(): BigNum | undefined;
-    set_validity_start_interval_bignum(validity_start_interval_bignum: BigNum | undefined): void;
+    set_validity_start_interval_bignum(validity_start_interval: BigNum | undefined): void;
     mint(): Mint | undefined;
     set_mint(mint: Mint | undefined): void;
     script_data_hash(): ScriptDataHash | undefined;
@@ -2975,10 +2912,10 @@ export declare class TransactionBody {
     to_hex(): string;
     clone(): TransactionBody;
     ttl(): number | undefined;
-    set_ttl(ttl: BigNum): void;
     remove_ttl(): void;
     validity_start_interval(): number | undefined;
     set_validity_start_interval(validity_start_interval: number): void;
+    static new(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum, ttl?: number): TransactionBody;
     static new_tx_body(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum): TransactionBody;
 }
 export declare class TransactionHash {
@@ -3098,14 +3035,13 @@ export declare class TransactionOutput {
     private _amount;
     private _plutus_data;
     private _script_ref;
-    constructor(address: Address, amount: Value, plutus_data: DataOption | undefined, script_ref: ScriptRef | undefined);
-    static new(address: Address, amount: Value, plutus_data: DataOption | undefined, script_ref: ScriptRef | undefined): TransactionOutput;
+    constructor(address: Address, amount: Value, plutus_data: PlutusData | undefined, script_ref: ScriptRef | undefined);
     address(): Address;
     set_address(address: Address): void;
     amount(): Value;
     set_amount(amount: Value): void;
-    plutus_data(): DataOption | undefined;
-    set_plutus_data(plutus_data: DataOption | undefined): void;
+    plutus_data(): PlutusData | undefined;
+    set_plutus_data(plutus_data: PlutusData | undefined): void;
     script_ref(): ScriptRef | undefined;
     set_script_ref(script_ref: ScriptRef | undefined): void;
     static deserialize(reader: CBORReader): TransactionOutput;
@@ -3116,6 +3052,7 @@ export declare class TransactionOutput {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): TransactionOutput;
+    static new(address: Address, amount: Value): TransactionOutput;
 }
 export declare class TransactionOutputs {
     private items;
@@ -3143,7 +3080,6 @@ export declare class TransactionWitnessSet {
     private _plutus_scripts_v2;
     private _plutus_scripts_v3;
     constructor(vkeys: Vkeywitnesses | undefined, native_scripts: NativeScripts | undefined, bootstraps: BootstrapWitnesses | undefined, plutus_scripts_v1: PlutusScripts | undefined, plutus_data: PlutusList | undefined, redeemers: Redeemers | undefined, plutus_scripts_v2: PlutusScripts | undefined, plutus_scripts_v3: PlutusScripts | undefined);
-    static new(vkeys: Vkeywitnesses | undefined, native_scripts: NativeScripts | undefined, bootstraps: BootstrapWitnesses | undefined, plutus_scripts_v1: PlutusScripts | undefined, plutus_data: PlutusList | undefined, redeemers: Redeemers | undefined, plutus_scripts_v2: PlutusScripts | undefined, plutus_scripts_v3: PlutusScripts | undefined): TransactionWitnessSet;
     vkeys(): Vkeywitnesses | undefined;
     set_vkeys(vkeys: Vkeywitnesses | undefined): void;
     native_scripts(): NativeScripts | undefined;
@@ -3168,6 +3104,7 @@ export declare class TransactionWitnessSet {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): TransactionWitnessSet;
+    static new(): TransactionWitnessSet;
 }
 export declare class TransactionWitnessSets {
     private items;
@@ -3207,7 +3144,7 @@ export declare class TreasuryWithdrawalsAction {
     private _withdrawals;
     private _policy_hash;
     constructor(withdrawals: TreasuryWithdrawals, policy_hash: ScriptHash | undefined);
-    static new(withdrawals: TreasuryWithdrawals, policy_hash: ScriptHash | undefined): TreasuryWithdrawalsAction;
+    static new_with_policy_hash(withdrawals: TreasuryWithdrawals, policy_hash: ScriptHash | undefined): TreasuryWithdrawalsAction;
     withdrawals(): TreasuryWithdrawals;
     set_withdrawals(withdrawals: TreasuryWithdrawals): void;
     policy_hash(): ScriptHash | undefined;
@@ -3220,6 +3157,7 @@ export declare class TreasuryWithdrawalsAction {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): TreasuryWithdrawalsAction;
+    static new(withdrawals: TreasuryWithdrawals): TreasuryWithdrawalsAction;
 }
 export declare class URL {
     private inner;
@@ -3501,17 +3439,43 @@ export declare class VoteRegistrationAndDelegation {
     to_hex(): string;
     clone(): VoteRegistrationAndDelegation;
 }
+export declare enum VoterKind {
+    ConstitutionalCommitteeHotKeyHash = 0,
+    ConstitutionalCommitteeHotScriptHash = 1,
+    DRepKeyHash = 2,
+    DRepScriptHash = 3,
+    StakingPoolKeyHash = 4
+}
+export type VoterVariant = {
+    kind: 0;
+    value: Ed25519KeyHash;
+} | {
+    kind: 1;
+    value: ScriptHash;
+} | {
+    kind: 2;
+    value: Ed25519KeyHash;
+} | {
+    kind: 3;
+    value: ScriptHash;
+} | {
+    kind: 4;
+    value: Ed25519KeyHash;
+};
 export declare class Voter {
-    private _constitutional_committee_hot_credential;
-    private _drep_credential;
-    private _staking_pool_key_hash;
-    constructor(constitutional_committee_hot_credential: Credential | undefined, drep_credential: Credential | undefined, staking_pool_key_hash: Ed25519KeyHash | undefined);
-    constitutional_committee_hot_credential(): Credential | undefined;
-    set_constitutional_committee_hot_credential(constitutional_committee_hot_credential: Credential | undefined): void;
-    drep_credential(): Credential | undefined;
-    set_drep_credential(drep_credential: Credential | undefined): void;
-    staking_pool_key_hash(): Ed25519KeyHash | undefined;
-    set_staking_pool_key_hash(staking_pool_key_hash: Ed25519KeyHash | undefined): void;
+    private variant;
+    constructor(variant: VoterVariant);
+    static new_constitutional_committee_hot_key_hash(constitutional_committee_hot_key_hash: Ed25519KeyHash): Voter;
+    static new_constitutional_committee_hot_script_hash(constitutional_committee_hot_script_hash: ScriptHash): Voter;
+    static new_drep_key_hash(drep_key_hash: Ed25519KeyHash): Voter;
+    static new_drep_script_hash(drep_script_hash: ScriptHash): Voter;
+    static new_staking_pool_key_hash(staking_pool_key_hash: Ed25519KeyHash): Voter;
+    to_constitutional_committee_hot_key_hash(): Ed25519KeyHash | undefined;
+    to_constitutional_committee_hot_script_hash(): ScriptHash | undefined;
+    to_drep_key_hash(): Ed25519KeyHash | undefined;
+    to_drep_script_hash(): ScriptHash | undefined;
+    to_staking_pool_key_hash(): Ed25519KeyHash | undefined;
+    kind(): VoterKind;
     static deserialize(reader: CBORReader): Voter;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -3520,40 +3484,12 @@ export declare class Voter {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): Voter;
-    static new_constitutional_committee_hot_credential(cred: Credential): Voter;
-    static new_drep_credential(cred: Credential): Voter;
-    static new_stake_pool_key_hash(key_hash: Ed25519KeyHash): Voter;
-    kind(): VoterEnumKind;
-    to_constitutional_committee_hot_credential(): Credential | undefined;
-    to_drep_credential(): Credential | undefined;
-    to_stake_pool_key_hash(): Ed25519KeyHash | undefined;
     has_script_credentials(): boolean;
     to_key_hash(): Ed25519KeyHash | undefined;
-}
-export declare enum VoterEnumKind {
-    ConstitutionalCommitteeHotKeyHash = 0,
-    ConstitutionalCommitteeHotScriptHash = 1,
-    DRepKeyHash = 2,
-    DRepScriptHash = 3,
-    StakingPoolKeyHash = 4
-}
-export declare class VoterEnum {
-    private kind_;
-    constructor(kind: VoterEnumKind);
-    static new_ConstitutionalCommitteeHotKeyHash(): VoterEnum;
-    static new_ConstitutionalCommitteeHotScriptHash(): VoterEnum;
-    static new_DRepKeyHash(): VoterEnum;
-    static new_DRepScriptHash(): VoterEnum;
-    static new_StakingPoolKeyHash(): VoterEnum;
-    kind(): VoterEnumKind;
-    static deserialize(reader: CBORReader): VoterEnum;
-    serialize(writer: CBORWriter): void;
-    free(): void;
-    static from_bytes(data: Uint8Array): VoterEnum;
-    static from_hex(hex_str: string): VoterEnum;
-    to_bytes(): Uint8Array;
-    to_hex(): string;
-    clone(): VoterEnum;
+    static new_constitutional_committee_hot_credential(cred: Credential): Voter;
+    static new_drep_credential(cred: Credential): Voter;
+    to_constitutional_committee_hot_credential(): Credential | undefined;
+    to_drep_credential(): Credential | undefined;
 }
 export declare class Voters {
     private items;
@@ -3575,7 +3511,7 @@ export declare class VotingProcedure {
     private _vote;
     private _anchor;
     constructor(vote: VoteKind, anchor: Anchor | undefined);
-    static new(vote: VoteKind, anchor: Anchor | undefined): VotingProcedure;
+    static new_with_anchor(vote: VoteKind, anchor: Anchor | undefined): VotingProcedure;
     vote(): VoteKind;
     set_vote(vote: VoteKind): void;
     anchor(): Anchor | undefined;
@@ -3588,14 +3524,15 @@ export declare class VotingProcedure {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): VotingProcedure;
+    static new(vote: VoteKind): VotingProcedure;
 }
 export declare class VotingProcedures {
     _items: [Voter, GovernanceActions][];
     constructor(items: [Voter, GovernanceActions][]);
     static new(): VotingProcedures;
     len(): number;
-    insert(key: Voter, value: GovernanceActions): GovernanceActions | undefined;
-    get(key: Voter): GovernanceActions | undefined;
+    _insert(key: Voter, value: GovernanceActions): GovernanceActions | undefined;
+    _get(key: Voter): GovernanceActions | undefined;
     _remove_many(keys: Voter[]): void;
     keys(): Voters;
     static deserialize(reader: CBORReader): VotingProcedures;
@@ -3606,8 +3543,8 @@ export declare class VotingProcedures {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): VotingProcedures;
-    insert_voter_and_gov_action(voter: Voter, governance_action_id: GovernanceActionId, voting_procedure: VotingProcedure): void;
-    get_by_voter_and_gov_action(voter: Voter, governance_action_id: GovernanceActionId): VotingProcedure | undefined;
+    insert(voter: Voter, governance_action_id: GovernanceActionId, voting_procedure: VotingProcedure): void;
+    get(voter: Voter, governance_action_id: GovernanceActionId): VotingProcedure | undefined;
     get_voters(): Voters;
     get_governance_action_ids_by_voter(voter: Voter): GovernanceActionIds;
 }
@@ -3617,7 +3554,6 @@ export declare class VotingProposal {
     private _governance_action;
     private _anchor;
     constructor(deposit: BigNum, reward_account: RewardAddress, governance_action: GovernanceAction, anchor: Anchor);
-    static new(deposit: BigNum, reward_account: RewardAddress, governance_action: GovernanceAction, anchor: Anchor): VotingProposal;
     deposit(): BigNum;
     set_deposit(deposit: BigNum): void;
     reward_account(): RewardAddress;
@@ -3634,6 +3570,7 @@ export declare class VotingProposal {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): VotingProposal;
+    static new(governance_action: GovernanceAction, anchor: Anchor, reward_account: RewardAddress, deposit: BigNum): VotingProposal;
 }
 export declare class VotingProposals {
     private items;
@@ -3714,7 +3651,7 @@ export declare class ByronAddress {
     attributes(): Uint8Array;
     network_id(): number;
     static from_base58(s: string): ByronAddress;
-    to_base58(): any;
+    to_base58(): string;
     static is_valid(s: string): boolean;
     to_address(): Address;
     static from_address(addr: Address): ByronAddress | undefined;
@@ -3731,15 +3668,15 @@ export declare enum ByronAddressType {
     Script = 1,
     Redeem = 2
 }
-export declare enum CredentialKind {
+export declare enum CredKind {
     Key = 0,
     Script = 1
 }
 export type CredentialVariant = {
-    kind: CredentialKind.Key;
+    kind: CredKind.Key;
     value: Ed25519KeyHash;
 } | {
-    kind: CredentialKind.Script;
+    kind: CredKind.Script;
     value: ScriptHash;
 };
 export declare class Credential {
@@ -3751,7 +3688,7 @@ export declare class Credential {
     static _from_raw_bytes(kind: number, bytes: Uint8Array): Credential;
     to_keyhash(): Ed25519KeyHash | undefined;
     to_scripthash(): ScriptHash | undefined;
-    kind(): CredentialKind;
+    kind(): CredKind;
     has_script_hash(): boolean;
     serialize(writer: CBORWriter): void;
     static deserialize(reader: CBORReader): Credential;
@@ -3815,7 +3752,7 @@ export declare class MalformedAddress {
     _bytes: Uint8Array;
     constructor(bytes: Uint8Array);
     original_bytes(): Uint8Array;
-    from_address(addr: Address): MalformedAddress | undefined;
+    static from_address(addr: Address): MalformedAddress | undefined;
     to_address(): Address;
 }
 export declare class NetworkInfo {
