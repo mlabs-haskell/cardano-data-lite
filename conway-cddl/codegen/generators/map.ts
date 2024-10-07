@@ -101,7 +101,7 @@ export class GenMap extends CodeGeneratorBase {
     return `
       let ret = new ${this.name}([]);
       ${reader}.readMap(
-        reader => ret.insert(
+        reader => ret.${this.renameMethod("insert")}(
           ${this.typeUtils.readType("reader", this.key)},
           ${this.typeUtils.readType("reader", this.value)}
         )
