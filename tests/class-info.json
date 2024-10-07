@@ -22,7 +22,9 @@
     "TransactionBatch",
     "TransactionBatchList",
     "PlutusWitness",
-    "PlutusWitnesses"
+    "PlutusWitnesses",
+    "MintWitness",
+    "PlutusScriptSource"
   ],
   "ignore_methods": {
     "Certificate": [
