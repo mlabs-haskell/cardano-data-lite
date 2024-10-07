@@ -17,7 +17,6 @@ const cdlTxt = fs.readFileSync("csl-types/cardano-data-lite.d.ts", { "encoding":
 
 // Arrays of parameters for the tests
 let compareToCslTests: Array<TestParameters> = [];
-let compareToCdlTests: Array<TestParameters> = [];
 
 // Paths where the reports will be saved
 const missingClassesPath = "tests/reports/api_missing_classes.csv";
@@ -287,7 +286,7 @@ let missingMethodsCsv = "Missing method\n"
 missingMethodsCsv += missingMethods.join("\n");
 fs.writeFileSync(missingMethodsPath, missingMethodsCsv);
 
-// We construct the test tables
+// We construct the test table
 let n: number = 0;
 for (const cls of cslClasses) {
   for (const method of cls.methods) {
@@ -295,16 +294,6 @@ for (const cls of cslClasses) {
     n += 1;
   }
 }
-
-n = 0;
-for (const cls of cdlClasses) {
-  for (const method of cls.methods) {
-    compareToCdlTests.push({ n: n, class: cls.name, comparedToMethod: method })
-    n += 1;
-  }
-}
-console.log("compareToCslTests.length: ", compareToCslTests.length)
-console.log("compareToCdlTests.length: ", compareToCdlTests.length)
 
 // We open a report file to write down each method comparison failure as we find it
 let methodFailuresFile = fs.openSync(methodFailuresPath, "w");
