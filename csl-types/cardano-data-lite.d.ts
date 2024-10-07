@@ -318,7 +318,7 @@ export declare class CSLBigInt {
     add(other: CSLBigInt): CSLBigInt;
     sub(other: CSLBigInt): CSLBigInt;
     mul(other: CSLBigInt): CSLBigInt;
-    pow(other: CSLBigInt): CSLBigInt;
+    pow(other: number): CSLBigInt;
     div_floor(other: CSLBigInt): CSLBigInt;
     div_ceil(other: CSLBigInt): CSLBigInt;
     abs(): CSLBigInt;
@@ -1897,30 +1897,6 @@ export declare class PlutusScripts {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): PlutusScripts;
-}
-export declare class Pointer {
-    private _slot_bignum;
-    private _tx_index_bignum;
-    private _cert_index_bignum;
-    constructor(slot_bignum: BigNum, tx_index_bignum: BigNum, cert_index_bignum: BigNum);
-    static new(slot_bignum: BigNum, tx_index_bignum: BigNum, cert_index_bignum: BigNum): Pointer;
-    slot_bignum(): BigNum;
-    set_slot_bignum(slot_bignum: BigNum): void;
-    tx_index_bignum(): BigNum;
-    set_tx_index_bignum(tx_index_bignum: BigNum): void;
-    cert_index_bignum(): BigNum;
-    set_cert_index_bignum(cert_index_bignum: BigNum): void;
-    static deserialize(reader: CBORReader): Pointer;
-    serialize(writer: CBORWriter): void;
-    free(): void;
-    static from_bytes(data: Uint8Array): Pointer;
-    static from_hex(hex_str: string): Pointer;
-    to_bytes(): Uint8Array;
-    to_hex(): string;
-    clone(): Pointer;
-    slot(): number;
-    tx_index(): number;
-    cert_index(): number;
 }
 export declare class PoolMetadata {
     private _url;
