@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npm run test-serialization ; npm run test-api",
-    "test-serialization": "rm -f transaction_fifo; mkfifo transaction_fifo; npx tsx src/get_transactions.ts & NODE_OPTIONS=--experimental-vm-modules jest serialization",
+    "test-serialization": "rm -f transaction_fifo; mkfifo transaction_fifo; npx tsx tests/serialization/get_transactions.ts & NODE_OPTIONS=--experimental-vm-modules jest serialization",
     "test-api": "npm run generate-cdl-definitions ; NODE_OPTIONS=--experimental-vm-modules jest api",
     "codegen": "tsx conway-cddl/codegen/main.ts",
     "generate-grammar-bundle": "npx ohm generateBundles -e -t tests/api/grammar.ohm",
@@ -25,6 +25,7 @@
     "@tsconfig/recommended": "^1.0.7",
     "@types/jest": "^29.5.13",
     "@types/node": "^20.12.7",
+    "base58-js": "^2.0.0",
     "change-case": "^5.4.4",
     "esbuild": "^0.20.2",
     "esbuild-jest": "^0.5.0",
