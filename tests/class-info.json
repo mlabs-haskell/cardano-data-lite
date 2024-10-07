@@ -1,5 +1,5 @@
 {
-  "ignore": [
+  "ignore_classes": [
     "GenesisKeyDelegation",
     "MoveInstantaneousReward",
     "MoveInstantaneousRewardsCert",
@@ -22,5 +22,14 @@
     "TransactionBatch",
     "TransactionBatchList",
     "PlutusScript"
-  ]
+  ],
+  "ignore_methods": {
+    "Certificate": [
+      "new_reg_cert",
+      "new_unreg_cert",
+      "as_reg_cert",
+      "as_unreg_cert"
+    ],
+    "PlutusScripts": ["get", "add"]
+  }
 }
