@@ -64,6 +64,21 @@ Transaction:
     - name: auxiliary_data
       type: AuxiliaryData
       nullable: true
+  methods:
+    new: null
+  extra_methods: |
+    static new(
+      body: TransactionBody,
+      witness_set: TransactionWitnessSet,
+      auxiliary_data: AuxiliaryData
+    ): Transaction {
+      return new Transaction(
+        body, 
+        witness_set, 
+        true, 
+        auxiliary_data
+      );
+    }
 
 # transaction_index = uint .size 2
 
@@ -96,7 +111,7 @@ HeaderBody:
   fields:
     - name: block_number
       type: number
-    - name: slot_bignum
+    - name: slot
       type: BigNum
     - name: prev_hash
       type: BlockHash
@@ -115,18 +130,29 @@ HeaderBody:
       type: OperationalCert
     - name: protocol_version
       type: ProtocolVersion
+  methods:
+    slot: slot_bignum
+    new: new_headerbody
   extra_methods: |
     slot(): number  {
-      return Number(this._slot_bignum);
+      return this.slot_bignum()._to_number();
     }
 
-    static new_headerbody(block_number: number, slot: BigNum, prev_hash:
-      BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result:
-      VRFCert, block_body_size: number, block_body_hash: BlockHash,
-      operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody {
+    static new(
+      block_number: number, 
+      slot: number, 
+      prev_hash: BlockHash | undefined, 
+      issuer_vkey: Vkey, 
+      vrf_vkey: VRFVKey, 
+      vrf_result: VRFCert, 
+      block_body_size: number, 
+      block_body_hash: BlockHash,
+      operational_cert: OperationalCert, 
+      protocol_version: ProtocolVersion
+    ): HeaderBody {
       return new HeaderBody(
         block_number,
-        slot,
+        BigNum._from_number(slot),
         prev_hash,
         issuer_vkey,
         vrf_vkey,
@@ -203,11 +229,9 @@ TransactionBody:
       name: fee
       type: BigNum
     - id: 3
-      name: ttl_bignum
+      name: ttl
       type: BigNum
       optional: true
-      flags:
-        - as_number
     - id: 4
       name: certs
       type: Certificates
@@ -221,7 +245,7 @@ TransactionBody:
       type: AuxiliaryDataHash
       optional: true
     - id: 8
-      name: validity_start_interval_bignum
+      name: validity_start_interval
       type: BigNum
       optional: true
     - id: 9
@@ -272,32 +296,41 @@ TransactionBody:
       name: donation
       type: BigNum
       optional: true
+  methods:
+    ttl: ttl_bignum
+    validity_start_interval: validity_start_interval_bignum
+    set_validity_start_interval: set_validity_start_interval_bignum
+    new: null
   extra_methods: |
     ttl(): number | undefined {
-      if (this._ttl_bignum === undefined) return undefined;
-      return Number(this._ttl_bignum);
+      return this.ttl_bignum()?._to_number();
     }
-    set_ttl(ttl: BigNum): void {
-      this._ttl_bignum = ttl;
-    }
+
     remove_ttl(): void {
-      this._ttl_bignum = undefined;
+      this.set_ttl(undefined);
     }
 
     validity_start_interval(): number | undefined {
-      if (this._validity_start_interval_bignum === undefined) return undefined;
-      return Number(this._validity_start_interval_bignum);
-    }
-    set_validity_start_interval(validity_start_interval: number): void {
-      this._validity_start_interval_bignum = BigNum.new(BigInt(validity_start_interval));
+      return this.validity_start_interval_bignum()?._to_number();
     }
 
-    static new_tx_body(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum): TransactionBody {
-      return TransactionBody.new(
+    set_validity_start_interval(validity_start_interval: number) {
+      return this.set_validity_start_interval_bignum(
+        BigNum._from_number(validity_start_interval)
+      );
+    }
+
+    static new(
+      inputs: TransactionInputs, 
+      outputs: TransactionOutputs, 
+      fee: BigNum,
+      ttl?: number,
+    ): TransactionBody {
+      return new TransactionBody(
         inputs.clone(),
         outputs.clone(),
         fee,
-        undefined,
+        ttl != null ? BigNum._from_number(ttl) : undefined,
         undefined,
         undefined,
         undefined,
@@ -315,7 +348,15 @@ TransactionBody:
         undefined,
         undefined,
       );
-     }
+    }
+
+    static new_tx_body(
+      inputs: TransactionInputs, 
+      outputs: TransactionOutputs, 
+      fee: BigNum,
+    ): TransactionBody {
+      return TransactionBody.new(inputs, outputs, fee, undefined);
+    }
 
 TransactionInputs:
   type: set
@@ -345,6 +386,12 @@ VotingProcedure:
     - name: anchor
       type: Anchor
       nullable: true
+  methods:
+    new: new_with_anchor
+  extra_methods: |
+    static new(vote: VoteKind): VotingProcedure {
+      return new VotingProcedure(vote, undefined);
+    }
 
 # proposal_procedure =
 #   [ deposit : coin
@@ -363,6 +410,22 @@ VotingProposal:
       type: GovernanceAction
     - name: anchor
       type: Anchor
+  methods:
+    new: null
+  extra_methods: |
+    static new(
+      governance_action: GovernanceAction, 
+      anchor: Anchor, 
+      reward_account: RewardAddress, 
+      deposit: BigNum
+    ): VotingProposal {
+      return new VotingProposal(
+        deposit, 
+        reward_account, 
+        governance_action, 
+        anchor
+      )
+    }
 
 # proposal_procedures = nonempty_oset<proposal_procedure>
 VotingProposals:
@@ -428,6 +491,38 @@ ParameterChangeAction:
     - name: policy_hash
       type: ScriptHash
       nullable: true
+  methods:
+    new: new_with_policy_hash_and_action_id
+  extra_methods: |
+    static new(
+      protocol_param_updates: ProtocolParamUpdate
+    ): ParameterChangeAction {
+      return new ParameterChangeAction(
+        undefined, 
+        protocol_param_updates, 
+        undefined
+      );
+    }
+    static new_with_action_id(
+      gov_action_id: GovernanceActionId, 
+      protocol_param_updates: ProtocolParamUpdate
+    ): ParameterChangeAction {
+      return new ParameterChangeAction(
+        gov_action_id, 
+        protocol_param_updates, 
+        undefined
+      );
+    }
+    static new_with_policy_hash(
+      protocol_param_updates: ProtocolParamUpdate,
+      policy_hash: ScriptHash
+    ): ParameterChangeAction {
+      return new ParameterChangeAction(
+        undefined, 
+        protocol_param_updates, 
+        policy_hash
+      );
+    }
 
 HardForkInitiationAction:
   type: record_fragment
@@ -437,6 +532,12 @@ HardForkInitiationAction:
       nullable: true
     - name: protocol_version
       type: ProtocolVersion
+  methods:
+    new: new_with_action_id
+  extra_methods: |
+    static new(protocol_version: ProtocolVersion): HardForkInitiationAction {
+      return new HardForkInitiationAction(undefined, protocol_version);
+    }
 
 TreasuryWithdrawalsAction:
   type: record_fragment
@@ -446,6 +547,12 @@ TreasuryWithdrawalsAction:
     - name: policy_hash
       type: ScriptHash
       nullable: true
+  methods:
+    new: new_with_policy_hash
+  extra_methods: |
+    static new(withdrawals: TreasuryWithdrawals): TreasuryWithdrawalsAction {
+      return new TreasuryWithdrawalsAction(withdrawals, undefined);
+    }
 
 NoConfidenceAction:
   type: record_fragment
@@ -453,6 +560,12 @@ NoConfidenceAction:
     - name: gov_action_id
       type: GovernanceActionId
       nullable: true
+  methods:
+    new: new_with_action_id
+  extra_methods: |
+    static new(): NoConfidenceAction {
+      return new NoConfidenceAction(undefined);
+    }
 
 NewConstitutionAction:
   type: record_fragment
@@ -462,6 +575,12 @@ NewConstitutionAction:
       nullable: true
     - name: constitution
       type: Constitution
+  methods:
+    new: new_with_action_id
+  extra_methods: |
+    static new(constitution: Constitution): NewConstitutionAction {
+      return new NewConstitutionAction(undefined, constitution);
+    }
 
 InfoAction:
   type: record_fragment
@@ -483,6 +602,12 @@ Constitution:
     - name: scripthash
       type: ScriptHash
       nullable: true
+  methods:
+    new: null
+  extra_methods: |
+    static new(anchor: Anchor): Constitution {
+      return new Constitution(anchor, undefined);
+    }
 
 Voters:
   type: array
@@ -577,6 +702,12 @@ TransactionOutput:
       name: script_ref
       type: ScriptRef
       optional: true
+  methods:
+    new: null
+  extra_methods: |
+    static new(address: Address, amount: Value): TransactionOutput {
+      return new TransactionOutput(address, amount, undefined, undefined);
+    }
 
 # script_data_hash = $hash32
 # ; This is a hash of data which may affect evaluation of a script.
@@ -896,6 +1027,12 @@ CommitteeColdResign:
     - name: anchor
       type: Anchor
       nullable: true
+  methods:
+    new: null
+  extra_methods: |
+    static new(committee_cold_credential: Credential): CommitteeColdResign {
+      return new CommitteeColdResign(committee_cold_credential, undefined);
+    }
 
 DRepRegistration:
   type: record_fragment
@@ -907,6 +1044,12 @@ DRepRegistration:
     - name: anchor
       type: Anchor
       nullable: true
+  methods:
+    new: null
+  extra_methods: |
+    static new(voting_credential: Credential, coin: BigNum): DRepRegistration {
+      return new DRepRegistration(voting_credential,coin, undefined);
+    }
 
 DRepDeregistration:
   type: record_fragment
@@ -924,6 +1067,12 @@ DRepUpdate:
     - name: anchor
       type: Anchor
       nullable: true
+  methods:
+    new: null
+  extra_methods: |
+    static new(drep_credential: Credential): DRepUpdate {
+      return new DRepUpdate(drep_credential, undefined);
+    }
 
 # delta_coin = int
 
@@ -1376,6 +1525,21 @@ TransactionWitnessSet:
       name: plutus_scripts_v3
       type: PlutusScripts
       optional: true
+  methods:
+    new: null
+  extra_methods: |
+    static new(): TransactionWitnessSet {
+      return new TransactionWitnessSet(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      );
+    }
 
 Vkeywitnesses:
   type: set
@@ -1391,7 +1555,20 @@ BootstrapWitnesses:
 
 PlutusScripts:
   type: array
+  item: PlutusScript
+
+PlutusScript:
+  type: newtype
   item: bytes
+  accessor: bytes
+  extra_methods: |
+    hash(language_version: number): ScriptHash {
+      let bytes = new Uint8Array(this.bytes().length + 1);
+      bytes[0] = language_version;
+      bytes.set(bytes, 1);
+      let hash_bytes = cdlCrypto.blake2b224(bytes);
+      return new ScriptHash(hash_bytes);
+    }
 
 PlutusList:
   type: set
@@ -1565,6 +1742,18 @@ AuxiliaryData:
     - id: 4
       name: plutus_scripts_v3
       type: PlutusScripts
+  methods:
+    new: null
+  extra_methods: |
+    static new(): AuxiliaryData {
+      return new AuxiliaryData(
+        GeneralTransactionMetadata.new(),
+        NativeScripts.new(),
+        PlutusScripts.new(),
+        PlutusScripts.new(),
+        PlutusScripts.new(),
+      )
+    }
 
 # vkeywitness = [ $vkey, $signature ]
 Vkeywitness:
@@ -1667,29 +1856,35 @@ ScriptNOfK:
 TimelockStart:
   type: record_fragment
   fields:
-    - name: slot_bignum
+    - name: slot
       type: BigNum
+  methods:
+    new: new_timelockstart
+    slot: slot_bignum
   extra_methods: |
     slot(): number  {
-      return Number(this._slot_bignum);
+      return this.slot_bignum()._to_number();
     }
 
-    static new_timelockexpiry(slot: BigNum): TimelockExpiry {
-      return new TimelockExpiry(slot);
+    static new(slot: number): TimelockStart {
+      return new TimelockStart(BigNum._from_number(slot));
     }
 
 TimelockExpiry:
   type: record_fragment
   fields:
-    - name: slot_bignum
+    - name: slot
       type: BigNum
+  methods:
+    new: new_timelockexpiry
+    slot: slot_bignum
   extra_methods: |
     slot(): number  {
-      return Number(this._slot_bignum);
+      return this.slot_bignum()._to_number();
     }
 
-    static new_timelockexpiry(slot: BigNum): TimelockExpiry {
-      return new TimelockExpiry(slot);
+    static new(slot: number): TimelockExpiry {
+      return new TimelockExpiry(BigNum._from_number(slot));
     }
 
 # coin = uint
@@ -1764,10 +1959,9 @@ DataOption:
       value: DataHash
     - name: data
       tag: 1
-      value: PlutusData # TODO: Encode as #6.24(bytes)
+      value: PlutusData
 
 # script_ref = #6.24(bytes .cbor script)
-# TODO: Custom
 
 # script = [ 0, native_script // 1, plutus_v1_script // 2, plutus_v2_script // 3, plutus_v3_script ]
 ScriptRef:
@@ -1778,15 +1972,15 @@ ScriptRef:
       value: NativeScript
     - name: plutus_script_v1
       tag: 1
-      value: bytes
+      value: PlutusScript
       kind_name: PlutusScriptV1
     - name: plutus_script_v2
       tag: 2
-      value: bytes
+      value: PlutusScript
       kind_name: PlutusScriptV2
     - name: plutus_script_v3
       tag: 3
-      value: bytes
+      value: PlutusScript
       kind_name: PlutusScriptV3
 
 UnitInterval:
@@ -1822,10 +2016,6 @@ PlutusMap:
 PlutusMapValues:
   type: array
   item: PlutusData
-
-PlutusWitnesses:
-  type: array
-  item: PlutusWitness
 
 TreasuryWithdrawals:
   type: map

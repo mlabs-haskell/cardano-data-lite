@@ -79,3 +79,11 @@ BigNum:
       if(a.toJsValue() > b.toJsValue()) return a;
       else return b;
     }
+
+    static _from_number(x: number): BigNum {
+      return new BigNum(BigInt(x))
+    }
+
+    _to_number(): number {
+      return Number(this.toJsValue);
+    }
