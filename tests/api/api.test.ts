@@ -212,8 +212,8 @@ for(const rename of classRenames) {
 
 // We filter out the ignored classes from clsClassesMap based on the classInfo file.
 // We don't want to fail when checking methods if cdlClassesMap does not contain these classes.
-const classInfo: { ignore: Array<string> } = JSON.parse(fs.readFileSync("csl-types/class-info.json", "utf-8"));
-for (const cls of classInfo.ignore) {
+const classInfo: { ignore_classes: Array<string> } = JSON.parse(fs.readFileSync("tests/class-info.json", "utf-8"));
+for (const cls of classInfo.ignore_classes) {
   cslClassesMap.delete(cls);
 }
 
