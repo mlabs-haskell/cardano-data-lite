@@ -3,7 +3,20 @@ Mint:
   key: ScriptHash
   value: MintAssets
   keys_method_type: ScriptHashes
+  methods:
+    get: null
   extra_methods: |
+    get(key: ScriptHash): MintsAssets | undefined {
+      let ret = MintsAssets.new();
+      for(let [key_, value] of this._items) {
+        if(arrayEq(key.to_bytes(), key_.to_bytes())) {
+          ret.add(value);
+        }
+      }
+      if(ret.len() != 0) return ret;
+      return undefined;
+    }
+
     _as_multiasset(isPositive: boolean): MultiAsset {
       const result = new MultiAsset([]);
 
@@ -47,3 +60,13 @@ Mint:
     as_negative_multiasset(): MultiAsset {
       return this._as_multiasset(false);
     }
+
+MintAssets:
+  type: map
+  key: AssetName
+  value: Int
+  keys_method_type: AssetNames
+
+MintsAssets:
+  type: array
+  item: MintAssets

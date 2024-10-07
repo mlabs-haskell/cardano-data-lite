@@ -102,7 +102,7 @@ export class ByronAddress {
     return ByronAddress.deserialize(new CBORReader(bytes));
   }
 
-  to_base58() {
+  to_base58(): string {
     return binary_to_base58(this.to_bytes());
   }
 

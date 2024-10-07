@@ -9,102 +9,84 @@
 #   // 2, addr_keyhash
 #   // 3, scripthash
 #   // 4, addr_keyhash
-#
 #   ]
-#
-VoterEnum:
-  type: enum
-  values:
-    - name: ConstitutionalCommitteeHotKeyHash
-      value: 0
-
-    - name: ConstitutionalCommitteeHotScriptHash
-      value: 1
-
-    - name: DRepKeyHash
-      value: 2
-
-    - name: DRepScriptHash
-      value: 3
-
-    - name: StakingPoolKeyHash
-      value: 4
-
 Voter: # TODO (custom serializer)
-  type: record
-  methods:
-    new: null
-    kind: null
-  fields:
-    - name: constitutional_committee_hot_credential
-      type: Credential
-      nullable: true
-    - name: drep_credential
-      type: Credential
-      nullable: true
-    - name: staking_pool_key_hash
-      type: Ed25519KeyHash
-      nullable: true
-
+  type: tagged_record
+  variants:
+    - tag: 0
+      name: constitutional_committee_hot_key_hash
+      value: Ed25519KeyHash
+      kind_name: ConstitutionalCommitteeHotKeyHash
+    - tag: 1
+      name: constitutional_committee_hot_script_hash
+      value: ScriptHash
+      kind_name: ConstitutionalCommitteeHotScriptHash
+    - tag: 2
+      name: drep_key_hash
+      value: Ed25519KeyHash
+      kind_name: DRepKeyHash
+    - tag: 3
+      name: drep_script_hash
+      value: ScriptHash
+      kind_name: DRepScriptHash
+    - tag: 4
+      name: staking_pool_key_hash
+      value: Ed25519KeyHash
+      kind_name: StakingPoolKeyHash
+  accessor_prefix: to
   extra_methods: |
+    has_script_credentials(): boolean {
+      return (
+        this.variant.kind == VoterKind.ConstitutionalCommitteeHotScriptHash 
+        || this.variant.kind == VoterKind.DRepScriptHash
+      );
+    }
+
+    to_key_hash(): Ed25519KeyHash | undefined {
+      if (
+        this.variant.kind == VoterKind.ConstitutionalCommitteeHotKeyHash 
+        || this.variant.kind == VoterKind.DRepKeyHash
+        || this.variant.kind == VoterKind.StakingPoolKeyHash
+      ) {
+        return this.variant.value;
+      }
+      return undefined;
+    }
+
     static new_constitutional_committee_hot_credential(cred: Credential): Voter {
-      return new Voter(cred, undefined, undefined);
+      if(cred.kind() == CredKind.Key) {
+        return Voter.new_constitutional_committee_hot_key_hash(cred.to_keyhash()!);
+      } else if(cred.kind() == CredKind.Script) {
+        return Voter.new_constitutional_committee_hot_script_hash(cred.to_scripthash()!);
+      } else {
+        throw new Error("Invalid CredKind");
+      }
     }
+
     static new_drep_credential(cred: Credential): Voter {
-
-      return new Voter(undefined, cred, undefined);
-    }
-    static new_stake_pool_key_hash(key_hash: Ed25519KeyHash): Voter {
-      return new Voter(undefined, undefined, key_hash);
-    }
-    kind(): VoterEnumKind {
-      if (this._constitutional_committee_hot_credential) {
-        switch (this._constitutional_committee_hot_credential.kind()) {
-          case (CredentialKind.Key):
-            return VoterEnumKind.ConstitutionalCommitteeHotKeyHash;
-          case (CredentialKind.Script):
-            return VoterEnumKind.ConstitutionalCommitteeHotScriptHash;
-        }
+      if(cred.kind() == CredKind.Key) {
+        return Voter.new_drep_key_hash(cred.to_keyhash()!);
+      } else if(cred.kind() == CredKind.Script) {
+        return Voter.new_drep_script_hash(cred.to_scripthash()!);
+      } else {
+        throw new Error("Invalid CredKind");
       }
-
-      if (this._drep_credential) {
-        switch (this._drep_credential.kind()) {
-          case (CredentialKind.Key):
-            return VoterEnumKind.DRepKeyHash;
-          case (CredentialKind.Script):
-            return VoterEnumKind.DRepScriptHash;
-        }
-      }
-
-      return VoterEnumKind.StakingPoolKeyHash;
     }
 
     to_constitutional_committee_hot_credential(): Credential | undefined {
-      return this._constitutional_committee_hot_credential;
+      if(this.variant.kind == VoterKind.ConstitutionalCommitteeHotKeyHash) {
+        return Credential.from_keyhash(this.variant.value);
+      } else if (this.variant.kind == VoterKind.ConstitutionalCommitteeHotScriptHash) {
+        return Credential.from_scripthash(this.variant.value);
+      }
+      return undefined;
     }
+
     to_drep_credential(): Credential | undefined {
-      return this._drep_credential;
-    }
-    to_stake_pool_key_hash(): Ed25519KeyHash | undefined {
-      return this._staking_pool_key_hash;
-    }
-
-    has_script_credentials(): boolean {
-      if (this._constitutional_committee_hot_credential) {
-         // TODO: uncomment when implemented
-         // return this._constitutional_committee_hot_credential.has_script_hash();
-       }
-
-       if (this._drep_credential) {
-         // TODO: uncomment when implemented
-         // return this._drep_credential.has_script_hash();
-       }
-
-       return false;
-    }
-    to_key_hash(): Ed25519KeyHash | undefined {
-      if (this._staking_pool_key_hash) {
-        return this._staking_pool_key_hash;
+      if(this.variant.kind == VoterKind.DRepKeyHash) {
+        return Credential.from_keyhash(this.variant.value);
+      } else if (this.variant.kind == VoterKind.DRepScriptHash) {
+        return Credential.from_scripthash(this.variant.value);
       }
       return undefined;
     }
