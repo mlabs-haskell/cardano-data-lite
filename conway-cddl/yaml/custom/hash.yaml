@@ -65,6 +65,27 @@ KESVKey:
 Ed25519Signature:
   type: hash
   len: 64
+  methods:
+    to_bech32: null
+    from_bech32: null
+  extra_methods: |
+    static _BECH32_HRP = "ed25519_sk";
+    static from_bech32(bech_str: string): Ed25519Signature {
+      let decoded = bech32.decode(bech_str);
+      let words = decoded.words;
+      let bytesArray = bech32.fromWords(words);
+      let bytes = new Uint8Array(bytesArray);
+      if(decoded.prefix==Ed25519Signature._BECH32_HRP) {
+        return new Ed25519Signature(bytes);
+      } else {
+        throw new Error("Invalid prefix for Ed25519Signature: " + decoded.prefix);
+      }
+    }
+
+    to_bech32() {
+      let prefix = Ed25519Signature._BECH32_HRP;
+      bech32.encode(prefix, this.inner);
+    }
 
 KESSignature:
   type: newtype
