@@ -318,7 +318,7 @@ describe("API coverage tests", () => {
   })
 })
 describe("Compare each CDL class/method to its CSL counterpart", () => {
-  test.each(compareToCslTests)("($n) Comparing CDL's $class . $comparedToMethod.name to CSL's", (params) => {
+  test.each(compareToCslTests)("($n) Comparing CDL's $class​.$comparedToMethod.name to CSL's", (params) => {
     compareToClass(cdlClassesMap, params.class, params.comparedToMethod);
   })
 });
