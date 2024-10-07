@@ -1538,8 +1538,8 @@ export class CSLBigInt {
     return new CSLBigInt(res);
   }
 
-  pow(other: CSLBigInt): CSLBigInt {
-    let res = this.toJsValue() ** other.toJsValue();
+  pow(other: number): CSLBigInt {
+    let res = this.toJsValue() ** BigInt(other);
     return new CSLBigInt(res);
   }
 
@@ -8635,116 +8635,6 @@ export class PlutusScripts {
 
   clone(): PlutusScripts {
     return PlutusScripts.from_bytes(this.to_bytes());
-  }
-}
-
-export class Pointer {
-  private _slot_bignum: BigNum;
-  private _tx_index_bignum: BigNum;
-  private _cert_index_bignum: BigNum;
-
-  constructor(
-    slot_bignum: BigNum,
-    tx_index_bignum: BigNum,
-    cert_index_bignum: BigNum,
-  ) {
-    this._slot_bignum = slot_bignum;
-    this._tx_index_bignum = tx_index_bignum;
-    this._cert_index_bignum = cert_index_bignum;
-  }
-
-  static new(
-    slot_bignum: BigNum,
-    tx_index_bignum: BigNum,
-    cert_index_bignum: BigNum,
-  ) {
-    return new Pointer(slot_bignum, tx_index_bignum, cert_index_bignum);
-  }
-
-  slot_bignum(): BigNum {
-    return this._slot_bignum;
-  }
-
-  set_slot_bignum(slot_bignum: BigNum): void {
-    this._slot_bignum = slot_bignum;
-  }
-
-  tx_index_bignum(): BigNum {
-    return this._tx_index_bignum;
-  }
-
-  set_tx_index_bignum(tx_index_bignum: BigNum): void {
-    this._tx_index_bignum = tx_index_bignum;
-  }
-
-  cert_index_bignum(): BigNum {
-    return this._cert_index_bignum;
-  }
-
-  set_cert_index_bignum(cert_index_bignum: BigNum): void {
-    this._cert_index_bignum = cert_index_bignum;
-  }
-
-  static deserialize(reader: CBORReader): Pointer {
-    let len = reader.readArrayTag();
-
-    if (len != null && len < 3) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " + len,
-      );
-    }
-
-    let slot_bignum = BigNum.deserialize(reader);
-
-    let tx_index_bignum = BigNum.deserialize(reader);
-
-    let cert_index_bignum = BigNum.deserialize(reader);
-
-    return new Pointer(slot_bignum, tx_index_bignum, cert_index_bignum);
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(3);
-
-    this._slot_bignum.serialize(writer);
-    this._tx_index_bignum.serialize(writer);
-    this._cert_index_bignum.serialize(writer);
-  }
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array): Pointer {
-    let reader = new CBORReader(data);
-    return Pointer.deserialize(reader);
-  }
-
-  static from_hex(hex_str: string): Pointer {
-    return Pointer.from_bytes(hexToBytes(hex_str));
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
-  clone(): Pointer {
-    return Pointer.from_bytes(this.to_bytes());
-  }
-
-  slot(): number {
-    return Number(this._slot_bignum);
-  }
-  tx_index(): number {
-    return Number(this._tx_index_bignum);
-  }
-  cert_index(): number {
-    return Number(this._cert_index_bignum);
   }
 }
 
