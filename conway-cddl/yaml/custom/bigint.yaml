@@ -42,8 +42,8 @@ CSLBigInt:
       return new CSLBigInt(res);
     }
 
-    pow(other: CSLBigInt): CSLBigInt {
-      let res = this.toJsValue() ** other.toJsValue();
+    pow(other: number): CSLBigInt {
+      let res = this.toJsValue() ** BigInt(other);
       return new CSLBigInt(res);
     }
 
