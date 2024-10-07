@@ -312,8 +312,8 @@ describe("API coverage tests", () => {
   })
 })
 describe("Compare each CDL class/method to its CSL counterpart", () => {
-  test.each(compareToCdlTests)("($n) Comparing CSL's $class . $comparedToMethod.name to CDL's", (params) => {
-    compareToClass(cslClassesMap, params.class, params.comparedToMethod);
+  test.each(compareToCslTests)("($n) Comparing CDL's $class . $comparedToMethod.name to CSL's", (params) => {
+    compareToClass(cdlClassesMap, params.class, params.comparedToMethod);
   })
 });
 
@@ -369,20 +369,20 @@ function compareToClass(clss: Map<string, MethodInfo[]>, cls: string, comparedTo
 function compareToMethod(method1: MethodInfo, method2: MethodInfo): MethodComparisonResult {
   // Method names should match
   if (method1.name != method2.name) {
-    return { reason: "method_names_dont_match", msg: `Expected ${method2.name}, received ${method1.name}`};
+    return { reason: "method_names_dont_match", msg: `'Expected ${method2.name}, received ${method1.name}'`};
   }
   // Return types should match
   const returnCmp = compareTypes(method1.returnType, method2.returnType);
   if (returnCmp != "success") {
-    return { reason: "return_types_dont_match", msg: `Expected ${prettyType(returnCmp.expected)}, received ${prettyType(returnCmp.received)}`};
+    return { reason: "return_types_dont_match", msg: `'Expected ${prettyType(returnCmp.expected)}, received ${prettyType(returnCmp.received)}'`};
   }
   // Static qualifiers should match
   if (method1.static != method2.static) {
-    return { reason: "static_qualifiers_dont_match", msg: `Expected ${method2.static}, received ${method1.static}`};
+    return { reason: "static_qualifiers_dont_match", msg: `'Expected ${method2.static}, received ${method1.static}'`};
   }
   // Methods should have the same number of parameters
   if (method1.params.length != method2.params.length) {
-    return { reason: "number_of_parameters_doesnt_match", msg: `Expected ${method2.params.length}, received ${method1.params.length}`}
+    return { reason: "number_of_parameters_doesnt_match", msg: `'Expected ${method2.params.length}, received ${method1.params.length}'`}
   }
   // All parameter types should match (names do not, however)
   let paramErrMsgs: Array<string> = [];
@@ -396,7 +396,7 @@ function compareToMethod(method1: MethodInfo, method2: MethodInfo): MethodCompar
     }
   }
   if (paramErrMsgs.length > 0) {
-    return { reason: "parameter_types_dont_match", msg:paramErrMsgs.join(" | ")}
+    return { reason: "parameter_types_dont_match", msg: `'${paramErrMsgs.join(" | ")}'`}
   }
 
   return "success";
