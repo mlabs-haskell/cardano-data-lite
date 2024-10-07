@@ -212,6 +212,7 @@ for(const rename of classRenames) {
 
 // We filter out the ignored classes and methods from clsClassesMap based on the classInfo file.
 // We don't want to fail when checking methods if cdlClassesMap does not contain these classes/methods.
+// We also don't want to count them as missing methods or classes.
 type ClassInfoFile = {
   "ignore_classes": Array<string>,
   "ignore_methods": { [cls: string]: Array<string> }
@@ -219,12 +220,17 @@ type ClassInfoFile = {
 const classInfo: ClassInfoFile = JSON.parse(fs.readFileSync("tests/class-info.json", "utf-8"));
 for (const cls of classInfo.ignore_classes) {
   cslClassesMap.delete(cls);
+  cdlClassesMap.delete(cls);
 }
 for (const cls in classInfo.ignore_methods) {
-  console.log(cls);
-  let methodInfos = cslClassesMap.get(cls);
-  if (methodInfos) {
-    let filteredMethodInfos = methodInfos.filter((info) => !classInfo.ignore_methods[cls].includes(info.name))
+  let cdlMethodInfos = cdlClassesMap.get(cls);
+  if (cdlMethodInfos) {
+    let filteredMethodInfos = cdlMethodInfos.filter((info) => !classInfo.ignore_methods[cls].includes(info.name))
+    cdlClassesMap.set(cls, filteredMethodInfos);
+  }
+  let cslMethodInfos = cslClassesMap.get(cls);
+  if (cslMethodInfos) {
+    let filteredMethodInfos = cslMethodInfos.filter((info) => !classInfo.ignore_methods[cls].includes(info.name))
     cslClassesMap.set(cls, filteredMethodInfos);
   }
 }
