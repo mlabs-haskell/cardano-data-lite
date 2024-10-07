@@ -1,0 +1,47 @@
+name: Cardano Data Lite Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate code
+        run: npm run codegen
+
+      - name: Check that generated code was already committed
+        run: |
+          if [[ $(git status --porcelain) ]]; then
+            echo "Error: Uncommitted changes found after running codegen"
+            git diff
+            exit 1
+          else
+            echo "No uncommitted changes found"
+          fi
+      - name: Typescript typecheck
+        run: npx tsc --noEmit
+
+      - name: Run API tests
+        run: npm run test-api
