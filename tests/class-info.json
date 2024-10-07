@@ -33,6 +33,16 @@
       "as_reg_cert",
       "as_unreg_cert"
     ],
-    "PlutusScript": ["hash"]
+    "PlutusScript": [
+      "hash",
+      "new_v2",
+      "new_v3",
+      "new_with_version",
+      "from_bytes_v2",
+      "from_bytes_v3",
+      "from_bytes_with_version",
+      "from_hex_with_version",
+      "language_version"
+    ]
   }
 }
