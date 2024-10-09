@@ -10,6 +10,7 @@
     "codegen": "tsx conway-cddl/codegen/main.ts",
     "generate-grammar-bundle": "npx ohm generateBundles -e -t tests/api/grammar.ohm",
     "generate-cdl-definitions": "make typedefs",
+    "get-transactions": "tsx tests/serialization/get_transactions.ts",
     "cleanup-compilation-artifacts": "make clean; npm run generate-grammar-bundle"
   },
   "author": "",
