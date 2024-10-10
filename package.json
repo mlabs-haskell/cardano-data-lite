@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npm run test-serialization ; npm run test-api",
-    "test-serialization": "rm -f transaction_fifo; mkfifo transaction_fifo; npx tsx tests/serialization/get_transactions.ts & NODE_OPTIONS=--experimental-vm-modules jest serialization",
+    "test-serialization": "NODE_OPTIONS=--experimental-vm-modules jest serialization",
     "test-api": "npm run generate-cdl-definitions ; NODE_OPTIONS=--experimental-vm-modules jest api",
     "codegen": "tsx conway-cddl/codegen/main.ts",
     "generate-grammar-bundle": "npx ohm generateBundles -e -t tests/api/grammar.ohm",
