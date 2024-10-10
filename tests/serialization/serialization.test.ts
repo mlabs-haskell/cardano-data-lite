@@ -8,6 +8,7 @@ import { Schema } from "../../conway-cddl/codegen/types";
 import { TransactionInfo } from "../test_types"; 
 import { test } from "@jest/globals";
 import * as Out from "../../src/generated.ts"
+import { exit } from "node:process";
 
 // Each component of a transaction is identified by its type and its location
 // in the transaction ('path').
@@ -17,12 +18,21 @@ type TestParameters = { txCount: number, txHash: string, componentIndex: number,
 // Result type for retrieving fields/elements/entries inside the different components
 type AccessSubComponent = { sub: any | undefined, subPath: string }
 
+// Locations for retrieved transactions
+const stagingPath = "tests/serialization/staging";
+const regressionPath  = "tests/serialization/regression";
+
 // The transaction information obtained from get_transactions
-let transactionInfos: Array<TransactionInfo> = [];
+let stagingTransactionInfos: Array<TransactionInfo> = [];
+let regressionTransactionInfos: Array<TransactionInfo> = [];
+// This set may grow during testing when transactions are moved from staging
+// to regression.
+let regressionTransactionHashes: Set<string> = new Set();
 // The CSL transactions
 let transactionsCsl: Array<csl.Transaction> = [];
-// array of parameters for the test function
-let testsTable: Array<TestParameters> = [];
+// Arrays of parameters for the test function
+let stagingTestsTable: Array<TestParameters> = [];
+let regressionTestsTable: Array<TestParameters> = [];
 
 // Types we are not interested in (or that are not supported)
 const typeBlacklist = new Set<string>([
@@ -42,39 +52,43 @@ const fieldsBlacklist = new Set<string>([
 
 // Whether to log extraction messages or not
 const traceExtraction = false;
-// Whether to succeed when a $$CANT_READ error is found
-const succeedWithUnimplementedFunctions = false;
 
 const extractLog = traceExtraction ? (...args : any) => console.log(...args) : () => { ; };
 
-// Retrieve TXs from FIFO...
-extractLog("(serialization.test.ts) Reading transactions from get_transactions...")
-const transactionInfoText = fs.readFileSync("transaction_fifo", { "encoding": "utf8" });
-for (const chunk of transactionInfoText.trimEnd().split('\n')) {
-  let transactionInfo: TransactionInfo = JSON.parse(chunk);
-  transactionInfos.push(transactionInfo);
-}
-extractLog("(serialization.test.ts) All transactions read.")
+// Retrieve TXs from staging and regression
+console.log("(serialization.test.ts) Reading transactions from regression...");
 
-// Build tests table
-extractLog("(serialization.test.ts) Building tests table...")
-let componentIndex = 0;
-for (const [index, txInfo] of transactionInfos.entries()) {
-  extractLog(`(serialization.test.ts) Decomposing TX ${txInfo.hash}`)
-  let tx = csl.Transaction.from_hex(txInfo.cbor);
-  transactionsCsl.push(tx);
-  const components = explodeTx(tx)
-  for (const component of components) {
-    testsTable.push({
-      txCount: index
-      , txHash: txInfo.hash
-      , component: component
-      , componentIndex: componentIndex
-    });
-    componentIndex++;
-  }
+regressionTransactionInfos = retrieveTxsFromDir(regressionPath);
+// We add all the regression transaction hashes to a set
+regressionTransactionInfos.forEach((info) => regressionTransactionHashes.add(info.hash));
+
+console.log("(serialization.test.ts) Reading transactions from staging...")
+
+if (!fs.existsSync(stagingPath)) {
+  console.log("(serialization.test.ts) Staging path does not exist! Run get_transactions.ts to create it");
+  exit(-1);
 }
-extractLog("(serialization.test.ts) Tests table prepared.")
+
+stagingTransactionInfos = retrieveTxsFromDir(stagingPath);
+// We filter out all transactions that are already covered in the regression suite
+stagingTransactionInfos = stagingTransactionInfos.filter((info) => !regressionTransactionHashes.has(info.hash))
+
+console.log("(serialization.test.ts) All transactions read.")
+
+// Build test tables
+console.log("(serialization.test.ts) Building staging test table...")
+
+stagingTestsTable = buildTestTable(stagingTransactionInfos);
+
+console.log(`(serialization.test.ts) Staging tests: ${stagingTestsTable.length}`)
+
+console.log("(serialization.test.ts) Building regression test table...")
+
+regressionTestsTable = buildTestTable(regressionTransactionInfos);
+
+// console.log(`(serialization.test.ts) Regression tests: ${regressionTestsTable.length}`)
+
+console.log("(serialization.test.ts) Tests tables prepared.")
 
 // Decompose a csl transaction into its constituent parts
 function explodeTx(tx: csl.Transaction): Array<Component> {
@@ -119,6 +133,7 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
       break;
     }
     case "newtype": {
+      extractLog("Found a newtype while extracting. Ignoring...")
       // newtypes don't have sub-components
       break;
     }
@@ -184,9 +199,10 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
       }
       break;
     case "enum":
+      extractLog("Found an enum while extracting. Ignoring...")
       break; // enums don't have subcomponents
     case "enum_simple":
-      extractLog("Found and enum_simple while extracting. Ignoring...")
+      extractLog("Found an enum_simple while extracting. Ignoring...")
       break;
   }
 }
@@ -241,56 +257,129 @@ function getTagged(value: any, variantName: string, variantType: string, path: s
   }
   return {sub: value[accessor](), subPath: subPath };
 }
-// We export the missing classes and methods to CSV files, so we
-// create the dir in case it doesn't exist
+// We export the failing components to a CSV file, so we create the reports
+// directory if it doesn't exit.
 try {
   fs.mkdirSync("tests/reports")
 } catch(_err) {
-  console.log("Failed to create reports directory");
-  console.log("Skipping dir creation...")
+  console.log("(serialization.test.ts) Failed to create reports directory");
+  console.log("(serialization.test.ts) Skipping dir creation...")
 };
 
 const reportFile: number = fs.openSync("tests/reports/serialization_failed_classes.csv", "w");
-fs.writeSync(reportFile, "Test number,Class,Failure reason");
+fs.writeSync(reportFile, "Test N.,TX hash,Class,Failure reason,Expected,Obtained\n");
 
 describe("Serialization/deserialization roundtrip tests", () => {
   // Used for debugging 
-  let testN = 0;
-  test.skip(`Test N. ${testN}`, () => {
-    console.log(Buffer.from(testsTable[testN].component.cbor).toString('hex'));
-    let class_key = testsTable[testN].component.type as keyof (typeof Out);
-    let deserialized = (Out[class_key] as any).from_bytes(testsTable[testN].component.cbor);
-    let serialized = deserialized.to_bytes();
-    expect(serialized).toStrictEqual(testsTable[testN].component.cbor);
+  // let testN = 0;
+  // test.skip(`Test N. ${testN}`, () => {
+  //   console.log(Buffer.from(testsTable[testN].component.cbor).toString('hex'));
+  //   let class_key = testsTable[testN].component.type as keyof (typeof Out);
+  //   let deserialized = (Out[class_key] as any).from_bytes(testsTable[testN].component.cbor);
+  //   let serialized = deserialized.to_bytes();
+  //   expect(serialized).toStrictEqual(testsTable[testN].component.cbor);
+  // })
+
+  describe("Staging transactions", () => {
+    test.each(stagingTestsTable)("($componentIndex) TX $txCount ($txHash)\n\tComponent $component.path ($component.type) ", (params) => {
+      let class_key = params.component.type as keyof (typeof Out);
+      // We manually test things first to generate the reports.
+      try {
+        const result: Uint8Array = roundtrip(Out[class_key], params.component.cbor);      
+        // if it doesn't match the expected CBOR, we record it in the report file
+        if (!(Buffer.compare(result, params.component.cbor) == 0)) {
+          writeRoundtripErrorReport(reportFile, class_key, params, result);
+          addToRegressionSuite(params);
+        }
+      } catch(err) {
+        // if it throws, we record it in the report file
+        writeExceptionReport(reportFile, class_key, params, err);
+        addToRegressionSuite(params);
+      }
+      // Now we run the actual jest tests
+      expect(roundtrip(Out[class_key], params.component.cbor)).toEqual(params.component.cbor);
+    });
   })
 
-  test.each(testsTable)("($componentIndex) TX $txCount ($txHash)\n\tComponent $component.path ($component.type) ", (params) => {
-    let class_key = params.component.type as keyof (typeof Out);
-    let result: boolean = false;
-    try {
-      result = roundtrip_eq(Out[class_key], params.component.cbor);      
-    } catch(err) {
-      // if it will fail, we record it in the report file
-      fs.writeSync(reportFile, `${params.componentIndex},${class_key},throws exception\n`, null, "utf-8");
-    }
-    if (!result) {
-      fs.writeSync(reportFile, `${params.componentIndex},${class_key},deserialization/serialization fails\n`, null, "utf-8");
-    }
-    expect(result).toBeTruthy();
-  });
+  describe("Regression transactions", () => {
+    test.each(regressionTestsTable)("($componentIndex) TX $txCount ($txHash)\n\tComponent $component.path ($component.type) ", (params) => {
+      let class_key = params.component.type as keyof (typeof Out);
+      try {
+        const result: Uint8Array = roundtrip(Out[class_key], params.component.cbor);      
+        if (!(Buffer.compare(result, params.component.cbor) == 0)) {
+          writeRoundtripErrorReport(reportFile, class_key, params, result);
+        }
+      } catch(err) {
+        writeExceptionReport(reportFile, class_key, params, err);
+      }
+      expect(roundtrip(Out[class_key], params.component.cbor)).toEqual(params.component.cbor);
+    });
+  })
+
 });
 
-function roundtrip_eq(someClass: any, cbor: Uint8Array): boolean {
-    let deserialized: any;
-    try {
-      deserialized = someClass.from_bytes(cbor);
-    } catch(err) {
-      if(err instanceof TypeError && err.message === "$$CANT_READ is not a function" && succeedWithUnimplementedFunctions) {
-        return true;
-      } else {
-        throw(err);
-      }
+// might throw exceptions!
+function roundtrip(someClass: any, cbor: Uint8Array): Uint8Array {
+    let deserialized = someClass.from_bytes(cbor);
+    return deserialized.to_bytes();
+}
+
+function retrieveTxsFromDir(path: string): Array<TransactionInfo> {
+  let files: Array<string> = fs.readdirSync(path);
+  // filter out hidden files
+  const matchHidden = /^\.\w+/
+  files = files.filter((path) => !path.match(matchHidden));
+
+  let tinfos: Array<TransactionInfo> = [];
+  for (const file of files) {
+    const fileRegex = /(?<idx>[0-9]{3})-(?<hash>[0123456789abcdef]+)\.cbor/;
+    const match = file.match(fileRegex);
+    if (!match || !match.groups || !match.groups["hash"]) {
+      console.log(`(serialization.test.ts) Failed to parse filename: ${file}`);
+      exit(-1);
+    } else {
+      const cbor = fs.readFileSync(`${path}/${file}`, { encoding: "utf-8"});
+      tinfos.push({"hash": match.groups["hash"], "cbor": cbor})
     }
-    let serialized: Uint8Array = deserialized.to_bytes();
-    return (Buffer.compare(serialized, cbor) == 0)
+  }
+  return tinfos;
+}
+
+function buildTestTable(infos: Array<TransactionInfo>): Array<TestParameters> {
+  let componentIndex = 0;
+  let testTable: Array<TestParameters> = [];
+  for (const [index, info] of infos.entries()) {
+    extractLog(`(serialization.test.ts) Decomposing TX ${info.hash}`)
+    let tx = csl.Transaction.from_hex(info.cbor);
+    transactionsCsl.push(tx);
+    const components = explodeTx(tx)
+    for (const component of components) {
+      testTable.push({
+        txCount: index
+        , txHash: info.hash
+        , component: component
+        , componentIndex: componentIndex
+      });
+      componentIndex++;
+    }
+  }
+  return testTable;
+}
+
+function writeExceptionReport(reportFile: number, cls: string, params: TestParameters, err: any): void {
+  fs.writeSync(reportFile, `${params.componentIndex},${params.txHash},${cls},Throws exception: '${err}',,\n`);
+}
+
+function writeRoundtripErrorReport(reportFile: number, cls: string, params: TestParameters, result: Uint8Array): void {
+  fs.writeSync(reportFile, `${params.componentIndex},${params.txHash},${cls},Roundtrip fails,${params.component.cbor},${result}\n`);
+}
+
+function addToRegressionSuite(params: TestParameters): void {
+  if (!regressionTransactionHashes.has(params.txHash)) {
+    fs.writeFileSync(
+        `${regressionPath}/${regressionTransactionHashes.size.toString().padStart(3, "0")}-${params.txHash}.cbor`
+        , stagingTransactionInfos[params.txCount].cbor
+    );
+    regressionTransactionHashes.add(params.txHash);
+  }
 }
