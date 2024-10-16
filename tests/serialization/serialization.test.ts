@@ -12,9 +12,17 @@ import { exit } from "node:process";
 
 // Each component of a transaction is identified by its type and its location
 // in the transaction ('path').
-type Component = { type: string, path: string, cbor: Uint8Array }
+type Component = {
+  type: string                     // The class of the component
+  , key: string                    // The key used to access it (i.e: attribute name, map key, array index)
+  , path: string                   // The complete path to access it given a CSL transaction.
+  , cbor: Uint8Array               // Its CBOR (if available)
+  , children: Array<Component>     // Immediate children (i.e: attributes, map members, array elements)
+  , failed: boolean                // Whether it succeeded or failed during testing
+}
+
 // Each test is made of a transaction and an array of extracted components to test
-type TestParameters = { txCount: number, txHash: string, componentIndex: number, component: Component }
+type TestParameters = { txCount: number, txHash: string, txHashAbbrev: string, componentIndex: number, component: Component }
 // Result type for retrieving fields/elements/entries inside the different components
 type AccessSubComponent = { sub: any | undefined, subPath: string }
 
@@ -86,26 +94,24 @@ console.log("(serialization.test.ts) Building regression test table...")
 
 regressionTestsTable = buildTestTable(regressionTransactionInfos);
 
-// console.log(`(serialization.test.ts) Regression tests: ${regressionTestsTable.length}`)
+console.log(`(serialization.test.ts) Regression tests: ${regressionTestsTable.length}`)
 
 console.log("(serialization.test.ts) Tests tables prepared.")
 
 // Decompose a csl transaction into its constituent parts
-function explodeTx(tx: csl.Transaction): Array<Component> {
+function explodeTx(tx: csl.Transaction): Component {
   let file = fs.readFileSync(`conway-cddl/yaml/conway.yaml`, "utf8");
   let schemata = yaml.parse(file);
   let key = "Transaction"
   let value = schemata["Transaction"];
   let schema: Schema = Value.Parse(Schema, value);
-  let components: Array<Component> = [];
-  explodeValue(key, tx, schema, schemata, components, "tx")
-  components.push({ type: key, path: "tx", cbor: tx.to_bytes() });
-  return components;
+  let children: Array<Component> = [];
+  explodeValue(key, tx, schema, schemata, children, "tx")
+  return { type: key, key: "tx", path: "tx", cbor: tx.to_bytes(), children: children, failed: false };
 }
 
 // Depth-first search of all sub-components (omitting optional/unavailable ones and builtin types)
-// componentPath is used for debugging purposes
-function explodeValue(key: string, value: any, schema: Schema, schemata: any, components: Array<Component>, componentPath: string): void {
+function explodeValue(key: string, value: any, schema: Schema, schemata: any, children: Array<Component>, componentPath: string): void {
   extractLog(`Key: ${key}, Type: ${schema.type}`);
   switch (schema.type) {
     case "record": // intended fall-through: this should work for records and record fragments
@@ -114,9 +120,10 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
         const {sub: fieldValue, subPath: newComponentPath } = getField(value, field.name, field.type, field.nullable, componentPath);
         if (fieldValue && schemata[field.type]) {
           extractLog(`Field name: ${field.name}\nField type: ${field.type}\nPath: ${newComponentPath}`);
-          explodeValue(field.name, fieldValue, schemata[field.type], schemata, components, newComponentPath)
+          let grandchildren = [];
+          explodeValue(field.name, fieldValue, schemata[field.type], schemata, grandchildren, newComponentPath)
           if (schema.type == "record") {
-            components.push({ type: field.type, path: newComponentPath, cbor: fieldValue.to_bytes() });
+            children.push({ type: field.type, key: key, path: newComponentPath, children: grandchildren, cbor: fieldValue.to_bytes(), failed: false });
           } // we don't test record fragments themselves
         }
       }
@@ -127,8 +134,9 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
       const {sub: wrappedValue, subPath: newComponentPath } = getWrapped(value, wrappedName, wrappedType, componentPath);
       if (wrappedValue && schemata[wrappedType]) {
         extractLog(`Wrapped value (record fragment): ${wrappedName}\nWrapped type: ${wrappedType}`);
-        explodeValue(wrappedName, wrappedValue, schemata[wrappedType], schemata[wrappedType], components, newComponentPath)
-        components.push({ type: wrappedType, path: newComponentPath, cbor: wrappedValue.to_bytes()});
+        let grandchildren = [];
+        explodeValue(wrappedName, wrappedValue, schemata[wrappedType], schemata[wrappedType], grandchildren, newComponentPath)
+        children.push({ type: wrappedType, key: key, path: newComponentPath, children: grandchildren, cbor: wrappedValue.to_bytes(), failed: false});
       }
       break;
     }
@@ -142,8 +150,9 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
         const { sub: fieldValue, subPath: newComponentPath } = getField(value, field.name, field.type, field.optional, componentPath);
         if (fieldValue && schemata[field.type]) {
           extractLog(`Field name: ${field.name}\nField type: ${field.type}\nPath: ${newComponentPath}`);
-          explodeValue(field.name, fieldValue, schemata[field.type], schemata, components, newComponentPath)
-          components.push({ type: field.type, path: newComponentPath, cbor: fieldValue.to_bytes() });
+          let grandchildren = [];
+          explodeValue(field.name, fieldValue, schemata[field.type], schemata, grandchildren, newComponentPath)
+          children.push({ type: field.type, key: key, path: newComponentPath, children: grandchildren, cbor: fieldValue.to_bytes(), failed: false});
         }
       }
       break;
@@ -156,8 +165,9 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
         const { sub: taggedValue, subPath: newComponentPath} = getTagged(value, variant.name, variant.value, componentPath);
         if (taggedValue) {
           extractLog(`Variant name: ${variant.name}\nVariant type: ${variant.value}`);
-          explodeValue(variant.name, taggedValue, schemata[variant.value], schemata, components, newComponentPath)
-          components.push({ type: variant.value, path: newComponentPath, cbor: taggedValue.to_bytes() })
+          let grandchildren = [];
+          explodeValue(variant.name, taggedValue, schemata[variant.value], schemata, grandchildren, newComponentPath)
+          children.push({ type: variant.value, key: key, path: newComponentPath, children: grandchildren, cbor: taggedValue.to_bytes(), failed: false })
         }
       }
       break;
@@ -167,14 +177,16 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
         const {sub: keyValue, subPath: keyPath} = getElem(value.keys(), index, `${key}.keys().get(${index})`, schema.key, componentPath);
         if (keyValue && schemata[schema.key]) {
           extractLog(`Key index: ${index}\nKey type: ${schema.key}\nKey path: ${keyPath}`);
-          explodeValue(`${key}.keys().get(${index})`, keyValue, schemata[schema.key], schemata, components, keyPath)
-          components.push({ type: schema.key, path: keyPath, cbor: keyValue.to_bytes()});
+          let grandchildren = [];
+          explodeValue(`${key}.keys().get(${index})`, keyValue, schemata[schema.key], schemata, grandchildren, keyPath)
+          children.push({ type: schema.key, key: key, path: keyPath, children: grandchildren, cbor: keyValue.to_bytes(), failed: false});
         }
         const {sub: entryValue, subPath: valuePath} = getEntry(value, keyValue, `${key}.get(Key#${index})`, schema.value, index, componentPath);
         if (entryValue && schemata[schema.value]) {
           extractLog(`Value type: ${schema.value}\nValue path: ${valuePath}`);
-          explodeValue(`${key}.get(Key#${index})`, entryValue, schemata[schema.value], schemata, components, valuePath)
-          components.push({ type: schema.value, path: valuePath, cbor: entryValue.to_bytes()});
+          let grandchildren = [];
+          explodeValue(`${key}.get(Key#${index})`, entryValue, schemata[schema.value], schemata, grandchildren, valuePath)
+          children.push({ type: schema.value, key: key, path: valuePath, children: grandchildren, cbor: entryValue.to_bytes(), failed: false});
         }
       }
       break;
@@ -183,8 +195,9 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
         const {sub: elemValue, subPath: newComponentPath} = getElem(value, index, `${key}[${index}]`, schema.item, componentPath);        
         if (elemValue && schemata[schema.item]) {
           extractLog(`Elem index: ${index}\nElem type: ${schema.item}\nPath: ${newComponentPath}`);
-          explodeValue(`${key}[${index}]`, elemValue, schemata[schema.item], schemata, components, newComponentPath)
-          components.push({ type: schema.item, path: newComponentPath, cbor: elemValue.to_bytes() });
+          let grandchildren = [];
+          explodeValue(`${key}[${index}]`, elemValue, schemata[schema.item], schemata, grandchildren, newComponentPath)
+          children.push({ type: schema.item, key: key, path: newComponentPath, children: grandchildren, cbor: elemValue.to_bytes(), failed: false});
         }
       }
       break;
@@ -193,8 +206,9 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, co
         const {sub: elemValue, subPath: newComponentPath } = getElem(value, index, `${key}[${index}]`, schema.item, componentPath);
         if (elemValue && schemata[schema.item]) {
           extractLog(`Elem index: ${index}\nElem type: ${schema.item}\nPath: ${newComponentPath}`);
-          explodeValue(`${key}[${index}]`, elemValue, schemata[schema.item], schemata, components, newComponentPath)
-          components.push({ type: schema.item, path: newComponentPath, cbor: elemValue.to_bytes() });
+          let grandchildren = [];
+          explodeValue(`${key}[${index}]`, elemValue, schemata[schema.item], schemata, grandchildren, newComponentPath)
+          children.push({ type: schema.item, key: key, path: newComponentPath, children: grandchildren, cbor: elemValue.to_bytes(), failed: false});
         }
       }
       break;
@@ -267,9 +281,9 @@ try {
 };
 
 const reportFile: number = fs.openSync("tests/reports/serialization_failed_classes.csv", "w");
-fs.writeSync(reportFile, "Test N.,TX hash,Class,Failure reason,Expected,Obtained\n");
+fs.writeSync(reportFile, "Test N.,TX hash,Class,Component Path,Failure reason,Expected,Obtained\n");
 
-describe("Serialization/deserialization roundtrip tests", () => {
+describe("roundtrip", () => {
   // Used for debugging 
   // let testN = 0;
   // test.skip(`Test N. ${testN}`, () => {
@@ -280,20 +294,31 @@ describe("Serialization/deserialization roundtrip tests", () => {
   //   expect(serialized).toStrictEqual(testsTable[testN].component.cbor);
   // })
 
-  describe("Staging transactions", () => {
-    test.each(stagingTestsTable)("($componentIndex) TX $txCount ($txHash)\n\tComponent $component.path ($component.type) ", (params) => {
+  describe("staging", () => {
+    test.each(stagingTestsTable)("($componentIndex) TX $txCount ($txHashAbbrev)\n\tComponent $component.path ($component.type) ", (params) => {
       let class_key = params.component.type as keyof (typeof Out);
+
+      // We skip testing if any descendant failed the test
+      const childFailed = params.component.children.some((child) => child.failed)
+      if (childFailed) {
+        params.component.failed = true;
+        writeChildErrorReport(reportFile, params);
+        expect(childFailed).toBeFalsy(); // used to skip the other check at the end
+      }
+
       // We manually test things first to generate the reports.
       try {
         const result: Uint8Array = roundtrip(Out[class_key], params.component.cbor);      
         // if it doesn't match the expected CBOR, we record it in the report file
         if (!(Buffer.compare(result, params.component.cbor) == 0)) {
-          writeRoundtripErrorReport(reportFile, class_key, params, result);
+          params.component.failed = true;
+          writeRoundtripErrorReport(reportFile, params, result);
           addToRegressionSuite(params);
         }
       } catch(err) {
         // if it throws, we record it in the report file
-        writeExceptionReport(reportFile, class_key, params, err);
+        params.component.failed = true;
+        writeExceptionReport(reportFile, params, err);
         addToRegressionSuite(params);
       }
       // Now we run the actual jest tests
@@ -301,16 +326,26 @@ describe("Serialization/deserialization roundtrip tests", () => {
     });
   })
 
-  describe("Regression transactions", () => {
-    test.each(regressionTestsTable)("($componentIndex) TX $txCount ($txHash)\n\tComponent $component.path ($component.type) ", (params) => {
+  describe("regression", () => {
+    test.each(regressionTestsTable)("($componentIndex) TX $txCount ($txHashAbbrev)\n\tComponent $component.path ($component.type) ", (params) => {
       let class_key = params.component.type as keyof (typeof Out);
+
+      const childFailed = params.component.children.some((child) => child.failed)
+      if (childFailed) {
+        params.component.failed = true;
+        writeChildErrorReport(reportFile, params);
+        expect(childFailed).toBeFalsy();
+      }
+
       try {
         const result: Uint8Array = roundtrip(Out[class_key], params.component.cbor);      
         if (!(Buffer.compare(result, params.component.cbor) == 0)) {
-          writeRoundtripErrorReport(reportFile, class_key, params, result);
+          params.component.failed = true;
+          writeRoundtripErrorReport(reportFile, params, result);
         }
       } catch(err) {
-        writeExceptionReport(reportFile, class_key, params, err);
+        params.component.failed = true;
+        writeExceptionReport(reportFile, params, err);
       }
       expect(roundtrip(Out[class_key], params.component.cbor)).toEqual(params.component.cbor);
     });
@@ -352,11 +387,13 @@ function buildTestTable(infos: Array<TransactionInfo>): Array<TestParameters> {
     extractLog(`(serialization.test.ts) Decomposing TX ${info.hash}`)
     let tx = csl.Transaction.from_hex(info.cbor);
     transactionsCsl.push(tx);
-    const components = explodeTx(tx)
+    let components = [];
+    depthFirstTraversal(explodeTx(tx), components);
     for (const component of components) {
       testTable.push({
         txCount: index
         , txHash: info.hash
+        , txHashAbbrev: info.hash.slice(0, 8)
         , component: component
         , componentIndex: componentIndex
       });
@@ -366,12 +403,23 @@ function buildTestTable(infos: Array<TransactionInfo>): Array<TestParameters> {
   return testTable;
 }
 
-function writeExceptionReport(reportFile: number, cls: string, params: TestParameters, err: any): void {
-  fs.writeSync(reportFile, `${params.componentIndex},${params.txHash},${cls},Throws exception: '${err}',,\n`);
+function depthFirstTraversal(c: Component, acc: Array<Component>): void {
+  for (const child of c.children) {
+    depthFirstTraversal(child, acc);
+  }
+  acc.push(c);
 }
 
-function writeRoundtripErrorReport(reportFile: number, cls: string, params: TestParameters, result: Uint8Array): void {
-  fs.writeSync(reportFile, `${params.componentIndex},${params.txHash},${cls},Roundtrip fails,${params.component.cbor},${result}\n`);
+function writeExceptionReport(reportFile: number, params: TestParameters, err: any): void {
+  fs.writeSync(reportFile, `${params.componentIndex},${params.txHashAbbrev},${params.component.type},${params.component.path},Throws exception: '${err}',,\n`);
+}
+
+function writeRoundtripErrorReport(reportFile: number, params: TestParameters, result: Uint8Array): void {
+  fs.writeSync(reportFile, `${params.componentIndex},${params.txHashAbbrev},${params.component.type},${params.component.path},Roundtrip fails,${params.component.cbor},${result}\n`);
+}
+
+function writeChildErrorReport(reportFile: number, params: TestParameters): void {
+  fs.writeSync(reportFile, `${params.componentIndex},${params.txHashAbbrev},${params.component.type},${params.component.path},Child fails roundtrip,,\n`);
 }
 
 function addToRegressionSuite(params: TestParameters): void {
