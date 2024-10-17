@@ -50,3 +50,19 @@ export type TypeComparisonFailure =
     "expected": SomeType
     , "received": SomeType
   }
+
+// Each component of a transaction is identified by its type and its location
+// in the transaction ('path').
+export type Component = {
+  type: string                     // The class of the component
+  , key: string                    // The key used to access it (i.e: attribute name, map key, array index)
+  , path: string                   // The complete path to access it given a CSL transaction.
+  , cbor: Uint8Array               // Its CBOR (if available)
+  , children: Array<Component>     // Immediate children (i.e: attributes, map members, array elements)
+  , failed: boolean                // Whether it succeeded or failed during testing
+}
+
+// Each test is made of a transaction and an array of extracted components to test
+export type RoundtripTestParameters = { txCount: number, txHash: string, txHashAbbrev: string, componentIndex: number, component: Component }
+// Result type for retrieving fields/elements/entries inside the different components
+export type AccessSubComponent = { sub: any | undefined, subPath: string }
