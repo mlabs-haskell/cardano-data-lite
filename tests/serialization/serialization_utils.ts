@@ -2,8 +2,8 @@ import fs from "node:fs";
 import * as csl from "@emurgo/cardano-serialization-lib-nodejs-gc";
 import * as yaml from "yaml";
 import { Value } from "@sinclair/typebox/value";
-import { AccessSubComponent, Component, RoundtripTestParameters, TransactionInfo } from "./test_types";
-import { Schema } from "../conway-cddl/codegen/types";
+import { AccessSubComponent, Component, RoundtripTestParameters, TransactionInfo } from "../test_types";
+import { Schema } from "../../conway-cddl/codegen/types";
 import { exit } from "node:process";
 
 // Whether to log extraction messages or not
@@ -221,7 +221,7 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
 // Get field of struct or record
 function getField(value: any, fieldName: string, fieldType: string, optional: boolean | undefined, path: string): AccessSubComponent {
   extractLog("getField: ", fieldName);
-  const subPath = optional ? `${path}["${fieldName}"]()?` : `${path}["${fieldName}"]()`
+  const subPath = optional ? `${path}/${fieldName}?` : `${path}/${fieldName}`
   if (typeBlacklist.has(fieldType) || fieldsBlacklist.has(fieldName)) {
     return { sub: undefined, subPath: subPath };
   }
@@ -231,7 +231,7 @@ function getField(value: any, fieldName: string, fieldType: string, optional: bo
 // Get wrappped value out of record_fragment_wrapper
 function getWrapped(value: any, wrappedName: string, wrappedType: string, path: string): AccessSubComponent {
   extractLog("getWrapped: ", wrappedName)  ;
-  const subPath = `${path}[${wrappedName}]()`
+  const subPath = `${path}/${wrappedName}]`
   if (typeBlacklist.has(wrappedType)) {
     return { sub: undefined, subPath: subPath };
   }
@@ -241,7 +241,7 @@ function getWrapped(value: any, wrappedName: string, wrappedType: string, path: 
 // Get entry of map
 function getEntry(value: any, mapKey: any, entryName: string, entryType: string, mapKeyIndex: number, path: string): AccessSubComponent {
   extractLog("getEntry: ", entryName);
-  const subPath = `${path}.get(${path}.keys().get(${mapKeyIndex}))`;
+  const subPath = `${path}/Key#${mapKeyIndex}`;
   if (typeBlacklist.has(entryType)) {
     return { sub: undefined, subPath: subPath };
   }
@@ -251,7 +251,7 @@ function getEntry(value: any, mapKey: any, entryName: string, entryType: string,
 // Get element of array or set (can be used for getting a key by index too)
 function getElem(value: any, index: number, elemName: string, elemType: string, path: string): AccessSubComponent {
   extractLog("getElem: ", elemName);
-  const subPath = `${path}.get(${index})`;
+  const subPath = `${path}/Elem#${index}`;
   if (typeBlacklist.has(elemType)) {
     return { sub: undefined, subPath: subPath };
   }
@@ -262,7 +262,7 @@ function getElem(value: any, index: number, elemName: string, elemType: string, 
 function getTagged(value: any, variantName: string, variantType: string, path: string): AccessSubComponent {
   extractLog("getTagged: ", variantName);
   const accessor = `as_${variantName}`;
-  const subPath = `${path}[\"${accessor}\"]`
+  const subPath = `${path}/${accessor}`
   if (typeBlacklist.has(variantType) || fieldsBlacklist.has(variantName)) {
     return { sub: undefined, subPath: subPath };
   }
