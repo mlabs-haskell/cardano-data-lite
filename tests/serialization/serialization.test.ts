@@ -80,7 +80,7 @@ describe("roundtrip", () => {
       if (childFailed) {
         params.component.failed = true;
         writeChildErrorReport(reportFile, params);
-        expect(childFailed).toBeFalsy(); // used to skip the other check at the end
+        throw "Child fails roundtrip"; // used to skip the other check at the end
       }
 
       // We manually test things first to generate the reports.
@@ -111,7 +111,7 @@ describe("roundtrip", () => {
       if (childFailed) {
         params.component.failed = true;
         writeChildErrorReport(reportFile, params);
-        expect(childFailed).toBeFalsy();
+        throw "Child fails roundtrip";
       }
 
       try {

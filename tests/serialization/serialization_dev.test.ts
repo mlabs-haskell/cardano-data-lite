@@ -43,7 +43,7 @@ describe("roundtrip", () => {
       const childFailed = params.component.children.some((child) => child.failed)
       if (childFailed) {
         params.component.failed = true;
-        expect(childFailed).toBeFalsy(); // used to skip the other check at the end
+        throw "Child fails roundtrip"; // used to skip the other check at the end
       }
 
       // We manually test things first to generate the reports.
