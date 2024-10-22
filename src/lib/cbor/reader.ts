@@ -18,7 +18,7 @@ export class CBORReader {
     this.buffer = buffer;
   }
 
-  peekType(): CBORType {
+  peekType(path: string[]): CBORType {
     let tag = this.buffer[0] >> 5;
     switch (tag) {
       case 0b000:
@@ -51,58 +51,60 @@ export class CBORReader {
             return "float";
         }
     }
-    throw new CBORInvalidTag(tag);
+    let err = new CBORInvalidTag(tag)
+    err.message += ` (${path.join()})`
+    throw err
   }
 
   isBreak(): boolean {
     return this.buffer[0] == 0xff;
   }
 
-  readBreak() {
+  readBreak(path: string[] = []) {
     if (!this.isBreak()) {
-      throw new Error("Expected break");
+      throw new Error(`Expected break (${path.join()})`)
     }
     this.buffer = this.buffer.slice(1);
   }
 
-  readUint(): bigint {
-    this.assertType(["uint"]);
-    return this.readBigInt();
+  readUint(path: string[]): bigint {
+    this.assertType(["uint"], path);
+    return this.readBigInt(path);
   }
 
-  readInt(): bigint {
-    this.assertType(["uint", "nint"]);
-    if (this.peekType() == "uint") {
-      return this.readBigInt();
-    } else if (this.peekType() == "nint") {
-      return 1n - this.readBigInt();
+  readInt(path: string[]): bigint {
+    this.assertType(["uint", "nint"], path);
+    if (this.peekType(path) == "uint") {
+      return this.readBigInt(path);
+    } else if (this.peekType(path) == "nint") {
+      return 1n - this.readBigInt(path);
     } else {
-      throw new Error("Unreachable");
+      throw new Error(`Unreachable (${path.join()})`);
     }
   }
 
   // ret Uint8Array as read only reference to the source bytes
-  readBytes(): Uint8Array {
-    this.assertType(["bytes"]);
-    return this.readByteString();
+  readBytes(path: string[]): Uint8Array {
+    this.assertType(["bytes"], path);
+    return this.readByteString(path);
   }
 
-  readString(): string {
-    this.assertType(["bytes"]);
-    let bytes = this.readByteString();
+  readString(path: string[]): string {
+    this.assertType(["bytes"], path);
+    let bytes = this.readByteString(path);
     return new TextDecoder().decode(bytes);
   }
 
   // reads array tag and returns the length as number or null if indefinite length.
-  readArrayTag(): number | null {
-    this.assertType(["array"]);
-    return this.readLength();
+  readArrayTag(path: string[]): number | null {
+    this.assertType(["array"], path);
+    return this.readLength(path);
   }
 
   // reads map tag and returns the length as number or null if indefinite length.
-  readMapTag(): number | null {
-    this.assertType(["map"]);
-    return this.readLength();
+  readMapTag(path: string[]): number | null {
+    this.assertType(["map"], path);
+    return this.readLength(path);
   }
 
   readN(n: number, fn: (reader: CBORReader) => void) {
@@ -123,48 +125,48 @@ export class CBORReader {
     else this.readN(n, fn);
   }
 
-  readArray<T>(readItem: (reader: CBORReader) => T): T[] {
+  readArray<T>(readItem: (reader: CBORReader) => T, path: string[]): T[] {
     let ret: T[] = [];
-    this.readMultiple(this.readArrayTag(), (reader) =>
+    this.readMultiple(this.readArrayTag(path), (reader) =>
       ret.push(readItem(reader)),
     );
     return ret;
   }
 
-  readMap<T>(readItem: (reader: CBORReader) => T): T[] {
+  readMap<T>(readItem: (reader: CBORReader) => T, path: string[]): T[] {
     let ret: T[] = [];
-    this.readMultiple(this.readMapTag(), (reader) =>
+    this.readMultiple(this.readMapTag(path), (reader) =>
       ret.push(readItem(reader)),
     );
     return ret;
   }
 
-  readBoolean(): boolean {
-    this.assertType(["boolean"]);
+  readBoolean(path: string[]): boolean {
+    this.assertType(["boolean"], path);
     let tag = this.buffer[0];
     this.buffer = this.buffer.slice(1);
     return tag == 0xf5;
   }
 
-  readNull(): null {
-    this.assertType(["null"]);
+  readNull(path: string[]): null {
+    this.assertType(["null"], path);
     this.buffer = this.buffer.slice(1);
     return null;
   }
 
-  readNullable<T>(fn: (reader: CBORReader) => T): T | null {
-    if (this.peekType() == "null") return null;
+  readNullable<T>(fn: (reader: CBORReader) => T, path: string[]): T | null {
+    if (this.peekType(path) == "null") return null;
     return fn(this);
   }
 
-  readUndefined(): undefined {
-    this.assertType(["undefined"]);
+  readUndefined(path: string[]): undefined {
+    this.assertType(["undefined"], path);
     this.buffer = this.buffer.slice(1);
     return;
   }
 
-  readFloat(): number {
-    this.assertType(["float"]);
+  readFloat(path: string[]): number {
+    this.assertType(["float"], path);
     let tag = this.buffer[0];
     this.buffer = this.buffer.slice(1);
     let nBytes = 4;
@@ -182,40 +184,44 @@ export class CBORReader {
         false /* false means Big Endian */,
       );
     } else {
-      throw new Error("Unreachable");
+      throw new Error(`Unreachable (${path.join()})`);
     }
     this.buffer = this.buffer.slice(nBytes);
     return float;
   }
 
   // read cbor tag and return the tag value as number
-  readTaggedTag(): number {
-    this.assertType(["tagged"]);
-    return Number(this.readBigInt());
+  readTaggedTag(path: string[]): number {
+    this.assertType(["tagged"], path);
+    return Number(this.readBigInt(path));
   }
 
-  assertType(expectedTypes: CBORType[]) {
-    let receivedType = this.peekType();
+  assertType(expectedTypes: CBORType[], path: string[]) {
+    let receivedType = this.peekType(path);
     if (!expectedTypes.includes(receivedType)) {
-      throw new CBORUnexpectedType(expectedTypes, receivedType);
+      let err = new CBORUnexpectedType(expectedTypes, receivedType);
+      err.message += ` (${path.join()})`;
+      throw err;
     }
   }
 
-  private readLength(): number | null {
+  private readLength(path: string[]): number | null {
     let tag = this.buffer[0];
     let len = tag & 0b11111;
     if (len == 0x1f) return null;
-    return Number(this.readBigInt());
+    return Number(this.readBigInt(path));
   }
 
-  private readBigInt(): bigint {
+  private readBigInt(path: string[]): bigint {
     let tag = this.buffer[0];
 
     let len = tag & 0b11111;
 
     // the value of the length field must be between 0x00 and 0x1b
     if (!(len >= 0x00 && len <= 0x1b)) {
-      throw new CBORInvalidTag(tag);
+      let err = new CBORInvalidTag(tag);
+      err.message += ` ${path.join()}`;
+      throw err;
     }
 
     this.buffer = this.buffer.slice(1);
@@ -234,13 +240,15 @@ export class CBORReader {
     return x;
   }
 
-  private readByteString(): Uint8Array {
+  private readByteString(path: string[]): Uint8Array {
     let tag = this.buffer[0];
 
     let len = tag & 0b11111;
 
     if (!((len >= 0x00 && len <= 0x1b) || len == 0x1f)) {
-      throw new CBORInvalidTag(tag);
+      let err = new CBORInvalidTag(tag);
+      err.message += ` ${path.join()}`;
+      throw err;
     }
 
     this.buffer = this.buffer.slice(1);
@@ -251,11 +259,11 @@ export class CBORReader {
       let i = -1;
       while (this.buffer[0] != 0xff) {
         i += 1;
-        (chunk = this.readByteString()), chunks.push(chunk);
+        (chunk = this.readByteString(path)), chunks.push(chunk);
       }
       return concatUint8Array(chunks);
     } else {
-      let n = Number(this.readBigInt());
+      let n = Number(this.readBigInt(path));
 
       let chunk = this.buffer.slice(0, n);
       this.buffer = this.buffer.slice(n);
