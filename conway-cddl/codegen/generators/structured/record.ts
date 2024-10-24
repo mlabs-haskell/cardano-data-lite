@@ -20,21 +20,22 @@ export class GenRecord extends GenStructuredBase<Field> {
     super(name, customTypes, { genCSL: true, ...options });
   }
 
-  generateDeserialize(reader: string): string {
+  generateDeserialize(reader: string, path: string): string {
     return `
-      let len = ${reader}.readArrayTag();
+      let len = ${reader}.readArrayTag(${path});
       
       if(len != null && len < ${this.getFields().length}) {
-        throw new Error("Insufficient number of fields in record. Expected ${this.getFields().length}. Received " + len);
+        throw new Error("Insufficient number of fields in record. Expected ${this.getFields().length}. Received " + len + "(at " + path.join("/"));
       }
 
       ${this.getFields()
         .map(
           (x) => `
+          const ${x.name}_path = [...${path}, '${x.type}(${x.name})'];
           let ${x.name} = ${
             x.nullable
-              ? `${reader}.readNullable(r => ${this.typeUtils.readType("r", x.type)})?? undefined`
-              : this.typeUtils.readType(reader, x.type)
+              ? `${reader}.readNullable(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)}, ${path})?? undefined`
+              : this.typeUtils.readType(reader, x.type, `${x.name}_path`)
           };`,
         )
         .join("\n")}

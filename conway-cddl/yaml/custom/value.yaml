@@ -27,11 +27,11 @@ Value:
       return Value.new_with_assets(BigNum.zero(), multiasset);
     }
 
-    static deserialize(reader: CBORReader): Value {
-      if(reader.peekType() == 'array') {
-        return Value.deserializeRecord(reader);
+    static deserialize(reader: CBORReader, path: string[]): Value {
+      if(reader.peekType(path) == 'array') {
+        return Value.deserializeRecord(reader, path);
       }
-      return Value.new(BigNum.deserialize(reader));
+      return Value.new(BigNum.deserialize(reader, path));
     }
 
     serialize(writer: CBORWriter): void {
@@ -45,25 +45,25 @@ Value:
       }
     }
 
-    checked_add(rhs: Value): Value {
+    checked_add(rhs: Value, path: string[]): Value {
       let coin = this._coin.checked_add(rhs._coin);
       let multiasset: MultiAsset | undefined;
       if(this._multiasset != null) {
-        multiasset = this._multiasset.clone();
+        multiasset = this._multiasset.clone(path);
         if(rhs._multiasset != null) {
           multiasset._inplace_checked_add(rhs._multiasset);
         }
       } else if(rhs._multiasset != null) {
-        multiasset = rhs._multiasset.clone();
+        multiasset = rhs._multiasset.clone(path);
       }
       return new Value(coin, multiasset);
     }
 
-    checked_sub(rhs: Value): Value {
+    checked_sub(rhs: Value, path: string[]): Value {
       let coin = this._coin.checked_sub(rhs._coin);
       let multiasset: MultiAsset | undefined;
       if(this._multiasset != null) {
-        multiasset = this._multiasset.clone();
+        multiasset = this._multiasset.clone(path);
         if(rhs._multiasset != null) {
           multiasset._inplace_clamped_sub(rhs._multiasset);
         }
@@ -71,11 +71,11 @@ Value:
       return new Value(coin, multiasset);
     }
 
-    clamped_sub(rhs: Value): Value {
+    clamped_sub(rhs: Value, path: string[]): Value {
       let coin = this._coin.clamped_sub(rhs._coin);
       let multiasset: MultiAsset | undefined;
       if(this._multiasset != null) {
-        multiasset = this._multiasset.clone();
+        multiasset = this._multiasset.clone(path);
         if(rhs._multiasset != null) {
           multiasset._inplace_clamped_sub(rhs._multiasset);
         }
@@ -128,8 +128,8 @@ MultiAsset:
       return asset_amount;
     }
 
-    sub(rhs: MultiAsset): MultiAsset {
-      let out = this.clone();
+    sub(rhs: MultiAsset, path: string[]): MultiAsset {
+      let out = this.clone(path);
       out._inplace_clamped_sub(rhs);
       return out;
     }

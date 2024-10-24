@@ -25,15 +25,15 @@ export class GenRecordFragment extends GenStructuredBase<Field> {
     this.fragmentEncodeLen = this.fragmentEncodeLen;
   }
 
-  generateDeserialize(reader: string): string {
+  generateDeserialize(reader: string, path: string): string {
     return `
       ${this.getFields()
         .map(
           (x) => `
           let ${x.name} = ${
             x.nullable
-              ? `${reader}.readNullable(r => ${this.typeUtils.readType("r", x.type)})?? undefined`
-              : this.typeUtils.readType(reader, x.type)
+              ? `${reader}.readNullable(r => ${this.typeUtils.readType("r", x.type, `[...${path}, '${x.name}']`)}, ${path})?? undefined`
+              : this.typeUtils.readType(reader, x.type, `[...${path}, '${x.name}']`)
           };`,
         )
         .join("\n")}

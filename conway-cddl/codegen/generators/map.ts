@@ -97,14 +97,14 @@ export class GenMap extends CodeGeneratorBase {
     `;
   }
 
-  generateDeserialize(reader: string): string {
+  generateDeserialize(reader: string, path: string): string {
     return `
       let ret = new ${this.name}([]);
       ${reader}.readMap(
-        reader => ret.${this.renameMethod("insert")}(
-          ${this.typeUtils.readType("reader", this.key)},
-          ${this.typeUtils.readType("reader", this.value)}
-        )
+        (reader, idx) => ret.${this.renameMethod("insert")}(
+          ${this.typeUtils.readType("reader", this.key, `[...${path}, "${this.key}#" + idx]`)},
+          ${this.typeUtils.readType("reader", this.value, `[...${path}, "${this.value}#" + idx]`)}
+        ), path
       );
       return ret;
     `;

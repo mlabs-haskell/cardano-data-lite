@@ -74,16 +74,16 @@ export class Credential {
     }
   }
 
-  static deserialize(reader: CBORReader): Credential {
-    let len = reader.readArrayTag();
-    if (len != 2) throw new Error("Expected array length == 2");
-    const kind = reader.readInt();
+  static deserialize(reader: CBORReader, path: string[]): Credential {
+    let len = reader.readArrayTag(path);
+    if (len != 2) throw new Error(`Expected array length == 2 (at ${path.join('/')})`);
+    const kind = reader.readInt(path);
     if (kind === 0n) {
-      return Credential.from_keyhash(Ed25519KeyHash.deserialize(reader));
+      return Credential.from_keyhash(Ed25519KeyHash.deserialize(reader, path));
     } else if (kind == 1n) {
-      return Credential.from_scripthash(ScriptHash.deserialize(reader));
+      return Credential.from_scripthash(ScriptHash.deserialize(reader, path));
     } else {
-      throw new Error(`Unknown credential kind: ${kind}`);
+      throw new Error(`Unknown credential kind: ${kind} (at ${path.join('/')})`);
     }
   }
 
@@ -93,17 +93,17 @@ export class Credential {
     return writer.getBytes();
   }
 
-  static from_bytes(data: Uint8Array): Credential {
+  static from_bytes(data: Uint8Array, path: string[]): Credential {
     const reader = new CBORReader(data);
-    return Credential.deserialize(reader);
+    return Credential.deserialize(reader, path);
   }
 
   to_hex(): string {
     return bytesToHex(this.to_bytes());
   }
 
-  static from_hex(data: string): Credential {
-    return Credential.from_bytes(hexToBytes(data));
+  static from_hex(data: string, path: string[]): Credential {
+    return Credential.from_bytes(hexToBytes(data), path);
   }
 
   // no-op

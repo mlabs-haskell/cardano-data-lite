@@ -25,24 +25,26 @@ export class GenStruct extends GenStructuredBase<Field> {
     return `
       let fields: any = {};
       reader.readMap(r => {
-        let key = Number(r.readUint()); 
+        let key = Number(r.readUint(path)); 
         switch(key) {
           ${this.getFields()
             .map(
               (x) => `
-              case ${x.id}:   
-                  fields.${x.name} = ${this.typeUtils.readType("r", x.type)}; 
+              case ${x.id}: {
+                  const new_path = [...path, '${x.type}(${x.name})']
+                  fields.${x.name} = ${this.typeUtils.readType("r", x.type, "new_path")}; 
                   break;
+              }
             `,
             )
             .join("\n")}
         }
-      });
+      }, path);
 
         ${this.getFields()
           .flatMap((x) => [
             !x.optional
-              ? `if(fields.${x.name} === undefined) throw new Error("Value not provided for field ${x.id} (${x.name})");`
+              ? `if(fields.${x.name} === undefined) throw new Error("Value not provided for field ${x.id} (${x.name}) (at " + path.join("/") + ")");`
               : "",
             `let ${x.name} = fields.${x.name};`,
           ])

@@ -86,9 +86,9 @@ export class GenUnion extends CodeGeneratorBase {
     `;
   }
 
-  generateDeserialize(reader: string): string {
+  generateDeserialize(reader: string, path: string): string {
     return `
-      let tag = ${reader}.peekType();
+      let tag = ${reader}.peekType(${path});
       let variant: ${this.name}Variant;
 
       switch(tag) {
@@ -107,7 +107,7 @@ export class GenUnion extends CodeGeneratorBase {
               `
               variant = {
                 kind: ${this.name}Kind.${x.kind_name ?? x.type},
-                value: ${this.typeUtils.readType(reader, x.type)}
+                value: ${this.typeUtils.readType(reader, x.type, `[...${path}, '${x.type}(${x.name})']`)}
               };
               break;
               `
@@ -115,7 +115,7 @@ export class GenUnion extends CodeGeneratorBase {
           })
           .join("\n")}
         default:
-          throw new Error("Unexpected subtype for ${this.name}: " + tag);
+          throw new Error("Unexpected subtype for ${this.name}: " + tag + "(at " + ${path}.join("/") + ")");
       }
 
       return new ${this.name}(variant);

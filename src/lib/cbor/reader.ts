@@ -52,7 +52,7 @@ export class CBORReader {
         }
     }
     let err = new CBORInvalidTag(tag)
-    err.message += ` (${path.join()})`
+    err.message += ` (at ${path.join("/")})`
     throw err
   }
 
@@ -62,7 +62,7 @@ export class CBORReader {
 
   readBreak(path: string[] = []) {
     if (!this.isBreak()) {
-      throw new Error(`Expected break (${path.join()})`)
+      throw new Error(`Expected break (at ${path.join("/")})`)
     }
     this.buffer = this.buffer.slice(1);
   }
@@ -79,7 +79,7 @@ export class CBORReader {
     } else if (this.peekType(path) == "nint") {
       return 1n - this.readBigInt(path);
     } else {
-      throw new Error(`Unreachable (${path.join()})`);
+      throw new Error(`Unreachable (at ${path.join("/")})`);
     }
   }
 
@@ -107,36 +107,38 @@ export class CBORReader {
     return this.readLength(path);
   }
 
-  readN(n: number, fn: (reader: CBORReader) => void) {
+  readN(n: number, fn: (reader: CBORReader, idx: number) => void) {
     for (let i = 0; i < n; i++) {
-      fn(this);
+      fn(this, i);
     }
   }
 
-  readTillBreak(fn: (reader: CBORReader) => void) {
+  readTillBreak(fn: (reader: CBORReader, idx: number) => void) {
+    let i = 0;
     while (!this.isBreak()) {
-      fn(this);
+      fn(this, i);
+      i++;
     }
     this.readBreak();
   }
 
-  readMultiple(n: number | null, fn: (reader: CBORReader) => void) {
+  readMultiple(n: number | null, fn: (reader: CBORReader, idx: number) => void) {
     if (n == null) this.readTillBreak(fn);
     else this.readN(n, fn);
   }
 
-  readArray<T>(readItem: (reader: CBORReader) => T, path: string[]): T[] {
+  readArray<T>(readItem: (reader: CBORReader, idx: number) => T, path: string[]): T[] {
     let ret: T[] = [];
-    this.readMultiple(this.readArrayTag(path), (reader) =>
-      ret.push(readItem(reader)),
+    this.readMultiple(this.readArrayTag(path), (reader, idx) =>
+      ret.push(readItem(reader, idx)),
     );
     return ret;
   }
 
-  readMap<T>(readItem: (reader: CBORReader) => T, path: string[]): T[] {
+  readMap<T>(readItem: (reader: CBORReader, idx: number) => T, path: string[]): T[] {
     let ret: T[] = [];
-    this.readMultiple(this.readMapTag(path), (reader) =>
-      ret.push(readItem(reader)),
+    this.readMultiple(this.readMapTag(path), (reader, idx) =>
+      ret.push(readItem(reader, idx)),
     );
     return ret;
   }
@@ -184,7 +186,7 @@ export class CBORReader {
         false /* false means Big Endian */,
       );
     } else {
-      throw new Error(`Unreachable (${path.join()})`);
+      throw new Error(`Unreachable (at ${path.join("/")})`);
     }
     this.buffer = this.buffer.slice(nBytes);
     return float;
@@ -200,7 +202,7 @@ export class CBORReader {
     let receivedType = this.peekType(path);
     if (!expectedTypes.includes(receivedType)) {
       let err = new CBORUnexpectedType(expectedTypes, receivedType);
-      err.message += ` (${path.join()})`;
+      err.message += ` (at ${path.join("/")})`;
       throw err;
     }
   }
@@ -220,7 +222,7 @@ export class CBORReader {
     // the value of the length field must be between 0x00 and 0x1b
     if (!(len >= 0x00 && len <= 0x1b)) {
       let err = new CBORInvalidTag(tag);
-      err.message += ` ${path.join()}`;
+      err.message += ` (at ${path.join("/")})`;
       throw err;
     }
 
@@ -247,7 +249,7 @@ export class CBORReader {
 
     if (!((len >= 0x00 && len <= 0x1b) || len == 0x1f)) {
       let err = new CBORInvalidTag(tag);
-      err.message += ` ${path.join()}`;
+      err.message += ` (at ${path.join("/")})`;
       throw err;
     }
 

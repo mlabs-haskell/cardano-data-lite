@@ -28,12 +28,12 @@ export class GenEnumSimple extends CodeGeneratorBase {
         ${this.values.map((x) => `${x.name} = ${x.value},`).join("\n")}
       }
 
-      export function deserialize${this.name}(reader: CBORReader): ${this.name} {
-        let value = Number(reader.readInt());
+      export function deserialize${this.name}(reader: CBORReader, path: string[]): ${this.name} {
+        let value = Number(reader.readInt(path));
         switch(value) {
           ${this.values.map((x) => `case ${x.value}: return ${this.name}.${x.name}`).join("\n")}
         }
-        throw new Error("Invalid value for enum ${this.name}: " + value);
+        throw new Error("Invalid value for enum ${this.name}: " + value + "(at " + path.join('/') + ")");
       }
 
       export function serialize${this.name}(writer: CBORWriter, value: ${this.name}) : void {
@@ -42,8 +42,8 @@ export class GenEnumSimple extends CodeGeneratorBase {
     `;
   }
 
-  deserialize(reader: string) {
-    return `deserialize${this.name}(${reader})`;
+  deserialize(reader: string, path: string) {
+    return `deserialize${this.name}(${reader}, ${path})`;
   }
 
   serialize(writer: string, value: string) {

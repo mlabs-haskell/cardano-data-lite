@@ -126,9 +126,9 @@ export class GenHash extends CodeGeneratorBase {
     `;
   }
 
-  generateDeserialize(reader: string): string {
+  generateDeserialize(reader: string, path: string): string {
     return ` 
-      return new ${this.name}(${reader}.readBytes());
+      return new ${this.name}(${reader}.readBytes(${path}));
     `;
   }
 

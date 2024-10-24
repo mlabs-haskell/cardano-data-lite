@@ -69,13 +69,14 @@ UpdateCommitteeAction:
       );
     }
 
-    static deserialize(reader: CBORReader): UpdateCommitteeAction {
+    static deserialize(reader: CBORReader, path: string[]): UpdateCommitteeAction {
       let gov_action_id = reader.readNullable(reader => 
-        GovernanceActionId.deserialize(reader)
+        GovernanceActionId.deserialize(reader, [...path, "gov_action_id"])
+        , path
       ); 
-      let members_to_remove = Credentials.deserialize(reader);
-      let members = CommitteeEpochs.deserialize(reader);
-      let quorum_threshold = UnitInterval.deserialize(reader);
+      let members_to_remove = Credentials.deserialize(reader, [...path, "members_to_remove"]);
+      let members = CommitteeEpochs.deserialize(reader, [...path, "members"]);
+      let quorum_threshold = UnitInterval.deserialize(reader, [...path, "quorum_threshold"]);
       return UpdateCommitteeAction.new_with_action_id(
         gov_action_id != null ? gov_action_id : undefined,
         new Committee(quorum_threshold, members),

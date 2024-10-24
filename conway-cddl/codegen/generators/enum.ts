@@ -58,15 +58,15 @@ export class GenEnum extends CodeGeneratorBase {
     );
   }
 
-  generateDeserialize(reader: string): string {
+  generateDeserialize(reader: string, path: string): string {
     return `
-      let kind = Number(${reader}.readInt());
+      let kind = Number(${reader}.readInt(${path}));
       ${this.values
         .map(
           (x) => `if(kind == ${x.value}) return new ${this.name}(${x.value})`,
         )
         .join("\n")}
-        throw "Unrecognized enum value: " + kind + " for " + ${this.name};
+        throw "Unrecognized enum value: " + kind + " for " + ${this.name} + "(at " + ${path}.join("/") + ")";
      `;
   }
 
