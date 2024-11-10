@@ -8,7 +8,7 @@
  * Adapated from https://github.com/Emurgo/cardano-serialization-lib/blob/master/rust/src/utils.rs#L726
  */
 
-import { BigNum, DataCost, TransactionOutput, Value } from "./generated";
+import { BigNum, DataCost, TransactionOutput, Value } from "../generated";
 
 class MinOutputAdaCalculator {
   output: TransactionOutput;
