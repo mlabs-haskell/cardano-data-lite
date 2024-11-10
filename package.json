@@ -8,6 +8,7 @@
     "test-serialization": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization.test.ts",
     "test-serialization-dev": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization_dev.test.ts",
     "test-api": "npm run generate-cdl-definitions ; NODE_OPTIONS=--experimental-vm-modules jest tests/api/api.test.ts",
+    "test-implementation": "NODE_OPTIONS=--experimental-vm-modules jest hash fees",
     "codegen": "tsx conway-cddl/codegen/main.ts",
     "generate-grammar-bundle": "npx ohm generateBundles -e -t tests/api/grammar.ohm",
     "generate-cdl-definitions": "make typedefs",
@@ -27,7 +28,6 @@
     "@tsconfig/recommended": "^1.0.7",
     "@types/jest": "^29.5.13",
     "@types/node": "^20.12.7",
-    "base58-js": "^2.0.0",
     "change-case": "^5.4.4",
     "esbuild": "^0.20.2",
     "esbuild-jest": "^0.5.0",
@@ -46,6 +46,7 @@
     "@noble/ed25519": "^2.1.0",
     "@noble/hashes": "^1.5.0",
     "bech32": "^2.0.0",
+    "base58-js": "^2.0.0",
     "tweetnacl": "^1.0.3"
   }
 }
