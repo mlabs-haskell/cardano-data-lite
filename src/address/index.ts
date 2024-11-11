@@ -107,7 +107,7 @@ export class Address {
     }
   }
 
-  static from_bytes(bytes: Uint8Array): Address {
+  static from_bytes(bytes: Uint8Array, path: string[]): Address {
     if (bytes.length < 1) {
       return new Address({
         kind: AddressKind.Malformed,
@@ -123,7 +123,7 @@ export class Address {
       case 0b0011:
         return new Address({
           kind: AddressKind.Byron,
-          value: ByronAddress.from_bytes(bytes),
+          value: ByronAddress.from_bytes(bytes, path),
         });
       case 0b0110:
       case 0b0111:
@@ -150,6 +150,7 @@ export class Address {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Address {
-    return Address.from_bytes(reader.readBytes(path));
+    console.log("Address.deserialize", path);
+    return Address.from_bytes(reader.readBytes(path), path);
   }
 }
