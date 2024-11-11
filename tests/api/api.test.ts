@@ -360,7 +360,7 @@ function compareToClass(clss: Map<string, MethodInfo[]>, cls: string, comparedTo
   if (methods) {
     const method = methods.find((info) => info.name == comparedToMethod.name)
     if (method) {
-      const cmpResult = compareToMethod(method, comparedToMethod);
+      const cmpResult = compareToMethod(normalizeMethod(method), normalizeMethod(comparedToMethod));
       // Before testing, we write the result in the report file
       if (cmpResult != "success") {
         fs.writeFileSync(methodFailuresFile, `${cls},${method.name},${cmpResult.reason},${cmpResult.msg}\n`);
@@ -404,6 +404,20 @@ function compareToMethod(method1: MethodInfo, method2: MethodInfo): MethodCompar
   }
 
   return "success";
+}
+
+// We normalize methods. More specifically, this step is added to eliminate parameters
+// added by CDL but not present in CSL.
+function normalizeMethod(m: MethodInfo): MethodInfo {
+  const string_arr: SomeType = { tag: "array", type: { tag: "simple", ident: "string"}};
+  // we ignore the path parameter added to from_hex and from_bytes methods
+  const new_params = m.params.filter(p => !(p.name == "path" && someTypeEquals(p.type, string_arr)))
+  return {
+    name: m.name
+    , static: m.static
+    , params: new_params
+    , returnType: m.returnType
+  }
 }
 
 // We normalize types. At runtime, `undefined` and `T` are equivalent, and so are `undefined | T`
