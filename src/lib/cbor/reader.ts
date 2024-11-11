@@ -1,3 +1,5 @@
+import { bytesToHex } from "../hex";
+
 type CBORType =
   | "uint"
   | "nint"
@@ -255,6 +257,7 @@ export class CBORReader {
 
     this.buffer = this.buffer.slice(1);
 
+    // indefinite length
     if (len == 0x1f) {
       let chunks: Uint8Array[] = [];
       let chunk: Uint8Array;
@@ -264,15 +267,24 @@ export class CBORReader {
         (chunk = this.readByteString(path)), chunks.push(chunk);
       }
       return concatUint8Array(chunks);
+    // definite length
     } else {
-      let n = Number(this.readBigInt(path));
-
+      let n: number;
+      // length follows in the next 1, 2, 4 or 8 bytes
+      if (len >= 0x18 && len <= 0x1b) {
+        const len_bytes: number = 1 << (len - 0x18);
+        n = Number(bigintFromBytes(len_bytes, this.buffer));
+        this.buffer = this.buffer.slice(len_bytes);
+      // length is specified in the tag itself
+      } else {
+        n = len;
+      }
       let chunk = this.buffer.slice(0, n);
       this.buffer = this.buffer.slice(n);
 
       return chunk;
+      }
     }
-  }
 }
 
 export function bigintFromBytes(nBytes: number, stream: Uint8Array): bigint {
