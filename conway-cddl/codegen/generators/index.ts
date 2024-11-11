@@ -167,7 +167,7 @@ export class CodeGeneratorBase {
         ${this.renameMethod(
           "deserialize",
           (deserialize) => `
-        static ${deserialize}(reader: CBORReader, path: string[]): ${this.name} {
+        static ${deserialize}(reader: CBORReader, path: string[] = ['${this.name}']): ${this.name} {
           let taggedTag = reader.readTaggedTag(path);
           if (taggedTag != ${this.options.tagged!.tag}) {
             throw new Error("Expected tag ${this.options.tagged!.tag}, got " + taggedTag + " (at " + path + ")");

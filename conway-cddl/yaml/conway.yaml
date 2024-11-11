@@ -324,7 +324,7 @@ TransactionBody:
       inputs: TransactionInputs, 
       outputs: TransactionOutputs, 
       fee: BigNum,
-      path: string[] = [],
+      path: string[] = ['TransactionBody'],
       ttl?: number
     ): TransactionBody {
       return new TransactionBody(

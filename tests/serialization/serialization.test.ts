@@ -98,37 +98,37 @@ describe("roundtrip", () => {
   //   expect(roundtrip(Out[class_key], params.component.cbor)).toEqual(params.component.cbor);
   // });
 
-  // describe("staging", () => {
-  //   test.each(stagingTestsTable)("($componentIndex) TX $txCount ($txHashAbbrev)\n\tComponent $component.path ($component.type) ", (params) => {
-  //     let class_key = params.component.type as keyof (typeof Out);
+  describe("staging", () => {
+    test.each(stagingTestsTable)("($componentIndex) TX $txCount ($txHashAbbrev)\n\tComponent $component.path ($component.type) ", (params) => {
+      let class_key = params.component.type as keyof (typeof Out);
 
-  //     // We skip testing if any descendant failed the test
-  //     const childFailed = params.component.children.some((child) => child.failed)
-  //     if (childFailed) {
-  //       params.component.failed = true;
-  //       writeChildErrorReport(reportFile, params);
-  //       throw "Child fails roundtrip"; // used to skip the other check at the end
-  //     }
+      // We skip testing if any descendant failed the test
+      const childFailed = params.component.children.some((child) => child.failed)
+      if (childFailed) {
+        params.component.failed = true;
+        writeChildErrorReport(reportFile, params);
+        throw "Child fails roundtrip"; // used to skip the other check at the end
+      }
 
-  //     // We manually test things first to generate the reports.
-  //     try {
-  //       const result: Uint8Array = roundtrip(Out[class_key], params.component.cbor);      
-  //       // if it doesn't match the expected CBOR, we record it in the report file
-  //       if (!(Buffer.compare(result, params.component.cbor) == 0)) {
-  //         params.component.failed = true;
-  //         writeRoundtripErrorReport(reportFile, params, result);
-  //         addToRegressionSuite(params);
-  //       }
-  //     } catch(err) {
-  //       // if it throws, we record it in the report file
-  //       params.component.failed = true;
-  //       writeExceptionReport(reportFile, params, err);
-  //       addToRegressionSuite(params);
-  //     }
-  //     // Now we run the actual jest tests
-  //     expect(roundtrip(Out[class_key], params.component.cbor)).toEqual(params.component.cbor);
-  //   });
-  // })
+      // We manually test things first to generate the reports.
+      try {
+        const result: Uint8Array = roundtrip(Out[class_key], params.component.cbor);      
+        // if it doesn't match the expected CBOR, we record it in the report file
+        if (!(Buffer.compare(result, params.component.cbor) == 0)) {
+          params.component.failed = true;
+          writeRoundtripErrorReport(reportFile, params, result);
+          addToRegressionSuite(params);
+        }
+      } catch(err) {
+        // if it throws, we record it in the report file
+        params.component.failed = true;
+        writeExceptionReport(reportFile, params, err);
+        addToRegressionSuite(params);
+      }
+      // Now we run the actual jest tests
+      expect(roundtrip(Out[class_key], params.component.cbor)).toEqual(params.component.cbor);
+    });
+  })
 
   describe("regression", () => {
     test.each(regressionTestsTable)("($componentIndex) TX $txCount ($txHashAbbrev)\n\tComponent $component.path ($component.type) ", (params) => {

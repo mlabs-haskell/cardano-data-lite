@@ -14870,7 +14870,7 @@ export class TransactionBody {
     inputs: TransactionInputs,
     outputs: TransactionOutputs,
     fee: BigNum,
-    path: string[] = [],
+    path: string[] = ["TransactionBody"],
     ttl?: number,
   ): TransactionBody {
     return new TransactionBody(
@@ -16264,7 +16264,10 @@ export class UnitInterval {
     this._denominator = denominator;
   }
 
-  static deserialize(reader: CBORReader, path: string[]): UnitInterval {
+  static deserialize(
+    reader: CBORReader,
+    path: string[] = ["UnitInterval"],
+  ): UnitInterval {
     let taggedTag = reader.readTaggedTag(path);
     if (taggedTag != 30) {
       throw new Error(
