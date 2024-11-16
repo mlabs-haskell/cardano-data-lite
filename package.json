@@ -19,7 +19,7 @@
   "type": "module",
   "devDependencies": {
     "@blockfrost/blockfrost-js": "^5.5.0",
-    "@emurgo/cardano-serialization-lib-nodejs-gc": "^12.1",
+    "@emurgo/cardano-serialization-lib-nodejs-gc": "^13.0",
     "@jest/globals": "^29.5.13",
     "@ohm-js/cli": "^2.0.0",
     "@prettier/sync": "^0.5.2",
