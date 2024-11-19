@@ -56,6 +56,6 @@ class MinOutputAdaCalculator {
  * @param data_cost - The data cost parameters, including coins per byte.
  * @returns The minimum ADA required as a `BigNum`.
  */
-export function minAdaForOutput(output: TransactionOutput, data_cost: DataCost): BigNum {
+export function min_ada_for_output(output: TransactionOutput, data_cost: DataCost): BigNum {
   return MinOutputAdaCalculator.new(output, data_cost).calculate_ada();
 }
