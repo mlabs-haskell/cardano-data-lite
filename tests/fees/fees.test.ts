@@ -1,6 +1,3 @@
-// minRefScriptFee.test.ts
-
-import { Address } from "../../src/address";
 import {
   calculate_exunits_ceil_cost,
   LinearFee,
@@ -12,16 +9,6 @@ import {
   ExUnits,
   ExUnitPrices,
   UnitInterval,
-  TransactionHash,
-  TransactionInput,
-  TransactionOutput,
-  Value,
-  TransactionBody,
-  TransactionInputs,
-  TransactionOutputs,
-  PrivateKey,
-  Vkeywitness,
-  TransactionWitnessSet,
   Transaction,
 } from "../../src/generated";
 
@@ -179,50 +166,18 @@ describe("calculate_ex_units_ceil_cost (min_script_fee)", () => {
   });
 });
 
-// TODO: fix implementation
+
 describe('min_fee', () => {
-  test('Simple transaction', () => {
-    // Create the transaction input
-    const txHash = TransactionHash.from_hex('3b40265111d8bb3c3c608d95b3a0bf83461ace32d79336579a1939b3aad1c0b7');
-    const txInput = TransactionInput.new(txHash, 0);
+  test('min_fee calculates correct minimum fee for a given transaction', () => {
+    const tx = Transaction.from_hex(
+      "84a400d90102818258203b40265111d8bb3c3c608d95b3a0bf83461ace32d79336579a1939b3aad1c0b700018182581d611c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c01021a00016f32030aa100d9010281825820f9aa3fccb7fe539e471188ccc9ee65514c5961c070b06ca185962484a4813bee58406d68d8b7b2ee54f1f46b64e3f61a14f840be2ec125c858ec917f634a1eb898a51660654839226016a2588d39920e6dfe1b66d917027f198b5eb887d20f4ac805f5f6");
 
-    // Create the transaction output
-    const addressBytes = Buffer.from('611c616f1acb460668a9b2f123c80372c2adad3583b9c6cd2b1deeed1c', 'hex');
-    const address = Address.from_bytes(addressBytes);
-    const amount = new Value(BigNum.from_str('1'), undefined);
-    const txOutput = TransactionOutput.new(address, amount);
+    const constant = BigNum._from_number(500);
+    const coefficient = BigNum._from_number(2);
+    const linearFee = LinearFee.new(constant, coefficient);
 
-    // Create transaction body
-    let inputs = TransactionInputs.new();
-    inputs.add(txInput);
+    const fee = min_fee(tx, linearFee);
 
-    let outputs = TransactionOutputs.new();
-    outputs.add(txOutput);
-
-    const fee = BigNum.from_str('94002');
-    const ttl = 10;
-    let txBody = TransactionBody.new(inputs, outputs, fee, ttl);
-
-    // Create witness set
-    const txHashForWitness = txBody.hash();
-
-    const privateKeyBytes = Buffer.from('c660e50315d76a53d80732efda7630cae8885dfb85c46378684b3c6103e1284a', 'hex');
-    const privateKey = PrivateKey.from_normal_bytes(privateKeyBytes);
-
-    const vkeyWitness = Vkeywitness.new(privateKey, txHashForWitness);
-
-    const witnesses = TransactionWitnessSet.new();
-
-    witnesses.set_vkeys([vkeyWitness]);
-
-    // Create transaction
-    const tx = new Transaction(txBody, witnesses, true, undefined);
-
-    // Calculate minFee
-    const linearFee = LinearFee.new(BigNum.from_str('500'), BigNum.from_str('2'));
-    const calculatedFee = min_fee(tx, linearFee);
-
-    // Assert that calculated fee matches expected value
-    expect(calculatedFee.to_str()).toBe('97502');
+    expect(fee.to_str()).toBe("97502");
   });
 });
