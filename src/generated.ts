@@ -17044,30 +17044,6 @@ export class Vkey {
     this._public_key = public_key;
   }
 
-  static deserialize(reader: CBORReader, path: string[]): Vkey {
-    let len = reader.readArrayTag(path);
-
-    if (len != null && len < 1) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " +
-          len +
-          "(at " +
-          path.join("/"),
-      );
-    }
-
-    const public_key_path = [...path, "PublicKey(public_key)"];
-    let public_key = PublicKey.deserialize(reader, public_key_path);
-
-    return new Vkey(public_key);
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(1);
-
-    this._public_key.serialize(writer);
-  }
-
   // no-op
   free(): void {}
 
@@ -17092,6 +17068,16 @@ export class Vkey {
 
   clone(path: string[]): Vkey {
     return Vkey.from_bytes(this.to_bytes(), path);
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): Vkey {
+    const public_key_path = [...path, "PublicKey(public_key)"];
+    let public_key = PublicKey.deserialize(reader, public_key_path);
+    return new Vkey(public_key);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this._public_key.serialize(writer);
   }
 }
 

@@ -150,7 +150,6 @@ export class Address {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Address {
-    console.log("Address.deserialize", path);
     return Address.from_bytes(reader.readBytes(path), path);
   }
 }

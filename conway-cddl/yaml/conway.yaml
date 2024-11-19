@@ -2095,6 +2095,20 @@ Vkey:
   fields:
     - name: public_key
       type: PublicKey
+  methods:
+    deserialize: null
+    serialize: null
+  extra_methods: |
+    static deserialize(reader: CBORReader, path: string[]): Vkey {
+      const public_key_path = [...path, "PublicKey(public_key)"];
+      let public_key = PublicKey.deserialize(reader, public_key_path);
+      return new Vkey(public_key);
+    }
+
+    serialize(writer: CBORWriter): void {
+      this._public_key.serialize(writer);
+    }
+   
 Vkeys:
   type: array
   item: Vkey
