@@ -56,7 +56,7 @@ export class CBORWriter {
   }
 
   writeStringValue(value: string) {
-    this.writeBytes(new TextEncoder().encode(value));
+    this.writeBytesValue(new TextEncoder().encode(value));
   }
 
   writeString(value: string) {

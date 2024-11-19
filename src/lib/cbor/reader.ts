@@ -92,7 +92,7 @@ export class CBORReader {
   }
 
   readString(path: string[]): string {
-    this.assertType(["bytes"], path);
+    this.assertType(["string"], path);
     let bytes = this.readByteString(path);
     return new TextDecoder().decode(bytes);
   }
