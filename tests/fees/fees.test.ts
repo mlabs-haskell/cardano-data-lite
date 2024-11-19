@@ -117,7 +117,7 @@ function _calculateExUnitsCeilCost(
   step: number,
   memPrice: { fst: number; snd: number },
   stepPrice: { fst: number; snd: number },
-): BigNum {
+): String {
   return calculate_exunits_ceil_cost(
     ExUnits.new(BigNum._from_number(mem), BigNum._from_number(step)),
     ExUnitPrices.new(
@@ -130,7 +130,7 @@ function _calculateExUnitsCeilCost(
         BigNum._from_number(stepPrice.snd),
       ),
     ),
-  );
+  ).to_str();
 }
 
 describe("calculate_ex_units_ceil_cost (min_script_fee)", () => {
@@ -142,7 +142,7 @@ describe("calculate_ex_units_ceil_cost (min_script_fee)", () => {
       { fst: 2, snd: 1 },
       { fst: 3, snd: 1 },
     );
-    expect(result.to_str()).toBe("80");
+    expect(result).toBe("80");
   });
 
   test("Test case 2", () => {
@@ -153,7 +153,7 @@ describe("calculate_ex_units_ceil_cost (min_script_fee)", () => {
       { fst: 12, snd: 6 },
       { fst: 33, snd: 11 },
     );
-    expect(result.to_str()).toBe("143");
+    expect(result).toBe("143");
   });
 
   test("Test case 3", () => {
@@ -164,7 +164,7 @@ describe("calculate_ex_units_ceil_cost (min_script_fee)", () => {
       { fst: 5, snd: 7 },
       { fst: 9, snd: 13 },
     );
-    expect(result.to_str()).toBe("21");
+    expect(result).toBe("21");
   });
 
   test("Test case 4", () => {
@@ -175,7 +175,7 @@ describe("calculate_ex_units_ceil_cost (min_script_fee)", () => {
       { fst: 7, snd: 5 },
       { fst: 13, snd: 9 },
     );
-    expect(result.to_str()).toBe("79");
+    expect(result).toBe("79");
   });
 });
 
