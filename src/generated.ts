@@ -436,166 +436,123 @@ export class Assets {
   }
 }
 
+export enum AuxiliaryDataKind {
+  GeneralTransactionMetadata = 0,
+  AuxiliaryDataShelleyMa = 1,
+  AuxiliaryDataPostAlonzo = 2,
+}
+
+export type AuxiliaryDataVariant =
+  | { kind: 0; value: GeneralTransactionMetadata }
+  | { kind: 1; value: AuxiliaryDataShelleyMa }
+  | { kind: 2; value: AuxiliaryDataPostAlonzo };
+
 export class AuxiliaryData {
-  private _metadata: GeneralTransactionMetadata;
-  private _native_scripts: NativeScripts;
-  private _plutus_scripts_v1: PlutusScripts;
-  private _plutus_scripts_v2: PlutusScripts;
-  private _plutus_scripts_v3: PlutusScripts;
+  private variant: AuxiliaryDataVariant;
 
-  constructor(
-    metadata: GeneralTransactionMetadata,
-    native_scripts: NativeScripts,
-    plutus_scripts_v1: PlutusScripts,
-    plutus_scripts_v2: PlutusScripts,
-    plutus_scripts_v3: PlutusScripts,
-  ) {
-    this._metadata = metadata;
-    this._native_scripts = native_scripts;
-    this._plutus_scripts_v1 = plutus_scripts_v1;
-    this._plutus_scripts_v2 = plutus_scripts_v2;
-    this._plutus_scripts_v3 = plutus_scripts_v3;
+  constructor(variant: AuxiliaryDataVariant) {
+    this.variant = variant;
   }
 
-  metadata(): GeneralTransactionMetadata {
-    return this._metadata;
+  static new_shelley_metadata(
+    shelley_metadata: GeneralTransactionMetadata,
+  ): AuxiliaryData {
+    return new AuxiliaryData({ kind: 0, value: shelley_metadata });
   }
 
-  set_metadata(metadata: GeneralTransactionMetadata): void {
-    this._metadata = metadata;
+  static new_shelley_metadata_ma(
+    shelley_metadata_ma: AuxiliaryDataShelleyMa,
+  ): AuxiliaryData {
+    return new AuxiliaryData({ kind: 1, value: shelley_metadata_ma });
   }
 
-  native_scripts(): NativeScripts {
-    return this._native_scripts;
+  static new_postalonzo_metadata(
+    postalonzo_metadata: AuxiliaryDataPostAlonzo,
+  ): AuxiliaryData {
+    return new AuxiliaryData({ kind: 2, value: postalonzo_metadata });
   }
 
-  set_native_scripts(native_scripts: NativeScripts): void {
-    this._native_scripts = native_scripts;
+  as_shelley_metadata(): GeneralTransactionMetadata {
+    if (this.variant.kind == 0) return this.variant.value;
+    throw new Error("Incorrect cast");
   }
 
-  plutus_scripts_v1(): PlutusScripts {
-    return this._plutus_scripts_v1;
+  as_shelley_metadata_ma(): AuxiliaryDataShelleyMa {
+    if (this.variant.kind == 1) return this.variant.value;
+    throw new Error("Incorrect cast");
   }
 
-  set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts): void {
-    this._plutus_scripts_v1 = plutus_scripts_v1;
+  as_postalonzo_metadata(): AuxiliaryDataPostAlonzo {
+    if (this.variant.kind == 2) return this.variant.value;
+    throw new Error("Incorrect cast");
   }
 
-  plutus_scripts_v2(): PlutusScripts {
-    return this._plutus_scripts_v2;
-  }
-
-  set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts): void {
-    this._plutus_scripts_v2 = plutus_scripts_v2;
-  }
-
-  plutus_scripts_v3(): PlutusScripts {
-    return this._plutus_scripts_v3;
-  }
-
-  set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts): void {
-    this._plutus_scripts_v3 = plutus_scripts_v3;
+  kind(): AuxiliaryDataKind {
+    return this.variant.kind;
   }
 
   static deserialize(reader: CBORReader, path: string[]): AuxiliaryData {
-    let fields: any = {};
-    reader.readMap((r) => {
-      let key = Number(r.readUint(path));
-      switch (key) {
-        case 0: {
-          const new_path = [...path, "GeneralTransactionMetadata(metadata)"];
-          fields.metadata = GeneralTransactionMetadata.deserialize(r, new_path);
-          break;
-        }
+    let tag = reader.peekType(path);
+    let variant: AuxiliaryDataVariant;
 
-        case 1: {
-          const new_path = [...path, "NativeScripts(native_scripts)"];
-          fields.native_scripts = NativeScripts.deserialize(r, new_path);
-          break;
-        }
+    switch (tag) {
+      case "map":
+        variant = {
+          kind: AuxiliaryDataKind.GeneralTransactionMetadata,
+          value: GeneralTransactionMetadata.deserialize(reader, [
+            ...path,
+            "GeneralTransactionMetadata(shelley_metadata)",
+          ]),
+        };
+        break;
 
-        case 2: {
-          const new_path = [...path, "PlutusScripts(plutus_scripts_v1)"];
-          fields.plutus_scripts_v1 = PlutusScripts.deserialize(r, new_path);
-          break;
-        }
+      case "array":
+        variant = {
+          kind: AuxiliaryDataKind.AuxiliaryDataShelleyMa,
+          value: AuxiliaryDataShelleyMa.deserialize(reader, [
+            ...path,
+            "AuxiliaryDataShelleyMa(shelley_metadata_ma)",
+          ]),
+        };
+        break;
 
-        case 3: {
-          const new_path = [...path, "PlutusScripts(plutus_scripts_v2)"];
-          fields.plutus_scripts_v2 = PlutusScripts.deserialize(r, new_path);
-          break;
-        }
+      case "tagged":
+        variant = {
+          kind: AuxiliaryDataKind.AuxiliaryDataPostAlonzo,
+          value: AuxiliaryDataPostAlonzo.deserialize(reader, [
+            ...path,
+            "AuxiliaryDataPostAlonzo(postalonzo_metadata)",
+          ]),
+        };
+        break;
 
-        case 4: {
-          const new_path = [...path, "PlutusScripts(plutus_scripts_v3)"];
-          fields.plutus_scripts_v3 = PlutusScripts.deserialize(r, new_path);
-          break;
-        }
-      }
-    }, path);
+      default:
+        throw new Error(
+          "Unexpected subtype for AuxiliaryData: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
+    }
 
-    if (fields.metadata === undefined)
-      throw new Error(
-        "Value not provided for field 0 (metadata) (at " + path.join("/") + ")",
-      );
-    let metadata = fields.metadata;
-    if (fields.native_scripts === undefined)
-      throw new Error(
-        "Value not provided for field 1 (native_scripts) (at " +
-          path.join("/") +
-          ")",
-      );
-    let native_scripts = fields.native_scripts;
-    if (fields.plutus_scripts_v1 === undefined)
-      throw new Error(
-        "Value not provided for field 2 (plutus_scripts_v1) (at " +
-          path.join("/") +
-          ")",
-      );
-    let plutus_scripts_v1 = fields.plutus_scripts_v1;
-    if (fields.plutus_scripts_v2 === undefined)
-      throw new Error(
-        "Value not provided for field 3 (plutus_scripts_v2) (at " +
-          path.join("/") +
-          ")",
-      );
-    let plutus_scripts_v2 = fields.plutus_scripts_v2;
-    if (fields.plutus_scripts_v3 === undefined)
-      throw new Error(
-        "Value not provided for field 4 (plutus_scripts_v3) (at " +
-          path.join("/") +
-          ")",
-      );
-    let plutus_scripts_v3 = fields.plutus_scripts_v3;
-
-    return new AuxiliaryData(
-      metadata,
-      native_scripts,
-      plutus_scripts_v1,
-      plutus_scripts_v2,
-      plutus_scripts_v3,
-    );
+    return new AuxiliaryData(variant);
   }
 
   serialize(writer: CBORWriter): void {
-    let len = 5;
+    switch (this.variant.kind) {
+      case 0:
+        this.variant.value.serialize(writer);
+        break;
 
-    writer.writeMapTag(len);
+      case 1:
+        this.variant.value.serialize(writer);
+        break;
 
-    writer.writeInt(0n);
-    this._metadata.serialize(writer);
-
-    writer.writeInt(1n);
-    this._native_scripts.serialize(writer);
-
-    writer.writeInt(2n);
-    this._plutus_scripts_v1.serialize(writer);
-
-    writer.writeInt(3n);
-    this._plutus_scripts_v2.serialize(writer);
-
-    writer.writeInt(4n);
-    this._plutus_scripts_v3.serialize(writer);
+      case 2:
+        this.variant.value.serialize(writer);
+        break;
+    }
   }
 
   // no-op
@@ -631,13 +588,14 @@ export class AuxiliaryData {
   }
 
   static new(): AuxiliaryData {
-    return new AuxiliaryData(
+    const post_alonzo_auxiliary_data = new AuxiliaryDataPostAlonzo(
       GeneralTransactionMetadata.new(),
       NativeScripts.new(),
       PlutusScripts.new(),
       PlutusScripts.new(),
       PlutusScripts.new(),
     );
+    return new AuxiliaryData({ kind: 2, value: post_alonzo_auxiliary_data });
   }
 }
 
@@ -696,6 +654,225 @@ export class AuxiliaryDataHash {
 
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
+  }
+}
+
+export class AuxiliaryDataPostAlonzo {
+  private _metadata: GeneralTransactionMetadata | undefined;
+  private _native_scripts: NativeScripts | undefined;
+  private _plutus_scripts_v1: PlutusScripts | undefined;
+  private _plutus_scripts_v2: PlutusScripts | undefined;
+  private _plutus_scripts_v3: PlutusScripts | undefined;
+
+  constructor(
+    metadata: GeneralTransactionMetadata | undefined,
+    native_scripts: NativeScripts | undefined,
+    plutus_scripts_v1: PlutusScripts | undefined,
+    plutus_scripts_v2: PlutusScripts | undefined,
+    plutus_scripts_v3: PlutusScripts | undefined,
+  ) {
+    this._metadata = metadata;
+    this._native_scripts = native_scripts;
+    this._plutus_scripts_v1 = plutus_scripts_v1;
+    this._plutus_scripts_v2 = plutus_scripts_v2;
+    this._plutus_scripts_v3 = plutus_scripts_v3;
+  }
+
+  static new(
+    metadata: GeneralTransactionMetadata | undefined,
+    native_scripts: NativeScripts | undefined,
+    plutus_scripts_v1: PlutusScripts | undefined,
+    plutus_scripts_v2: PlutusScripts | undefined,
+    plutus_scripts_v3: PlutusScripts | undefined,
+  ) {
+    return new AuxiliaryDataPostAlonzo(
+      metadata,
+      native_scripts,
+      plutus_scripts_v1,
+      plutus_scripts_v2,
+      plutus_scripts_v3,
+    );
+  }
+
+  metadata(): GeneralTransactionMetadata | undefined {
+    return this._metadata;
+  }
+
+  set_metadata(metadata: GeneralTransactionMetadata | undefined): void {
+    this._metadata = metadata;
+  }
+
+  native_scripts(): NativeScripts | undefined {
+    return this._native_scripts;
+  }
+
+  set_native_scripts(native_scripts: NativeScripts | undefined): void {
+    this._native_scripts = native_scripts;
+  }
+
+  plutus_scripts_v1(): PlutusScripts | undefined {
+    return this._plutus_scripts_v1;
+  }
+
+  set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts | undefined): void {
+    this._plutus_scripts_v1 = plutus_scripts_v1;
+  }
+
+  plutus_scripts_v2(): PlutusScripts | undefined {
+    return this._plutus_scripts_v2;
+  }
+
+  set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts | undefined): void {
+    this._plutus_scripts_v2 = plutus_scripts_v2;
+  }
+
+  plutus_scripts_v3(): PlutusScripts | undefined {
+    return this._plutus_scripts_v3;
+  }
+
+  set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts | undefined): void {
+    this._plutus_scripts_v3 = plutus_scripts_v3;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    path: string[] = ["AuxiliaryDataPostAlonzo"],
+  ): AuxiliaryDataPostAlonzo {
+    let taggedTag = reader.readTaggedTag(path);
+    if (taggedTag != 259) {
+      throw new Error(
+        "Expected tag 259, got " + taggedTag + " (at " + path + ")",
+      );
+    }
+
+    return AuxiliaryDataPostAlonzo.deserializeInner(reader, path);
+  }
+
+  static deserializeInner(
+    reader: CBORReader,
+    path: string[],
+  ): AuxiliaryDataPostAlonzo {
+    let fields: any = {};
+    reader.readMap((r) => {
+      let key = Number(r.readUint(path));
+      switch (key) {
+        case 0: {
+          const new_path = [...path, "GeneralTransactionMetadata(metadata)"];
+          fields.metadata = GeneralTransactionMetadata.deserialize(r, new_path);
+          break;
+        }
+
+        case 1: {
+          const new_path = [...path, "NativeScripts(native_scripts)"];
+          fields.native_scripts = NativeScripts.deserialize(r, new_path);
+          break;
+        }
+
+        case 2: {
+          const new_path = [...path, "PlutusScripts(plutus_scripts_v1)"];
+          fields.plutus_scripts_v1 = PlutusScripts.deserialize(r, new_path);
+          break;
+        }
+
+        case 3: {
+          const new_path = [...path, "PlutusScripts(plutus_scripts_v2)"];
+          fields.plutus_scripts_v2 = PlutusScripts.deserialize(r, new_path);
+          break;
+        }
+
+        case 4: {
+          const new_path = [...path, "PlutusScripts(plutus_scripts_v3)"];
+          fields.plutus_scripts_v3 = PlutusScripts.deserialize(r, new_path);
+          break;
+        }
+      }
+    }, path);
+
+    let metadata = fields.metadata;
+
+    let native_scripts = fields.native_scripts;
+
+    let plutus_scripts_v1 = fields.plutus_scripts_v1;
+
+    let plutus_scripts_v2 = fields.plutus_scripts_v2;
+
+    let plutus_scripts_v3 = fields.plutus_scripts_v3;
+
+    return new AuxiliaryDataPostAlonzo(
+      metadata,
+      native_scripts,
+      plutus_scripts_v1,
+      plutus_scripts_v2,
+      plutus_scripts_v3,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeTaggedTag(259);
+
+    this.serializeInner(writer);
+  }
+
+  serializeInner(writer: CBORWriter): void {
+    let len = 5;
+    if (this._metadata === undefined) len -= 1;
+    if (this._native_scripts === undefined) len -= 1;
+    if (this._plutus_scripts_v1 === undefined) len -= 1;
+    if (this._plutus_scripts_v2 === undefined) len -= 1;
+    if (this._plutus_scripts_v3 === undefined) len -= 1;
+    writer.writeMapTag(len);
+    if (this._metadata !== undefined) {
+      writer.writeInt(0n);
+      this._metadata.serialize(writer);
+    }
+    if (this._native_scripts !== undefined) {
+      writer.writeInt(1n);
+      this._native_scripts.serialize(writer);
+    }
+    if (this._plutus_scripts_v1 !== undefined) {
+      writer.writeInt(2n);
+      this._plutus_scripts_v1.serialize(writer);
+    }
+    if (this._plutus_scripts_v2 !== undefined) {
+      writer.writeInt(3n);
+      this._plutus_scripts_v2.serialize(writer);
+    }
+    if (this._plutus_scripts_v3 !== undefined) {
+      writer.writeInt(4n);
+      this._plutus_scripts_v3.serialize(writer);
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["AuxiliaryDataPostAlonzo"],
+  ): AuxiliaryDataPostAlonzo {
+    let reader = new CBORReader(data);
+    return AuxiliaryDataPostAlonzo.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["AuxiliaryDataPostAlonzo"],
+  ): AuxiliaryDataPostAlonzo {
+    return AuxiliaryDataPostAlonzo.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): AuxiliaryDataPostAlonzo {
+    return AuxiliaryDataPostAlonzo.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -797,6 +974,98 @@ export class AuxiliaryDataSet {
       indices[i] = key;
     }
     return indices;
+  }
+}
+
+export class AuxiliaryDataShelleyMa {
+  private _transaction_metadata: GeneralTransactionMetadata;
+  private _auxiliary_scripts: NativeScripts;
+
+  constructor(
+    transaction_metadata: GeneralTransactionMetadata,
+    auxiliary_scripts: NativeScripts,
+  ) {
+    this._transaction_metadata = transaction_metadata;
+    this._auxiliary_scripts = auxiliary_scripts;
+  }
+
+  static new(
+    transaction_metadata: GeneralTransactionMetadata,
+    auxiliary_scripts: NativeScripts,
+  ) {
+    return new AuxiliaryDataShelleyMa(transaction_metadata, auxiliary_scripts);
+  }
+
+  transaction_metadata(): GeneralTransactionMetadata {
+    return this._transaction_metadata;
+  }
+
+  set_transaction_metadata(
+    transaction_metadata: GeneralTransactionMetadata,
+  ): void {
+    this._transaction_metadata = transaction_metadata;
+  }
+
+  auxiliary_scripts(): NativeScripts {
+    return this._auxiliary_scripts;
+  }
+
+  set_auxiliary_scripts(auxiliary_scripts: NativeScripts): void {
+    this._auxiliary_scripts = auxiliary_scripts;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): AuxiliaryDataShelleyMa {
+    let transaction_metadata = GeneralTransactionMetadata.deserialize(reader, [
+      ...path,
+      "transaction_metadata",
+    ]);
+
+    let auxiliary_scripts = NativeScripts.deserialize(reader, [
+      ...path,
+      "auxiliary_scripts",
+    ]);
+
+    return new AuxiliaryDataShelleyMa(transaction_metadata, auxiliary_scripts);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this._transaction_metadata.serialize(writer);
+    this._auxiliary_scripts.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["AuxiliaryDataShelleyMa"],
+  ): AuxiliaryDataShelleyMa {
+    let reader = new CBORReader(data);
+    return AuxiliaryDataShelleyMa.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["AuxiliaryDataShelleyMa"],
+  ): AuxiliaryDataShelleyMa {
+    return AuxiliaryDataShelleyMa.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): AuxiliaryDataShelleyMa {
+    return AuxiliaryDataShelleyMa.from_bytes(this.to_bytes(), path);
   }
 }
 

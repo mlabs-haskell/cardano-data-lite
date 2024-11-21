@@ -1764,34 +1764,32 @@ TransactionMetadatumLabels:
 #       , ? 4 => [ * plutus_v3_script ]
 #       })
 AuxiliaryData:
-  type: struct
-  fields:
-    - id: 0
-      name: metadata
+  type: union
+  variants:
+    - tag: 0
+      peek_type: map
+      name: shelley_metadata
       type: GeneralTransactionMetadata
-    - id: 1
-      name: native_scripts
-      type: NativeScripts
-    - id: 2
-      name: plutus_scripts_v1
-      type: PlutusScripts
-    - id: 3
-      name: plutus_scripts_v2
-      type: PlutusScripts
-    - id: 4
-      name: plutus_scripts_v3
-      type: PlutusScripts
+    - tag: 1
+      peek_type: array
+      name: shelley_metadata_ma
+      type: AuxiliaryDataShelleyMa
+    - tag: 2
+      peek_type: tagged
+      name: postalonzo_metadata
+      type: AuxiliaryDataPostAlonzo
   methods:
     new: null
   extra_methods: |
     static new(): AuxiliaryData {
-      return new AuxiliaryData(
+      const post_alonzo_auxiliary_data = new AuxiliaryDataPostAlonzo(
         GeneralTransactionMetadata.new(),
         NativeScripts.new(),
         PlutusScripts.new(),
         PlutusScripts.new(),
         PlutusScripts.new(),
-      )
+      );
+      return new AuxiliaryData({kind: 2, value: post_alonzo_auxiliary_data})
     }
 
 # vkeywitness = [ $vkey, $signature ]

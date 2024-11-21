@@ -155,7 +155,7 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
       break;
     case "tagged_record": {
       // sum types
-      let tag: number  = value.kind().valueOf();
+      let tag: number = value.kind().valueOf();
       let variant = schema.variants.find((v) => v.tag == tag)
       extractLog("variant", variant);
       if (variant && variant.value && schemata[variant.value]) {
@@ -209,6 +209,13 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
         }
       }
       break;
+    case "union": {
+      // for unions we don't extract the children
+      // NOTE: The reason we don't do it is that there doesn't seem to be a
+      // common interface in CSL for interacting with a union's variants
+      extractLog("Found a union while extracting, ignoring...");
+      break;
+    }
     case "enum":
       extractLog("Found an enum while extracting. Ignoring...")
       break; // enums don't have subcomponents

@@ -24,7 +24,9 @@
     "PlutusWitness",
     "PlutusWitnesses",
     "MintWitness",
-    "PlutusScriptSource"
+    "PlutusScriptSource",
+    "AuxiliaryDataShelleyMa",
+    "AuxiliaryDataPostAlonzo"
   ],
   "ignore_methods": {
     "Certificate": [
