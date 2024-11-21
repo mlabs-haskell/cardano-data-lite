@@ -674,20 +674,32 @@ TransactionInput:
 # ; Both of the Alonzo and Babbage style TxOut formats are equally valid
 # ; and can be used interchangeably
 # transaction_output = pre_babbage_transaction_output / post_alonzo_transaction_output
-#
-# pre_babbage_transaction_output =
-#   [ address
-#   , amount : value
-#   , ? datum_hash : $hash32
-#   ]
-#
+TransactionOutput:
+  type: union
+  variants:
+    - tag: 0
+      peek_type: array
+      name: pre_babbage_transaction_output
+      type: PreBabbageTransactionOutput
+    - tag: 1
+      peek_type: map
+      name: post_alonzo_transaction_output
+      type: PostAlonzoTransactionOutput
+  methods:
+    new: null
+  extra_methods: |
+    static new(address: Address, amount: Value): TransactionOutput {
+      const post_alonzo_transaction_output = new PostAlonzoTransactionOutput(address, amount, undefined, undefined);
+      return new TransactionOutput({kind: 1, value: post_alonzo_transaction_output});
+    }
+
 # post_alonzo_transaction_output =
 #   { 0 : address
 #   , 1 : value
 #   , ? 2 : datum_option ; datum option
 #   , ? 3 : script_ref   ; script reference
 #   }
-TransactionOutput:
+PostAlonzoTransactionOutput:
   type: struct
   fields:
     - id: 0
@@ -704,12 +716,24 @@ TransactionOutput:
       name: script_ref
       type: ScriptRef
       optional: true
-  methods:
-    new: null
-  extra_methods: |
-    static new(address: Address, amount: Value): TransactionOutput {
-      return new TransactionOutput(address, amount, undefined, undefined);
-    }
+
+# pre_babbage_transaction_output =
+#   [ address
+#   , amount : value
+#   , ? datum_hash : $hash32
+#   ]
+#
+PreBabbageTransactionOutput:
+  type: record
+  fields:
+    - name: address
+      type: Address
+    - name: amount
+      type: Value
+    - name: datum_hash
+      type: DataHash
+      optional: true
+
 
 # script_data_hash = $hash32
 # ; This is a hash of data which may affect evaluation of a script.

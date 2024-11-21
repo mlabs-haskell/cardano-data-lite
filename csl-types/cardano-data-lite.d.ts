@@ -83,23 +83,31 @@ export declare class Assets {
     _normalize(): void;
     _partial_cmp(rhs: Assets): number | undefined;
 }
+export declare enum AuxiliaryDataKind {
+    GeneralTransactionMetadata = 0,
+    AuxiliaryDataShelleyMa = 1,
+    AuxiliaryDataPostAlonzo = 2
+}
+export type AuxiliaryDataVariant = {
+    kind: 0;
+    value: GeneralTransactionMetadata;
+} | {
+    kind: 1;
+    value: AuxiliaryDataShelleyMa;
+} | {
+    kind: 2;
+    value: AuxiliaryDataPostAlonzo;
+};
 export declare class AuxiliaryData {
-    private _metadata;
-    private _native_scripts;
-    private _plutus_scripts_v1;
-    private _plutus_scripts_v2;
-    private _plutus_scripts_v3;
-    constructor(metadata: GeneralTransactionMetadata, native_scripts: NativeScripts, plutus_scripts_v1: PlutusScripts, plutus_scripts_v2: PlutusScripts, plutus_scripts_v3: PlutusScripts);
-    metadata(): GeneralTransactionMetadata;
-    set_metadata(metadata: GeneralTransactionMetadata): void;
-    native_scripts(): NativeScripts;
-    set_native_scripts(native_scripts: NativeScripts): void;
-    plutus_scripts_v1(): PlutusScripts;
-    set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts): void;
-    plutus_scripts_v2(): PlutusScripts;
-    set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts): void;
-    plutus_scripts_v3(): PlutusScripts;
-    set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts): void;
+    private variant;
+    constructor(variant: AuxiliaryDataVariant);
+    static new_shelley_metadata(shelley_metadata: GeneralTransactionMetadata): AuxiliaryData;
+    static new_shelley_metadata_ma(shelley_metadata_ma: AuxiliaryDataShelleyMa): AuxiliaryData;
+    static new_postalonzo_metadata(postalonzo_metadata: AuxiliaryDataPostAlonzo): AuxiliaryData;
+    as_shelley_metadata(): GeneralTransactionMetadata;
+    as_shelley_metadata_ma(): AuxiliaryDataShelleyMa;
+    as_postalonzo_metadata(): AuxiliaryDataPostAlonzo;
+    kind(): AuxiliaryDataKind;
     static deserialize(reader: CBORReader, path: string[]): AuxiliaryData;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -125,6 +133,35 @@ export declare class AuxiliaryDataHash {
     static deserialize(reader: CBORReader, path: string[]): AuxiliaryDataHash;
     serialize(writer: CBORWriter): void;
 }
+export declare class AuxiliaryDataPostAlonzo {
+    private _metadata;
+    private _native_scripts;
+    private _plutus_scripts_v1;
+    private _plutus_scripts_v2;
+    private _plutus_scripts_v3;
+    constructor(metadata: GeneralTransactionMetadata | undefined, native_scripts: NativeScripts | undefined, plutus_scripts_v1: PlutusScripts | undefined, plutus_scripts_v2: PlutusScripts | undefined, plutus_scripts_v3: PlutusScripts | undefined);
+    static new(metadata: GeneralTransactionMetadata | undefined, native_scripts: NativeScripts | undefined, plutus_scripts_v1: PlutusScripts | undefined, plutus_scripts_v2: PlutusScripts | undefined, plutus_scripts_v3: PlutusScripts | undefined): AuxiliaryDataPostAlonzo;
+    metadata(): GeneralTransactionMetadata | undefined;
+    set_metadata(metadata: GeneralTransactionMetadata | undefined): void;
+    native_scripts(): NativeScripts | undefined;
+    set_native_scripts(native_scripts: NativeScripts | undefined): void;
+    plutus_scripts_v1(): PlutusScripts | undefined;
+    set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts | undefined): void;
+    plutus_scripts_v2(): PlutusScripts | undefined;
+    set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts | undefined): void;
+    plutus_scripts_v3(): PlutusScripts | undefined;
+    set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts | undefined): void;
+    static deserialize(reader: CBORReader, path?: string[]): AuxiliaryDataPostAlonzo;
+    static deserializeInner(reader: CBORReader, path: string[]): AuxiliaryDataPostAlonzo;
+    serialize(writer: CBORWriter): void;
+    serializeInner(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array, path?: string[]): AuxiliaryDataPostAlonzo;
+    static from_hex(hex_str: string, path?: string[]): AuxiliaryDataPostAlonzo;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(path: string[]): AuxiliaryDataPostAlonzo;
+}
 export declare class AuxiliaryDataSet {
     _items: [number, AuxiliaryData][];
     constructor(items: [number, AuxiliaryData][]);
@@ -142,6 +179,24 @@ export declare class AuxiliaryDataSet {
     to_hex(): string;
     clone(path: string[]): AuxiliaryDataSet;
     indices(): Uint32Array;
+}
+export declare class AuxiliaryDataShelleyMa {
+    private _transaction_metadata;
+    private _auxiliary_scripts;
+    constructor(transaction_metadata: GeneralTransactionMetadata, auxiliary_scripts: NativeScripts);
+    static new(transaction_metadata: GeneralTransactionMetadata, auxiliary_scripts: NativeScripts): AuxiliaryDataShelleyMa;
+    transaction_metadata(): GeneralTransactionMetadata;
+    set_transaction_metadata(transaction_metadata: GeneralTransactionMetadata): void;
+    auxiliary_scripts(): NativeScripts;
+    set_auxiliary_scripts(auxiliary_scripts: NativeScripts): void;
+    static deserialize(reader: CBORReader, path: string[]): AuxiliaryDataShelleyMa;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array, path?: string[]): AuxiliaryDataShelleyMa;
+    static from_hex(hex_str: string, path?: string[]): AuxiliaryDataShelleyMa;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(path: string[]): AuxiliaryDataShelleyMa;
 }
 export declare class BigNum {
     private inner;
@@ -2030,6 +2085,51 @@ export declare class PoolVotingThresholds {
     to_hex(): string;
     clone(path: string[]): PoolVotingThresholds;
 }
+export declare class PostAlonzoTransactionOutput {
+    private _address;
+    private _amount;
+    private _plutus_data;
+    private _script_ref;
+    constructor(address: Address, amount: Value, plutus_data: PlutusData | undefined, script_ref: ScriptRef | undefined);
+    static new(address: Address, amount: Value, plutus_data: PlutusData | undefined, script_ref: ScriptRef | undefined): PostAlonzoTransactionOutput;
+    address(): Address;
+    set_address(address: Address): void;
+    amount(): Value;
+    set_amount(amount: Value): void;
+    plutus_data(): PlutusData | undefined;
+    set_plutus_data(plutus_data: PlutusData | undefined): void;
+    script_ref(): ScriptRef | undefined;
+    set_script_ref(script_ref: ScriptRef | undefined): void;
+    static deserialize(reader: CBORReader, path: string[]): PostAlonzoTransactionOutput;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array, path?: string[]): PostAlonzoTransactionOutput;
+    static from_hex(hex_str: string, path?: string[]): PostAlonzoTransactionOutput;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(path: string[]): PostAlonzoTransactionOutput;
+}
+export declare class PreBabbageTransactionOutput {
+    private _address;
+    private _amount;
+    private _datum_hash;
+    constructor(address: Address, amount: Value, datum_hash: DataHash);
+    static new(address: Address, amount: Value, datum_hash: DataHash): PreBabbageTransactionOutput;
+    address(): Address;
+    set_address(address: Address): void;
+    amount(): Value;
+    set_amount(amount: Value): void;
+    datum_hash(): DataHash;
+    set_datum_hash(datum_hash: DataHash): void;
+    static deserialize(reader: CBORReader, path: string[]): PreBabbageTransactionOutput;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array, path?: string[]): PreBabbageTransactionOutput;
+    static from_hex(hex_str: string, path?: string[]): PreBabbageTransactionOutput;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(path: string[]): PreBabbageTransactionOutput;
+}
 export declare class PrivateKey {
     private inner;
     private options?;
@@ -3006,20 +3106,25 @@ export declare class TransactionMetadatumLabels {
     to_hex(): string;
     clone(path: string[]): TransactionMetadatumLabels;
 }
+export declare enum TransactionOutputKind {
+    PreBabbageTransactionOutput = 0,
+    PostAlonzoTransactionOutput = 1
+}
+export type TransactionOutputVariant = {
+    kind: 0;
+    value: PreBabbageTransactionOutput;
+} | {
+    kind: 1;
+    value: PostAlonzoTransactionOutput;
+};
 export declare class TransactionOutput {
-    private _address;
-    private _amount;
-    private _plutus_data;
-    private _script_ref;
-    constructor(address: Address, amount: Value, plutus_data: PlutusData | undefined, script_ref: ScriptRef | undefined);
-    address(): Address;
-    set_address(address: Address): void;
-    amount(): Value;
-    set_amount(amount: Value): void;
-    plutus_data(): PlutusData | undefined;
-    set_plutus_data(plutus_data: PlutusData | undefined): void;
-    script_ref(): ScriptRef | undefined;
-    set_script_ref(script_ref: ScriptRef | undefined): void;
+    private variant;
+    constructor(variant: TransactionOutputVariant);
+    static new_pre_babbage_transaction_output(pre_babbage_transaction_output: PreBabbageTransactionOutput): TransactionOutput;
+    static new_post_alonzo_transaction_output(post_alonzo_transaction_output: PostAlonzoTransactionOutput): TransactionOutput;
+    as_pre_babbage_transaction_output(): PreBabbageTransactionOutput;
+    as_post_alonzo_transaction_output(): PostAlonzoTransactionOutput;
+    kind(): TransactionOutputKind;
     static deserialize(reader: CBORReader, path: string[]): TransactionOutput;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -3309,14 +3414,14 @@ export declare class Vkey {
     static new(public_key: PublicKey): Vkey;
     public_key(): PublicKey;
     set_public_key(public_key: PublicKey): void;
-    static deserialize(reader: CBORReader, path: string[]): Vkey;
-    serialize(writer: CBORWriter): void;
     free(): void;
     static from_bytes(data: Uint8Array, path?: string[]): Vkey;
     static from_hex(hex_str: string, path?: string[]): Vkey;
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): Vkey;
+    static deserialize(reader: CBORReader, path: string[]): Vkey;
+    serialize(writer: CBORWriter): void;
 }
 export declare class Vkeys {
     private items;
@@ -3621,7 +3726,7 @@ export declare class ByronAddress {
     static deserializeInner(reader: CBORReader, path: string[]): ByronAddress;
     serialize(writer: CBORWriter): void;
     static deserialize(reader: CBORReader, path: string[]): ByronAddress;
-    static from_bytes(bytes: Uint8Array): ByronAddress;
+    static from_bytes(bytes: Uint8Array, path?: string[]): ByronAddress;
     to_bytes(): Uint8Array;
     byron_protocol_magic(): number;
     attributes(): Uint8Array;
@@ -3720,7 +3825,7 @@ export declare class Address {
     is_malformed(): boolean;
     network_id(): number;
     to_bytes(): Uint8Array;
-    static from_bytes(bytes: Uint8Array): Address;
+    static from_bytes(bytes: Uint8Array, path: string[]): Address;
     serialize(writer: CBORWriter): void;
     static deserialize(reader: CBORReader, path: string[]): Address;
 }

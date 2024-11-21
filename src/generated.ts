@@ -48,7 +48,7 @@ export class Anchor {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -1504,7 +1504,7 @@ export class Block {
 
     if (len != null && len < 5) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 5. Received " +
+        "Insufficient number of fields in record. Expected at least 5. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -1722,7 +1722,7 @@ export class BootstrapWitness {
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " +
+        "Insufficient number of fields in record. Expected at least 4. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -2773,7 +2773,7 @@ export class ChangeConfig {
 
     if (len != null && len < 3) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " +
+        "Insufficient number of fields in record. Expected at least 3. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -3203,7 +3203,7 @@ export class Constitution {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -3305,7 +3305,7 @@ export class ConstrPlutusData {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -4329,7 +4329,7 @@ export class DRepVotingThresholds {
 
     if (len != null && len < 10) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 10. Received " +
+        "Insufficient number of fields in record. Expected at least 10. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -4503,7 +4503,7 @@ export class DataCost {
 
     if (len != null && len < 1) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " +
+        "Insufficient number of fields in record. Expected at least 1. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -5104,7 +5104,7 @@ export class ExUnitPrices {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -5194,7 +5194,7 @@ export class ExUnits {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -5871,7 +5871,7 @@ export class GovernanceActionId {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -6244,7 +6244,7 @@ export class Header {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -6441,7 +6441,7 @@ export class HeaderBody {
 
     if (len != null && len < 10) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 10. Received " +
+        "Insufficient number of fields in record. Expected at least 10. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -8173,7 +8173,7 @@ export class NativeScriptRefInput {
 
     if (len != null && len < 3) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " +
+        "Insufficient number of fields in record. Expected at least 3. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -8722,7 +8722,7 @@ export class Nonce {
 
     if (len != null && len < 1) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " +
+        "Insufficient number of fields in record. Expected at least 1. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -8847,7 +8847,7 @@ export class OperationalCert {
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " +
+        "Insufficient number of fields in record. Expected at least 4. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -9830,7 +9830,7 @@ export class PoolMetadata {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -10393,7 +10393,7 @@ export class PoolVotingThresholds {
 
     if (len != null && len < 5) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 5. Received " +
+        "Insufficient number of fields in record. Expected at least 5. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -10491,6 +10491,301 @@ export class PoolVotingThresholds {
 
   clone(path: string[]): PoolVotingThresholds {
     return PoolVotingThresholds.from_bytes(this.to_bytes(), path);
+  }
+}
+
+export class PostAlonzoTransactionOutput {
+  private _address: Address;
+  private _amount: Value;
+  private _plutus_data: PlutusData | undefined;
+  private _script_ref: ScriptRef | undefined;
+
+  constructor(
+    address: Address,
+    amount: Value,
+    plutus_data: PlutusData | undefined,
+    script_ref: ScriptRef | undefined,
+  ) {
+    this._address = address;
+    this._amount = amount;
+    this._plutus_data = plutus_data;
+    this._script_ref = script_ref;
+  }
+
+  static new(
+    address: Address,
+    amount: Value,
+    plutus_data: PlutusData | undefined,
+    script_ref: ScriptRef | undefined,
+  ) {
+    return new PostAlonzoTransactionOutput(
+      address,
+      amount,
+      plutus_data,
+      script_ref,
+    );
+  }
+
+  address(): Address {
+    return this._address;
+  }
+
+  set_address(address: Address): void {
+    this._address = address;
+  }
+
+  amount(): Value {
+    return this._amount;
+  }
+
+  set_amount(amount: Value): void {
+    this._amount = amount;
+  }
+
+  plutus_data(): PlutusData | undefined {
+    return this._plutus_data;
+  }
+
+  set_plutus_data(plutus_data: PlutusData | undefined): void {
+    this._plutus_data = plutus_data;
+  }
+
+  script_ref(): ScriptRef | undefined {
+    return this._script_ref;
+  }
+
+  set_script_ref(script_ref: ScriptRef | undefined): void {
+    this._script_ref = script_ref;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): PostAlonzoTransactionOutput {
+    let fields: any = {};
+    reader.readMap((r) => {
+      let key = Number(r.readUint(path));
+      switch (key) {
+        case 0: {
+          const new_path = [...path, "Address(address)"];
+          fields.address = Address.deserialize(r, new_path);
+          break;
+        }
+
+        case 1: {
+          const new_path = [...path, "Value(amount)"];
+          fields.amount = Value.deserialize(r, new_path);
+          break;
+        }
+
+        case 2: {
+          const new_path = [...path, "PlutusData(plutus_data)"];
+          fields.plutus_data = PlutusData.deserialize(r, new_path);
+          break;
+        }
+
+        case 3: {
+          const new_path = [...path, "ScriptRef(script_ref)"];
+          fields.script_ref = ScriptRef.deserialize(r, new_path);
+          break;
+        }
+      }
+    }, path);
+
+    if (fields.address === undefined)
+      throw new Error(
+        "Value not provided for field 0 (address) (at " + path.join("/") + ")",
+      );
+    let address = fields.address;
+    if (fields.amount === undefined)
+      throw new Error(
+        "Value not provided for field 1 (amount) (at " + path.join("/") + ")",
+      );
+    let amount = fields.amount;
+
+    let plutus_data = fields.plutus_data;
+
+    let script_ref = fields.script_ref;
+
+    return new PostAlonzoTransactionOutput(
+      address,
+      amount,
+      plutus_data,
+      script_ref,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    let len = 4;
+    if (this._plutus_data === undefined) len -= 1;
+    if (this._script_ref === undefined) len -= 1;
+    writer.writeMapTag(len);
+
+    writer.writeInt(0n);
+    this._address.serialize(writer);
+
+    writer.writeInt(1n);
+    this._amount.serialize(writer);
+
+    if (this._plutus_data !== undefined) {
+      writer.writeInt(2n);
+      this._plutus_data.serialize(writer);
+    }
+    if (this._script_ref !== undefined) {
+      writer.writeInt(3n);
+      this._script_ref.serialize(writer);
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PostAlonzoTransactionOutput"],
+  ): PostAlonzoTransactionOutput {
+    let reader = new CBORReader(data);
+    return PostAlonzoTransactionOutput.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PostAlonzoTransactionOutput"],
+  ): PostAlonzoTransactionOutput {
+    return PostAlonzoTransactionOutput.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): PostAlonzoTransactionOutput {
+    return PostAlonzoTransactionOutput.from_bytes(this.to_bytes(), path);
+  }
+}
+
+export class PreBabbageTransactionOutput {
+  private _address: Address;
+  private _amount: Value;
+  private _datum_hash: DataHash | undefined;
+
+  constructor(
+    address: Address,
+    amount: Value,
+    datum_hash: DataHash | undefined,
+  ) {
+    this._address = address;
+    this._amount = amount;
+    this._datum_hash = datum_hash;
+  }
+
+  static new(
+    address: Address,
+    amount: Value,
+    datum_hash: DataHash | undefined,
+  ) {
+    return new PreBabbageTransactionOutput(address, amount, datum_hash);
+  }
+
+  address(): Address {
+    return this._address;
+  }
+
+  set_address(address: Address): void {
+    this._address = address;
+  }
+
+  amount(): Value {
+    return this._amount;
+  }
+
+  set_amount(amount: Value): void {
+    this._amount = amount;
+  }
+
+  datum_hash(): DataHash | undefined {
+    return this._datum_hash;
+  }
+
+  set_datum_hash(datum_hash: DataHash | undefined): void {
+    this._datum_hash = datum_hash;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): PreBabbageTransactionOutput {
+    let len = reader.readArrayTag(path);
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected at least 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
+      );
+    }
+
+    const address_path = [...path, "Address(address)"];
+    let address = Address.deserialize(reader, address_path);
+
+    const amount_path = [...path, "Value(amount)"];
+    let amount = Value.deserialize(reader, amount_path);
+
+    const datum_hash_path = [...path, "DataHash(datum_hash)"];
+    let datum_hash = reader.readOptional((r) =>
+      DataHash.deserialize(r, datum_hash_path),
+    );
+
+    return new PreBabbageTransactionOutput(address, amount, datum_hash);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArrayTag(3);
+
+    this._address.serialize(writer);
+    this._amount.serialize(writer);
+    if (this._datum_hash) {
+      this._datum_hash.serialize(writer);
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PreBabbageTransactionOutput"],
+  ): PreBabbageTransactionOutput {
+    let reader = new CBORReader(data);
+    return PreBabbageTransactionOutput.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PreBabbageTransactionOutput"],
+  ): PreBabbageTransactionOutput {
+    return PreBabbageTransactionOutput.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): PreBabbageTransactionOutput {
+    return PreBabbageTransactionOutput.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11631,7 +11926,7 @@ export class ProtocolVersion {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -11822,7 +12117,7 @@ export class Redeemer {
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " +
+        "Insufficient number of fields in record. Expected at least 4. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -12159,7 +12454,7 @@ export class RedeemersArrayItem {
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " +
+        "Insufficient number of fields in record. Expected at least 4. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -12257,7 +12552,7 @@ export class RedeemersKey {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -12347,7 +12642,7 @@ export class RedeemersValue {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -14395,7 +14690,7 @@ export class Transaction {
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " +
+        "Insufficient number of fields in record. Expected at least 4. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -15268,7 +15563,7 @@ export class TransactionInput {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -15677,124 +15972,101 @@ export class TransactionMetadatumLabels {
   }
 }
 
+export enum TransactionOutputKind {
+  PreBabbageTransactionOutput = 0,
+  PostAlonzoTransactionOutput = 1,
+}
+
+export type TransactionOutputVariant =
+  | { kind: 0; value: PreBabbageTransactionOutput }
+  | { kind: 1; value: PostAlonzoTransactionOutput };
+
 export class TransactionOutput {
-  private _address: Address;
-  private _amount: Value;
-  private _plutus_data: PlutusData | undefined;
-  private _script_ref: ScriptRef | undefined;
+  private variant: TransactionOutputVariant;
 
-  constructor(
-    address: Address,
-    amount: Value,
-    plutus_data: PlutusData | undefined,
-    script_ref: ScriptRef | undefined,
-  ) {
-    this._address = address;
-    this._amount = amount;
-    this._plutus_data = plutus_data;
-    this._script_ref = script_ref;
+  constructor(variant: TransactionOutputVariant) {
+    this.variant = variant;
   }
 
-  address(): Address {
-    return this._address;
+  static new_pre_babbage_transaction_output(
+    pre_babbage_transaction_output: PreBabbageTransactionOutput,
+  ): TransactionOutput {
+    return new TransactionOutput({
+      kind: 0,
+      value: pre_babbage_transaction_output,
+    });
   }
 
-  set_address(address: Address): void {
-    this._address = address;
+  static new_post_alonzo_transaction_output(
+    post_alonzo_transaction_output: PostAlonzoTransactionOutput,
+  ): TransactionOutput {
+    return new TransactionOutput({
+      kind: 1,
+      value: post_alonzo_transaction_output,
+    });
   }
 
-  amount(): Value {
-    return this._amount;
+  as_pre_babbage_transaction_output(): PreBabbageTransactionOutput {
+    if (this.variant.kind == 0) return this.variant.value;
+    throw new Error("Incorrect cast");
   }
 
-  set_amount(amount: Value): void {
-    this._amount = amount;
+  as_post_alonzo_transaction_output(): PostAlonzoTransactionOutput {
+    if (this.variant.kind == 1) return this.variant.value;
+    throw new Error("Incorrect cast");
   }
 
-  plutus_data(): PlutusData | undefined {
-    return this._plutus_data;
-  }
-
-  set_plutus_data(plutus_data: PlutusData | undefined): void {
-    this._plutus_data = plutus_data;
-  }
-
-  script_ref(): ScriptRef | undefined {
-    return this._script_ref;
-  }
-
-  set_script_ref(script_ref: ScriptRef | undefined): void {
-    this._script_ref = script_ref;
+  kind(): TransactionOutputKind {
+    return this.variant.kind;
   }
 
   static deserialize(reader: CBORReader, path: string[]): TransactionOutput {
-    let fields: any = {};
-    reader.readMap((r) => {
-      let key = Number(r.readUint(path));
-      switch (key) {
-        case 0: {
-          const new_path = [...path, "Address(address)"];
-          fields.address = Address.deserialize(r, new_path);
-          break;
-        }
+    let tag = reader.peekType(path);
+    let variant: TransactionOutputVariant;
 
-        case 1: {
-          const new_path = [...path, "Value(amount)"];
-          fields.amount = Value.deserialize(r, new_path);
-          break;
-        }
+    switch (tag) {
+      case "array":
+        variant = {
+          kind: TransactionOutputKind.PreBabbageTransactionOutput,
+          value: PreBabbageTransactionOutput.deserialize(reader, [
+            ...path,
+            "PreBabbageTransactionOutput(pre_babbage_transaction_output)",
+          ]),
+        };
+        break;
 
-        case 2: {
-          const new_path = [...path, "PlutusData(plutus_data)"];
-          fields.plutus_data = PlutusData.deserialize(r, new_path);
-          break;
-        }
+      case "map":
+        variant = {
+          kind: TransactionOutputKind.PostAlonzoTransactionOutput,
+          value: PostAlonzoTransactionOutput.deserialize(reader, [
+            ...path,
+            "PostAlonzoTransactionOutput(post_alonzo_transaction_output)",
+          ]),
+        };
+        break;
 
-        case 3: {
-          const new_path = [...path, "ScriptRef(script_ref)"];
-          fields.script_ref = ScriptRef.deserialize(r, new_path);
-          break;
-        }
-      }
-    }, path);
+      default:
+        throw new Error(
+          "Unexpected subtype for TransactionOutput: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
+    }
 
-    if (fields.address === undefined)
-      throw new Error(
-        "Value not provided for field 0 (address) (at " + path.join("/") + ")",
-      );
-    let address = fields.address;
-    if (fields.amount === undefined)
-      throw new Error(
-        "Value not provided for field 1 (amount) (at " + path.join("/") + ")",
-      );
-    let amount = fields.amount;
-
-    let plutus_data = fields.plutus_data;
-
-    let script_ref = fields.script_ref;
-
-    return new TransactionOutput(address, amount, plutus_data, script_ref);
+    return new TransactionOutput(variant);
   }
 
   serialize(writer: CBORWriter): void {
-    let len = 4;
-    if (this._plutus_data === undefined) len -= 1;
-    if (this._script_ref === undefined) len -= 1;
-    writer.writeMapTag(len);
+    switch (this.variant.kind) {
+      case 0:
+        this.variant.value.serialize(writer);
+        break;
 
-    writer.writeInt(0n);
-    this._address.serialize(writer);
-
-    writer.writeInt(1n);
-    this._amount.serialize(writer);
-
-    if (this._plutus_data !== undefined) {
-      writer.writeInt(2n);
-      this._plutus_data.serialize(writer);
-    }
-    if (this._script_ref !== undefined) {
-      writer.writeInt(3n);
-      this._script_ref.serialize(writer);
+      case 1:
+        this.variant.value.serialize(writer);
+        break;
     }
   }
 
@@ -15831,7 +16103,16 @@ export class TransactionOutput {
   }
 
   static new(address: Address, amount: Value): TransactionOutput {
-    return new TransactionOutput(address, amount, undefined, undefined);
+    const post_alonzo_transaction_output = new PostAlonzoTransactionOutput(
+      address,
+      amount,
+      undefined,
+      undefined,
+    );
+    return new TransactionOutput({
+      kind: 1,
+      value: post_alonzo_transaction_output,
+    });
   }
 }
 
@@ -16552,7 +16833,7 @@ export class UnitInterval {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -16733,7 +17014,7 @@ export class Update {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -16952,7 +17233,7 @@ export class VRFCert {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -17152,7 +17433,7 @@ export class Value {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -17448,7 +17729,7 @@ export class Vkeywitness {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -18169,7 +18450,7 @@ export class VotingProcedure {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -18426,7 +18707,7 @@ export class VotingProposal {
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " +
+        "Insufficient number of fields in record. Expected at least 4. Received " +
           len +
           "(at " +
           path.join("/"),

@@ -5,6 +5,7 @@ export type Field = {
   name: string;
   type: string;
   nullable?: boolean;
+  optional?: boolean;
 };
 
 export type GenRecordOptions = {
@@ -24,8 +25,8 @@ export class GenRecord extends GenStructuredBase<Field> {
     return `
       let len = ${reader}.readArrayTag(${path});
       
-      if(len != null && len < ${this.getFields().length}) {
-        throw new Error("Insufficient number of fields in record. Expected ${this.getFields().length}. Received " + len + "(at " + path.join("/"));
+      if(len != null && len < ${this.getMinFields()}) {
+        throw new Error("Insufficient number of fields in record. Expected at least ${this.getMinFields()}. Received " + len + "(at " + path.join("/"));
       }
 
       ${this.getFields()
@@ -33,9 +34,9 @@ export class GenRecord extends GenStructuredBase<Field> {
           (x) => `
           const ${x.name}_path = [...${path}, '${x.type}(${x.name})'];
           let ${x.name} = ${
-            x.nullable
-              ? `${reader}.readNullable(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)}, ${path})?? undefined`
-              : this.typeUtils.readType(reader, x.type, `${x.name}_path`)
+            x.optional ? `${reader}.readOptional(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)})` :
+            x.nullable ? `${reader}.readNullable(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)}, ${path})?? undefined` :
+            this.typeUtils.readType(reader, x.type, `${x.name}_path`)
           };`,
         )
         .join("\n")}
@@ -52,13 +53,17 @@ export class GenRecord extends GenStructuredBase<Field> {
 
       ${this.getFields()
         .map((x) =>
+          x.optional
+            ? `if(this._${x.name}) {
+                 ${this.typeUtils.writeType(writer, `this._${x.name}`, x.type)};   
+              }` :
           x.nullable
             ? `if(this._${x.name} == null) { 
                   ${writer}.writeNull();
               } else { 
                   ${this.typeUtils.writeType(writer, `this._${x.name}`, x.type)};
-              }`
-            : `${this.typeUtils.writeType(writer, `this._${x.name}`, x.type)};`,
+              }` :
+          `${this.typeUtils.writeType(writer, `this._${x.name}`, x.type)};`,
         )
         .join("\n")}
     `;

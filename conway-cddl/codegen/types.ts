@@ -78,6 +78,7 @@ export const Schema = Type.Intersect([
           name: Type.String(),
           type: Type.String(),
           nullable: Type.Optional(Type.Boolean()),
+          optional: Type.Optional(Type.Boolean())
         }),
       ),
       accessor_get_prefix: Type.Optional(Type.Boolean()),
