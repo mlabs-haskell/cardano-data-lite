@@ -164,7 +164,7 @@ export class CBORReader {
   }
 
   readOptional<T>(fn: (reader:CBORReader) => T): T | undefined {
-    if (this.isBreak()) return undefined;
+    if (this.isBreak() || this.buffer.length == 0) { return undefined };
     return fn(this);
   }
 
