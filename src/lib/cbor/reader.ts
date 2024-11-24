@@ -163,11 +163,6 @@ export class CBORReader {
     return fn(this);
   }
 
-  readOptional<T>(fn: (reader:CBORReader) => T): T | undefined {
-    if (this.isBreak() || this.buffer.length == 0) { return undefined };
-    return fn(this);
-  }
-
   readUndefined(path: string[]): undefined {
     this.assertType(["undefined"], path);
     this.buffer = this.buffer.slice(1);

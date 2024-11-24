@@ -12,6 +12,10 @@ export type GenRecordOptions = {
   fields: Field[];
 } & GenStructuredBaseOptions<Field>;
 
+         // x.optional ? `${reader}.readOptional(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)})` :
+         // x.nullable ? `${reader}.readNullable(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)}, ${path})?? undefined` :
+         // this.typeUtils.readType(reader, x.type, `${x.name}_path`)
+
 export class GenRecord extends GenStructuredBase<Field> {
   constructor(
     name: string,
@@ -29,17 +33,19 @@ export class GenRecord extends GenStructuredBase<Field> {
         throw new Error("Insufficient number of fields in record. Expected at least ${this.getMinFields()}. Received " + len + "(at " + path.join("/"));
       }
 
-      ${this.getFields()
-        .map(
-          (x) => `
-          const ${x.name}_path = [...${path}, '${x.type}(${x.name})'];
-          let ${x.name} = ${
-            x.optional ? `${reader}.readOptional(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)})` :
-            x.nullable ? `${reader}.readNullable(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)}, ${path})?? undefined` :
-            this.typeUtils.readType(reader, x.type, `${x.name}_path`)
-          };`,
-        )
-        .join("\n")}
+      ${this.getFields().reduce((acc, x, idx) => {
+         acc.push(`
+           const ${x.name}_path = [...${path}, '${x.type}(${x.name})'];
+           let ${x.name} = ${
+             x.optional ?
+               `len != null && len > ${idx} ? ${this.typeUtils.readType(reader, x.type, `${x.name}_path`)} : undefined` :
+             x.nullable ?
+               `${reader}.readNullable(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)}, ${path})?? undefined` :
+             this.typeUtils.readType(reader, x.type, `${x.name}_path`)
+           }
+         `);
+         return acc;
+      }, [] as string[]).join("\n")}
 
       return new ${this.name}(${this.getFields()
         .map((x) => x.name)
@@ -49,7 +55,16 @@ export class GenRecord extends GenStructuredBase<Field> {
 
   generateSerialize(writer: string): string {
     return `
-      ${writer}.writeArrayTag(${this.getFields().length});
+      let arrayLen = ${this.getMinFields()};
+      ${this.getFields().
+        map((x) => x.optional
+          ? `if(this._${x.name}) {
+              arrayLen++;            
+          }` :
+          "")
+          .join("\n")}
+
+      ${writer}.writeArrayTag(arrayLen);
 
       ${this.getFields()
         .map((x) =>

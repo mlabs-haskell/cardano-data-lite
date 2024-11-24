@@ -68,7 +68,9 @@ export class Anchor {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._url.serialize(writer);
     this._anchor_data_hash.serialize(writer);
@@ -1562,7 +1564,9 @@ export class Block {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(5);
+    let arrayLen = 5;
+
+    writer.writeArrayTag(arrayLen);
 
     this._header.serialize(writer);
     this._transaction_bodies.serialize(writer);
@@ -1745,7 +1749,9 @@ export class BootstrapWitness {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(4);
+    let arrayLen = 4;
+
+    writer.writeArrayTag(arrayLen);
 
     this._vkey.serialize(writer);
     this._signature.serialize(writer);
@@ -2801,7 +2807,9 @@ export class ChangeConfig {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(3);
+    let arrayLen = 3;
+
+    writer.writeArrayTag(arrayLen);
 
     this._address.serialize(writer);
     if (this._plutus_data == null) {
@@ -3224,7 +3232,9 @@ export class Constitution {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._anchor.serialize(writer);
     if (this._scripthash == null) {
@@ -3322,7 +3332,9 @@ export class ConstrPlutusData {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._alternative.serialize(writer);
     this._data.serialize(writer);
@@ -4432,7 +4444,9 @@ export class DRepVotingThresholds {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(10);
+    let arrayLen = 10;
+
+    writer.writeArrayTag(arrayLen);
 
     this._motion_no_confidence.serialize(writer);
     this._committee_normal.serialize(writer);
@@ -4517,7 +4531,9 @@ export class DataCost {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(1);
+    let arrayLen = 1;
+
+    writer.writeArrayTag(arrayLen);
 
     this._coins_per_byte.serialize(writer);
   }
@@ -5121,7 +5137,9 @@ export class ExUnitPrices {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._mem_price.serialize(writer);
     this._step_price.serialize(writer);
@@ -5211,7 +5229,9 @@ export class ExUnits {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._mem.serialize(writer);
     this._steps.serialize(writer);
@@ -5891,7 +5911,9 @@ export class GovernanceActionId {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._transaction_id.serialize(writer);
     writer.writeInt(BigInt(this._index));
@@ -6261,7 +6283,9 @@ export class Header {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._header_body.serialize(writer);
     this._body_signature.serialize(writer);
@@ -6509,7 +6533,9 @@ export class HeaderBody {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(10);
+    let arrayLen = 10;
+
+    writer.writeArrayTag(arrayLen);
 
     writer.writeInt(BigInt(this._block_number));
     this._slot.serialize(writer);
@@ -8193,7 +8219,9 @@ export class NativeScriptRefInput {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(3);
+    let arrayLen = 3;
+
+    writer.writeArrayTag(arrayLen);
 
     this._script_hash.serialize(writer);
     this._input.serialize(writer);
@@ -8737,7 +8765,9 @@ export class Nonce {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(1);
+    let arrayLen = 1;
+
+    writer.writeArrayTag(arrayLen);
 
     if (this._hash == null) {
       writer.writeNull();
@@ -8870,7 +8900,9 @@ export class OperationalCert {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(4);
+    let arrayLen = 4;
+
+    writer.writeArrayTag(arrayLen);
 
     this._hot_vkey.serialize(writer);
     writer.writeInt(BigInt(this._sequence_number));
@@ -9853,7 +9885,9 @@ export class PoolMetadata {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._url.serialize(writer);
     this._pool_metadata_hash.serialize(writer);
@@ -10452,7 +10486,9 @@ export class PoolVotingThresholds {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(5);
+    let arrayLen = 5;
+
+    writer.writeArrayTag(arrayLen);
 
     this._motion_no_confidence.serialize(writer);
     this._committee_normal.serialize(writer);
@@ -10739,15 +10775,22 @@ export class PreBabbageTransactionOutput {
     let amount = Value.deserialize(reader, amount_path);
 
     const datum_hash_path = [...path, "DataHash(datum_hash)"];
-    let datum_hash = reader.readOptional((r) =>
-      DataHash.deserialize(r, datum_hash_path),
-    );
+    let datum_hash =
+      len != null && len > 2
+        ? DataHash.deserialize(reader, datum_hash_path)
+        : undefined;
 
     return new PreBabbageTransactionOutput(address, amount, datum_hash);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(3);
+    let arrayLen = 2;
+
+    if (this._datum_hash) {
+      arrayLen++;
+    }
+
+    writer.writeArrayTag(arrayLen);
 
     this._address.serialize(writer);
     this._amount.serialize(writer);
@@ -11943,7 +11986,9 @@ export class ProtocolVersion {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     writer.writeInt(BigInt(this._major));
     writer.writeInt(BigInt(this._minor));
@@ -12140,7 +12185,9 @@ export class Redeemer {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(4);
+    let arrayLen = 4;
+
+    writer.writeArrayTag(arrayLen);
 
     this._tag.serialize(writer);
     this._index.serialize(writer);
@@ -12477,7 +12524,9 @@ export class RedeemersArrayItem {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(4);
+    let arrayLen = 4;
+
+    writer.writeArrayTag(arrayLen);
 
     this._tag.serialize(writer);
     this._index.serialize(writer);
@@ -12569,7 +12618,9 @@ export class RedeemersKey {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._tag.serialize(writer);
     this._index.serialize(writer);
@@ -12659,7 +12710,9 @@ export class RedeemersValue {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._data.serialize(writer);
     this._ex_units.serialize(writer);
@@ -14720,7 +14773,9 @@ export class Transaction {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(4);
+    let arrayLen = 4;
+
+    writer.writeArrayTag(arrayLen);
 
     this._body.serialize(writer);
     this._witness_set.serialize(writer);
@@ -15583,7 +15638,9 @@ export class TransactionInput {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._transaction_id.serialize(writer);
     writer.writeInt(BigInt(this._index));
@@ -16856,7 +16913,9 @@ export class UnitInterval {
   }
 
   serializeInner(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._numerator.serialize(writer);
     this._denominator.serialize(writer);
@@ -17038,7 +17097,9 @@ export class Update {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._proposed_protocol_parameter_updates.serialize(writer);
     writer.writeInt(BigInt(this._epoch));
@@ -17250,7 +17311,9 @@ export class VRFCert {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     writer.writeBytes(this._output);
     writer.writeBytes(this._proof);
@@ -17454,7 +17517,9 @@ export class Value {
   }
 
   serializeRecord(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._coin.serialize(writer);
     if (this._multiasset == null) {
@@ -17746,7 +17811,9 @@ export class Vkeywitness {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._vkey.serialize(writer);
     this._signature.serialize(writer);
@@ -18469,7 +18536,9 @@ export class VotingProcedure {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     serializeVoteKind(writer, this._vote);
     if (this._anchor == null) {
@@ -18741,7 +18810,9 @@ export class VotingProposal {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(4);
+    let arrayLen = 4;
+
+    writer.writeArrayTag(arrayLen);
 
     this._deposit.serialize(writer);
     this._reward_account.serialize(writer);
