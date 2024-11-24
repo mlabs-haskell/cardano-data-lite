@@ -116,14 +116,14 @@ export class Address {
     }
 
     const header = bytes[0];
-    switch (header & 0b1111) {
+    switch (header >> 4) {
       case 0b0000:
       case 0b0001:
       case 0b0010:
-      case 0b0011:
+      case 0b0011: 
         return new Address({
-          kind: AddressKind.Byron,
-          value: ByronAddress.from_bytes(bytes, path),
+          kind: AddressKind.Base,
+          value: BaseAddress.from_bytes(bytes)
         });
       case 0b0110:
       case 0b0111:
@@ -136,6 +136,11 @@ export class Address {
         return new Address({
           kind: AddressKind.Reward,
           value: RewardAddress.from_bytes(bytes),
+        });
+      case 0b1000:
+        return new Address({
+          kind: AddressKind.Byron,
+          value: ByronAddress.from_bytes(bytes, path),
         });
       default:
         return new Address({
