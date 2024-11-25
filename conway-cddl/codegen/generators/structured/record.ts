@@ -12,10 +12,6 @@ export type GenRecordOptions = {
   fields: Field[];
 } & GenStructuredBaseOptions<Field>;
 
-         // x.optional ? `${reader}.readOptional(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)})` :
-         // x.nullable ? `${reader}.readNullable(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)}, ${path})?? undefined` :
-         // this.typeUtils.readType(reader, x.type, `${x.name}_path`)
-
 export class GenRecord extends GenStructuredBase<Field> {
   constructor(
     name: string,

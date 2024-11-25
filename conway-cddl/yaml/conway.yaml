@@ -709,8 +709,8 @@ PostAlonzoTransactionOutput:
       name: amount
       type: Value
     - id: 2
-      name: plutus_data
-      type: PlutusData
+      name: datum_option
+      type: DataOption
       optional: true
     - id: 3
       name: script_ref
@@ -2010,6 +2010,12 @@ NetworkId:
 # datum_hash = $hash32
 
 # data = #6.24(bytes .cbor plutus_data)
+Data:
+  type: newtype
+  item: bytes
+  accessor: encoded_plutus_data
+  tagged:
+    tag: 24
 
 # datum_option = [ 0, $hash32 // 1, data ]
 DataOption:
@@ -2020,7 +2026,7 @@ DataOption:
       value: DataHash
     - name: data
       tag: 1
-      value: PlutusData
+      value: Data
 
 # script_ref = #6.24(bytes .cbor script)
 

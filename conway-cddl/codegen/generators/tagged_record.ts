@@ -163,14 +163,18 @@ export class GenTaggedRecord extends CodeGeneratorBase {
               break;
             `,
           )
+          .concat([`
+            default:
+              throw new Error("Unexpected tag for ${this.name}: " + tag + "(at " + ${path}.join("/") + ")");
+          `])
           .join("\n")}
       }
 
       if(len == null) {
         ${reader}.readBreak();
       }
-      
-      throw new Error("Unexpected tag for ${this.name}: " + tag + "(at " + ${path}.join("/") + ")");
+
+      return new ${this.name}(variant);
     `;
   }
 

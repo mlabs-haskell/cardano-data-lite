@@ -2512,15 +2512,22 @@ export class Certificate {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for Certificate: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for Certificate: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new Certificate(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -3866,15 +3873,18 @@ export class DRep {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for DRep: " + tag + "(at " + path.join("/") + ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for DRep: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new DRep(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -4493,6 +4503,73 @@ export class DRepVotingThresholds {
   }
 }
 
+export class Data {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): Data {
+    return new Data(inner);
+  }
+
+  encoded_plutus_data(): Uint8Array {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader, path: string[] = ["Data"]): Data {
+    let taggedTag = reader.readTaggedTag(path);
+    if (taggedTag != 24) {
+      throw new Error(
+        "Expected tag 24, got " + taggedTag + " (at " + path + ")",
+      );
+    }
+
+    return Data.deserializeInner(reader, path);
+  }
+
+  static deserializeInner(reader: CBORReader, path: string[]): Data {
+    return new Data(reader.readBytes(path));
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeTaggedTag(24);
+
+    this.serializeInner(writer);
+  }
+
+  serializeInner(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array, path: string[] = ["Data"]): Data {
+    let reader = new CBORReader(data);
+    return Data.deserialize(reader, path);
+  }
+
+  static from_hex(hex_str: string, path: string[] = ["Data"]): Data {
+    return Data.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): Data {
+    return Data.from_bytes(this.to_bytes(), path);
+  }
+}
+
 export class DataCost {
   private _coins_per_byte: BigNum;
 
@@ -4625,12 +4702,12 @@ export class DataHash {
 
 export enum DataOptionKind {
   DataHash = 0,
-  PlutusData = 1,
+  Data = 1,
 }
 
 export type DataOptionVariant =
   | { kind: 0; value: DataHash }
-  | { kind: 1; value: PlutusData };
+  | { kind: 1; value: Data };
 
 export class DataOption {
   private variant: DataOptionVariant;
@@ -4643,7 +4720,7 @@ export class DataOption {
     return new DataOption({ kind: 0, value: hash });
   }
 
-  static new_data(data: PlutusData): DataOption {
+  static new_data(data: Data): DataOption {
     return new DataOption({ kind: 1, value: data });
   }
 
@@ -4651,7 +4728,7 @@ export class DataOption {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
-  as_data(): PlutusData | undefined {
+  as_data(): Data | undefined {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
@@ -4678,23 +4755,30 @@ export class DataOption {
 
       case 1:
         if (len != null && len - 1 != 1) {
-          throw new Error("Expected 1 items to decode PlutusData");
+          throw new Error("Expected 1 items to decode Data");
         }
         variant = {
           kind: 1,
-          value: PlutusData.deserialize(reader, [...path, "PlutusData"]),
+          value: Data.deserialize(reader, [...path, "Data"]),
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for DataOption: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for DataOption: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new DataOption(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -4811,15 +4895,22 @@ export class DatumSource {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for DatumSource: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for DatumSource: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new DatumSource(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -5769,19 +5860,22 @@ export class GovernanceAction {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for GovernanceAction: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for GovernanceAction: " +
-        tag +
-        "(at " +
-        path.join("/") +
-        ")",
-    );
+    return new GovernanceAction(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -8068,15 +8162,22 @@ export class NativeScript {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for NativeScript: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for NativeScript: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new NativeScript(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -8327,19 +8428,22 @@ export class NativeScriptSource {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for NativeScriptSource: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for NativeScriptSource: " +
-        tag +
-        "(at " +
-        path.join("/") +
-        ")",
-    );
+    return new NativeScriptSource(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -9006,15 +9110,22 @@ export class OutputDatum {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for OutputDatum: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for OutputDatum: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new OutputDatum(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -10533,31 +10644,31 @@ export class PoolVotingThresholds {
 export class PostAlonzoTransactionOutput {
   private _address: Address;
   private _amount: Value;
-  private _plutus_data: PlutusData | undefined;
+  private _datum_option: DataOption | undefined;
   private _script_ref: ScriptRef | undefined;
 
   constructor(
     address: Address,
     amount: Value,
-    plutus_data: PlutusData | undefined,
+    datum_option: DataOption | undefined,
     script_ref: ScriptRef | undefined,
   ) {
     this._address = address;
     this._amount = amount;
-    this._plutus_data = plutus_data;
+    this._datum_option = datum_option;
     this._script_ref = script_ref;
   }
 
   static new(
     address: Address,
     amount: Value,
-    plutus_data: PlutusData | undefined,
+    datum_option: DataOption | undefined,
     script_ref: ScriptRef | undefined,
   ) {
     return new PostAlonzoTransactionOutput(
       address,
       amount,
-      plutus_data,
+      datum_option,
       script_ref,
     );
   }
@@ -10578,12 +10689,12 @@ export class PostAlonzoTransactionOutput {
     this._amount = amount;
   }
 
-  plutus_data(): PlutusData | undefined {
-    return this._plutus_data;
+  datum_option(): DataOption | undefined {
+    return this._datum_option;
   }
 
-  set_plutus_data(plutus_data: PlutusData | undefined): void {
-    this._plutus_data = plutus_data;
+  set_datum_option(datum_option: DataOption | undefined): void {
+    this._datum_option = datum_option;
   }
 
   script_ref(): ScriptRef | undefined {
@@ -10615,8 +10726,8 @@ export class PostAlonzoTransactionOutput {
         }
 
         case 2: {
-          const new_path = [...path, "PlutusData(plutus_data)"];
-          fields.plutus_data = PlutusData.deserialize(r, new_path);
+          const new_path = [...path, "DataOption(datum_option)"];
+          fields.datum_option = DataOption.deserialize(r, new_path);
           break;
         }
 
@@ -10639,21 +10750,21 @@ export class PostAlonzoTransactionOutput {
       );
     let amount = fields.amount;
 
-    let plutus_data = fields.plutus_data;
+    let datum_option = fields.datum_option;
 
     let script_ref = fields.script_ref;
 
     return new PostAlonzoTransactionOutput(
       address,
       amount,
-      plutus_data,
+      datum_option,
       script_ref,
     );
   }
 
   serialize(writer: CBORWriter): void {
     let len = 4;
-    if (this._plutus_data === undefined) len -= 1;
+    if (this._datum_option === undefined) len -= 1;
     if (this._script_ref === undefined) len -= 1;
     writer.writeMapTag(len);
 
@@ -10663,9 +10774,9 @@ export class PostAlonzoTransactionOutput {
     writer.writeInt(1n);
     this._amount.serialize(writer);
 
-    if (this._plutus_data !== undefined) {
+    if (this._datum_option !== undefined) {
       writer.writeInt(2n);
-      this._plutus_data.serialize(writer);
+      this._datum_option.serialize(writer);
     }
     if (this._script_ref !== undefined) {
       writer.writeInt(3n);
@@ -12913,15 +13024,18 @@ export class Relay {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for Relay: " + tag + "(at " + path.join("/") + ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for Relay: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new Relay(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -13721,15 +13835,22 @@ export class ScriptRef {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for ScriptRef: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for ScriptRef: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new ScriptRef(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -18289,15 +18410,18 @@ export class Voter {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for Voter: " + tag + "(at " + path.join("/") + ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for Voter: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new Voter(variant);
   }
 
   serialize(writer: CBORWriter): void {
