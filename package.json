@@ -1,8 +1,12 @@
 {
-  "name": "cardano-data-lite",
+  "name": "@mlabs-haskell/cardano-data-lite",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
     "test": "npm run test-serialization ; npm run test-api",
     "test-serialization": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization.test.ts",
@@ -13,7 +17,9 @@
     "generate-grammar-bundle": "npx ohm generateBundles -e -t tests/api/grammar.ohm",
     "generate-cdl-definitions": "make typedefs",
     "get-transactions": "tsx tests/serialization/get_transactions.ts",
-    "cleanup-compilation-artifacts": "make clean; npm run generate-grammar-bundle"
+    "cleanup-compilation-artifacts": "make clean; npm run generate-grammar-bundle",
+    "build": "npm run codegen && npx tsc && node fix-imports.js",
+    "prepare": "npm run build"
   },
   "author": "",
   "license": "ISC",
