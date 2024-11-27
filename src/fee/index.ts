@@ -35,11 +35,11 @@ export class LinearFee {
   }
 
   constant(): BigNum {
-    return this._constant.clone();
+    return this._constant.clone([]);
   }
 
   coefficient(): BigNum {
-    return this._coefficient.clone();
+    return this._coefficient.clone([]);
   }
 }
 
@@ -58,7 +58,7 @@ function multiply_unit_interval_by_bignum(
   bigNum: BigNum,
 ): Fraction {
   const numerator = unitInterval.numerator().checked_mul(bigNum);
-  const denominator = unitInterval.denominator().clone();
+  const denominator = unitInterval.denominator().clone([]);
   return {
     numerator: BigInt.from_str(numerator.to_str())
     , denominator: BigInt.from_str(denominator.to_str())

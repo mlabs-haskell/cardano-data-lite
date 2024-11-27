@@ -74,7 +74,8 @@ describe("bytesToBigIntLE/bigIntToBytesLE", () => {
 
   for (let [hex, num] of values) {
     test(hex + ": " + num.toString(), () => {
-      expect(derive.bytesToBigIntLE(Buffer.from(hex, "hex"))).toEqual(num);
+      const uint8Array: Uint8Array = new Uint8Array(Buffer.from(hex, "hex"));
+      expect(derive.bytesToBigIntLE(uint8Array)).toEqual(num);
 
       let buffer = Buffer.from(derive.bigIntToBytesLE(num, 64));
       let size = buffer.length;

@@ -15,8 +15,8 @@ class MinOutputAdaCalculator {
   data_cost: DataCost;
 
   constructor(output: TransactionOutput, data_cost: DataCost) {
-    this.output = output.clone();
-    this.data_cost = data_cost.clone();
+    this.output = output.clone([]);
+    this.data_cost = data_cost.clone([]);
   }
 
   static new(output: TransactionOutput, data_cost: DataCost): MinOutputAdaCalculator {
@@ -24,17 +24,17 @@ class MinOutputAdaCalculator {
   }
 
   calculate_ada(): BigNum {
-    let output = this.output.clone();
+    let output = this.output.as_post_alonzo_transaction_output().clone([]);
     for (let i = 0; i < 3; i++) {
-      const required_coin = MinOutputAdaCalculator.calc_required_coin(output, this.data_cost);
+      const required_coin = MinOutputAdaCalculator.calc_required_coin(TransactionOutput.new_post_alonzo_transaction_output(output), this.data_cost);
       if (output.amount().coin().less_than(required_coin)) {
-        output.set_amount(Value.new(required_coin.clone()));
+        output.set_amount(Value.new(required_coin.clone([])));
       } else {
         return required_coin;
       }
     }
     output.set_amount(Value.new(BigNum.new(BigNum._maxU64())));
-    return MinOutputAdaCalculator.calc_required_coin(output, this.data_cost);
+    return MinOutputAdaCalculator.calc_required_coin(TransactionOutput.new_post_alonzo_transaction_output(output), this.data_cost);
   }
 
   static calc_size_cost(data_cost: DataCost, size: number): BigNum {
