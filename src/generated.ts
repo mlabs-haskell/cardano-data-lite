@@ -9548,12 +9548,12 @@ export class PlutusData {
 export class PlutusList {
   private items: PlutusData[];
 
-  constructor() {
-    this.items = [];
+  constructor(items: PlutusData[]) {
+    this.items = items;
   }
 
   static new(): PlutusList {
-    return new PlutusList();
+    return new PlutusList([]);
   }
 
   len(): number {
@@ -9565,37 +9565,21 @@ export class PlutusList {
     return this.items[index];
   }
 
-  add(elem: PlutusData): boolean {
-    if (this.contains(elem)) return true;
+  add(elem: PlutusData): void {
     this.items.push(elem);
-    return false;
-  }
-
-  contains(elem: PlutusData): boolean {
-    for (let item of this.items) {
-      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
-        return true;
-      }
-    }
-    return false;
   }
 
   static deserialize(reader: CBORReader, path: string[]): PlutusList {
-    let ret = new PlutusList();
-    if (reader.peekType(path) == "tagged") {
-      let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
-    }
-    reader.readArray(
-      (reader, idx) =>
-        ret.add(PlutusData.deserialize(reader, [...path, "PlutusData#" + idx])),
-      path,
+    return new PlutusList(
+      reader.readArray(
+        (reader, idx) =>
+          PlutusData.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
-    return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 

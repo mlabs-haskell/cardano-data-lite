@@ -1634,7 +1634,7 @@ PlutusScript:
     }
 
 PlutusList:
-  type: set
+  type: array
   item: PlutusData
 
 # ; The real type of  plutus_v1_script, plutus_v2_script and plutus_v3_script is bytes.
