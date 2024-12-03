@@ -196,8 +196,12 @@ export class CBORReader {
 
   // read cbor tag and return the tag value as number
   readTaggedTag(path: string[]): number {
+    return Number(this.readTaggedTagAsBigInt(path));
+  }
+
+  readTaggedTagAsBigInt(path: string[]): bigint {
     this.assertType(["tagged"], path);
-    return Number(this.readBigInt(path));
+    return this.readBigInt(path);
   }
 
   assertType(expectedTypes: CBORType[], path: string[]) {

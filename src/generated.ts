@@ -3297,7 +3297,7 @@ export class ConstrPlutusData {
     this._data = data;
   }
 
-  static new(alternative: BigNum, data: PlutusList) {
+  static uncheckedNew(alternative: BigNum, data: PlutusList) {
     return new ConstrPlutusData(alternative, data);
   }
 
@@ -3317,7 +3317,10 @@ export class ConstrPlutusData {
     this._data = data;
   }
 
-  static deserialize(reader: CBORReader, path: string[]): ConstrPlutusData {
+  static deserializeWithSeparateIdx(
+    reader: CBORReader,
+    path: string[],
+  ): ConstrPlutusData {
     let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
@@ -3338,7 +3341,7 @@ export class ConstrPlutusData {
     return new ConstrPlutusData(alternative, data);
   }
 
-  serialize(writer: CBORWriter): void {
+  serializeWithSeparateIdx(writer: CBORWriter): void {
     let arrayLen = 2;
 
     writer.writeArrayTag(arrayLen);
@@ -3377,6 +3380,47 @@ export class ConstrPlutusData {
 
   clone(path: string[]): ConstrPlutusData {
     return ConstrPlutusData.from_bytes(this.to_bytes(), path);
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): ConstrPlutusData {
+    const alternative = reader.readTaggedTagAsBigInt(path);
+    if (Number(alternative) >= 121 && Number(alternative) <= 127) {
+      return ConstrPlutusData.new(
+        BigNum.new(alternative),
+        PlutusList.deserialize(reader, [...path, "PlutusList(data)"]),
+      );
+    } else if (Number(alternative) == 102) {
+      return ConstrPlutusData.deserializeWithSeparateIdx(reader, path);
+    } else {
+      throw new Error(
+        "Unexpected alternative for ConstrPlutusData: " +
+          alternative +
+          "(at " +
+          path.join("/") +
+          ")",
+      );
+    }
+  }
+
+  serialize(writer: CBORWriter): void {
+    const alternative = this.alternative().toJsValue();
+    writer.writeTaggedTag(Number(alternative));
+    if (alternative == 102n) {
+      this.serializeWithSeparateIdx(writer);
+    } else {
+      this.data().serialize(writer);
+    }
+  }
+
+  static new(alternative: BigNum, data: PlutusList): ConstrPlutusData {
+    const alt = Number(alternative.toJsValue());
+    if (alt != 102 && (alt < 121 || alt > 127)) {
+      throw new Error(
+        "Unexpected alternative for ConstrPlutusData: " + alternative,
+      );
+    } else {
+      return ConstrPlutusData.uncheckedNew(alternative, data);
+    }
   }
 }
 
