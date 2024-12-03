@@ -12237,130 +12237,6 @@ export class PublicKey {
   }
 }
 
-export class Redeemer {
-  private _tag: RedeemerTag;
-  private _index: BigNum;
-  private _data: PlutusData;
-  private _ex_units: ExUnits;
-
-  constructor(
-    tag: RedeemerTag,
-    index: BigNum,
-    data: PlutusData,
-    ex_units: ExUnits,
-  ) {
-    this._tag = tag;
-    this._index = index;
-    this._data = data;
-    this._ex_units = ex_units;
-  }
-
-  static new(
-    tag: RedeemerTag,
-    index: BigNum,
-    data: PlutusData,
-    ex_units: ExUnits,
-  ) {
-    return new Redeemer(tag, index, data, ex_units);
-  }
-
-  tag(): RedeemerTag {
-    return this._tag;
-  }
-
-  set_tag(tag: RedeemerTag): void {
-    this._tag = tag;
-  }
-
-  index(): BigNum {
-    return this._index;
-  }
-
-  set_index(index: BigNum): void {
-    this._index = index;
-  }
-
-  data(): PlutusData {
-    return this._data;
-  }
-
-  set_data(data: PlutusData): void {
-    this._data = data;
-  }
-
-  ex_units(): ExUnits {
-    return this._ex_units;
-  }
-
-  set_ex_units(ex_units: ExUnits): void {
-    this._ex_units = ex_units;
-  }
-
-  static deserialize(reader: CBORReader, path: string[]): Redeemer {
-    let len = reader.readArrayTag(path);
-
-    if (len != null && len < 4) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected at least 4. Received " +
-          len +
-          "(at " +
-          path.join("/"),
-      );
-    }
-
-    const tag_path = [...path, "RedeemerTag(tag)"];
-    let tag = RedeemerTag.deserialize(reader, tag_path);
-
-    const index_path = [...path, "BigNum(index)"];
-    let index = BigNum.deserialize(reader, index_path);
-
-    const data_path = [...path, "PlutusData(data)"];
-    let data = PlutusData.deserialize(reader, data_path);
-
-    const ex_units_path = [...path, "ExUnits(ex_units)"];
-    let ex_units = ExUnits.deserialize(reader, ex_units_path);
-
-    return new Redeemer(tag, index, data, ex_units);
-  }
-
-  serialize(writer: CBORWriter): void {
-    let arrayLen = 4;
-
-    writer.writeArrayTag(arrayLen);
-
-    this._tag.serialize(writer);
-    this._index.serialize(writer);
-    this._data.serialize(writer);
-    this._ex_units.serialize(writer);
-  }
-
-  // no-op
-  free(): void {}
-
-  static from_bytes(data: Uint8Array, path: string[] = ["Redeemer"]): Redeemer {
-    let reader = new CBORReader(data);
-    return Redeemer.deserialize(reader, path);
-  }
-
-  static from_hex(hex_str: string, path: string[] = ["Redeemer"]): Redeemer {
-    return Redeemer.from_bytes(hexToBytes(hex_str), path);
-  }
-
-  to_bytes(): Uint8Array {
-    let writer = new CBORWriter();
-    this.serialize(writer);
-    return writer.getBytes();
-  }
-
-  to_hex(): string {
-    return bytesToHex(this.to_bytes());
-  }
-
-  clone(path: string[]): Redeemer {
-    return Redeemer.from_bytes(this.to_bytes(), path);
-  }
-}
-
 export enum RedeemerTagKind {
   spending = 0,
   minting = 1,
@@ -12460,28 +12336,92 @@ export class RedeemerTag {
   }
 }
 
+export enum RedeemersKind {
+  RedeemersArray = 0,
+  RedeemersMap = 1,
+}
+
+export type RedeemersVariant =
+  | { kind: 0; value: RedeemersArray }
+  | { kind: 1; value: RedeemersMap };
+
 export class Redeemers {
-  private items: Redeemer[];
+  private variant: RedeemersVariant;
 
-  constructor(items: Redeemer[]) {
-    this.items = items;
+  constructor(variant: RedeemersVariant) {
+    this.variant = variant;
   }
 
-  static new(): Redeemers {
-    return new Redeemers([]);
+  static new_redeemers_array(redeemers_array: RedeemersArray): Redeemers {
+    return new Redeemers({ kind: 0, value: redeemers_array });
   }
 
-  len(): number {
-    return this.items.length;
+  static new_redeemers_map(redeemers_map: RedeemersMap): Redeemers {
+    return new Redeemers({ kind: 1, value: redeemers_map });
   }
 
-  get(index: number): Redeemer {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+  as_redeemers_array(): RedeemersArray {
+    if (this.variant.kind == 0) return this.variant.value;
+    throw new Error("Incorrect cast");
   }
 
-  add(elem: Redeemer): void {
-    this.items.push(elem);
+  as_redeemers_map(): RedeemersMap {
+    if (this.variant.kind == 1) return this.variant.value;
+    throw new Error("Incorrect cast");
+  }
+
+  kind(): RedeemersKind {
+    return this.variant.kind;
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): Redeemers {
+    let tag = reader.peekType(path);
+    let variant: RedeemersVariant;
+
+    switch (tag) {
+      case "array":
+        variant = {
+          kind: RedeemersKind.RedeemersArray,
+          value: RedeemersArray.deserialize(reader, [
+            ...path,
+            "RedeemersArray(redeemers_array)",
+          ]),
+        };
+        break;
+
+      case "map":
+        variant = {
+          kind: RedeemersKind.RedeemersMap,
+          value: RedeemersMap.deserialize(reader, [
+            ...path,
+            "RedeemersMap(redeemers_map)",
+          ]),
+        };
+        break;
+
+      default:
+        throw new Error(
+          "Unexpected subtype for Redeemers: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
+    }
+
+    return new Redeemers(variant);
+  }
+
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        this.variant.value.serialize(writer);
+        break;
+
+      case 1:
+        this.variant.value.serialize(writer);
+        break;
+    }
   }
 
   // no-op
@@ -12516,63 +12456,97 @@ export class Redeemers {
   total_ex_units(): ExUnits {
     let mems = BigNum.zero(),
       steps = BigNum.zero();
-    for (let item of this.items) {
-      mems = mems.checked_add(item.ex_units().mem());
-      steps = steps.checked_add(item.ex_units().steps());
+    switch (this.variant.kind) {
+      case 0: {
+        for (let i = 0; i < this.variant.value.len(); i++) {
+          const item = this.variant.value.get(i);
+          mems = mems.checked_add(item.ex_units().mem());
+          steps = steps.checked_add(item.ex_units().steps());
+        }
+        break;
+      }
+      case 1: {
+        const keys = this.variant.value.keys();
+        for (let i = 0; i < keys.len(); i++) {
+          const item = this.variant.value.get(keys.get(i)) as RedeemersValue;
+          mems = mems.checked_add(item.ex_units().mem());
+          steps = steps.checked_add(item.ex_units().steps());
+        }
+        break;
+      }
     }
     return ExUnits.new(mems, steps);
   }
+}
 
-  static deserialize(reader: CBORReader, path: string[]): Redeemers {
-    if (reader.peekType(path) == "array") {
-      return Redeemers.deserializeArray(reader, path);
-    } else if (reader.peekType(path) == "map") {
-      return Redeemers.deserializeMap(reader, path);
-    }
-    throw new Error(
-      "Expected either an array or a map (at " + path.join("/") + ")",
+export class RedeemersArray {
+  private items: RedeemersArrayItem[];
+
+  constructor(items: RedeemersArrayItem[]) {
+    this.items = items;
+  }
+
+  static new(): RedeemersArray {
+    return new RedeemersArray([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): RedeemersArrayItem {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: RedeemersArrayItem): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): RedeemersArray {
+    return new RedeemersArray(
+      reader.readArray(
+        (reader, idx) =>
+          RedeemersArrayItem.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
-  static deserializeArray(reader: CBORReader, path: string[]): Redeemers {
-    let redeemers = Redeemers.new();
-    reader.readArray((reader, idx) => {
-      let item = RedeemersArrayItem.deserialize(reader, [
-        ...path,
-        "RedeemersArrayItem#" + idx,
-      ]);
-      redeemers.add(
-        Redeemer.new(item.tag(), item.index(), item.data(), item.ex_units()),
-      );
-    }, path);
-    return redeemers;
-  }
-
-  static deserializeMap(reader: CBORReader, path: string[]): Redeemers {
-    let redeemers = Redeemers.new();
-    reader.readMap((reader, idx) => {
-      let key = RedeemersKey.deserialize(reader, [
-        ...path,
-        `RedeemersKey#${idx}`,
-      ]);
-      let value = RedeemersValue.deserialize(reader, [
-        ...path,
-        `RedeemersValue#${idx}`,
-      ]);
-      redeemers.add(
-        Redeemer.new(key.tag(), key.index(), value.data(), value.ex_units()),
-      );
-    }, path);
-    return redeemers;
-  }
-
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, redeemer) => {
-      let key = RedeemersKey.new(redeemer.tag(), redeemer.index());
-      let value = RedeemersValue.new(redeemer.data(), redeemer.ex_units());
-      key.serialize(writer);
-      value.serialize(writer);
-    });
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["RedeemersArray"],
+  ): RedeemersArray {
+    let reader = new CBORReader(data);
+    return RedeemersArray.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["RedeemersArray"],
+  ): RedeemersArray {
+    return RedeemersArray.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): RedeemersArray {
+    return RedeemersArray.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -12795,6 +12769,181 @@ export class RedeemersKey {
 
   clone(path: string[]): RedeemersKey {
     return RedeemersKey.from_bytes(this.to_bytes(), path);
+  }
+}
+
+export class RedeemersKeys {
+  private items: RedeemersKey[];
+
+  constructor(items: RedeemersKey[]) {
+    this.items = items;
+  }
+
+  static new(): RedeemersKeys {
+    return new RedeemersKeys([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): RedeemersKey {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: RedeemersKey): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): RedeemersKeys {
+    return new RedeemersKeys(
+      reader.readArray(
+        (reader, idx) =>
+          RedeemersKey.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["RedeemersKeys"],
+  ): RedeemersKeys {
+    let reader = new CBORReader(data);
+    return RedeemersKeys.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["RedeemersKeys"],
+  ): RedeemersKeys {
+    return RedeemersKeys.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): RedeemersKeys {
+    return RedeemersKeys.from_bytes(this.to_bytes(), path);
+  }
+}
+
+export class RedeemersMap {
+  _items: [RedeemersKey, RedeemersValue][];
+
+  constructor(items: [RedeemersKey, RedeemersValue][]) {
+    this._items = items;
+  }
+
+  static new(): RedeemersMap {
+    return new RedeemersMap([]);
+  }
+
+  len(): number {
+    return this._items.length;
+  }
+
+  insert(key: RedeemersKey, value: RedeemersValue): RedeemersValue | undefined {
+    let entry = this._items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this._items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: RedeemersKey): RedeemersValue | undefined {
+    let entry = this._items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: RedeemersKey[]): void {
+    this._items = this._items.filter(([k, _v]) =>
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+    );
+  }
+
+  keys(): RedeemersKeys {
+    let keys = RedeemersKeys.new();
+    for (let [key, _] of this._items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): RedeemersMap {
+    let ret = new RedeemersMap([]);
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          RedeemersKey.deserialize(reader, [...path, "RedeemersKey#" + idx]),
+          RedeemersValue.deserialize(reader, [
+            ...path,
+            "RedeemersValue#" + idx,
+          ]),
+        ),
+      path,
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this._items, (writer, x) => {
+      x[0].serialize(writer);
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["RedeemersMap"],
+  ): RedeemersMap {
+    let reader = new CBORReader(data);
+    return RedeemersMap.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["RedeemersMap"],
+  ): RedeemersMap {
+    return RedeemersMap.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): RedeemersMap {
+    return RedeemersMap.from_bytes(this.to_bytes(), path);
   }
 }
 
