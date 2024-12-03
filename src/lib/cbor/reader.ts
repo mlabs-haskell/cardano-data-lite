@@ -216,8 +216,12 @@ export class CBORReader {
   private readLength(path: string[]): number | null {
     let tag = this.buffer[0];
     let len = tag & 0b11111;
-    if (len == 0x1f) return null;
-    return Number(this.readBigInt(path));
+    if (len == 0x1f) {
+      this.buffer = this.buffer.slice(1);
+      return null;
+    } else {
+      return Number(this.readBigInt(path));
+    }
   }
 
   private readBigInt(path: string[]): bigint {
