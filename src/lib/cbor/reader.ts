@@ -135,7 +135,7 @@ export class CBORReader {
     this.readMultiple(len, (reader, idx) =>
       ret.push(readItem(reader, idx)),
     );
-    return { items: ret, encoding: len ? "definite" : "indefinite" };
+    return { items: ret, encoding: typeof(len) === "number" ? "definite" : "indefinite" };
   }
 
   readMap<T>(readItem: (reader: CBORReader, idx: number) => T, path: string[]): T[] {
