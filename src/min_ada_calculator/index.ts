@@ -8,7 +8,7 @@
  * Adapated from https://github.com/Emurgo/cardano-serialization-lib/blob/master/rust/src/utils.rs#L726
  */
 
-import { BigNum, DataCost, TransactionOutput, Value } from "../generated";
+import { BigNum, DataCost, TransactionOutput, TransactionOutputKind, Value } from "../generated";
 
 class MinOutputAdaCalculator {
   output: TransactionOutput;
@@ -24,17 +24,46 @@ class MinOutputAdaCalculator {
   }
 
   calculate_ada(): BigNum {
-    let output = this.output.as_post_alonzo_transaction_output().clone([]);
-    for (let i = 0; i < 3; i++) {
-      const required_coin = MinOutputAdaCalculator.calc_required_coin(TransactionOutput.new_post_alonzo_transaction_output(output), this.data_cost);
-      if (output.amount().coin().less_than(required_coin)) {
-        output.set_amount(Value.new(required_coin.clone([])));
-      } else {
-        return required_coin;
+    let output = this.output.clone([]);
+
+    const isPreBabbage = output.kind() === TransactionOutputKind.PreBabbageTransactionOutput;
+
+    const processOutput = (output_s: any): BigNum => {
+
+      for (let i = 0; i < 3; i++) {
+
+        const required_coin = MinOutputAdaCalculator.calc_required_coin(output, this.data_cost);
+
+        if (output_s.amount().coin().less_than(required_coin)) {
+          let value = output_s.amount().clone([]);
+          value.set_coin(required_coin);
+          output_s.set_amount(value);
+        } else {
+          return required_coin;
+        }
+
+        output = isPreBabbage
+          ? TransactionOutput.new_pre_babbage_transaction_output(output_s)
+          : TransactionOutput.new_post_alonzo_transaction_output(output_s);
       }
+
+      let value = output_s.amount().clone([]);
+      value.set_coin(BigNum.new(BigNum._maxU64()));
+      output_s.set_amount(value);
+
+      return MinOutputAdaCalculator.calc_required_coin(
+        isPreBabbage
+          ? TransactionOutput.new_pre_babbage_transaction_output(output_s)
+          : TransactionOutput.new_post_alonzo_transaction_output(output_s),
+        this.data_cost
+      );
+    };
+
+    if (isPreBabbage) {
+      return processOutput(output.as_pre_babbage_transaction_output());
+    } else {
+      return processOutput(output.as_post_alonzo_transaction_output());
     }
-    output.set_amount(Value.new(BigNum.new(BigNum._maxU64())));
-    return MinOutputAdaCalculator.calc_required_coin(TransactionOutput.new_post_alonzo_transaction_output(output), this.data_cost);
   }
 
   static calc_size_cost(data_cost: DataCost, size: number): BigNum {
