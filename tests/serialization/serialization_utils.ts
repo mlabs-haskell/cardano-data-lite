@@ -24,6 +24,7 @@ const fieldsBlacklist = new Set<string>([
   "plutus_scripts_v1",
   "plutus_scripts_v2",
   "plutus_scripts_v3",
+  "script_pubkey",
 ])
 
 export function retrieveTxsFromDir(path: string): Array<TransactionInfo> {
