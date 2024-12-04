@@ -5,7 +5,6 @@ import {
   PlutusList,
 } from "../../src/generated";
 import { hash_plutus_data } from "../../src/hash";
-import { hexToBytes } from "../../src/lib/hex";
 
 describe("hash_plutus_data Tests", () => {
   test("Hash of ConstrPlutusData with tag 0 and empty list", () => {
@@ -31,8 +30,7 @@ describe("hash_plutus_data Tests", () => {
     const expectedHash =
       "ec3028f46325b983a470893a8bdc1b4a100695b635fb1237d301c3490b23e89b";
 
-    const bytes = hexToBytes(hexData);
-    const plutusData = PlutusData.from_bytes(bytes);
+    const plutusData = PlutusData.from_hex(hexData);
 
     const hashHex = hash_plutus_data(plutusData).to_hex();
 
@@ -45,8 +43,7 @@ describe("hash_plutus_data Tests", () => {
     const expectedHash =
       "816cdf6d4d8cba3ad0188ca643db95ddf0e03cdfc0e75a9550a72a82cb146222";
 
-    const bytes = hexToBytes(hexData);
-    const plutusData = PlutusData.from_bytes(bytes);
+    const plutusData = PlutusData.from_hex(hexData);
 
     const hashHex = hash_plutus_data(plutusData).to_hex();
 
