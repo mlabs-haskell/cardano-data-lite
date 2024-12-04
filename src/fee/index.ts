@@ -25,13 +25,13 @@ export class LinearFee {
   private _constant: BigNum;
   private _coefficient: BigNum;
 
-  constructor(constant: BigNum, coefficient: BigNum) {
-    this._constant = constant;
+  constructor(coefficient: BigNum, constant: BigNum) {
     this._coefficient = coefficient;
+    this._constant = constant;
   }
 
-  static new(constant: BigNum, coefficient: BigNum) {
-    return new LinearFee(constant, coefficient);
+  static new(coefficient: BigNum, constant: BigNum) {
+    return new LinearFee(coefficient, constant);
   }
 
   constant(): BigNum {
