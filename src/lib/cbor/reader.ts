@@ -20,6 +20,10 @@ export class CBORReader {
     this.buffer = buffer;
   }
 
+  debugBuffer(): void {
+    console.log("buffer: ", bytesToHex(this.buffer));
+  }
+
   peekType(path: string[]): CBORType {
     let tag = this.buffer[0] >> 5;
     switch (tag) {
@@ -79,7 +83,7 @@ export class CBORReader {
     if (this.peekType(path) == "uint") {
       return this.readBigInt(path);
     } else if (this.peekType(path) == "nint") {
-      return 1n - this.readBigInt(path);
+      return -1n - this.readBigInt(path);
     } else {
       throw new Error(`Unreachable (at ${path.join("/")})`);
     }
