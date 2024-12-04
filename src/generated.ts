@@ -1798,17 +1798,23 @@ export class BootstrapWitness {
 export class BootstrapWitnesses {
   private items: BootstrapWitness[];
   private encoding: "definite" | "indefinite";
+  private nonEmptyTag: boolean;
+
+  private setItems(items: BootstrapWitness[]) {
+    this.items = items;
+  }
 
   constructor(
-    items: BootstrapWitness[],
     encoding: "definite" | "indefinite" = "definite",
+    nonEmptyTag: boolean = true,
   ) {
-    this.items = items;
+    this.items = [];
     this.encoding = encoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): BootstrapWitnesses {
-    return new BootstrapWitnesses([]);
+    return new BootstrapWitnesses();
   }
 
   len(): number {
@@ -1820,25 +1826,49 @@ export class BootstrapWitnesses {
     return this.items[index];
   }
 
-  add(elem: BootstrapWitness): void {
+  add(elem: BootstrapWitness): boolean {
+    if (this.contains(elem)) return true;
     this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: BootstrapWitness): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static deserialize(reader: CBORReader, path: string[]): BootstrapWitnesses {
+    let nonEmptyTag = false;
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
+    }
     const { items, encoding } = reader.readArray(
       (reader, idx) =>
-        BootstrapWitness.deserialize(reader, [...path, "Elem#" + idx]),
+        BootstrapWitness.deserialize(reader, [
+          ...path,
+          "BootstrapWitness#" + idx,
+        ]),
       path,
     );
-    return new BootstrapWitnesses(items, encoding);
+    let ret = new BootstrapWitnesses(encoding, nonEmptyTag);
+    ret.setItems(items);
+    return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(
-      this.items,
-      (writer, x) => x.serialize(writer),
-      this.encoding,
-    );
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
   // no-op
@@ -2666,9 +2696,20 @@ export class Certificate {
 
 export class Certificates {
   private items: Certificate[];
+  private encoding: "definite" | "indefinite";
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: Certificate[]) {
+    this.items = items;
+  }
+
+  constructor(
+    encoding: "definite" | "indefinite" = "definite",
+    nonEmptyTag: boolean = true,
+  ) {
     this.items = [];
+    this.encoding = encoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): Certificates {
@@ -2700,23 +2741,29 @@ export class Certificates {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Certificates {
-    let ret = new Certificates();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, encoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(
-          Certificate.deserialize(reader, [...path, "Certificate#" + idx]),
-        ),
+        Certificate.deserialize(reader, [...path, "Certificate#" + idx]),
       path,
     );
+    let ret = new Certificates(encoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -3634,9 +3681,20 @@ export class Costmdls {
 
 export class Credentials {
   private items: Credential[];
+  private encoding: "definite" | "indefinite";
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: Credential[]) {
+    this.items = items;
+  }
+
+  constructor(
+    encoding: "definite" | "indefinite" = "definite",
+    nonEmptyTag: boolean = true,
+  ) {
     this.items = [];
+    this.encoding = encoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): Credentials {
@@ -3668,21 +3726,29 @@ export class Credentials {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Credentials {
-    let ret = new Credentials();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, encoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(Credential.deserialize(reader, [...path, "Credential#" + idx])),
+        Credential.deserialize(reader, [...path, "Credential#" + idx]),
       path,
     );
+    let ret = new Credentials(encoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -5085,9 +5151,20 @@ export class Ed25519KeyHash {
 
 export class Ed25519KeyHashes {
   private items: Ed25519KeyHash[];
+  private encoding: "definite" | "indefinite";
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: Ed25519KeyHash[]) {
+    this.items = items;
+  }
+
+  constructor(
+    encoding: "definite" | "indefinite" = "definite",
+    nonEmptyTag: boolean = true,
+  ) {
     this.items = [];
+    this.encoding = encoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): Ed25519KeyHashes {
@@ -5119,26 +5196,29 @@ export class Ed25519KeyHashes {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Ed25519KeyHashes {
-    let ret = new Ed25519KeyHashes();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, encoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(
-          Ed25519KeyHash.deserialize(reader, [
-            ...path,
-            "Ed25519KeyHash#" + idx,
-          ]),
-        ),
+        Ed25519KeyHash.deserialize(reader, [...path, "Ed25519KeyHash#" + idx]),
       path,
     );
+    let ret = new Ed25519KeyHashes(encoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -8686,17 +8766,23 @@ export class NativeScriptSource {
 export class NativeScripts {
   private items: NativeScript[];
   private encoding: "definite" | "indefinite";
+  private nonEmptyTag: boolean;
+
+  private setItems(items: NativeScript[]) {
+    this.items = items;
+  }
 
   constructor(
-    items: NativeScript[],
     encoding: "definite" | "indefinite" = "definite",
+    nonEmptyTag: boolean = true,
   ) {
-    this.items = items;
+    this.items = [];
     this.encoding = encoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): NativeScripts {
-    return new NativeScripts([]);
+    return new NativeScripts();
   }
 
   len(): number {
@@ -8708,25 +8794,46 @@ export class NativeScripts {
     return this.items[index];
   }
 
-  add(elem: NativeScript): void {
+  add(elem: NativeScript): boolean {
+    if (this.contains(elem)) return true;
     this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: NativeScript): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static deserialize(reader: CBORReader, path: string[]): NativeScripts {
+    let nonEmptyTag = false;
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
+    }
     const { items, encoding } = reader.readArray(
       (reader, idx) =>
-        NativeScript.deserialize(reader, [...path, "Elem#" + idx]),
+        NativeScript.deserialize(reader, [...path, "NativeScript#" + idx]),
       path,
     );
-    return new NativeScripts(items, encoding);
+    let ret = new NativeScripts(encoding, nonEmptyTag);
+    ret.setItems(items);
+    return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(
-      this.items,
-      (writer, x) => x.serialize(writer),
-      this.encoding,
-    );
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
   // no-op
@@ -10046,17 +10153,23 @@ export class PlutusScript {
 export class PlutusScripts {
   private items: PlutusScript[];
   private encoding: "definite" | "indefinite";
+  private nonEmptyTag: boolean;
+
+  private setItems(items: PlutusScript[]) {
+    this.items = items;
+  }
 
   constructor(
-    items: PlutusScript[],
     encoding: "definite" | "indefinite" = "definite",
+    nonEmptyTag: boolean = true,
   ) {
-    this.items = items;
+    this.items = [];
     this.encoding = encoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): PlutusScripts {
-    return new PlutusScripts([]);
+    return new PlutusScripts();
   }
 
   len(): number {
@@ -10068,25 +10181,46 @@ export class PlutusScripts {
     return this.items[index];
   }
 
-  add(elem: PlutusScript): void {
+  add(elem: PlutusScript): boolean {
+    if (this.contains(elem)) return true;
     this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: PlutusScript): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static deserialize(reader: CBORReader, path: string[]): PlutusScripts {
+    let nonEmptyTag = false;
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
+    }
     const { items, encoding } = reader.readArray(
       (reader, idx) =>
-        PlutusScript.deserialize(reader, [...path, "Elem#" + idx]),
+        PlutusScript.deserialize(reader, [...path, "PlutusScript#" + idx]),
       path,
     );
-    return new PlutusScripts(items, encoding);
+    let ret = new PlutusScripts(encoding, nonEmptyTag);
+    ret.setItems(items);
+    return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(
-      this.items,
-      (writer, x) => x.serialize(writer),
-      this.encoding,
-    );
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
   // no-op
@@ -10119,6 +10253,109 @@ export class PlutusScripts {
 
   clone(path: string[]): PlutusScripts {
     return PlutusScripts.from_bytes(this.to_bytes(), path);
+  }
+}
+
+export class PlutusSet {
+  private items: PlutusData[];
+  private encoding: "definite" | "indefinite";
+  private nonEmptyTag: boolean;
+
+  private setItems(items: PlutusData[]) {
+    this.items = items;
+  }
+
+  constructor(
+    encoding: "definite" | "indefinite" = "definite",
+    nonEmptyTag: boolean = true,
+  ) {
+    this.items = [];
+    this.encoding = encoding;
+    this.nonEmptyTag = nonEmptyTag;
+  }
+
+  static new(): PlutusSet {
+    return new PlutusSet();
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): PlutusData {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: PlutusData): boolean {
+    if (this.contains(elem)) return true;
+    this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: PlutusData): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): PlutusSet {
+    let nonEmptyTag = false;
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
+    }
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        PlutusData.deserialize(reader, [...path, "PlutusData#" + idx]),
+      path,
+    );
+    let ret = new PlutusSet(encoding, nonEmptyTag);
+    ret.setItems(items);
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PlutusSet"],
+  ): PlutusSet {
+    let reader = new CBORReader(data);
+    return PlutusSet.deserialize(reader, path);
+  }
+
+  static from_hex(hex_str: string, path: string[] = ["PlutusSet"]): PlutusSet {
+    return PlutusSet.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): PlutusSet {
+    return PlutusSet.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -16181,9 +16418,20 @@ export class TransactionInput {
 
 export class TransactionInputs {
   private items: TransactionInput[];
+  private encoding: "definite" | "indefinite";
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: TransactionInput[]) {
+    this.items = items;
+  }
+
+  constructor(
+    encoding: "definite" | "indefinite" = "definite",
+    nonEmptyTag: boolean = true,
+  ) {
     this.items = [];
+    this.encoding = encoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): TransactionInputs {
@@ -16215,26 +16463,32 @@ export class TransactionInputs {
   }
 
   static deserialize(reader: CBORReader, path: string[]): TransactionInputs {
-    let ret = new TransactionInputs();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, encoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(
-          TransactionInput.deserialize(reader, [
-            ...path,
-            "TransactionInput#" + idx,
-          ]),
-        ),
+        TransactionInput.deserialize(reader, [
+          ...path,
+          "TransactionInput#" + idx,
+        ]),
       path,
     );
+    let ret = new TransactionInputs(encoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -16765,7 +17019,7 @@ export class TransactionWitnessSet {
   private _native_scripts: NativeScripts | undefined;
   private _bootstraps: BootstrapWitnesses | undefined;
   private _plutus_scripts_v1: PlutusScripts | undefined;
-  private _plutus_data: PlutusList | undefined;
+  private _plutus_data: PlutusSet | undefined;
   private _redeemers: Redeemers | undefined;
   private _plutus_scripts_v2: PlutusScripts | undefined;
   private _plutus_scripts_v3: PlutusScripts | undefined;
@@ -16775,7 +17029,7 @@ export class TransactionWitnessSet {
     native_scripts: NativeScripts | undefined,
     bootstraps: BootstrapWitnesses | undefined,
     plutus_scripts_v1: PlutusScripts | undefined,
-    plutus_data: PlutusList | undefined,
+    plutus_data: PlutusSet | undefined,
     redeemers: Redeemers | undefined,
     plutus_scripts_v2: PlutusScripts | undefined,
     plutus_scripts_v3: PlutusScripts | undefined,
@@ -16822,11 +17076,11 @@ export class TransactionWitnessSet {
     this._plutus_scripts_v1 = plutus_scripts_v1;
   }
 
-  plutus_data(): PlutusList | undefined {
+  plutus_data(): PlutusSet | undefined {
     return this._plutus_data;
   }
 
-  set_plutus_data(plutus_data: PlutusList | undefined): void {
+  set_plutus_data(plutus_data: PlutusSet | undefined): void {
     this._plutus_data = plutus_data;
   }
 
@@ -16887,8 +17141,8 @@ export class TransactionWitnessSet {
         }
 
         case 4: {
-          const new_path = [...path, "PlutusList(plutus_data)"];
-          fields.plutus_data = PlutusList.deserialize(r, new_path);
+          const new_path = [...path, "PlutusSet(plutus_data)"];
+          fields.plutus_data = PlutusSet.deserialize(r, new_path);
           break;
         }
 
@@ -18383,9 +18637,20 @@ export class Vkeywitness {
 
 export class Vkeywitnesses {
   private items: Vkeywitness[];
+  private encoding: "definite" | "indefinite";
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: Vkeywitness[]) {
+    this.items = items;
+  }
+
+  constructor(
+    encoding: "definite" | "indefinite" = "definite",
+    nonEmptyTag: boolean = true,
+  ) {
     this.items = [];
+    this.encoding = encoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): Vkeywitnesses {
@@ -18417,23 +18682,29 @@ export class Vkeywitnesses {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Vkeywitnesses {
-    let ret = new Vkeywitnesses();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, encoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(
-          Vkeywitness.deserialize(reader, [...path, "Vkeywitness#" + idx]),
-        ),
+        Vkeywitness.deserialize(reader, [...path, "Vkeywitness#" + idx]),
       path,
     );
+    let ret = new Vkeywitnesses(encoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -19409,9 +19680,20 @@ export class VotingProposal {
 
 export class VotingProposals {
   private items: VotingProposal[];
+  private encoding: "definite" | "indefinite";
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: VotingProposal[]) {
+    this.items = items;
+  }
+
+  constructor(
+    encoding: "definite" | "indefinite" = "definite",
+    nonEmptyTag: boolean = true,
+  ) {
     this.items = [];
+    this.encoding = encoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): VotingProposals {
@@ -19443,26 +19725,29 @@ export class VotingProposals {
   }
 
   static deserialize(reader: CBORReader, path: string[]): VotingProposals {
-    let ret = new VotingProposals();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, encoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(
-          VotingProposal.deserialize(reader, [
-            ...path,
-            "VotingProposal#" + idx,
-          ]),
-        ),
+        VotingProposal.deserialize(reader, [...path, "VotingProposal#" + idx]),
       path,
     );
+    let ret = new VotingProposals(encoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -19596,9 +19881,20 @@ export class Withdrawals {
 
 export class certificates {
   private items: Certificate[];
+  private encoding: "definite" | "indefinite";
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: Certificate[]) {
+    this.items = items;
+  }
+
+  constructor(
+    encoding: "definite" | "indefinite" = "definite",
+    nonEmptyTag: boolean = true,
+  ) {
     this.items = [];
+    this.encoding = encoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): certificates {
@@ -19630,23 +19926,29 @@ export class certificates {
   }
 
   static deserialize(reader: CBORReader, path: string[]): certificates {
-    let ret = new certificates();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, encoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(
-          Certificate.deserialize(reader, [...path, "Certificate#" + idx]),
-        ),
+        Certificate.deserialize(reader, [...path, "Certificate#" + idx]),
       path,
     );
+    let ret = new certificates(encoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 

@@ -1578,7 +1578,7 @@ TransactionWitnessSet:
       optional: true
     - id: 4
       name: plutus_data
-      type: PlutusList
+      type: PlutusSet
       optional: true
     - id: 5
       name: redeemers
@@ -1613,15 +1613,15 @@ Vkeywitnesses:
   item: Vkeywitness
 
 NativeScripts:
-  type: array
+  type: set
   item: NativeScript
 
 BootstrapWitnesses:
-  type: array
+  type: set
   item: BootstrapWitness
 
 PlutusScripts:
-  type: array
+  type: set
   item: PlutusScript
 
 PlutusScript:
@@ -1637,8 +1637,8 @@ PlutusScript:
       return new ScriptHash(hash_bytes);
     }
 
-PlutusList:
-  type: array
+PlutusSet:
+  type: set
   item: PlutusData
 
 # ; The real type of  plutus_v1_script, plutus_v2_script and plutus_v3_script is bytes.
@@ -2077,6 +2077,10 @@ ProposedProtocolParameterUpdates:
   key: GenesisHash
   value: ProtocolParamUpdate
   keys_method_type: GenesisHashes
+
+PlutusList:
+  type: array
+  item: PlutusData
 
 PlutusMap:
   type: map

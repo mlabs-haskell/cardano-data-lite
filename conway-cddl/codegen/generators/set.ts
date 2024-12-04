@@ -20,13 +20,21 @@ export class GenSet extends CodeGeneratorBase {
   generateMembers(): string {
     return `
       private items: ${this.itemJsType()}[];
+      private encoding: "definite" | "indefinite";
+      private nonEmptyTag: boolean;
+
+      private setItems(items: ${this.itemJsType()}[]) {
+        this.items = items;
+      }
     `;
   }
 
   generateConstructor(): string {
     return `
-      constructor() {
+      constructor(encoding: "definite" | "indefinite" = "definite", nonEmptyTag: boolean = true) {
         this.items = [];
+        this.encoding = encoding;
+        this.nonEmptyTag = nonEmptyTag;
       }
     `;
   }
@@ -66,19 +74,31 @@ export class GenSet extends CodeGeneratorBase {
 
   generateDeserialize(reader: string, path: string): string {
     return `
-      let ret = new ${this.name}();
+      let nonEmptyTag = false;
       if(${reader}.peekType(${path}) == "tagged") {
         let tag = ${reader}.readTaggedTag(${path});
-        if(tag != 258) throw new Error("Expected tag 258. Got " + tag);
+        if(tag != 258) {
+          throw new Error("Expected tag 258. Got " + tag);
+        } else {
+          nonEmptyTag = true;
+        }
       }
-      ${reader}.readArray((reader, idx) => ret.add(${this.typeUtils.readType(reader, this.item, `[...${path}, '${this.item}#' + idx]`)}), ${path});
+      const { items, encoding } = ${reader}.readArray(
+        (reader, idx) =>
+          ${this.typeUtils.readType( reader, this.item, `[...${path}, '${this.item}#' + idx]`)},
+          ${path}
+      );
+      let ret = new ${this.name}(encoding, nonEmptyTag);
+      ret.setItems(items);
       return ret;
     `;
   }
 
   generateSerialize(writer: string): string {
     return `
-      ${writer}.writeTaggedTag(258);
+      if (this.nonEmptyTag) {
+        ${writer}.writeTaggedTag(258);
+      }
       ${writer}.writeArray(this.items, (writer, x) => ${this.typeUtils.writeType("writer", "x", this.item)});
     `;
   }
