@@ -78,7 +78,7 @@ export class CBORWriter {
       write(this, item);
     }
     if (encoding == "indefinite") {
-      this.writeBreak();
+      this.buffer.pushByte(0xff);
     }
   }
 
