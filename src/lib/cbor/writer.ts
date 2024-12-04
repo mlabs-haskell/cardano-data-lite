@@ -1,5 +1,5 @@
 import { GrowableBuffer } from "./growable-buffer";
-import { bytesToHex } from "../hex";
+import { bytesToHex, hexToBytes } from "../hex";
 
 export class CBORWriter {
   private buffer: GrowableBuffer;
@@ -71,11 +71,19 @@ export class CBORWriter {
   writeArray<T>(
     array: { length: number } & Iterable<T>,
     write: (writer: CBORWriter, value: T) => void,
+    encoding: "definite" | "indefinite" = "definite"
   ) {
-    this.writeArrayTag(array.length);
+    this.writeArrayTag(encoding == "definite" ? array.length : null);
     for (let item of array) {
       write(this, item);
     }
+    if (encoding == "indefinite") {
+      this.writeBreak();
+    }
+  }
+
+  writeBreak() {
+    this.writeBytesValue(hexToBytes('0xff'));
   }
 
   writeMapTag(len: number | null) {

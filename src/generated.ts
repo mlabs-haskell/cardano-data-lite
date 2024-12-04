@@ -218,9 +218,14 @@ export class AssetName {
 
 export class AssetNames {
   private items: AssetName[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: AssetName[]) {
+  constructor(
+    items: AssetName[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): AssetNames {
@@ -241,17 +246,19 @@ export class AssetNames {
   }
 
   static deserialize(reader: CBORReader, path: string[]): AssetNames {
-    return new AssetNames(
-      reader.readArray(
-        (reader, idx) =>
-          AssetName.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) => AssetName.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new AssetNames(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -1427,14 +1434,14 @@ export class Block {
   private _transaction_bodies: TransactionBodies;
   private _transaction_witness_sets: TransactionWitnessSets;
   private _auxiliary_data_set: AuxiliaryDataSet;
-  private _invalid_transactions: Uint32Array;
+  private _invalid_transactions: InvalidTransactions;
 
   constructor(
     header: Header,
     transaction_bodies: TransactionBodies,
     transaction_witness_sets: TransactionWitnessSets,
     auxiliary_data_set: AuxiliaryDataSet,
-    invalid_transactions: Uint32Array,
+    invalid_transactions: InvalidTransactions,
   ) {
     this._header = header;
     this._transaction_bodies = transaction_bodies;
@@ -1448,7 +1455,7 @@ export class Block {
     transaction_bodies: TransactionBodies,
     transaction_witness_sets: TransactionWitnessSets,
     auxiliary_data_set: AuxiliaryDataSet,
-    invalid_transactions: Uint32Array,
+    invalid_transactions: InvalidTransactions,
   ) {
     return new Block(
       header,
@@ -1493,11 +1500,11 @@ export class Block {
     this._auxiliary_data_set = auxiliary_data_set;
   }
 
-  invalid_transactions(): Uint32Array {
+  invalid_transactions(): InvalidTransactions {
     return this._invalid_transactions;
   }
 
-  set_invalid_transactions(invalid_transactions: Uint32Array): void {
+  set_invalid_transactions(invalid_transactions: InvalidTransactions): void {
     this._invalid_transactions = invalid_transactions;
   }
 
@@ -1545,13 +1552,11 @@ export class Block {
 
     const invalid_transactions_path = [
       ...path,
-      "arrayToUint32Array(invalid_transactions)",
+      "InvalidTransactions(invalid_transactions)",
     ];
-    let invalid_transactions = new Uint32Array(
-      reader.readArray(
-        (reader) => Number(reader.readUint(invalid_transactions_path)),
-        invalid_transactions_path,
-      ),
+    let invalid_transactions = InvalidTransactions.deserialize(
+      reader,
+      invalid_transactions_path,
     );
 
     return new Block(
@@ -1572,9 +1577,7 @@ export class Block {
     this._transaction_bodies.serialize(writer);
     this._transaction_witness_sets.serialize(writer);
     this._auxiliary_data_set.serialize(writer);
-    writer.writeArray(this._invalid_transactions, (writer, x) =>
-      writer.writeInt(BigInt(x)),
-    );
+    this._invalid_transactions.serialize(writer);
   }
 
   // no-op
@@ -1794,9 +1797,14 @@ export class BootstrapWitness {
 
 export class BootstrapWitnesses {
   private items: BootstrapWitness[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: BootstrapWitness[]) {
+  constructor(
+    items: BootstrapWitness[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): BootstrapWitnesses {
@@ -1817,17 +1825,20 @@ export class BootstrapWitnesses {
   }
 
   static deserialize(reader: CBORReader, path: string[]): BootstrapWitnesses {
-    return new BootstrapWitnesses(
-      reader.readArray(
-        (reader, idx) =>
-          BootstrapWitness.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        BootstrapWitness.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new BootstrapWitnesses(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -3426,9 +3437,11 @@ export class ConstrPlutusData {
 
 export class CostModel {
   private items: Int[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: Int[]) {
+  constructor(items: Int[], encoding: "definite" | "indefinite" = "definite") {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): CostModel {
@@ -3449,16 +3462,19 @@ export class CostModel {
   }
 
   static deserialize(reader: CBORReader, path: string[]): CostModel {
-    return new CostModel(
-      reader.readArray(
-        (reader, idx) => Int.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) => Int.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new CostModel(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -5627,9 +5643,14 @@ export class GenesisHash {
 
 export class GenesisHashes {
   private items: GenesisHash[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: GenesisHash[]) {
+  constructor(
+    items: GenesisHash[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): GenesisHashes {
@@ -5650,17 +5671,20 @@ export class GenesisHashes {
   }
 
   static deserialize(reader: CBORReader, path: string[]): GenesisHashes {
-    return new GenesisHashes(
-      reader.readArray(
-        (reader, idx) =>
-          GenesisHash.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        GenesisHash.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new GenesisHashes(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -6092,9 +6116,14 @@ export class GovernanceActionId {
 
 export class GovernanceActionIds {
   private items: GovernanceActionId[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: GovernanceActionId[]) {
+  constructor(
+    items: GovernanceActionId[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): GovernanceActionIds {
@@ -6115,17 +6144,20 @@ export class GovernanceActionIds {
   }
 
   static deserialize(reader: CBORReader, path: string[]): GovernanceActionIds {
-    return new GovernanceActionIds(
-      reader.readArray(
-        (reader, idx) =>
-          GovernanceActionId.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        GovernanceActionId.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new GovernanceActionIds(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -6903,6 +6935,76 @@ export class Int {
   }
 }
 
+export class InvalidTransactions {
+  private items: Uint32Array;
+  private encoding: "definite" | "indefinite";
+
+  constructor(
+    items: Uint32Array,
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
+    this.items = items;
+    this.encoding = encoding;
+  }
+
+  static new(): InvalidTransactions {
+    return new InvalidTransactions(new Uint32Array([]));
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): InvalidTransactions {
+    const { items, encoding } = reader.readArray(
+      (reader, idx) => Number(reader.readUint([...path, "Byte#" + idx])),
+      path,
+    );
+
+    return new InvalidTransactions(new Uint32Array(items), encoding);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(
+      this.items,
+      (writer, x) => writer.writeInt(BigInt(x)),
+      this.encoding,
+    );
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["InvalidTransactions"],
+  ): InvalidTransactions {
+    let reader = new CBORReader(data);
+    return InvalidTransactions.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["InvalidTransactions"],
+  ): InvalidTransactions {
+    return InvalidTransactions.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): InvalidTransactions {
+    return InvalidTransactions.from_bytes(this.to_bytes(), path);
+  }
+}
+
 export class Ipv4 {
   private inner: Uint8Array;
 
@@ -7200,9 +7302,14 @@ export class Language {
 
 export class Languages {
   private items: Language[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: Language[]) {
+  constructor(
+    items: Language[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): Languages {
@@ -7223,16 +7330,19 @@ export class Languages {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Languages {
-    return new Languages(
-      reader.readArray(
-        (reader, idx) => Language.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) => Language.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new Languages(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -7275,9 +7385,14 @@ export class Languages {
 
 export class MetadataList {
   private items: TransactionMetadatum[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: TransactionMetadatum[]) {
+  constructor(
+    items: TransactionMetadatum[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): MetadataList {
@@ -7298,17 +7413,20 @@ export class MetadataList {
   }
 
   static deserialize(reader: CBORReader, path: string[]): MetadataList {
-    return new MetadataList(
-      reader.readArray(
-        (reader, idx) =>
-          TransactionMetadatum.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        TransactionMetadatum.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new MetadataList(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -7736,9 +7854,14 @@ export class MintAssets {
 
 export class MintsAssets {
   private items: MintAssets[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: MintAssets[]) {
+  constructor(
+    items: MintAssets[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): MintsAssets {
@@ -7759,17 +7882,19 @@ export class MintsAssets {
   }
 
   static deserialize(reader: CBORReader, path: string[]): MintsAssets {
-    return new MintsAssets(
-      reader.readArray(
-        (reader, idx) =>
-          MintAssets.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) => MintAssets.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new MintsAssets(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -8560,9 +8685,14 @@ export class NativeScriptSource {
 
 export class NativeScripts {
   private items: NativeScript[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: NativeScript[]) {
+  constructor(
+    items: NativeScript[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): NativeScripts {
@@ -8583,17 +8713,20 @@ export class NativeScripts {
   }
 
   static deserialize(reader: CBORReader, path: string[]): NativeScripts {
-    return new NativeScripts(
-      reader.readArray(
-        (reader, idx) =>
-          NativeScript.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        NativeScript.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new NativeScripts(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -9591,9 +9724,14 @@ export class PlutusData {
 
 export class PlutusList {
   private items: PlutusData[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: PlutusData[]) {
+  constructor(
+    items: PlutusData[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): PlutusList {
@@ -9614,17 +9752,19 @@ export class PlutusList {
   }
 
   static deserialize(reader: CBORReader, path: string[]): PlutusList {
-    return new PlutusList(
-      reader.readArray(
-        (reader, idx) =>
-          PlutusData.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) => PlutusData.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new PlutusList(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -9763,9 +9903,14 @@ export class PlutusMap {
 
 export class PlutusMapValues {
   private items: PlutusData[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: PlutusData[]) {
+  constructor(
+    items: PlutusData[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): PlutusMapValues {
@@ -9786,17 +9931,19 @@ export class PlutusMapValues {
   }
 
   static deserialize(reader: CBORReader, path: string[]): PlutusMapValues {
-    return new PlutusMapValues(
-      reader.readArray(
-        (reader, idx) =>
-          PlutusData.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) => PlutusData.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new PlutusMapValues(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -9898,9 +10045,14 @@ export class PlutusScript {
 
 export class PlutusScripts {
   private items: PlutusScript[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: PlutusScript[]) {
+  constructor(
+    items: PlutusScript[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): PlutusScripts {
@@ -9921,17 +10073,20 @@ export class PlutusScripts {
   }
 
   static deserialize(reader: CBORReader, path: string[]): PlutusScripts {
-    return new PlutusScripts(
-      reader.readArray(
-        (reader, idx) =>
-          PlutusScript.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        PlutusScript.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new PlutusScripts(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -12481,9 +12636,14 @@ export class Redeemers {
 
 export class RedeemersArray {
   private items: RedeemersArrayItem[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: RedeemersArrayItem[]) {
+  constructor(
+    items: RedeemersArrayItem[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): RedeemersArray {
@@ -12504,17 +12664,20 @@ export class RedeemersArray {
   }
 
   static deserialize(reader: CBORReader, path: string[]): RedeemersArray {
-    return new RedeemersArray(
-      reader.readArray(
-        (reader, idx) =>
-          RedeemersArrayItem.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        RedeemersArrayItem.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new RedeemersArray(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -12774,9 +12937,14 @@ export class RedeemersKey {
 
 export class RedeemersKeys {
   private items: RedeemersKey[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: RedeemersKey[]) {
+  constructor(
+    items: RedeemersKey[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): RedeemersKeys {
@@ -12797,17 +12965,20 @@ export class RedeemersKeys {
   }
 
   static deserialize(reader: CBORReader, path: string[]): RedeemersKeys {
-    return new RedeemersKeys(
-      reader.readArray(
-        (reader, idx) =>
-          RedeemersKey.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        RedeemersKey.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new RedeemersKeys(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -13264,9 +13435,14 @@ export class Relay {
 
 export class Relays {
   private items: Relay[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: Relay[]) {
+  constructor(
+    items: Relay[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): Relays {
@@ -13287,16 +13463,19 @@ export class Relays {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Relays {
-    return new Relays(
-      reader.readArray(
-        (reader, idx) => Relay.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) => Relay.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new Relays(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -13328,9 +13507,14 @@ export class Relays {
 
 export class RewardAddresses {
   private items: RewardAddress[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: RewardAddress[]) {
+  constructor(
+    items: RewardAddress[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): RewardAddresses {
@@ -13351,17 +13535,20 @@ export class RewardAddresses {
   }
 
   static deserialize(reader: CBORReader, path: string[]): RewardAddresses {
-    return new RewardAddresses(
-      reader.readArray(
-        (reader, idx) =>
-          RewardAddress.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        RewardAddress.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new RewardAddresses(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -13639,9 +13826,14 @@ export class ScriptHash {
 
 export class ScriptHashes {
   private items: ScriptHash[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: ScriptHash[]) {
+  constructor(
+    items: ScriptHash[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): ScriptHashes {
@@ -13662,17 +13854,19 @@ export class ScriptHashes {
   }
 
   static deserialize(reader: CBORReader, path: string[]): ScriptHashes {
-    return new ScriptHashes(
-      reader.readArray(
-        (reader, idx) =>
-          ScriptHash.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) => ScriptHash.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new ScriptHashes(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -15128,9 +15322,14 @@ export class Transaction {
 
 export class TransactionBodies {
   private items: TransactionBody[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: TransactionBody[]) {
+  constructor(
+    items: TransactionBody[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): TransactionBodies {
@@ -15151,17 +15350,20 @@ export class TransactionBodies {
   }
 
   static deserialize(reader: CBORReader, path: string[]): TransactionBodies {
-    return new TransactionBodies(
-      reader.readArray(
-        (reader, idx) =>
-          TransactionBody.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        TransactionBody.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new TransactionBodies(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -16256,9 +16458,14 @@ export class TransactionMetadatum {
 
 export class TransactionMetadatumLabels {
   private items: BigNum[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: BigNum[]) {
+  constructor(
+    items: BigNum[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): TransactionMetadatumLabels {
@@ -16282,16 +16489,19 @@ export class TransactionMetadatumLabels {
     reader: CBORReader,
     path: string[],
   ): TransactionMetadatumLabels {
-    return new TransactionMetadatumLabels(
-      reader.readArray(
-        (reader, idx) => BigNum.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) => BigNum.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new TransactionMetadatumLabels(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -16473,9 +16683,14 @@ export class TransactionOutput {
 
 export class TransactionOutputs {
   private items: TransactionOutput[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: TransactionOutput[]) {
+  constructor(
+    items: TransactionOutput[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): TransactionOutputs {
@@ -16496,17 +16711,20 @@ export class TransactionOutputs {
   }
 
   static deserialize(reader: CBORReader, path: string[]): TransactionOutputs {
-    return new TransactionOutputs(
-      reader.readArray(
-        (reader, idx) =>
-          TransactionOutput.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        TransactionOutput.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new TransactionOutputs(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -16815,9 +17033,14 @@ export class TransactionWitnessSet {
 
 export class TransactionWitnessSets {
   private items: TransactionWitnessSet[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: TransactionWitnessSet[]) {
+  constructor(
+    items: TransactionWitnessSet[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): TransactionWitnessSets {
@@ -16841,17 +17064,20 @@ export class TransactionWitnessSets {
     reader: CBORReader,
     path: string[],
   ): TransactionWitnessSets {
-    return new TransactionWitnessSets(
-      reader.readArray(
-        (reader, idx) =>
-          TransactionWitnessSet.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) =>
+        TransactionWitnessSet.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new TransactionWitnessSets(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -17996,9 +18222,11 @@ export class Vkey {
 
 export class Vkeys {
   private items: Vkey[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: Vkey[]) {
+  constructor(items: Vkey[], encoding: "definite" | "indefinite" = "definite") {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): Vkeys {
@@ -18019,16 +18247,19 @@ export class Vkeys {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Vkeys {
-    return new Vkeys(
-      reader.readArray(
-        (reader, idx) => Vkey.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) => Vkey.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new Vkeys(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op
@@ -18722,9 +18953,14 @@ export class Voter {
 
 export class Voters {
   private items: Voter[];
+  private encoding: "definite" | "indefinite";
 
-  constructor(items: Voter[]) {
+  constructor(
+    items: Voter[],
+    encoding: "definite" | "indefinite" = "definite",
+  ) {
     this.items = items;
+    this.encoding = encoding;
   }
 
   static new(): Voters {
@@ -18745,16 +18981,19 @@ export class Voters {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Voters {
-    return new Voters(
-      reader.readArray(
-        (reader, idx) => Voter.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, encoding } = reader.readArray(
+      (reader, idx) => Voter.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new Voters(items, encoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.encoding,
+    );
   }
 
   // no-op

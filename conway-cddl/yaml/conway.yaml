@@ -21,7 +21,7 @@ Block:
     - name: auxiliary_data_set
       type: AuxiliaryDataSet
     - name: invalid_transactions
-      type: arrayToUint32Array
+      type: InvalidTransactions
 
 TransactionBodies:
   type: array
@@ -45,6 +45,10 @@ AuxiliaryDataSet:
       }
       return indices;
     }
+
+# no item type means that it is encoded as a Uint32Array
+InvalidTransactions:
+  type: array
 
 # transaction =
 #   [ transaction_body
