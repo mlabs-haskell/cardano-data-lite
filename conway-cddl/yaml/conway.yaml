@@ -324,11 +324,12 @@ TransactionBody:
       inputs: TransactionInputs, 
       outputs: TransactionOutputs, 
       fee: BigNum,
-      ttl?: number,
+      path: string[] = ['TransactionBody'],
+      ttl?: number
     ): TransactionBody {
       return new TransactionBody(
-        inputs.clone(),
-        outputs.clone(),
+        inputs.clone([...path, "TransactionInputs"]),
+        outputs.clone([...path, "TransactionOutputs"]),
         fee,
         ttl != null ? BigNum._from_number(ttl) : undefined,
         undefined,
@@ -354,8 +355,9 @@ TransactionBody:
       inputs: TransactionInputs, 
       outputs: TransactionOutputs, 
       fee: BigNum,
+      path: string[]
     ): TransactionBody {
-      return TransactionBody.new(inputs, outputs, fee, undefined);
+      return TransactionBody.new(inputs, outputs, fee, path, undefined);
     }
 
 TransactionInputs:

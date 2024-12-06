@@ -55,11 +55,12 @@ export class GenArray extends CodeGeneratorBase {
     `;
   }
 
-  generateDeserialize(reader: string): string {
+  generateDeserialize(reader: string, path: string): string {
     return `
       return new ${this.name}(
         ${reader}.readArray(
-          reader => ${this.typeUtils.readType("reader", this.item)}
+          (reader, idx) => ${this.typeUtils.readType("reader", this.item, `[...${path}, "Elem#" + idx]`)}
+          , ${path}
         )
       );
     `;

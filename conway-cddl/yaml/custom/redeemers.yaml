@@ -26,19 +26,19 @@ Redeemers:
       return ExUnits.new(mems, steps);
     }
 
-    static deserialize(reader: CBORReader): Redeemers {
-      if(reader.peekType() == 'array') {
-        return Redeemers.deserializeArray(reader);
-      } else if(reader.peekType() == 'map') {
-        return Redeemers.deserializeMap(reader);
+    static deserialize(reader: CBORReader, path: string[]): Redeemers {
+      if(reader.peekType(path) == 'array') {
+        return Redeemers.deserializeArray(reader, path);
+      } else if(reader.peekType(path) == 'map') {
+        return Redeemers.deserializeMap(reader, path);
       }
-      throw new Error("Expected either an array or a map");
+      throw new Error("Expected either an array or a map (at " + path.join("/") + ")");
     }
 
-    static deserializeArray(reader: CBORReader): Redeemers {
+    static deserializeArray(reader: CBORReader, path: string[]): Redeemers {
       let redeemers = Redeemers.new();
-      reader.readArray(reader => {
-        let item = RedeemersArrayItem.deserialize(reader);
+      reader.readArray((reader, idx) => {
+        let item = RedeemersArrayItem.deserialize(reader, [...path, 'RedeemersArrayItem#' + idx]);
         redeemers.add(
           Redeemer.new(
             item.tag(),
@@ -47,15 +47,15 @@ Redeemers:
             item.ex_units(),
           )
         )
-      });
+      }, path);
       return redeemers;
     }
 
-    static deserializeMap(reader: CBORReader): Redeemers {
+    static deserializeMap(reader: CBORReader, path: string[]): Redeemers {
       let redeemers = Redeemers.new();
-      reader.readMap(reader => {
-        let key = RedeemersKey.deserialize(reader);
-        let value = RedeemersValue.deserialize(reader);
+      reader.readMap((reader, idx) => {
+        let key = RedeemersKey.deserialize(reader, [...path, `RedeemersKey#${idx}`]);
+        let value = RedeemersValue.deserialize(reader, [...path, `RedeemersValue#${idx}`]);
         redeemers.add(
             Redeemer.new(
               key.tag(),
@@ -64,7 +64,7 @@ Redeemers:
               value.ex_units(),
             )
         )
-      });
+      }, path);
       return redeemers;
     }
 

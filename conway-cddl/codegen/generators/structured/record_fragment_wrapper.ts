@@ -27,9 +27,9 @@ export class GenRecordFragmentWrapper extends GenStructuredBase<Item> {
     return this.getFields()[0];
   }
 
-  generateDeserialize(reader: string): string {
+  generateDeserialize(reader: string, path: string): string {
     return `
-      let ${this.getItem().name} = ${this.getItem().type}.deserialize(${reader});
+      let ${this.getItem().name} = ${this.getItem().type}.deserialize(${reader}, [...${path}, '${this.getItem().type}']);
       return new ${this.name}(${this.getItem().name}) 
     `;
   }

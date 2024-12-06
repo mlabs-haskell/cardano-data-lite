@@ -105,9 +105,9 @@ export class GenNewtype extends CodeGeneratorBase {
     `;
   }
 
-  generateDeserialize(reader: string): string {
+  generateDeserialize(reader: string, path: string): string {
     return ` 
-      return new ${this.name}(${this.typeUtils.readType(reader, this.item)});
+      return new ${this.name}(${this.typeUtils.readType(reader, this.item, path)});
     `;
   }
 

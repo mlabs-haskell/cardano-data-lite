@@ -43,18 +43,26 @@ export class Anchor {
     this._anchor_data_hash = anchor_data_hash;
   }
 
-  static deserialize(reader: CBORReader): Anchor {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): Anchor {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let url = URL.deserialize(reader);
+    const url_path = [...path, "URL(url)"];
+    let url = URL.deserialize(reader, url_path);
 
-    let anchor_data_hash = AnchorDataHash.deserialize(reader);
+    const anchor_data_hash_path = [...path, "AnchorDataHash(anchor_data_hash)"];
+    let anchor_data_hash = AnchorDataHash.deserialize(
+      reader,
+      anchor_data_hash_path,
+    );
 
     return new Anchor(url, anchor_data_hash);
   }
@@ -69,13 +77,13 @@ export class Anchor {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Anchor {
+  static from_bytes(data: Uint8Array, path: string[] = ["Anchor"]): Anchor {
     let reader = new CBORReader(data);
-    return Anchor.deserialize(reader);
+    return Anchor.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Anchor {
-    return Anchor.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Anchor"]): Anchor {
+    return Anchor.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -88,8 +96,8 @@ export class Anchor {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Anchor {
-    return Anchor.from_bytes(this.to_bytes());
+  clone(path: string[]): Anchor {
+    return Anchor.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -142,8 +150,8 @@ export class AnchorDataHash {
     return AnchorDataHash.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): AnchorDataHash {
-    return new AnchorDataHash(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): AnchorDataHash {
+    return new AnchorDataHash(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -168,8 +176,8 @@ export class AssetName {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): AssetName {
-    return new AssetName(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): AssetName {
+    return new AssetName(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -179,13 +187,16 @@ export class AssetName {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): AssetName {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["AssetName"],
+  ): AssetName {
     let reader = new CBORReader(data);
-    return AssetName.deserialize(reader);
+    return AssetName.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): AssetName {
-    return AssetName.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["AssetName"]): AssetName {
+    return AssetName.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -198,8 +209,8 @@ export class AssetName {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): AssetName {
-    return AssetName.from_bytes(this.to_bytes());
+  clone(path: string[]): AssetName {
+    return AssetName.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -227,9 +238,13 @@ export class AssetNames {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): AssetNames {
+  static deserialize(reader: CBORReader, path: string[]): AssetNames {
     return new AssetNames(
-      reader.readArray((reader) => AssetName.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          AssetName.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -240,13 +255,19 @@ export class AssetNames {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): AssetNames {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["AssetNames"],
+  ): AssetNames {
     let reader = new CBORReader(data);
-    return AssetNames.deserialize(reader);
+    return AssetNames.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): AssetNames {
-    return AssetNames.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["AssetNames"],
+  ): AssetNames {
+    return AssetNames.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -259,8 +280,8 @@ export class AssetNames {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): AssetNames {
-    return AssetNames.from_bytes(this.to_bytes());
+  clone(path: string[]): AssetNames {
+    return AssetNames.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -312,10 +333,15 @@ export class Assets {
     return keys;
   }
 
-  static deserialize(reader: CBORReader): Assets {
+  static deserialize(reader: CBORReader, path: string[]): Assets {
     let ret = new Assets([]);
-    reader.readMap((reader) =>
-      ret.insert(AssetName.deserialize(reader), BigNum.deserialize(reader)),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          AssetName.deserialize(reader, [...path, "AssetName#" + idx]),
+          BigNum.deserialize(reader, [...path, "BigNum#" + idx]),
+        ),
+      path,
     );
     return ret;
   }
@@ -330,13 +356,13 @@ export class Assets {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Assets {
+  static from_bytes(data: Uint8Array, path: string[] = ["Assets"]): Assets {
     let reader = new CBORReader(data);
-    return Assets.deserialize(reader);
+    return Assets.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Assets {
-    return Assets.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Assets"]): Assets {
+    return Assets.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -349,8 +375,8 @@ export class Assets {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Assets {
-    return Assets.from_bytes(this.to_bytes());
+  clone(path: string[]): Assets {
+    return Assets.from_bytes(this.to_bytes(), path);
   }
 
   _inplace_checked_add(rhs: Assets): void {
@@ -471,47 +497,75 @@ export class AuxiliaryData {
     this._plutus_scripts_v3 = plutus_scripts_v3;
   }
 
-  static deserialize(reader: CBORReader): AuxiliaryData {
+  static deserialize(reader: CBORReader, path: string[]): AuxiliaryData {
     let fields: any = {};
     reader.readMap((r) => {
-      let key = Number(r.readUint());
+      let key = Number(r.readUint(path));
       switch (key) {
-        case 0:
-          fields.metadata = GeneralTransactionMetadata.deserialize(r);
+        case 0: {
+          const new_path = [...path, "GeneralTransactionMetadata(metadata)"];
+          fields.metadata = GeneralTransactionMetadata.deserialize(r, new_path);
           break;
+        }
 
-        case 1:
-          fields.native_scripts = NativeScripts.deserialize(r);
+        case 1: {
+          const new_path = [...path, "NativeScripts(native_scripts)"];
+          fields.native_scripts = NativeScripts.deserialize(r, new_path);
           break;
+        }
 
-        case 2:
-          fields.plutus_scripts_v1 = PlutusScripts.deserialize(r);
+        case 2: {
+          const new_path = [...path, "PlutusScripts(plutus_scripts_v1)"];
+          fields.plutus_scripts_v1 = PlutusScripts.deserialize(r, new_path);
           break;
+        }
 
-        case 3:
-          fields.plutus_scripts_v2 = PlutusScripts.deserialize(r);
+        case 3: {
+          const new_path = [...path, "PlutusScripts(plutus_scripts_v2)"];
+          fields.plutus_scripts_v2 = PlutusScripts.deserialize(r, new_path);
           break;
+        }
 
-        case 4:
-          fields.plutus_scripts_v3 = PlutusScripts.deserialize(r);
+        case 4: {
+          const new_path = [...path, "PlutusScripts(plutus_scripts_v3)"];
+          fields.plutus_scripts_v3 = PlutusScripts.deserialize(r, new_path);
           break;
+        }
       }
-    });
+    }, path);
 
     if (fields.metadata === undefined)
-      throw new Error("Value not provided for field 0 (metadata)");
+      throw new Error(
+        "Value not provided for field 0 (metadata) (at " + path.join("/") + ")",
+      );
     let metadata = fields.metadata;
     if (fields.native_scripts === undefined)
-      throw new Error("Value not provided for field 1 (native_scripts)");
+      throw new Error(
+        "Value not provided for field 1 (native_scripts) (at " +
+          path.join("/") +
+          ")",
+      );
     let native_scripts = fields.native_scripts;
     if (fields.plutus_scripts_v1 === undefined)
-      throw new Error("Value not provided for field 2 (plutus_scripts_v1)");
+      throw new Error(
+        "Value not provided for field 2 (plutus_scripts_v1) (at " +
+          path.join("/") +
+          ")",
+      );
     let plutus_scripts_v1 = fields.plutus_scripts_v1;
     if (fields.plutus_scripts_v2 === undefined)
-      throw new Error("Value not provided for field 3 (plutus_scripts_v2)");
+      throw new Error(
+        "Value not provided for field 3 (plutus_scripts_v2) (at " +
+          path.join("/") +
+          ")",
+      );
     let plutus_scripts_v2 = fields.plutus_scripts_v2;
     if (fields.plutus_scripts_v3 === undefined)
-      throw new Error("Value not provided for field 4 (plutus_scripts_v3)");
+      throw new Error(
+        "Value not provided for field 4 (plutus_scripts_v3) (at " +
+          path.join("/") +
+          ")",
+      );
     let plutus_scripts_v3 = fields.plutus_scripts_v3;
 
     return new AuxiliaryData(
@@ -547,13 +601,19 @@ export class AuxiliaryData {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): AuxiliaryData {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["AuxiliaryData"],
+  ): AuxiliaryData {
     let reader = new CBORReader(data);
-    return AuxiliaryData.deserialize(reader);
+    return AuxiliaryData.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): AuxiliaryData {
-    return AuxiliaryData.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["AuxiliaryData"],
+  ): AuxiliaryData {
+    return AuxiliaryData.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -566,8 +626,8 @@ export class AuxiliaryData {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): AuxiliaryData {
-    return AuxiliaryData.from_bytes(this.to_bytes());
+  clone(path: string[]): AuxiliaryData {
+    return AuxiliaryData.from_bytes(this.to_bytes(), path);
   }
 
   static new(): AuxiliaryData {
@@ -630,8 +690,8 @@ export class AuxiliaryDataHash {
     return AuxiliaryDataHash.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): AuxiliaryDataHash {
-    return new AuxiliaryDataHash(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): AuxiliaryDataHash {
+    return new AuxiliaryDataHash(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -677,10 +737,15 @@ export class AuxiliaryDataSet {
     );
   }
 
-  static deserialize(reader: CBORReader): AuxiliaryDataSet {
+  static deserialize(reader: CBORReader, path: string[]): AuxiliaryDataSet {
     let ret = new AuxiliaryDataSet([]);
-    reader.readMap((reader) =>
-      ret.insert(Number(reader.readInt()), AuxiliaryData.deserialize(reader)),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          Number(reader.readInt([...path, "number#" + idx])),
+          AuxiliaryData.deserialize(reader, [...path, "AuxiliaryData#" + idx]),
+        ),
+      path,
     );
     return ret;
   }
@@ -695,13 +760,19 @@ export class AuxiliaryDataSet {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): AuxiliaryDataSet {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["AuxiliaryDataSet"],
+  ): AuxiliaryDataSet {
     let reader = new CBORReader(data);
-    return AuxiliaryDataSet.deserialize(reader);
+    return AuxiliaryDataSet.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): AuxiliaryDataSet {
-    return AuxiliaryDataSet.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["AuxiliaryDataSet"],
+  ): AuxiliaryDataSet {
+    return AuxiliaryDataSet.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -714,8 +785,8 @@ export class AuxiliaryDataSet {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): AuxiliaryDataSet {
-    return AuxiliaryDataSet.from_bytes(this.to_bytes());
+  clone(path: string[]): AuxiliaryDataSet {
+    return AuxiliaryDataSet.from_bytes(this.to_bytes(), path);
   }
 
   indices(): Uint32Array {
@@ -747,8 +818,8 @@ export class BigNum {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): BigNum {
-    return new BigNum(reader.readInt());
+  static deserialize(reader: CBORReader, path: string[]): BigNum {
+    return new BigNum(reader.readInt(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -758,13 +829,13 @@ export class BigNum {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): BigNum {
+  static from_bytes(data: Uint8Array, path: string[] = ["BigNum"]): BigNum {
     let reader = new CBORReader(data);
-    return BigNum.deserialize(reader);
+    return BigNum.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): BigNum {
-    return BigNum.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["BigNum"]): BigNum {
+    return BigNum.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -777,8 +848,8 @@ export class BigNum {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): BigNum {
-    return BigNum.from_bytes(this.to_bytes());
+  clone(path: string[]): BigNum {
+    return BigNum.from_bytes(this.to_bytes(), path);
   }
 
   // Lifted from: https://doc.rust-lang.org/std/primitive.u64.html#associatedconstant.MAX
@@ -887,8 +958,8 @@ export class Bip32PrivateKey {
     return bytesToHex(this.as_bytes());
   }
 
-  static deserialize(reader: CBORReader): Bip32PrivateKey {
-    return new Bip32PrivateKey(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): Bip32PrivateKey {
+    return new Bip32PrivateKey(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -1031,8 +1102,8 @@ export class Bip32PublicKey {
     return bytesToHex(this.as_bytes());
   }
 
-  static deserialize(reader: CBORReader): Bip32PublicKey {
-    return new Bip32PublicKey(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): Bip32PublicKey {
+    return new Bip32PublicKey(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -1159,25 +1230,57 @@ export class Block {
     this._invalid_transactions = invalid_transactions;
   }
 
-  static deserialize(reader: CBORReader): Block {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): Block {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 5) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 5. Received " + len,
+        "Insufficient number of fields in record. Expected 5. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let header = Header.deserialize(reader);
+    const header_path = [...path, "Header(header)"];
+    let header = Header.deserialize(reader, header_path);
 
-    let transaction_bodies = TransactionBodies.deserialize(reader);
+    const transaction_bodies_path = [
+      ...path,
+      "TransactionBodies(transaction_bodies)",
+    ];
+    let transaction_bodies = TransactionBodies.deserialize(
+      reader,
+      transaction_bodies_path,
+    );
 
-    let transaction_witness_sets = TransactionWitnessSets.deserialize(reader);
+    const transaction_witness_sets_path = [
+      ...path,
+      "TransactionWitnessSets(transaction_witness_sets)",
+    ];
+    let transaction_witness_sets = TransactionWitnessSets.deserialize(
+      reader,
+      transaction_witness_sets_path,
+    );
 
-    let auxiliary_data_set = AuxiliaryDataSet.deserialize(reader);
+    const auxiliary_data_set_path = [
+      ...path,
+      "AuxiliaryDataSet(auxiliary_data_set)",
+    ];
+    let auxiliary_data_set = AuxiliaryDataSet.deserialize(
+      reader,
+      auxiliary_data_set_path,
+    );
 
+    const invalid_transactions_path = [
+      ...path,
+      "arrayToUint32Array(invalid_transactions)",
+    ];
     let invalid_transactions = new Uint32Array(
-      reader.readArray((reader) => Number(reader.readUint())),
+      reader.readArray(
+        (reader) => Number(reader.readUint(invalid_transactions_path)),
+        invalid_transactions_path,
+      ),
     );
 
     return new Block(
@@ -1204,13 +1307,13 @@ export class Block {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Block {
+  static from_bytes(data: Uint8Array, path: string[] = ["Block"]): Block {
     let reader = new CBORReader(data);
-    return Block.deserialize(reader);
+    return Block.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Block {
-    return Block.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Block"]): Block {
+    return Block.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -1223,8 +1326,8 @@ export class Block {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Block {
-    return Block.from_bytes(this.to_bytes());
+  clone(path: string[]): Block {
+    return Block.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -1277,8 +1380,8 @@ export class BlockHash {
     return BlockHash.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): BlockHash {
-    return new BlockHash(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): BlockHash {
+    return new BlockHash(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -1345,22 +1448,29 @@ export class BootstrapWitness {
     this._attributes = attributes;
   }
 
-  static deserialize(reader: CBORReader): BootstrapWitness {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): BootstrapWitness {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " + len,
+        "Insufficient number of fields in record. Expected 4. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let vkey = Vkey.deserialize(reader);
+    const vkey_path = [...path, "Vkey(vkey)"];
+    let vkey = Vkey.deserialize(reader, vkey_path);
 
-    let signature = Ed25519Signature.deserialize(reader);
+    const signature_path = [...path, "Ed25519Signature(signature)"];
+    let signature = Ed25519Signature.deserialize(reader, signature_path);
 
-    let chain_code = reader.readBytes();
+    const chain_code_path = [...path, "bytes(chain_code)"];
+    let chain_code = reader.readBytes(chain_code_path);
 
-    let attributes = reader.readBytes();
+    const attributes_path = [...path, "bytes(attributes)"];
+    let attributes = reader.readBytes(attributes_path);
 
     return new BootstrapWitness(vkey, signature, chain_code, attributes);
   }
@@ -1377,13 +1487,19 @@ export class BootstrapWitness {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): BootstrapWitness {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["BootstrapWitness"],
+  ): BootstrapWitness {
     let reader = new CBORReader(data);
-    return BootstrapWitness.deserialize(reader);
+    return BootstrapWitness.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): BootstrapWitness {
-    return BootstrapWitness.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["BootstrapWitness"],
+  ): BootstrapWitness {
+    return BootstrapWitness.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -1396,8 +1512,8 @@ export class BootstrapWitness {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): BootstrapWitness {
-    return BootstrapWitness.from_bytes(this.to_bytes());
+  clone(path: string[]): BootstrapWitness {
+    return BootstrapWitness.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -1425,9 +1541,13 @@ export class BootstrapWitnesses {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): BootstrapWitnesses {
+  static deserialize(reader: CBORReader, path: string[]): BootstrapWitnesses {
     return new BootstrapWitnesses(
-      reader.readArray((reader) => BootstrapWitness.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          BootstrapWitness.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -1438,13 +1558,19 @@ export class BootstrapWitnesses {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): BootstrapWitnesses {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["BootstrapWitnesses"],
+  ): BootstrapWitnesses {
     let reader = new CBORReader(data);
-    return BootstrapWitnesses.deserialize(reader);
+    return BootstrapWitnesses.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): BootstrapWitnesses {
-    return BootstrapWitnesses.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["BootstrapWitnesses"],
+  ): BootstrapWitnesses {
+    return BootstrapWitnesses.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -1457,8 +1583,8 @@ export class BootstrapWitnesses {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): BootstrapWitnesses {
-    return BootstrapWitnesses.from_bytes(this.to_bytes());
+  clone(path: string[]): BootstrapWitnesses {
+    return BootstrapWitnesses.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -1480,13 +1606,16 @@ export class CSLBigInt {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): CSLBigInt {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["CSLBigInt"],
+  ): CSLBigInt {
     let reader = new CBORReader(data);
-    return CSLBigInt.deserialize(reader);
+    return CSLBigInt.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): CSLBigInt {
-    return CSLBigInt.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["CSLBigInt"]): CSLBigInt {
+    return CSLBigInt.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -1499,8 +1628,8 @@ export class CSLBigInt {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): CSLBigInt {
-    return CSLBigInt.from_bytes(this.to_bytes());
+  clone(path: string[]): CSLBigInt {
+    return CSLBigInt.from_bytes(this.to_bytes(), path);
   }
 
   static from_str(string: string): CSLBigInt {
@@ -1616,25 +1745,27 @@ export class CSLBigInt {
     writer.writeBytesChunked(buffer.getBytes(), 64);
   }
 
-  static deserialize(reader: CBORReader): CSLBigInt {
-    let typ = reader.peekType();
+  static deserialize(reader: CBORReader, path: string[]): CSLBigInt {
+    let typ = reader.peekType(path);
     if (typ == "uint" || typ == "nint") {
-      let value = reader.readInt();
+      let value = reader.readInt(path);
       return new CSLBigInt(value);
     }
 
     // if not uint non nint, must be tagged
-    let tag = reader.readTaggedTag();
+    let tag = reader.readTaggedTag(path);
     let isNegative;
     if (tag == 2) {
       isNegative = false;
     } else if (tag == 3) {
       isNegative = true;
     } else {
-      throw new Error("Unknown tag: " + tag + ". Expected 2 or 3");
+      throw new Error(
+        "Unknown tag: " + tag + ". Expected 2 or 3 (at" + path.join("/") + ")",
+      );
     }
 
-    let bytes = reader.readBytes();
+    let bytes = reader.readBytes(path);
     let valueAbs = bigintFromBytes(bytes.length, bytes);
     let value = isNegative ? valueAbs * -1n : valueAbs;
     return new CSLBigInt(value);
@@ -1866,9 +1997,9 @@ export class Certificate {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): Certificate {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
+  static deserialize(reader: CBORReader, path: string[]): Certificate {
+    let len = reader.readArrayTag(path);
+    let tag = Number(reader.readUint(path));
     let variant: CertificateVariant;
 
     switch (tag) {
@@ -1878,7 +2009,10 @@ export class Certificate {
         }
         variant = {
           kind: 0,
-          value: StakeRegistration.deserialize(reader),
+          value: StakeRegistration.deserialize(reader, [
+            ...path,
+            "StakeRegistration",
+          ]),
         };
 
         break;
@@ -1889,7 +2023,10 @@ export class Certificate {
         }
         variant = {
           kind: 1,
-          value: StakeDeregistration.deserialize(reader),
+          value: StakeDeregistration.deserialize(reader, [
+            ...path,
+            "StakeDeregistration",
+          ]),
         };
 
         break;
@@ -1900,7 +2037,10 @@ export class Certificate {
         }
         variant = {
           kind: 2,
-          value: StakeDelegation.deserialize(reader),
+          value: StakeDelegation.deserialize(reader, [
+            ...path,
+            "StakeDelegation",
+          ]),
         };
 
         break;
@@ -1911,7 +2051,10 @@ export class Certificate {
         }
         variant = {
           kind: 3,
-          value: PoolRegistration.deserialize(reader),
+          value: PoolRegistration.deserialize(reader, [
+            ...path,
+            "PoolRegistration",
+          ]),
         };
 
         break;
@@ -1922,7 +2065,10 @@ export class Certificate {
         }
         variant = {
           kind: 4,
-          value: PoolRetirement.deserialize(reader),
+          value: PoolRetirement.deserialize(reader, [
+            ...path,
+            "PoolRetirement",
+          ]),
         };
 
         break;
@@ -1933,7 +2079,7 @@ export class Certificate {
         }
         variant = {
           kind: 7,
-          value: RegCert.deserialize(reader),
+          value: RegCert.deserialize(reader, [...path, "RegCert"]),
         };
 
         break;
@@ -1944,7 +2090,7 @@ export class Certificate {
         }
         variant = {
           kind: 8,
-          value: UnregCert.deserialize(reader),
+          value: UnregCert.deserialize(reader, [...path, "UnregCert"]),
         };
 
         break;
@@ -1955,7 +2101,10 @@ export class Certificate {
         }
         variant = {
           kind: 9,
-          value: VoteDelegation.deserialize(reader),
+          value: VoteDelegation.deserialize(reader, [
+            ...path,
+            "VoteDelegation",
+          ]),
         };
 
         break;
@@ -1966,7 +2115,10 @@ export class Certificate {
         }
         variant = {
           kind: 10,
-          value: StakeAndVoteDelegation.deserialize(reader),
+          value: StakeAndVoteDelegation.deserialize(reader, [
+            ...path,
+            "StakeAndVoteDelegation",
+          ]),
         };
 
         break;
@@ -1979,7 +2131,10 @@ export class Certificate {
         }
         variant = {
           kind: 11,
-          value: StakeRegistrationAndDelegation.deserialize(reader),
+          value: StakeRegistrationAndDelegation.deserialize(reader, [
+            ...path,
+            "StakeRegistrationAndDelegation",
+          ]),
         };
 
         break;
@@ -1992,7 +2147,10 @@ export class Certificate {
         }
         variant = {
           kind: 12,
-          value: VoteRegistrationAndDelegation.deserialize(reader),
+          value: VoteRegistrationAndDelegation.deserialize(reader, [
+            ...path,
+            "VoteRegistrationAndDelegation",
+          ]),
         };
 
         break;
@@ -2005,7 +2163,10 @@ export class Certificate {
         }
         variant = {
           kind: 13,
-          value: StakeVoteRegistrationAndDelegation.deserialize(reader),
+          value: StakeVoteRegistrationAndDelegation.deserialize(reader, [
+            ...path,
+            "StakeVoteRegistrationAndDelegation",
+          ]),
         };
 
         break;
@@ -2016,7 +2177,10 @@ export class Certificate {
         }
         variant = {
           kind: 14,
-          value: CommitteeHotAuth.deserialize(reader),
+          value: CommitteeHotAuth.deserialize(reader, [
+            ...path,
+            "CommitteeHotAuth",
+          ]),
         };
 
         break;
@@ -2027,7 +2191,10 @@ export class Certificate {
         }
         variant = {
           kind: 15,
-          value: CommitteeColdResign.deserialize(reader),
+          value: CommitteeColdResign.deserialize(reader, [
+            ...path,
+            "CommitteeColdResign",
+          ]),
         };
 
         break;
@@ -2038,7 +2205,10 @@ export class Certificate {
         }
         variant = {
           kind: 16,
-          value: DRepRegistration.deserialize(reader),
+          value: DRepRegistration.deserialize(reader, [
+            ...path,
+            "DRepRegistration",
+          ]),
         };
 
         break;
@@ -2049,7 +2219,10 @@ export class Certificate {
         }
         variant = {
           kind: 17,
-          value: DRepDeregistration.deserialize(reader),
+          value: DRepDeregistration.deserialize(reader, [
+            ...path,
+            "DRepDeregistration",
+          ]),
         };
 
         break;
@@ -2060,7 +2233,7 @@ export class Certificate {
         }
         variant = {
           kind: 18,
-          value: DRepUpdate.deserialize(reader),
+          value: DRepUpdate.deserialize(reader, [...path, "DRepUpdate"]),
         };
 
         break;
@@ -2070,7 +2243,9 @@ export class Certificate {
       reader.readBreak();
     }
 
-    throw new Error("Unexpected tag for Certificate: " + tag);
+    throw new Error(
+      "Unexpected tag for Certificate: " + tag + "(at " + path.join("/") + ")",
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -2166,13 +2341,19 @@ export class Certificate {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Certificate {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["Certificate"],
+  ): Certificate {
     let reader = new CBORReader(data);
-    return Certificate.deserialize(reader);
+    return Certificate.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Certificate {
-    return Certificate.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["Certificate"],
+  ): Certificate {
+    return Certificate.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -2185,8 +2366,8 @@ export class Certificate {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Certificate {
-    return Certificate.from_bytes(this.to_bytes());
+  clone(path: string[]): Certificate {
+    return Certificate.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -2225,13 +2406,19 @@ export class Certificates {
     return false;
   }
 
-  static deserialize(reader: CBORReader): Certificates {
+  static deserialize(reader: CBORReader, path: string[]): Certificates {
     let ret = new Certificates();
-    if (reader.peekType() == "tagged") {
-      let tag = reader.readTaggedTag();
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
       if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
     }
-    reader.readArray((reader) => ret.add(Certificate.deserialize(reader)));
+    reader.readArray(
+      (reader, idx) =>
+        ret.add(
+          Certificate.deserialize(reader, [...path, "Certificate#" + idx]),
+        ),
+      path,
+    );
     return ret;
   }
 
@@ -2243,13 +2430,19 @@ export class Certificates {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Certificates {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["Certificates"],
+  ): Certificates {
     let reader = new CBORReader(data);
-    return Certificates.deserialize(reader);
+    return Certificates.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Certificates {
-    return Certificates.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["Certificates"],
+  ): Certificates {
+    return Certificates.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -2262,8 +2455,8 @@ export class Certificates {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Certificates {
-    return Certificates.from_bytes(this.to_bytes());
+  clone(path: string[]): Certificates {
+    return Certificates.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -2306,22 +2499,34 @@ export class ChangeConfig {
     this._script_ref = script_ref;
   }
 
-  static deserialize(reader: CBORReader): ChangeConfig {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): ChangeConfig {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 3) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " + len,
+        "Insufficient number of fields in record. Expected 3. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let address = Address.deserialize(reader);
+    const address_path = [...path, "Address(address)"];
+    let address = Address.deserialize(reader, address_path);
 
+    const plutus_data_path = [...path, "OutputDatum(plutus_data)"];
     let plutus_data =
-      reader.readNullable((r) => OutputDatum.deserialize(r)) ?? undefined;
+      reader.readNullable(
+        (r) => OutputDatum.deserialize(r, plutus_data_path),
+        path,
+      ) ?? undefined;
 
+    const script_ref_path = [...path, "ScriptRef(script_ref)"];
     let script_ref =
-      reader.readNullable((r) => ScriptRef.deserialize(r)) ?? undefined;
+      reader.readNullable(
+        (r) => ScriptRef.deserialize(r, script_ref_path),
+        path,
+      ) ?? undefined;
 
     return new ChangeConfig(address, plutus_data, script_ref);
   }
@@ -2345,13 +2550,19 @@ export class ChangeConfig {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ChangeConfig {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ChangeConfig"],
+  ): ChangeConfig {
     let reader = new CBORReader(data);
-    return ChangeConfig.deserialize(reader);
+    return ChangeConfig.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ChangeConfig {
-    return ChangeConfig.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["ChangeConfig"],
+  ): ChangeConfig {
+    return ChangeConfig.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -2364,8 +2575,8 @@ export class ChangeConfig {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ChangeConfig {
-    return ChangeConfig.from_bytes(this.to_bytes());
+  clone(path: string[]): ChangeConfig {
+    return ChangeConfig.from_bytes(this.to_bytes(), path);
   }
 
   static new(address: Address): ChangeConfig {
@@ -2444,10 +2655,17 @@ export class CommitteeColdResign {
     this._anchor = anchor;
   }
 
-  static deserialize(reader: CBORReader): CommitteeColdResign {
-    let committee_cold_credential = Credential.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): CommitteeColdResign {
+    let committee_cold_credential = Credential.deserialize(reader, [
+      ...path,
+      "committee_cold_credential",
+    ]);
 
-    let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
+    let anchor =
+      reader.readNullable(
+        (r) => Anchor.deserialize(r, [...path, "anchor"]),
+        path,
+      ) ?? undefined;
 
     return new CommitteeColdResign(committee_cold_credential, anchor);
   }
@@ -2464,13 +2682,19 @@ export class CommitteeColdResign {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): CommitteeColdResign {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["CommitteeColdResign"],
+  ): CommitteeColdResign {
     let reader = new CBORReader(data);
-    return CommitteeColdResign.deserialize(reader);
+    return CommitteeColdResign.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): CommitteeColdResign {
-    return CommitteeColdResign.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["CommitteeColdResign"],
+  ): CommitteeColdResign {
+    return CommitteeColdResign.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -2483,8 +2707,8 @@ export class CommitteeColdResign {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): CommitteeColdResign {
-    return CommitteeColdResign.from_bytes(this.to_bytes());
+  clone(path: string[]): CommitteeColdResign {
+    return CommitteeColdResign.from_bytes(this.to_bytes(), path);
   }
 
   static new(committee_cold_credential: Credential): CommitteeColdResign {
@@ -2534,10 +2758,15 @@ export class CommitteeEpochs {
     );
   }
 
-  static deserialize(reader: CBORReader): CommitteeEpochs {
+  static deserialize(reader: CBORReader, path: string[]): CommitteeEpochs {
     let ret = new CommitteeEpochs([]);
-    reader.readMap((reader) =>
-      ret.insert(Credential.deserialize(reader), Number(reader.readInt())),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          Credential.deserialize(reader, [...path, "Credential#" + idx]),
+          Number(reader.readInt([...path, "number#" + idx])),
+        ),
+      path,
     );
     return ret;
   }
@@ -2552,13 +2781,19 @@ export class CommitteeEpochs {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): CommitteeEpochs {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["CommitteeEpochs"],
+  ): CommitteeEpochs {
     let reader = new CBORReader(data);
-    return CommitteeEpochs.deserialize(reader);
+    return CommitteeEpochs.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): CommitteeEpochs {
-    return CommitteeEpochs.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["CommitteeEpochs"],
+  ): CommitteeEpochs {
+    return CommitteeEpochs.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -2571,8 +2806,8 @@ export class CommitteeEpochs {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): CommitteeEpochs {
-    return CommitteeEpochs.from_bytes(this.to_bytes());
+  clone(path: string[]): CommitteeEpochs {
+    return CommitteeEpochs.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -2614,10 +2849,16 @@ export class CommitteeHotAuth {
     this._committee_hot_credential = committee_hot_credential;
   }
 
-  static deserialize(reader: CBORReader): CommitteeHotAuth {
-    let committee_cold_credential = Credential.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): CommitteeHotAuth {
+    let committee_cold_credential = Credential.deserialize(reader, [
+      ...path,
+      "committee_cold_credential",
+    ]);
 
-    let committee_hot_credential = Credential.deserialize(reader);
+    let committee_hot_credential = Credential.deserialize(reader, [
+      ...path,
+      "committee_hot_credential",
+    ]);
 
     return new CommitteeHotAuth(
       committee_cold_credential,
@@ -2633,13 +2874,19 @@ export class CommitteeHotAuth {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): CommitteeHotAuth {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["CommitteeHotAuth"],
+  ): CommitteeHotAuth {
     let reader = new CBORReader(data);
-    return CommitteeHotAuth.deserialize(reader);
+    return CommitteeHotAuth.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): CommitteeHotAuth {
-    return CommitteeHotAuth.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["CommitteeHotAuth"],
+  ): CommitteeHotAuth {
+    return CommitteeHotAuth.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -2652,8 +2899,8 @@ export class CommitteeHotAuth {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): CommitteeHotAuth {
-    return CommitteeHotAuth.from_bytes(this.to_bytes());
+  clone(path: string[]): CommitteeHotAuth {
+    return CommitteeHotAuth.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -2682,19 +2929,27 @@ export class Constitution {
     this._scripthash = scripthash;
   }
 
-  static deserialize(reader: CBORReader): Constitution {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): Constitution {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let anchor = Anchor.deserialize(reader);
+    const anchor_path = [...path, "Anchor(anchor)"];
+    let anchor = Anchor.deserialize(reader, anchor_path);
 
+    const scripthash_path = [...path, "ScriptHash(scripthash)"];
     let scripthash =
-      reader.readNullable((r) => ScriptHash.deserialize(r)) ?? undefined;
+      reader.readNullable(
+        (r) => ScriptHash.deserialize(r, scripthash_path),
+        path,
+      ) ?? undefined;
 
     return new Constitution(anchor, scripthash);
   }
@@ -2713,13 +2968,19 @@ export class Constitution {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Constitution {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["Constitution"],
+  ): Constitution {
     let reader = new CBORReader(data);
-    return Constitution.deserialize(reader);
+    return Constitution.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Constitution {
-    return Constitution.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["Constitution"],
+  ): Constitution {
+    return Constitution.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -2732,8 +2993,8 @@ export class Constitution {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Constitution {
-    return Constitution.from_bytes(this.to_bytes());
+  clone(path: string[]): Constitution {
+    return Constitution.from_bytes(this.to_bytes(), path);
   }
 
   static new(anchor: Anchor): Constitution {
@@ -2770,18 +3031,23 @@ export class ConstrPlutusData {
     this._data = data;
   }
 
-  static deserialize(reader: CBORReader): ConstrPlutusData {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): ConstrPlutusData {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let alternative = BigNum.deserialize(reader);
+    const alternative_path = [...path, "BigNum(alternative)"];
+    let alternative = BigNum.deserialize(reader, alternative_path);
 
-    let data = PlutusList.deserialize(reader);
+    const data_path = [...path, "PlutusList(data)"];
+    let data = PlutusList.deserialize(reader, data_path);
 
     return new ConstrPlutusData(alternative, data);
   }
@@ -2796,13 +3062,19 @@ export class ConstrPlutusData {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ConstrPlutusData {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ConstrPlutusData"],
+  ): ConstrPlutusData {
     let reader = new CBORReader(data);
-    return ConstrPlutusData.deserialize(reader);
+    return ConstrPlutusData.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ConstrPlutusData {
-    return ConstrPlutusData.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["ConstrPlutusData"],
+  ): ConstrPlutusData {
+    return ConstrPlutusData.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -2815,8 +3087,8 @@ export class ConstrPlutusData {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ConstrPlutusData {
-    return ConstrPlutusData.from_bytes(this.to_bytes());
+  clone(path: string[]): ConstrPlutusData {
+    return ConstrPlutusData.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -2844,8 +3116,13 @@ export class CostModel {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): CostModel {
-    return new CostModel(reader.readArray((reader) => Int.deserialize(reader)));
+  static deserialize(reader: CBORReader, path: string[]): CostModel {
+    return new CostModel(
+      reader.readArray(
+        (reader, idx) => Int.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -2855,13 +3132,16 @@ export class CostModel {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): CostModel {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["CostModel"],
+  ): CostModel {
     let reader = new CBORReader(data);
-    return CostModel.deserialize(reader);
+    return CostModel.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): CostModel {
-    return CostModel.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["CostModel"]): CostModel {
+    return CostModel.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -2874,8 +3154,8 @@ export class CostModel {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): CostModel {
-    return CostModel.from_bytes(this.to_bytes());
+  clone(path: string[]): CostModel {
+    return CostModel.from_bytes(this.to_bytes(), path);
   }
 
   set(operation: number, cost: Int): Int {
@@ -2944,10 +3224,15 @@ export class Costmdls {
     return keys;
   }
 
-  static deserialize(reader: CBORReader): Costmdls {
+  static deserialize(reader: CBORReader, path: string[]): Costmdls {
     let ret = new Costmdls([]);
-    reader.readMap((reader) =>
-      ret.insert(Language.deserialize(reader), CostModel.deserialize(reader)),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          Language.deserialize(reader, [...path, "Language#" + idx]),
+          CostModel.deserialize(reader, [...path, "CostModel#" + idx]),
+        ),
+      path,
     );
     return ret;
   }
@@ -2962,13 +3247,13 @@ export class Costmdls {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Costmdls {
+  static from_bytes(data: Uint8Array, path: string[] = ["Costmdls"]): Costmdls {
     let reader = new CBORReader(data);
-    return Costmdls.deserialize(reader);
+    return Costmdls.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Costmdls {
-    return Costmdls.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Costmdls"]): Costmdls {
+    return Costmdls.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -2981,8 +3266,8 @@ export class Costmdls {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Costmdls {
-    return Costmdls.from_bytes(this.to_bytes());
+  clone(path: string[]): Costmdls {
+    return Costmdls.from_bytes(this.to_bytes(), path);
   }
 
   retain_language_versions(languages: Languages): Costmdls {
@@ -3034,13 +3319,17 @@ export class Credentials {
     return false;
   }
 
-  static deserialize(reader: CBORReader): Credentials {
+  static deserialize(reader: CBORReader, path: string[]): Credentials {
     let ret = new Credentials();
-    if (reader.peekType() == "tagged") {
-      let tag = reader.readTaggedTag();
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
       if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
     }
-    reader.readArray((reader) => ret.add(Credential.deserialize(reader)));
+    reader.readArray(
+      (reader, idx) =>
+        ret.add(Credential.deserialize(reader, [...path, "Credential#" + idx])),
+      path,
+    );
     return ret;
   }
 
@@ -3052,13 +3341,19 @@ export class Credentials {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Credentials {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["Credentials"],
+  ): Credentials {
     let reader = new CBORReader(data);
-    return Credentials.deserialize(reader);
+    return Credentials.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Credentials {
-    return Credentials.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["Credentials"],
+  ): Credentials {
+    return Credentials.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -3071,8 +3366,8 @@ export class Credentials {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Credentials {
-    return Credentials.from_bytes(this.to_bytes());
+  clone(path: string[]): Credentials {
+    return Credentials.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -3093,8 +3388,8 @@ export class DNSRecordAorAAAA {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): DNSRecordAorAAAA {
-    return new DNSRecordAorAAAA(reader.readString());
+  static deserialize(reader: CBORReader, path: string[]): DNSRecordAorAAAA {
+    return new DNSRecordAorAAAA(reader.readString(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -3104,13 +3399,19 @@ export class DNSRecordAorAAAA {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DNSRecordAorAAAA {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["DNSRecordAorAAAA"],
+  ): DNSRecordAorAAAA {
     let reader = new CBORReader(data);
-    return DNSRecordAorAAAA.deserialize(reader);
+    return DNSRecordAorAAAA.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): DNSRecordAorAAAA {
-    return DNSRecordAorAAAA.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["DNSRecordAorAAAA"],
+  ): DNSRecordAorAAAA {
+    return DNSRecordAorAAAA.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -3123,8 +3424,8 @@ export class DNSRecordAorAAAA {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DNSRecordAorAAAA {
-    return DNSRecordAorAAAA.from_bytes(this.to_bytes());
+  clone(path: string[]): DNSRecordAorAAAA {
+    return DNSRecordAorAAAA.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -3145,8 +3446,8 @@ export class DNSRecordSRV {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): DNSRecordSRV {
-    return new DNSRecordSRV(reader.readString());
+  static deserialize(reader: CBORReader, path: string[]): DNSRecordSRV {
+    return new DNSRecordSRV(reader.readString(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -3156,13 +3457,19 @@ export class DNSRecordSRV {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DNSRecordSRV {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["DNSRecordSRV"],
+  ): DNSRecordSRV {
     let reader = new CBORReader(data);
-    return DNSRecordSRV.deserialize(reader);
+    return DNSRecordSRV.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): DNSRecordSRV {
-    return DNSRecordSRV.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["DNSRecordSRV"],
+  ): DNSRecordSRV {
+    return DNSRecordSRV.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -3175,8 +3482,8 @@ export class DNSRecordSRV {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DNSRecordSRV {
-    return DNSRecordSRV.from_bytes(this.to_bytes());
+  clone(path: string[]): DNSRecordSRV {
+    return DNSRecordSRV.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -3228,9 +3535,9 @@ export class DRep {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): DRep {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
+  static deserialize(reader: CBORReader, path: string[]): DRep {
+    let len = reader.readArrayTag(path);
+    let tag = Number(reader.readUint(path));
     let variant: DRepVariant;
 
     switch (tag) {
@@ -3240,7 +3547,10 @@ export class DRep {
         }
         variant = {
           kind: 0,
-          value: Ed25519KeyHash.deserialize(reader),
+          value: Ed25519KeyHash.deserialize(reader, [
+            ...path,
+            "Ed25519KeyHash",
+          ]),
         };
 
         break;
@@ -3251,7 +3561,7 @@ export class DRep {
         }
         variant = {
           kind: 1,
-          value: ScriptHash.deserialize(reader),
+          value: ScriptHash.deserialize(reader, [...path, "ScriptHash"]),
         };
 
         break;
@@ -3281,7 +3591,9 @@ export class DRep {
       reader.readBreak();
     }
 
-    throw new Error("Unexpected tag for DRep: " + tag);
+    throw new Error(
+      "Unexpected tag for DRep: " + tag + "(at " + path.join("/") + ")",
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -3310,13 +3622,13 @@ export class DRep {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DRep {
+  static from_bytes(data: Uint8Array, path: string[] = ["DRep"]): DRep {
     let reader = new CBORReader(data);
-    return DRep.deserialize(reader);
+    return DRep.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): DRep {
-    return DRep.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["DRep"]): DRep {
+    return DRep.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -3329,8 +3641,8 @@ export class DRep {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DRep {
-    return DRep.from_bytes(this.to_bytes());
+  clone(path: string[]): DRep {
+    return DRep.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -3363,10 +3675,13 @@ export class DRepDeregistration {
     this._coin = coin;
   }
 
-  static deserialize(reader: CBORReader): DRepDeregistration {
-    let drep_credential = Credential.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): DRepDeregistration {
+    let drep_credential = Credential.deserialize(reader, [
+      ...path,
+      "drep_credential",
+    ]);
 
-    let coin = BigNum.deserialize(reader);
+    let coin = BigNum.deserialize(reader, [...path, "coin"]);
 
     return new DRepDeregistration(drep_credential, coin);
   }
@@ -3379,13 +3694,19 @@ export class DRepDeregistration {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DRepDeregistration {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["DRepDeregistration"],
+  ): DRepDeregistration {
     let reader = new CBORReader(data);
-    return DRepDeregistration.deserialize(reader);
+    return DRepDeregistration.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): DRepDeregistration {
-    return DRepDeregistration.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["DRepDeregistration"],
+  ): DRepDeregistration {
+    return DRepDeregistration.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -3398,8 +3719,8 @@ export class DRepDeregistration {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DRepDeregistration {
-    return DRepDeregistration.from_bytes(this.to_bytes());
+  clone(path: string[]): DRepDeregistration {
+    return DRepDeregistration.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -3442,12 +3763,19 @@ export class DRepRegistration {
     this._anchor = anchor;
   }
 
-  static deserialize(reader: CBORReader): DRepRegistration {
-    let voting_credential = Credential.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): DRepRegistration {
+    let voting_credential = Credential.deserialize(reader, [
+      ...path,
+      "voting_credential",
+    ]);
 
-    let coin = BigNum.deserialize(reader);
+    let coin = BigNum.deserialize(reader, [...path, "coin"]);
 
-    let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
+    let anchor =
+      reader.readNullable(
+        (r) => Anchor.deserialize(r, [...path, "anchor"]),
+        path,
+      ) ?? undefined;
 
     return new DRepRegistration(voting_credential, coin, anchor);
   }
@@ -3465,13 +3793,19 @@ export class DRepRegistration {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DRepRegistration {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["DRepRegistration"],
+  ): DRepRegistration {
     let reader = new CBORReader(data);
-    return DRepRegistration.deserialize(reader);
+    return DRepRegistration.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): DRepRegistration {
-    return DRepRegistration.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["DRepRegistration"],
+  ): DRepRegistration {
+    return DRepRegistration.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -3484,8 +3818,8 @@ export class DRepRegistration {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DRepRegistration {
-    return DRepRegistration.from_bytes(this.to_bytes());
+  clone(path: string[]): DRepRegistration {
+    return DRepRegistration.from_bytes(this.to_bytes(), path);
   }
 
   static new(voting_credential: Credential, coin: BigNum): DRepRegistration {
@@ -3518,10 +3852,17 @@ export class DRepUpdate {
     this._anchor = anchor;
   }
 
-  static deserialize(reader: CBORReader): DRepUpdate {
-    let drep_credential = Credential.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): DRepUpdate {
+    let drep_credential = Credential.deserialize(reader, [
+      ...path,
+      "drep_credential",
+    ]);
 
-    let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
+    let anchor =
+      reader.readNullable(
+        (r) => Anchor.deserialize(r, [...path, "anchor"]),
+        path,
+      ) ?? undefined;
 
     return new DRepUpdate(drep_credential, anchor);
   }
@@ -3538,13 +3879,19 @@ export class DRepUpdate {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DRepUpdate {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["DRepUpdate"],
+  ): DRepUpdate {
     let reader = new CBORReader(data);
-    return DRepUpdate.deserialize(reader);
+    return DRepUpdate.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): DRepUpdate {
-    return DRepUpdate.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["DRepUpdate"],
+  ): DRepUpdate {
+    return DRepUpdate.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -3557,8 +3904,8 @@ export class DRepUpdate {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DRepUpdate {
-    return DRepUpdate.from_bytes(this.to_bytes());
+  clone(path: string[]): DRepUpdate {
+    return DRepUpdate.from_bytes(this.to_bytes(), path);
   }
 
   static new(drep_credential: Credential): DRepUpdate {
@@ -3708,34 +4055,98 @@ export class DRepVotingThresholds {
     this._treasury_withdrawal = treasury_withdrawal;
   }
 
-  static deserialize(reader: CBORReader): DRepVotingThresholds {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): DRepVotingThresholds {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 10) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 10. Received " + len,
+        "Insufficient number of fields in record. Expected 10. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let motion_no_confidence = UnitInterval.deserialize(reader);
+    const motion_no_confidence_path = [
+      ...path,
+      "UnitInterval(motion_no_confidence)",
+    ];
+    let motion_no_confidence = UnitInterval.deserialize(
+      reader,
+      motion_no_confidence_path,
+    );
 
-    let committee_normal = UnitInterval.deserialize(reader);
+    const committee_normal_path = [...path, "UnitInterval(committee_normal)"];
+    let committee_normal = UnitInterval.deserialize(
+      reader,
+      committee_normal_path,
+    );
 
-    let committee_no_confidence = UnitInterval.deserialize(reader);
+    const committee_no_confidence_path = [
+      ...path,
+      "UnitInterval(committee_no_confidence)",
+    ];
+    let committee_no_confidence = UnitInterval.deserialize(
+      reader,
+      committee_no_confidence_path,
+    );
 
-    let update_constitution = UnitInterval.deserialize(reader);
+    const update_constitution_path = [
+      ...path,
+      "UnitInterval(update_constitution)",
+    ];
+    let update_constitution = UnitInterval.deserialize(
+      reader,
+      update_constitution_path,
+    );
 
-    let hard_fork_initiation = UnitInterval.deserialize(reader);
+    const hard_fork_initiation_path = [
+      ...path,
+      "UnitInterval(hard_fork_initiation)",
+    ];
+    let hard_fork_initiation = UnitInterval.deserialize(
+      reader,
+      hard_fork_initiation_path,
+    );
 
-    let pp_network_group = UnitInterval.deserialize(reader);
+    const pp_network_group_path = [...path, "UnitInterval(pp_network_group)"];
+    let pp_network_group = UnitInterval.deserialize(
+      reader,
+      pp_network_group_path,
+    );
 
-    let pp_economic_group = UnitInterval.deserialize(reader);
+    const pp_economic_group_path = [...path, "UnitInterval(pp_economic_group)"];
+    let pp_economic_group = UnitInterval.deserialize(
+      reader,
+      pp_economic_group_path,
+    );
 
-    let pp_technical_group = UnitInterval.deserialize(reader);
+    const pp_technical_group_path = [
+      ...path,
+      "UnitInterval(pp_technical_group)",
+    ];
+    let pp_technical_group = UnitInterval.deserialize(
+      reader,
+      pp_technical_group_path,
+    );
 
-    let pp_governance_group = UnitInterval.deserialize(reader);
+    const pp_governance_group_path = [
+      ...path,
+      "UnitInterval(pp_governance_group)",
+    ];
+    let pp_governance_group = UnitInterval.deserialize(
+      reader,
+      pp_governance_group_path,
+    );
 
-    let treasury_withdrawal = UnitInterval.deserialize(reader);
+    const treasury_withdrawal_path = [
+      ...path,
+      "UnitInterval(treasury_withdrawal)",
+    ];
+    let treasury_withdrawal = UnitInterval.deserialize(
+      reader,
+      treasury_withdrawal_path,
+    );
 
     return new DRepVotingThresholds(
       motion_no_confidence,
@@ -3769,13 +4180,19 @@ export class DRepVotingThresholds {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DRepVotingThresholds {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["DRepVotingThresholds"],
+  ): DRepVotingThresholds {
     let reader = new CBORReader(data);
-    return DRepVotingThresholds.deserialize(reader);
+    return DRepVotingThresholds.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): DRepVotingThresholds {
-    return DRepVotingThresholds.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["DRepVotingThresholds"],
+  ): DRepVotingThresholds {
+    return DRepVotingThresholds.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -3788,8 +4205,8 @@ export class DRepVotingThresholds {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DRepVotingThresholds {
-    return DRepVotingThresholds.from_bytes(this.to_bytes());
+  clone(path: string[]): DRepVotingThresholds {
+    return DRepVotingThresholds.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -3812,16 +4229,20 @@ export class DataCost {
     this._coins_per_byte = coins_per_byte;
   }
 
-  static deserialize(reader: CBORReader): DataCost {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): DataCost {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 1) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " + len,
+        "Insufficient number of fields in record. Expected 1. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let coins_per_byte = BigNum.deserialize(reader);
+    const coins_per_byte_path = [...path, "BigNum(coins_per_byte)"];
+    let coins_per_byte = BigNum.deserialize(reader, coins_per_byte_path);
 
     return new DataCost(coins_per_byte);
   }
@@ -3835,13 +4256,13 @@ export class DataCost {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DataCost {
+  static from_bytes(data: Uint8Array, path: string[] = ["DataCost"]): DataCost {
     let reader = new CBORReader(data);
-    return DataCost.deserialize(reader);
+    return DataCost.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): DataCost {
-    return DataCost.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["DataCost"]): DataCost {
+    return DataCost.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -3854,8 +4275,8 @@ export class DataCost {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DataCost {
-    return DataCost.from_bytes(this.to_bytes());
+  clone(path: string[]): DataCost {
+    return DataCost.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -3908,8 +4329,8 @@ export class DataHash {
     return DataHash.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): DataHash {
-    return new DataHash(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): DataHash {
+    return new DataHash(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -3953,9 +4374,9 @@ export class DataOption {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): DataOption {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
+  static deserialize(reader: CBORReader, path: string[]): DataOption {
+    let len = reader.readArrayTag(path);
+    let tag = Number(reader.readUint(path));
     let variant: DataOptionVariant;
 
     switch (tag) {
@@ -3965,7 +4386,7 @@ export class DataOption {
         }
         variant = {
           kind: 0,
-          value: DataHash.deserialize(reader),
+          value: DataHash.deserialize(reader, [...path, "DataHash"]),
         };
 
         break;
@@ -3976,7 +4397,7 @@ export class DataOption {
         }
         variant = {
           kind: 1,
-          value: PlutusData.deserialize(reader),
+          value: PlutusData.deserialize(reader, [...path, "PlutusData"]),
         };
 
         break;
@@ -3986,7 +4407,9 @@ export class DataOption {
       reader.readBreak();
     }
 
-    throw new Error("Unexpected tag for DataOption: " + tag);
+    throw new Error(
+      "Unexpected tag for DataOption: " + tag + "(at " + path.join("/") + ")",
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -4007,13 +4430,19 @@ export class DataOption {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DataOption {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["DataOption"],
+  ): DataOption {
     let reader = new CBORReader(data);
-    return DataOption.deserialize(reader);
+    return DataOption.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): DataOption {
-    return DataOption.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["DataOption"],
+  ): DataOption {
+    return DataOption.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -4026,8 +4455,8 @@ export class DataOption {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DataOption {
-    return DataOption.from_bytes(this.to_bytes());
+  clone(path: string[]): DataOption {
+    return DataOption.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -4067,9 +4496,9 @@ export class DatumSource {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): DatumSource {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
+  static deserialize(reader: CBORReader, path: string[]): DatumSource {
+    let len = reader.readArrayTag(path);
+    let tag = Number(reader.readUint(path));
     let variant: DatumSourceVariant;
 
     switch (tag) {
@@ -4079,7 +4508,7 @@ export class DatumSource {
         }
         variant = {
           kind: 0,
-          value: PlutusData.deserialize(reader),
+          value: PlutusData.deserialize(reader, [...path, "PlutusData"]),
         };
 
         break;
@@ -4090,7 +4519,10 @@ export class DatumSource {
         }
         variant = {
           kind: 1,
-          value: TransactionInput.deserialize(reader),
+          value: TransactionInput.deserialize(reader, [
+            ...path,
+            "TransactionInput",
+          ]),
         };
 
         break;
@@ -4100,7 +4532,9 @@ export class DatumSource {
       reader.readBreak();
     }
 
-    throw new Error("Unexpected tag for DatumSource: " + tag);
+    throw new Error(
+      "Unexpected tag for DatumSource: " + tag + "(at " + path.join("/") + ")",
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -4121,13 +4555,19 @@ export class DatumSource {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): DatumSource {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["DatumSource"],
+  ): DatumSource {
     let reader = new CBORReader(data);
-    return DatumSource.deserialize(reader);
+    return DatumSource.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): DatumSource {
-    return DatumSource.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["DatumSource"],
+  ): DatumSource {
+    return DatumSource.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -4140,8 +4580,8 @@ export class DatumSource {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): DatumSource {
-    return DatumSource.from_bytes(this.to_bytes());
+  clone(path: string[]): DatumSource {
+    return DatumSource.from_bytes(this.to_bytes(), path);
   }
 
   static new(datum: PlutusData): DatumSource {
@@ -4198,8 +4638,8 @@ export class Ed25519KeyHash {
     return Ed25519KeyHash.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): Ed25519KeyHash {
-    return new Ed25519KeyHash(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): Ed25519KeyHash {
+    return new Ed25519KeyHash(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -4242,13 +4682,22 @@ export class Ed25519KeyHashes {
     return false;
   }
 
-  static deserialize(reader: CBORReader): Ed25519KeyHashes {
+  static deserialize(reader: CBORReader, path: string[]): Ed25519KeyHashes {
     let ret = new Ed25519KeyHashes();
-    if (reader.peekType() == "tagged") {
-      let tag = reader.readTaggedTag();
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
       if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
     }
-    reader.readArray((reader) => ret.add(Ed25519KeyHash.deserialize(reader)));
+    reader.readArray(
+      (reader, idx) =>
+        ret.add(
+          Ed25519KeyHash.deserialize(reader, [
+            ...path,
+            "Ed25519KeyHash#" + idx,
+          ]),
+        ),
+      path,
+    );
     return ret;
   }
 
@@ -4260,13 +4709,19 @@ export class Ed25519KeyHashes {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Ed25519KeyHashes {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["Ed25519KeyHashes"],
+  ): Ed25519KeyHashes {
     let reader = new CBORReader(data);
-    return Ed25519KeyHashes.deserialize(reader);
+    return Ed25519KeyHashes.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Ed25519KeyHashes {
-    return Ed25519KeyHashes.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["Ed25519KeyHashes"],
+  ): Ed25519KeyHashes {
+    return Ed25519KeyHashes.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -4279,8 +4734,8 @@ export class Ed25519KeyHashes {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Ed25519KeyHashes {
-    return Ed25519KeyHashes.from_bytes(this.to_bytes());
+  clone(path: string[]): Ed25519KeyHashes {
+    return Ed25519KeyHashes.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -4319,8 +4774,8 @@ export class Ed25519Signature {
     return Ed25519Signature.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): Ed25519Signature {
-    return new Ed25519Signature(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): Ed25519Signature {
+    return new Ed25519Signature(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -4375,18 +4830,23 @@ export class ExUnitPrices {
     this._step_price = step_price;
   }
 
-  static deserialize(reader: CBORReader): ExUnitPrices {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): ExUnitPrices {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let mem_price = UnitInterval.deserialize(reader);
+    const mem_price_path = [...path, "UnitInterval(mem_price)"];
+    let mem_price = UnitInterval.deserialize(reader, mem_price_path);
 
-    let step_price = UnitInterval.deserialize(reader);
+    const step_price_path = [...path, "UnitInterval(step_price)"];
+    let step_price = UnitInterval.deserialize(reader, step_price_path);
 
     return new ExUnitPrices(mem_price, step_price);
   }
@@ -4401,13 +4861,19 @@ export class ExUnitPrices {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ExUnitPrices {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ExUnitPrices"],
+  ): ExUnitPrices {
     let reader = new CBORReader(data);
-    return ExUnitPrices.deserialize(reader);
+    return ExUnitPrices.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ExUnitPrices {
-    return ExUnitPrices.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["ExUnitPrices"],
+  ): ExUnitPrices {
+    return ExUnitPrices.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -4420,8 +4886,8 @@ export class ExUnitPrices {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ExUnitPrices {
-    return ExUnitPrices.from_bytes(this.to_bytes());
+  clone(path: string[]): ExUnitPrices {
+    return ExUnitPrices.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -4454,18 +4920,23 @@ export class ExUnits {
     this._steps = steps;
   }
 
-  static deserialize(reader: CBORReader): ExUnits {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): ExUnits {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let mem = BigNum.deserialize(reader);
+    const mem_path = [...path, "BigNum(mem)"];
+    let mem = BigNum.deserialize(reader, mem_path);
 
-    let steps = BigNum.deserialize(reader);
+    const steps_path = [...path, "BigNum(steps)"];
+    let steps = BigNum.deserialize(reader, steps_path);
 
     return new ExUnits(mem, steps);
   }
@@ -4480,13 +4951,13 @@ export class ExUnits {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ExUnits {
+  static from_bytes(data: Uint8Array, path: string[] = ["ExUnits"]): ExUnits {
     let reader = new CBORReader(data);
-    return ExUnits.deserialize(reader);
+    return ExUnits.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ExUnits {
-    return ExUnits.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["ExUnits"]): ExUnits {
+    return ExUnits.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -4499,8 +4970,8 @@ export class ExUnits {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ExUnits {
-    return ExUnits.from_bytes(this.to_bytes());
+  clone(path: string[]): ExUnits {
+    return ExUnits.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -4555,13 +5026,21 @@ export class GeneralTransactionMetadata {
     return keys;
   }
 
-  static deserialize(reader: CBORReader): GeneralTransactionMetadata {
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): GeneralTransactionMetadata {
     let ret = new GeneralTransactionMetadata([]);
-    reader.readMap((reader) =>
-      ret.insert(
-        BigNum.deserialize(reader),
-        TransactionMetadatum.deserialize(reader),
-      ),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          BigNum.deserialize(reader, [...path, "BigNum#" + idx]),
+          TransactionMetadatum.deserialize(reader, [
+            ...path,
+            "TransactionMetadatum#" + idx,
+          ]),
+        ),
+      path,
     );
     return ret;
   }
@@ -4576,13 +5055,19 @@ export class GeneralTransactionMetadata {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): GeneralTransactionMetadata {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["GeneralTransactionMetadata"],
+  ): GeneralTransactionMetadata {
     let reader = new CBORReader(data);
-    return GeneralTransactionMetadata.deserialize(reader);
+    return GeneralTransactionMetadata.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): GeneralTransactionMetadata {
-    return GeneralTransactionMetadata.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["GeneralTransactionMetadata"],
+  ): GeneralTransactionMetadata {
+    return GeneralTransactionMetadata.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -4595,8 +5080,8 @@ export class GeneralTransactionMetadata {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): GeneralTransactionMetadata {
-    return GeneralTransactionMetadata.from_bytes(this.to_bytes());
+  clone(path: string[]): GeneralTransactionMetadata {
+    return GeneralTransactionMetadata.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -4649,8 +5134,8 @@ export class GenesisDelegateHash {
     return GenesisDelegateHash.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): GenesisDelegateHash {
-    return new GenesisDelegateHash(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): GenesisDelegateHash {
+    return new GenesisDelegateHash(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -4707,8 +5192,8 @@ export class GenesisHash {
     return GenesisHash.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): GenesisHash {
-    return new GenesisHash(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): GenesisHash {
+    return new GenesisHash(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -4740,9 +5225,13 @@ export class GenesisHashes {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): GenesisHashes {
+  static deserialize(reader: CBORReader, path: string[]): GenesisHashes {
     return new GenesisHashes(
-      reader.readArray((reader) => GenesisHash.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          GenesisHash.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -4753,13 +5242,19 @@ export class GenesisHashes {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): GenesisHashes {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["GenesisHashes"],
+  ): GenesisHashes {
     let reader = new CBORReader(data);
-    return GenesisHashes.deserialize(reader);
+    return GenesisHashes.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): GenesisHashes {
-    return GenesisHashes.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["GenesisHashes"],
+  ): GenesisHashes {
+    return GenesisHashes.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -4772,8 +5267,8 @@ export class GenesisHashes {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): GenesisHashes {
-    return GenesisHashes.from_bytes(this.to_bytes());
+  clone(path: string[]): GenesisHashes {
+    return GenesisHashes.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -4881,9 +5376,9 @@ export class GovernanceAction {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): GovernanceAction {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
+  static deserialize(reader: CBORReader, path: string[]): GovernanceAction {
+    let len = reader.readArrayTag(path);
+    let tag = Number(reader.readUint(path));
     let variant: GovernanceActionVariant;
 
     switch (tag) {
@@ -4893,7 +5388,10 @@ export class GovernanceAction {
         }
         variant = {
           kind: 0,
-          value: ParameterChangeAction.deserialize(reader),
+          value: ParameterChangeAction.deserialize(reader, [
+            ...path,
+            "ParameterChangeAction",
+          ]),
         };
 
         break;
@@ -4906,7 +5404,10 @@ export class GovernanceAction {
         }
         variant = {
           kind: 1,
-          value: HardForkInitiationAction.deserialize(reader),
+          value: HardForkInitiationAction.deserialize(reader, [
+            ...path,
+            "HardForkInitiationAction",
+          ]),
         };
 
         break;
@@ -4919,7 +5420,10 @@ export class GovernanceAction {
         }
         variant = {
           kind: 2,
-          value: TreasuryWithdrawalsAction.deserialize(reader),
+          value: TreasuryWithdrawalsAction.deserialize(reader, [
+            ...path,
+            "TreasuryWithdrawalsAction",
+          ]),
         };
 
         break;
@@ -4930,7 +5434,10 @@ export class GovernanceAction {
         }
         variant = {
           kind: 3,
-          value: NoConfidenceAction.deserialize(reader),
+          value: NoConfidenceAction.deserialize(reader, [
+            ...path,
+            "NoConfidenceAction",
+          ]),
         };
 
         break;
@@ -4941,7 +5448,10 @@ export class GovernanceAction {
         }
         variant = {
           kind: 4,
-          value: UpdateCommitteeAction.deserialize(reader),
+          value: UpdateCommitteeAction.deserialize(reader, [
+            ...path,
+            "UpdateCommitteeAction",
+          ]),
         };
 
         break;
@@ -4952,7 +5462,10 @@ export class GovernanceAction {
         }
         variant = {
           kind: 5,
-          value: NewConstitutionAction.deserialize(reader),
+          value: NewConstitutionAction.deserialize(reader, [
+            ...path,
+            "NewConstitutionAction",
+          ]),
         };
 
         break;
@@ -4963,7 +5476,7 @@ export class GovernanceAction {
         }
         variant = {
           kind: 6,
-          value: InfoAction.deserialize(reader),
+          value: InfoAction.deserialize(reader, [...path, "InfoAction"]),
         };
 
         break;
@@ -4973,7 +5486,13 @@ export class GovernanceAction {
       reader.readBreak();
     }
 
-    throw new Error("Unexpected tag for GovernanceAction: " + tag);
+    throw new Error(
+      "Unexpected tag for GovernanceAction: " +
+        tag +
+        "(at " +
+        path.join("/") +
+        ")",
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -5019,13 +5538,19 @@ export class GovernanceAction {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): GovernanceAction {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["GovernanceAction"],
+  ): GovernanceAction {
     let reader = new CBORReader(data);
-    return GovernanceAction.deserialize(reader);
+    return GovernanceAction.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): GovernanceAction {
-    return GovernanceAction.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["GovernanceAction"],
+  ): GovernanceAction {
+    return GovernanceAction.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -5038,8 +5563,8 @@ export class GovernanceAction {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): GovernanceAction {
-    return GovernanceAction.from_bytes(this.to_bytes());
+  clone(path: string[]): GovernanceAction {
+    return GovernanceAction.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -5072,18 +5597,26 @@ export class GovernanceActionId {
     this._index = index;
   }
 
-  static deserialize(reader: CBORReader): GovernanceActionId {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): GovernanceActionId {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let transaction_id = TransactionHash.deserialize(reader);
+    const transaction_id_path = [...path, "TransactionHash(transaction_id)"];
+    let transaction_id = TransactionHash.deserialize(
+      reader,
+      transaction_id_path,
+    );
 
-    let index = Number(reader.readInt());
+    const index_path = [...path, "number(index)"];
+    let index = Number(reader.readInt(index_path));
 
     return new GovernanceActionId(transaction_id, index);
   }
@@ -5098,13 +5631,19 @@ export class GovernanceActionId {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): GovernanceActionId {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["GovernanceActionId"],
+  ): GovernanceActionId {
     let reader = new CBORReader(data);
-    return GovernanceActionId.deserialize(reader);
+    return GovernanceActionId.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): GovernanceActionId {
-    return GovernanceActionId.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["GovernanceActionId"],
+  ): GovernanceActionId {
+    return GovernanceActionId.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -5117,8 +5656,8 @@ export class GovernanceActionId {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): GovernanceActionId {
-    return GovernanceActionId.from_bytes(this.to_bytes());
+  clone(path: string[]): GovernanceActionId {
+    return GovernanceActionId.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -5146,9 +5685,13 @@ export class GovernanceActionIds {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): GovernanceActionIds {
+  static deserialize(reader: CBORReader, path: string[]): GovernanceActionIds {
     return new GovernanceActionIds(
-      reader.readArray((reader) => GovernanceActionId.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          GovernanceActionId.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -5159,13 +5702,19 @@ export class GovernanceActionIds {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): GovernanceActionIds {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["GovernanceActionIds"],
+  ): GovernanceActionIds {
     let reader = new CBORReader(data);
-    return GovernanceActionIds.deserialize(reader);
+    return GovernanceActionIds.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): GovernanceActionIds {
-    return GovernanceActionIds.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["GovernanceActionIds"],
+  ): GovernanceActionIds {
+    return GovernanceActionIds.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -5178,8 +5727,8 @@ export class GovernanceActionIds {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): GovernanceActionIds {
-    return GovernanceActionIds.from_bytes(this.to_bytes());
+  clone(path: string[]): GovernanceActionIds {
+    return GovernanceActionIds.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -5234,13 +5783,21 @@ export class GovernanceActions {
     return keys;
   }
 
-  static deserialize(reader: CBORReader): GovernanceActions {
+  static deserialize(reader: CBORReader, path: string[]): GovernanceActions {
     let ret = new GovernanceActions([]);
-    reader.readMap((reader) =>
-      ret.insert(
-        GovernanceActionId.deserialize(reader),
-        VotingProcedure.deserialize(reader),
-      ),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          GovernanceActionId.deserialize(reader, [
+            ...path,
+            "GovernanceActionId#" + idx,
+          ]),
+          VotingProcedure.deserialize(reader, [
+            ...path,
+            "VotingProcedure#" + idx,
+          ]),
+        ),
+      path,
     );
     return ret;
   }
@@ -5255,13 +5812,19 @@ export class GovernanceActions {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): GovernanceActions {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["GovernanceActions"],
+  ): GovernanceActions {
     let reader = new CBORReader(data);
-    return GovernanceActions.deserialize(reader);
+    return GovernanceActions.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): GovernanceActions {
-    return GovernanceActions.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["GovernanceActions"],
+  ): GovernanceActions {
+    return GovernanceActions.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -5274,8 +5837,8 @@ export class GovernanceActions {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): GovernanceActions {
-    return GovernanceActions.from_bytes(this.to_bytes());
+  clone(path: string[]): GovernanceActions {
+    return GovernanceActions.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -5314,12 +5877,20 @@ export class HardForkInitiationAction {
     this._protocol_version = protocol_version;
   }
 
-  static deserialize(reader: CBORReader): HardForkInitiationAction {
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): HardForkInitiationAction {
     let gov_action_id =
-      reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
-      undefined;
+      reader.readNullable(
+        (r) => GovernanceActionId.deserialize(r, [...path, "gov_action_id"]),
+        path,
+      ) ?? undefined;
 
-    let protocol_version = ProtocolVersion.deserialize(reader);
+    let protocol_version = ProtocolVersion.deserialize(reader, [
+      ...path,
+      "protocol_version",
+    ]);
 
     return new HardForkInitiationAction(gov_action_id, protocol_version);
   }
@@ -5336,13 +5907,19 @@ export class HardForkInitiationAction {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): HardForkInitiationAction {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["HardForkInitiationAction"],
+  ): HardForkInitiationAction {
     let reader = new CBORReader(data);
-    return HardForkInitiationAction.deserialize(reader);
+    return HardForkInitiationAction.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): HardForkInitiationAction {
-    return HardForkInitiationAction.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["HardForkInitiationAction"],
+  ): HardForkInitiationAction {
+    return HardForkInitiationAction.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -5355,8 +5932,8 @@ export class HardForkInitiationAction {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): HardForkInitiationAction {
-    return HardForkInitiationAction.from_bytes(this.to_bytes());
+  clone(path: string[]): HardForkInitiationAction {
+    return HardForkInitiationAction.from_bytes(this.to_bytes(), path);
   }
 
   static new(protocol_version: ProtocolVersion): HardForkInitiationAction {
@@ -5393,18 +5970,23 @@ export class Header {
     this._body_signature = body_signature;
   }
 
-  static deserialize(reader: CBORReader): Header {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): Header {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let header_body = HeaderBody.deserialize(reader);
+    const header_body_path = [...path, "HeaderBody(header_body)"];
+    let header_body = HeaderBody.deserialize(reader, header_body_path);
 
-    let body_signature = KESSignature.deserialize(reader);
+    const body_signature_path = [...path, "KESSignature(body_signature)"];
+    let body_signature = KESSignature.deserialize(reader, body_signature_path);
 
     return new Header(header_body, body_signature);
   }
@@ -5419,13 +6001,13 @@ export class Header {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Header {
+  static from_bytes(data: Uint8Array, path: string[] = ["Header"]): Header {
     let reader = new CBORReader(data);
-    return Header.deserialize(reader);
+    return Header.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Header {
-    return Header.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Header"]): Header {
+    return Header.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -5438,8 +6020,8 @@ export class Header {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Header {
-    return Header.from_bytes(this.to_bytes());
+  clone(path: string[]): Header {
+    return Header.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -5585,35 +6167,63 @@ export class HeaderBody {
     this._protocol_version = protocol_version;
   }
 
-  static deserialize(reader: CBORReader): HeaderBody {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): HeaderBody {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 10) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 10. Received " + len,
+        "Insufficient number of fields in record. Expected 10. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let block_number = Number(reader.readInt());
+    const block_number_path = [...path, "number(block_number)"];
+    let block_number = Number(reader.readInt(block_number_path));
 
-    let slot = BigNum.deserialize(reader);
+    const slot_path = [...path, "BigNum(slot)"];
+    let slot = BigNum.deserialize(reader, slot_path);
 
+    const prev_hash_path = [...path, "BlockHash(prev_hash)"];
     let prev_hash =
-      reader.readNullable((r) => BlockHash.deserialize(r)) ?? undefined;
+      reader.readNullable(
+        (r) => BlockHash.deserialize(r, prev_hash_path),
+        path,
+      ) ?? undefined;
 
-    let issuer_vkey = Vkey.deserialize(reader);
+    const issuer_vkey_path = [...path, "Vkey(issuer_vkey)"];
+    let issuer_vkey = Vkey.deserialize(reader, issuer_vkey_path);
 
-    let vrf_vkey = VRFVKey.deserialize(reader);
+    const vrf_vkey_path = [...path, "VRFVKey(vrf_vkey)"];
+    let vrf_vkey = VRFVKey.deserialize(reader, vrf_vkey_path);
 
-    let vrf_result = VRFCert.deserialize(reader);
+    const vrf_result_path = [...path, "VRFCert(vrf_result)"];
+    let vrf_result = VRFCert.deserialize(reader, vrf_result_path);
 
-    let block_body_size = Number(reader.readInt());
+    const block_body_size_path = [...path, "number(block_body_size)"];
+    let block_body_size = Number(reader.readInt(block_body_size_path));
 
-    let block_body_hash = BlockHash.deserialize(reader);
+    const block_body_hash_path = [...path, "BlockHash(block_body_hash)"];
+    let block_body_hash = BlockHash.deserialize(reader, block_body_hash_path);
 
-    let operational_cert = OperationalCert.deserialize(reader);
+    const operational_cert_path = [
+      ...path,
+      "OperationalCert(operational_cert)",
+    ];
+    let operational_cert = OperationalCert.deserialize(
+      reader,
+      operational_cert_path,
+    );
 
-    let protocol_version = ProtocolVersion.deserialize(reader);
+    const protocol_version_path = [
+      ...path,
+      "ProtocolVersion(protocol_version)",
+    ];
+    let protocol_version = ProtocolVersion.deserialize(
+      reader,
+      protocol_version_path,
+    );
 
     return new HeaderBody(
       block_number,
@@ -5651,13 +6261,19 @@ export class HeaderBody {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): HeaderBody {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["HeaderBody"],
+  ): HeaderBody {
     let reader = new CBORReader(data);
-    return HeaderBody.deserialize(reader);
+    return HeaderBody.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): HeaderBody {
-    return HeaderBody.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["HeaderBody"],
+  ): HeaderBody {
+    return HeaderBody.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -5670,8 +6286,8 @@ export class HeaderBody {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): HeaderBody {
-    return HeaderBody.from_bytes(this.to_bytes());
+  clone(path: string[]): HeaderBody {
+    return HeaderBody.from_bytes(this.to_bytes(), path);
   }
 
   slot(): number {
@@ -5712,7 +6328,7 @@ export class InfoAction {
     return new InfoAction();
   }
 
-  static deserialize(reader: CBORReader): InfoAction {
+  static deserialize(reader: CBORReader, path: string[]): InfoAction {
     return new InfoAction();
   }
 
@@ -5721,13 +6337,19 @@ export class InfoAction {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): InfoAction {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["InfoAction"],
+  ): InfoAction {
     let reader = new CBORReader(data);
-    return InfoAction.deserialize(reader);
+    return InfoAction.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): InfoAction {
-    return InfoAction.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["InfoAction"],
+  ): InfoAction {
+    return InfoAction.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -5740,8 +6362,8 @@ export class InfoAction {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): InfoAction {
-    return InfoAction.from_bytes(this.to_bytes());
+  clone(path: string[]): InfoAction {
+    return InfoAction.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -5756,8 +6378,8 @@ export class Int {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): Int {
-    return new Int(reader.readInt());
+  static deserialize(reader: CBORReader, path: string[]): Int {
+    return new Int(reader.readInt(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -5767,13 +6389,13 @@ export class Int {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Int {
+  static from_bytes(data: Uint8Array, path: string[] = ["Int"]): Int {
     let reader = new CBORReader(data);
-    return Int.deserialize(reader);
+    return Int.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Int {
-    return Int.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Int"]): Int {
+    return Int.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -5786,8 +6408,8 @@ export class Int {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Int {
-    return Int.from_bytes(this.to_bytes());
+  clone(path: string[]): Int {
+    return Int.from_bytes(this.to_bytes(), path);
   }
 
   // Lifted from: https://doc.rust-lang.org/std/primitive.i32.html#associatedconstant.MAX
@@ -5865,8 +6487,8 @@ export class Ipv4 {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): Ipv4 {
-    return new Ipv4(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): Ipv4 {
+    return new Ipv4(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -5876,13 +6498,13 @@ export class Ipv4 {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Ipv4 {
+  static from_bytes(data: Uint8Array, path: string[] = ["Ipv4"]): Ipv4 {
     let reader = new CBORReader(data);
-    return Ipv4.deserialize(reader);
+    return Ipv4.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Ipv4 {
-    return Ipv4.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Ipv4"]): Ipv4 {
+    return Ipv4.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -5895,8 +6517,8 @@ export class Ipv4 {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Ipv4 {
-    return Ipv4.from_bytes(this.to_bytes());
+  clone(path: string[]): Ipv4 {
+    return Ipv4.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -5917,8 +6539,8 @@ export class Ipv6 {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): Ipv6 {
-    return new Ipv6(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): Ipv6 {
+    return new Ipv6(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -5928,13 +6550,13 @@ export class Ipv6 {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Ipv6 {
+  static from_bytes(data: Uint8Array, path: string[] = ["Ipv6"]): Ipv6 {
     let reader = new CBORReader(data);
-    return Ipv6.deserialize(reader);
+    return Ipv6.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Ipv6 {
-    return Ipv6.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Ipv6"]): Ipv6 {
+    return Ipv6.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -5947,8 +6569,8 @@ export class Ipv6 {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Ipv6 {
-    return Ipv6.from_bytes(this.to_bytes());
+  clone(path: string[]): Ipv6 {
+    return Ipv6.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -5969,8 +6591,8 @@ export class KESSignature {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): KESSignature {
-    return new KESSignature(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): KESSignature {
+    return new KESSignature(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -5980,13 +6602,19 @@ export class KESSignature {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): KESSignature {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["KESSignature"],
+  ): KESSignature {
     let reader = new CBORReader(data);
-    return KESSignature.deserialize(reader);
+    return KESSignature.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): KESSignature {
-    return KESSignature.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["KESSignature"],
+  ): KESSignature {
+    return KESSignature.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -5999,8 +6627,8 @@ export class KESSignature {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): KESSignature {
-    return KESSignature.from_bytes(this.to_bytes());
+  clone(path: string[]): KESSignature {
+    return KESSignature.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -6053,8 +6681,8 @@ export class KESVKey {
     return KESVKey.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): KESVKey {
-    return new KESVKey(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): KESVKey {
+    return new KESVKey(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -6090,12 +6718,20 @@ export class Language {
     return this.kind_;
   }
 
-  static deserialize(reader: CBORReader): Language {
-    let kind = Number(reader.readInt());
+  static deserialize(reader: CBORReader, path: string[]): Language {
+    let kind = Number(reader.readInt(path));
     if (kind == 0) return new Language(0);
     if (kind == 1) return new Language(1);
     if (kind == 2) return new Language(2);
-    throw "Unrecognized enum value: " + kind + " for " + Language;
+    throw (
+      "Unrecognized enum value: " +
+      kind +
+      " for " +
+      Language +
+      "(at " +
+      path.join("/") +
+      ")"
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -6105,13 +6741,13 @@ export class Language {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Language {
+  static from_bytes(data: Uint8Array, path: string[] = ["Language"]): Language {
     let reader = new CBORReader(data);
-    return Language.deserialize(reader);
+    return Language.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Language {
-    return Language.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Language"]): Language {
+    return Language.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -6124,8 +6760,8 @@ export class Language {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Language {
-    return Language.from_bytes(this.to_bytes());
+  clone(path: string[]): Language {
+    return Language.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -6153,9 +6789,12 @@ export class Languages {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): Languages {
+  static deserialize(reader: CBORReader, path: string[]): Languages {
     return new Languages(
-      reader.readArray((reader) => Language.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) => Language.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -6166,13 +6805,16 @@ export class Languages {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Languages {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["Languages"],
+  ): Languages {
     let reader = new CBORReader(data);
-    return Languages.deserialize(reader);
+    return Languages.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Languages {
-    return Languages.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Languages"]): Languages {
+    return Languages.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -6185,8 +6827,8 @@ export class Languages {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Languages {
-    return Languages.from_bytes(this.to_bytes());
+  clone(path: string[]): Languages {
+    return Languages.from_bytes(this.to_bytes(), path);
   }
 
   static list(): Languages {
@@ -6222,9 +6864,13 @@ export class MetadataList {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): MetadataList {
+  static deserialize(reader: CBORReader, path: string[]): MetadataList {
     return new MetadataList(
-      reader.readArray((reader) => TransactionMetadatum.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          TransactionMetadatum.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -6235,13 +6881,19 @@ export class MetadataList {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): MetadataList {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["MetadataList"],
+  ): MetadataList {
     let reader = new CBORReader(data);
-    return MetadataList.deserialize(reader);
+    return MetadataList.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): MetadataList {
-    return MetadataList.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["MetadataList"],
+  ): MetadataList {
+    return MetadataList.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -6254,8 +6906,8 @@ export class MetadataList {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): MetadataList {
-    return MetadataList.from_bytes(this.to_bytes());
+  clone(path: string[]): MetadataList {
+    return MetadataList.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -6310,13 +6962,21 @@ export class MetadataMap {
     return keys;
   }
 
-  static deserialize(reader: CBORReader): MetadataMap {
+  static deserialize(reader: CBORReader, path: string[]): MetadataMap {
     let ret = new MetadataMap([]);
-    reader.readMap((reader) =>
-      ret.insert(
-        TransactionMetadatum.deserialize(reader),
-        TransactionMetadatum.deserialize(reader),
-      ),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          TransactionMetadatum.deserialize(reader, [
+            ...path,
+            "TransactionMetadatum#" + idx,
+          ]),
+          TransactionMetadatum.deserialize(reader, [
+            ...path,
+            "TransactionMetadatum#" + idx,
+          ]),
+        ),
+      path,
     );
     return ret;
   }
@@ -6331,13 +6991,19 @@ export class MetadataMap {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): MetadataMap {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["MetadataMap"],
+  ): MetadataMap {
     let reader = new CBORReader(data);
-    return MetadataMap.deserialize(reader);
+    return MetadataMap.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): MetadataMap {
-    return MetadataMap.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["MetadataMap"],
+  ): MetadataMap {
+    return MetadataMap.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -6350,8 +7016,8 @@ export class MetadataMap {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): MetadataMap {
-    return MetadataMap.from_bytes(this.to_bytes());
+  clone(path: string[]): MetadataMap {
+    return MetadataMap.from_bytes(this.to_bytes(), path);
   }
 
   insert_str(
@@ -6431,13 +7097,15 @@ export class Mint {
     return keys;
   }
 
-  static deserialize(reader: CBORReader): Mint {
+  static deserialize(reader: CBORReader, path: string[]): Mint {
     let ret = new Mint([]);
-    reader.readMap((reader) =>
-      ret.insert(
-        ScriptHash.deserialize(reader),
-        MintAssets.deserialize(reader),
-      ),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          ScriptHash.deserialize(reader, [...path, "ScriptHash#" + idx]),
+          MintAssets.deserialize(reader, [...path, "MintAssets#" + idx]),
+        ),
+      path,
     );
     return ret;
   }
@@ -6452,13 +7120,13 @@ export class Mint {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Mint {
+  static from_bytes(data: Uint8Array, path: string[] = ["Mint"]): Mint {
     let reader = new CBORReader(data);
-    return Mint.deserialize(reader);
+    return Mint.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Mint {
-    return Mint.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Mint"]): Mint {
+    return Mint.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -6471,8 +7139,8 @@ export class Mint {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Mint {
-    return Mint.from_bytes(this.to_bytes());
+  clone(path: string[]): Mint {
+    return Mint.from_bytes(this.to_bytes(), path);
   }
 
   get(key: ScriptHash): MintsAssets | undefined {
@@ -6580,10 +7248,15 @@ export class MintAssets {
     return keys;
   }
 
-  static deserialize(reader: CBORReader): MintAssets {
+  static deserialize(reader: CBORReader, path: string[]): MintAssets {
     let ret = new MintAssets([]);
-    reader.readMap((reader) =>
-      ret.insert(AssetName.deserialize(reader), Int.deserialize(reader)),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          AssetName.deserialize(reader, [...path, "AssetName#" + idx]),
+          Int.deserialize(reader, [...path, "Int#" + idx]),
+        ),
+      path,
     );
     return ret;
   }
@@ -6598,13 +7271,19 @@ export class MintAssets {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): MintAssets {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["MintAssets"],
+  ): MintAssets {
     let reader = new CBORReader(data);
-    return MintAssets.deserialize(reader);
+    return MintAssets.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): MintAssets {
-    return MintAssets.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["MintAssets"],
+  ): MintAssets {
+    return MintAssets.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -6617,8 +7296,8 @@ export class MintAssets {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): MintAssets {
-    return MintAssets.from_bytes(this.to_bytes());
+  clone(path: string[]): MintAssets {
+    return MintAssets.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -6646,9 +7325,13 @@ export class MintsAssets {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): MintsAssets {
+  static deserialize(reader: CBORReader, path: string[]): MintsAssets {
     return new MintsAssets(
-      reader.readArray((reader) => MintAssets.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          MintAssets.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -6659,13 +7342,19 @@ export class MintsAssets {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): MintsAssets {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["MintsAssets"],
+  ): MintsAssets {
     let reader = new CBORReader(data);
-    return MintsAssets.deserialize(reader);
+    return MintsAssets.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): MintsAssets {
-    return MintsAssets.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["MintsAssets"],
+  ): MintsAssets {
+    return MintsAssets.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -6678,8 +7367,8 @@ export class MintsAssets {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): MintsAssets {
-    return MintsAssets.from_bytes(this.to_bytes());
+  clone(path: string[]): MintsAssets {
+    return MintsAssets.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -6731,10 +7420,15 @@ export class MultiAsset {
     return keys;
   }
 
-  static deserialize(reader: CBORReader): MultiAsset {
+  static deserialize(reader: CBORReader, path: string[]): MultiAsset {
     let ret = new MultiAsset([]);
-    reader.readMap((reader) =>
-      ret.insert(ScriptHash.deserialize(reader), Assets.deserialize(reader)),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          ScriptHash.deserialize(reader, [...path, "ScriptHash#" + idx]),
+          Assets.deserialize(reader, [...path, "Assets#" + idx]),
+        ),
+      path,
     );
     return ret;
   }
@@ -6749,13 +7443,19 @@ export class MultiAsset {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): MultiAsset {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["MultiAsset"],
+  ): MultiAsset {
     let reader = new CBORReader(data);
-    return MultiAsset.deserialize(reader);
+    return MultiAsset.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): MultiAsset {
-    return MultiAsset.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["MultiAsset"],
+  ): MultiAsset {
+    return MultiAsset.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -6768,8 +7468,8 @@ export class MultiAsset {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): MultiAsset {
-    return MultiAsset.from_bytes(this.to_bytes());
+  clone(path: string[]): MultiAsset {
+    return MultiAsset.from_bytes(this.to_bytes(), path);
   }
 
   set_asset(
@@ -6793,8 +7493,8 @@ export class MultiAsset {
     return asset_amount;
   }
 
-  sub(rhs: MultiAsset): MultiAsset {
-    let out = this.clone();
+  sub(rhs: MultiAsset, path: string[]): MultiAsset {
+    let out = this.clone(path);
     out._inplace_clamped_sub(rhs);
     return out;
   }
@@ -6880,8 +7580,8 @@ export class MultiHostName {
     this._dns_name = dns_name;
   }
 
-  static deserialize(reader: CBORReader): MultiHostName {
-    let dns_name = DNSRecordSRV.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): MultiHostName {
+    let dns_name = DNSRecordSRV.deserialize(reader, [...path, "dns_name"]);
 
     return new MultiHostName(dns_name);
   }
@@ -6893,13 +7593,19 @@ export class MultiHostName {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): MultiHostName {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["MultiHostName"],
+  ): MultiHostName {
     let reader = new CBORReader(data);
-    return MultiHostName.deserialize(reader);
+    return MultiHostName.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): MultiHostName {
-    return MultiHostName.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["MultiHostName"],
+  ): MultiHostName {
+    return MultiHostName.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -6912,8 +7618,8 @@ export class MultiHostName {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): MultiHostName {
-    return MultiHostName.from_bytes(this.to_bytes());
+  clone(path: string[]): MultiHostName {
+    return MultiHostName.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -6993,9 +7699,9 @@ export class NativeScript {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): NativeScript {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
+  static deserialize(reader: CBORReader, path: string[]): NativeScript {
+    let len = reader.readArrayTag(path);
+    let tag = Number(reader.readUint(path));
     let variant: NativeScriptVariant;
 
     switch (tag) {
@@ -7005,7 +7711,7 @@ export class NativeScript {
         }
         variant = {
           kind: 0,
-          value: ScriptPubkey.deserialize(reader),
+          value: ScriptPubkey.deserialize(reader, [...path, "ScriptPubkey"]),
         };
 
         break;
@@ -7016,7 +7722,7 @@ export class NativeScript {
         }
         variant = {
           kind: 1,
-          value: ScriptAll.deserialize(reader),
+          value: ScriptAll.deserialize(reader, [...path, "ScriptAll"]),
         };
 
         break;
@@ -7027,7 +7733,7 @@ export class NativeScript {
         }
         variant = {
           kind: 2,
-          value: ScriptAny.deserialize(reader),
+          value: ScriptAny.deserialize(reader, [...path, "ScriptAny"]),
         };
 
         break;
@@ -7038,7 +7744,7 @@ export class NativeScript {
         }
         variant = {
           kind: 3,
-          value: ScriptNOfK.deserialize(reader),
+          value: ScriptNOfK.deserialize(reader, [...path, "ScriptNOfK"]),
         };
 
         break;
@@ -7049,7 +7755,7 @@ export class NativeScript {
         }
         variant = {
           kind: 4,
-          value: TimelockStart.deserialize(reader),
+          value: TimelockStart.deserialize(reader, [...path, "TimelockStart"]),
         };
 
         break;
@@ -7060,7 +7766,10 @@ export class NativeScript {
         }
         variant = {
           kind: 5,
-          value: TimelockExpiry.deserialize(reader),
+          value: TimelockExpiry.deserialize(reader, [
+            ...path,
+            "TimelockExpiry",
+          ]),
         };
 
         break;
@@ -7070,7 +7779,9 @@ export class NativeScript {
       reader.readBreak();
     }
 
-    throw new Error("Unexpected tag for NativeScript: " + tag);
+    throw new Error(
+      "Unexpected tag for NativeScript: " + tag + "(at " + path.join("/") + ")",
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -7111,13 +7822,19 @@ export class NativeScript {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): NativeScript {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["NativeScript"],
+  ): NativeScript {
     let reader = new CBORReader(data);
-    return NativeScript.deserialize(reader);
+    return NativeScript.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): NativeScript {
-    return NativeScript.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["NativeScript"],
+  ): NativeScript {
+    return NativeScript.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -7130,8 +7847,8 @@ export class NativeScript {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): NativeScript {
-    return NativeScript.from_bytes(this.to_bytes());
+  clone(path: string[]): NativeScript {
+    return NativeScript.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -7182,20 +7899,26 @@ export class NativeScriptRefInput {
     this._script_size = script_size;
   }
 
-  static deserialize(reader: CBORReader): NativeScriptRefInput {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): NativeScriptRefInput {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 3) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " + len,
+        "Insufficient number of fields in record. Expected 3. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let script_hash = ScriptHash.deserialize(reader);
+    const script_hash_path = [...path, "ScriptHash(script_hash)"];
+    let script_hash = ScriptHash.deserialize(reader, script_hash_path);
 
-    let input = TransactionInput.deserialize(reader);
+    const input_path = [...path, "TransactionInput(input)"];
+    let input = TransactionInput.deserialize(reader, input_path);
 
-    let script_size = Number(reader.readInt());
+    const script_size_path = [...path, "number(script_size)"];
+    let script_size = Number(reader.readInt(script_size_path));
 
     return new NativeScriptRefInput(script_hash, input, script_size);
   }
@@ -7211,13 +7934,19 @@ export class NativeScriptRefInput {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): NativeScriptRefInput {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["NativeScriptRefInput"],
+  ): NativeScriptRefInput {
     let reader = new CBORReader(data);
-    return NativeScriptRefInput.deserialize(reader);
+    return NativeScriptRefInput.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): NativeScriptRefInput {
-    return NativeScriptRefInput.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["NativeScriptRefInput"],
+  ): NativeScriptRefInput {
+    return NativeScriptRefInput.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -7230,8 +7959,8 @@ export class NativeScriptRefInput {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): NativeScriptRefInput {
-    return NativeScriptRefInput.from_bytes(this.to_bytes());
+  clone(path: string[]): NativeScriptRefInput {
+    return NativeScriptRefInput.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -7271,9 +8000,9 @@ export class NativeScriptSource {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): NativeScriptSource {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
+  static deserialize(reader: CBORReader, path: string[]): NativeScriptSource {
+    let len = reader.readArrayTag(path);
+    let tag = Number(reader.readUint(path));
     let variant: NativeScriptSourceVariant;
 
     switch (tag) {
@@ -7283,7 +8012,7 @@ export class NativeScriptSource {
         }
         variant = {
           kind: 0,
-          value: NativeScript.deserialize(reader),
+          value: NativeScript.deserialize(reader, [...path, "NativeScript"]),
         };
 
         break;
@@ -7294,7 +8023,10 @@ export class NativeScriptSource {
         }
         variant = {
           kind: 1,
-          value: NativeScriptRefInput.deserialize(reader),
+          value: NativeScriptRefInput.deserialize(reader, [
+            ...path,
+            "NativeScriptRefInput",
+          ]),
         };
 
         break;
@@ -7304,7 +8036,13 @@ export class NativeScriptSource {
       reader.readBreak();
     }
 
-    throw new Error("Unexpected tag for NativeScriptSource: " + tag);
+    throw new Error(
+      "Unexpected tag for NativeScriptSource: " +
+        tag +
+        "(at " +
+        path.join("/") +
+        ")",
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -7325,13 +8063,19 @@ export class NativeScriptSource {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): NativeScriptSource {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["NativeScriptSource"],
+  ): NativeScriptSource {
     let reader = new CBORReader(data);
-    return NativeScriptSource.deserialize(reader);
+    return NativeScriptSource.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): NativeScriptSource {
-    return NativeScriptSource.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["NativeScriptSource"],
+  ): NativeScriptSource {
+    return NativeScriptSource.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -7344,8 +8088,8 @@ export class NativeScriptSource {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): NativeScriptSource {
-    return NativeScriptSource.from_bytes(this.to_bytes());
+  clone(path: string[]): NativeScriptSource {
+    return NativeScriptSource.from_bytes(this.to_bytes(), path);
   }
 
   static new(script: NativeScript): NativeScriptSource {
@@ -7393,9 +8137,13 @@ export class NativeScripts {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): NativeScripts {
+  static deserialize(reader: CBORReader, path: string[]): NativeScripts {
     return new NativeScripts(
-      reader.readArray((reader) => NativeScript.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          NativeScript.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -7406,13 +8154,19 @@ export class NativeScripts {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): NativeScripts {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["NativeScripts"],
+  ): NativeScripts {
     let reader = new CBORReader(data);
-    return NativeScripts.deserialize(reader);
+    return NativeScripts.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): NativeScripts {
-    return NativeScripts.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["NativeScripts"],
+  ): NativeScripts {
+    return NativeScripts.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -7425,8 +8179,8 @@ export class NativeScripts {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): NativeScripts {
-    return NativeScripts.from_bytes(this.to_bytes());
+  clone(path: string[]): NativeScripts {
+    return NativeScripts.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -7453,11 +8207,19 @@ export class NetworkId {
     return this.kind_;
   }
 
-  static deserialize(reader: CBORReader): NetworkId {
-    let kind = Number(reader.readInt());
+  static deserialize(reader: CBORReader, path: string[]): NetworkId {
+    let kind = Number(reader.readInt(path));
     if (kind == 0) return new NetworkId(0);
     if (kind == 1) return new NetworkId(1);
-    throw "Unrecognized enum value: " + kind + " for " + NetworkId;
+    throw (
+      "Unrecognized enum value: " +
+      kind +
+      " for " +
+      NetworkId +
+      "(at " +
+      path.join("/") +
+      ")"
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -7467,13 +8229,16 @@ export class NetworkId {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): NetworkId {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["NetworkId"],
+  ): NetworkId {
     let reader = new CBORReader(data);
-    return NetworkId.deserialize(reader);
+    return NetworkId.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): NetworkId {
-    return NetworkId.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["NetworkId"]): NetworkId {
+    return NetworkId.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -7486,8 +8251,8 @@ export class NetworkId {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): NetworkId {
-    return NetworkId.from_bytes(this.to_bytes());
+  clone(path: string[]): NetworkId {
+    return NetworkId.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -7526,12 +8291,20 @@ export class NewConstitutionAction {
     this._constitution = constitution;
   }
 
-  static deserialize(reader: CBORReader): NewConstitutionAction {
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): NewConstitutionAction {
     let gov_action_id =
-      reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
-      undefined;
+      reader.readNullable(
+        (r) => GovernanceActionId.deserialize(r, [...path, "gov_action_id"]),
+        path,
+      ) ?? undefined;
 
-    let constitution = Constitution.deserialize(reader);
+    let constitution = Constitution.deserialize(reader, [
+      ...path,
+      "constitution",
+    ]);
 
     return new NewConstitutionAction(gov_action_id, constitution);
   }
@@ -7548,13 +8321,19 @@ export class NewConstitutionAction {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): NewConstitutionAction {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["NewConstitutionAction"],
+  ): NewConstitutionAction {
     let reader = new CBORReader(data);
-    return NewConstitutionAction.deserialize(reader);
+    return NewConstitutionAction.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): NewConstitutionAction {
-    return NewConstitutionAction.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["NewConstitutionAction"],
+  ): NewConstitutionAction {
+    return NewConstitutionAction.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -7567,8 +8346,8 @@ export class NewConstitutionAction {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): NewConstitutionAction {
-    return NewConstitutionAction.from_bytes(this.to_bytes());
+  clone(path: string[]): NewConstitutionAction {
+    return NewConstitutionAction.from_bytes(this.to_bytes(), path);
   }
 
   static new(constitution: Constitution): NewConstitutionAction {
@@ -7595,10 +8374,12 @@ export class NoConfidenceAction {
     this._gov_action_id = gov_action_id;
   }
 
-  static deserialize(reader: CBORReader): NoConfidenceAction {
+  static deserialize(reader: CBORReader, path: string[]): NoConfidenceAction {
     let gov_action_id =
-      reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
-      undefined;
+      reader.readNullable(
+        (r) => GovernanceActionId.deserialize(r, [...path, "gov_action_id"]),
+        path,
+      ) ?? undefined;
 
     return new NoConfidenceAction(gov_action_id);
   }
@@ -7614,13 +8395,19 @@ export class NoConfidenceAction {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): NoConfidenceAction {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["NoConfidenceAction"],
+  ): NoConfidenceAction {
     let reader = new CBORReader(data);
-    return NoConfidenceAction.deserialize(reader);
+    return NoConfidenceAction.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): NoConfidenceAction {
-    return NoConfidenceAction.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["NoConfidenceAction"],
+  ): NoConfidenceAction {
+    return NoConfidenceAction.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -7633,8 +8420,8 @@ export class NoConfidenceAction {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): NoConfidenceAction {
-    return NoConfidenceAction.from_bytes(this.to_bytes());
+  clone(path: string[]): NoConfidenceAction {
+    return NoConfidenceAction.from_bytes(this.to_bytes(), path);
   }
 
   static new(): NoConfidenceAction {
@@ -7661,16 +8448,21 @@ export class Nonce {
     this._hash = hash;
   }
 
-  static deserialize(reader: CBORReader): Nonce {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): Nonce {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 1) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " + len,
+        "Insufficient number of fields in record. Expected 1. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let hash = reader.readNullable((r) => r.readBytes()) ?? undefined;
+    const hash_path = [...path, "bytes(hash)"];
+    let hash =
+      reader.readNullable((r) => r.readBytes(hash_path), path) ?? undefined;
 
     return new Nonce(hash);
   }
@@ -7688,13 +8480,13 @@ export class Nonce {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Nonce {
+  static from_bytes(data: Uint8Array, path: string[] = ["Nonce"]): Nonce {
     let reader = new CBORReader(data);
-    return Nonce.deserialize(reader);
+    return Nonce.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Nonce {
-    return Nonce.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Nonce"]): Nonce {
+    return Nonce.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -7707,8 +8499,8 @@ export class Nonce {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Nonce {
-    return Nonce.from_bytes(this.to_bytes());
+  clone(path: string[]): Nonce {
+    return Nonce.from_bytes(this.to_bytes(), path);
   }
 
   static new_identity(): Nonce {
@@ -7781,22 +8573,29 @@ export class OperationalCert {
     this._sigma = sigma;
   }
 
-  static deserialize(reader: CBORReader): OperationalCert {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): OperationalCert {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " + len,
+        "Insufficient number of fields in record. Expected 4. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let hot_vkey = KESVKey.deserialize(reader);
+    const hot_vkey_path = [...path, "KESVKey(hot_vkey)"];
+    let hot_vkey = KESVKey.deserialize(reader, hot_vkey_path);
 
-    let sequence_number = Number(reader.readInt());
+    const sequence_number_path = [...path, "number(sequence_number)"];
+    let sequence_number = Number(reader.readInt(sequence_number_path));
 
-    let kes_period = Number(reader.readInt());
+    const kes_period_path = [...path, "number(kes_period)"];
+    let kes_period = Number(reader.readInt(kes_period_path));
 
-    let sigma = Ed25519Signature.deserialize(reader);
+    const sigma_path = [...path, "Ed25519Signature(sigma)"];
+    let sigma = Ed25519Signature.deserialize(reader, sigma_path);
 
     return new OperationalCert(hot_vkey, sequence_number, kes_period, sigma);
   }
@@ -7813,13 +8612,19 @@ export class OperationalCert {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): OperationalCert {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["OperationalCert"],
+  ): OperationalCert {
     let reader = new CBORReader(data);
-    return OperationalCert.deserialize(reader);
+    return OperationalCert.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): OperationalCert {
-    return OperationalCert.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["OperationalCert"],
+  ): OperationalCert {
+    return OperationalCert.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -7832,8 +8637,8 @@ export class OperationalCert {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): OperationalCert {
-    return OperationalCert.from_bytes(this.to_bytes());
+  clone(path: string[]): OperationalCert {
+    return OperationalCert.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -7873,9 +8678,9 @@ export class OutputDatum {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): OutputDatum {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
+  static deserialize(reader: CBORReader, path: string[]): OutputDatum {
+    let len = reader.readArrayTag(path);
+    let tag = Number(reader.readUint(path));
     let variant: OutputDatumVariant;
 
     switch (tag) {
@@ -7885,7 +8690,7 @@ export class OutputDatum {
         }
         variant = {
           kind: 0,
-          value: DataHash.deserialize(reader),
+          value: DataHash.deserialize(reader, [...path, "DataHash"]),
         };
 
         break;
@@ -7896,7 +8701,7 @@ export class OutputDatum {
         }
         variant = {
           kind: 1,
-          value: PlutusData.deserialize(reader),
+          value: PlutusData.deserialize(reader, [...path, "PlutusData"]),
         };
 
         break;
@@ -7906,7 +8711,9 @@ export class OutputDatum {
       reader.readBreak();
     }
 
-    throw new Error("Unexpected tag for OutputDatum: " + tag);
+    throw new Error(
+      "Unexpected tag for OutputDatum: " + tag + "(at " + path.join("/") + ")",
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -7927,13 +8734,19 @@ export class OutputDatum {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): OutputDatum {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["OutputDatum"],
+  ): OutputDatum {
     let reader = new CBORReader(data);
-    return OutputDatum.deserialize(reader);
+    return OutputDatum.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): OutputDatum {
-    return OutputDatum.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["OutputDatum"],
+  ): OutputDatum {
+    return OutputDatum.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -7946,8 +8759,8 @@ export class OutputDatum {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): OutputDatum {
-    return OutputDatum.from_bytes(this.to_bytes());
+  clone(path: string[]): OutputDatum {
+    return OutputDatum.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -8004,15 +8817,26 @@ export class ParameterChangeAction {
     this._policy_hash = policy_hash;
   }
 
-  static deserialize(reader: CBORReader): ParameterChangeAction {
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): ParameterChangeAction {
     let gov_action_id =
-      reader.readNullable((r) => GovernanceActionId.deserialize(r)) ??
-      undefined;
+      reader.readNullable(
+        (r) => GovernanceActionId.deserialize(r, [...path, "gov_action_id"]),
+        path,
+      ) ?? undefined;
 
-    let protocol_param_updates = ProtocolParamUpdate.deserialize(reader);
+    let protocol_param_updates = ProtocolParamUpdate.deserialize(reader, [
+      ...path,
+      "protocol_param_updates",
+    ]);
 
     let policy_hash =
-      reader.readNullable((r) => ScriptHash.deserialize(r)) ?? undefined;
+      reader.readNullable(
+        (r) => ScriptHash.deserialize(r, [...path, "policy_hash"]),
+        path,
+      ) ?? undefined;
 
     return new ParameterChangeAction(
       gov_action_id,
@@ -8038,13 +8862,19 @@ export class ParameterChangeAction {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ParameterChangeAction {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ParameterChangeAction"],
+  ): ParameterChangeAction {
     let reader = new CBORReader(data);
-    return ParameterChangeAction.deserialize(reader);
+    return ParameterChangeAction.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ParameterChangeAction {
-    return ParameterChangeAction.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["ParameterChangeAction"],
+  ): ParameterChangeAction {
+    return ParameterChangeAction.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -8057,8 +8887,8 @@ export class ParameterChangeAction {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ParameterChangeAction {
-    return ParameterChangeAction.from_bytes(this.to_bytes());
+  clone(path: string[]): ParameterChangeAction {
+    return ParameterChangeAction.from_bytes(this.to_bytes(), path);
   }
 
   static new(
@@ -8165,29 +8995,32 @@ export class PlutusData {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): PlutusData {
-    let tag = reader.peekType();
+  static deserialize(reader: CBORReader, path: string[]): PlutusData {
+    let tag = reader.peekType(path);
     let variant: PlutusDataVariant;
 
     switch (tag) {
       case "tagged":
         variant = {
           kind: PlutusDataKind.ConstrPlutusData,
-          value: ConstrPlutusData.deserialize(reader),
+          value: ConstrPlutusData.deserialize(reader, [
+            ...path,
+            "ConstrPlutusData(constr_plutus_data)",
+          ]),
         };
         break;
 
       case "map":
         variant = {
           kind: PlutusDataKind.PlutusMap,
-          value: PlutusMap.deserialize(reader),
+          value: PlutusMap.deserialize(reader, [...path, "PlutusMap(map)"]),
         };
         break;
 
       case "array":
         variant = {
           kind: PlutusDataKind.PlutusList,
-          value: PlutusList.deserialize(reader),
+          value: PlutusList.deserialize(reader, [...path, "PlutusList(list)"]),
         };
         break;
 
@@ -8196,19 +9029,25 @@ export class PlutusData {
       case "tagged":
         variant = {
           kind: PlutusDataKind.CSLBigInt,
-          value: CSLBigInt.deserialize(reader),
+          value: CSLBigInt.deserialize(reader, [...path, "CSLBigInt(integer)"]),
         };
         break;
 
       case "bytes":
         variant = {
           kind: PlutusDataKind.Bytes,
-          value: reader.readBytes(),
+          value: reader.readBytes([...path, "bytes(bytes)"]),
         };
         break;
 
       default:
-        throw new Error("Unexpected subtype for PlutusData: " + tag);
+        throw new Error(
+          "Unexpected subtype for PlutusData: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     return new PlutusData(variant);
@@ -8241,13 +9080,19 @@ export class PlutusData {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PlutusData {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PlutusData"],
+  ): PlutusData {
     let reader = new CBORReader(data);
-    return PlutusData.deserialize(reader);
+    return PlutusData.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): PlutusData {
-    return PlutusData.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PlutusData"],
+  ): PlutusData {
+    return PlutusData.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -8260,8 +9105,8 @@ export class PlutusData {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): PlutusData {
-    return PlutusData.from_bytes(this.to_bytes());
+  clone(path: string[]): PlutusData {
+    return PlutusData.from_bytes(this.to_bytes(), path);
   }
 
   static new_empty_constr_plutus_data(alternative: BigNum): PlutusData {
@@ -8323,13 +9168,17 @@ export class PlutusList {
     return false;
   }
 
-  static deserialize(reader: CBORReader): PlutusList {
+  static deserialize(reader: CBORReader, path: string[]): PlutusList {
     let ret = new PlutusList();
-    if (reader.peekType() == "tagged") {
-      let tag = reader.readTaggedTag();
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
       if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
     }
-    reader.readArray((reader) => ret.add(PlutusData.deserialize(reader)));
+    reader.readArray(
+      (reader, idx) =>
+        ret.add(PlutusData.deserialize(reader, [...path, "PlutusData#" + idx])),
+      path,
+    );
     return ret;
   }
 
@@ -8341,13 +9190,19 @@ export class PlutusList {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PlutusList {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PlutusList"],
+  ): PlutusList {
     let reader = new CBORReader(data);
-    return PlutusList.deserialize(reader);
+    return PlutusList.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): PlutusList {
-    return PlutusList.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PlutusList"],
+  ): PlutusList {
+    return PlutusList.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -8360,8 +9215,8 @@ export class PlutusList {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): PlutusList {
-    return PlutusList.from_bytes(this.to_bytes());
+  clone(path: string[]): PlutusList {
+    return PlutusList.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -8413,13 +9268,18 @@ export class PlutusMap {
     return keys;
   }
 
-  static deserialize(reader: CBORReader): PlutusMap {
+  static deserialize(reader: CBORReader, path: string[]): PlutusMap {
     let ret = new PlutusMap([]);
-    reader.readMap((reader) =>
-      ret.insert(
-        PlutusData.deserialize(reader),
-        PlutusMapValues.deserialize(reader),
-      ),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          PlutusData.deserialize(reader, [...path, "PlutusData#" + idx]),
+          PlutusMapValues.deserialize(reader, [
+            ...path,
+            "PlutusMapValues#" + idx,
+          ]),
+        ),
+      path,
     );
     return ret;
   }
@@ -8434,13 +9294,16 @@ export class PlutusMap {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PlutusMap {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PlutusMap"],
+  ): PlutusMap {
     let reader = new CBORReader(data);
-    return PlutusMap.deserialize(reader);
+    return PlutusMap.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): PlutusMap {
-    return PlutusMap.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["PlutusMap"]): PlutusMap {
+    return PlutusMap.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -8453,8 +9316,8 @@ export class PlutusMap {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): PlutusMap {
-    return PlutusMap.from_bytes(this.to_bytes());
+  clone(path: string[]): PlutusMap {
+    return PlutusMap.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -8482,9 +9345,13 @@ export class PlutusMapValues {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): PlutusMapValues {
+  static deserialize(reader: CBORReader, path: string[]): PlutusMapValues {
     return new PlutusMapValues(
-      reader.readArray((reader) => PlutusData.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          PlutusData.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -8495,13 +9362,19 @@ export class PlutusMapValues {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PlutusMapValues {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PlutusMapValues"],
+  ): PlutusMapValues {
     let reader = new CBORReader(data);
-    return PlutusMapValues.deserialize(reader);
+    return PlutusMapValues.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): PlutusMapValues {
-    return PlutusMapValues.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PlutusMapValues"],
+  ): PlutusMapValues {
+    return PlutusMapValues.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -8514,8 +9387,8 @@ export class PlutusMapValues {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): PlutusMapValues {
-    return PlutusMapValues.from_bytes(this.to_bytes());
+  clone(path: string[]): PlutusMapValues {
+    return PlutusMapValues.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -8534,8 +9407,8 @@ export class PlutusScript {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): PlutusScript {
-    return new PlutusScript(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): PlutusScript {
+    return new PlutusScript(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -8545,13 +9418,19 @@ export class PlutusScript {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PlutusScript {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PlutusScript"],
+  ): PlutusScript {
     let reader = new CBORReader(data);
-    return PlutusScript.deserialize(reader);
+    return PlutusScript.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): PlutusScript {
-    return PlutusScript.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PlutusScript"],
+  ): PlutusScript {
+    return PlutusScript.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -8564,8 +9443,8 @@ export class PlutusScript {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): PlutusScript {
-    return PlutusScript.from_bytes(this.to_bytes());
+  clone(path: string[]): PlutusScript {
+    return PlutusScript.from_bytes(this.to_bytes(), path);
   }
 
   hash(language_version: number): ScriptHash {
@@ -8601,9 +9480,13 @@ export class PlutusScripts {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): PlutusScripts {
+  static deserialize(reader: CBORReader, path: string[]): PlutusScripts {
     return new PlutusScripts(
-      reader.readArray((reader) => PlutusScript.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          PlutusScript.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -8614,13 +9497,19 @@ export class PlutusScripts {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PlutusScripts {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PlutusScripts"],
+  ): PlutusScripts {
     let reader = new CBORReader(data);
-    return PlutusScripts.deserialize(reader);
+    return PlutusScripts.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): PlutusScripts {
-    return PlutusScripts.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PlutusScripts"],
+  ): PlutusScripts {
+    return PlutusScripts.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -8633,8 +9522,8 @@ export class PlutusScripts {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): PlutusScripts {
-    return PlutusScripts.from_bytes(this.to_bytes());
+  clone(path: string[]): PlutusScripts {
+    return PlutusScripts.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -8667,18 +9556,29 @@ export class PoolMetadata {
     this._pool_metadata_hash = pool_metadata_hash;
   }
 
-  static deserialize(reader: CBORReader): PoolMetadata {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): PoolMetadata {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let url = URL.deserialize(reader);
+    const url_path = [...path, "URL(url)"];
+    let url = URL.deserialize(reader, url_path);
 
-    let pool_metadata_hash = PoolMetadataHash.deserialize(reader);
+    const pool_metadata_hash_path = [
+      ...path,
+      "PoolMetadataHash(pool_metadata_hash)",
+    ];
+    let pool_metadata_hash = PoolMetadataHash.deserialize(
+      reader,
+      pool_metadata_hash_path,
+    );
 
     return new PoolMetadata(url, pool_metadata_hash);
   }
@@ -8693,13 +9593,19 @@ export class PoolMetadata {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PoolMetadata {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PoolMetadata"],
+  ): PoolMetadata {
     let reader = new CBORReader(data);
-    return PoolMetadata.deserialize(reader);
+    return PoolMetadata.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): PoolMetadata {
-    return PoolMetadata.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PoolMetadata"],
+  ): PoolMetadata {
+    return PoolMetadata.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -8712,8 +9618,8 @@ export class PoolMetadata {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): PoolMetadata {
-    return PoolMetadata.from_bytes(this.to_bytes());
+  clone(path: string[]): PoolMetadata {
+    return PoolMetadata.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -8766,8 +9672,8 @@ export class PoolMetadataHash {
     return PoolMetadataHash.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): PoolMetadataHash {
-    return new PoolMetadataHash(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): PoolMetadataHash {
+    return new PoolMetadataHash(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -8904,25 +9810,34 @@ export class PoolParams {
     this._pool_metadata = pool_metadata;
   }
 
-  static deserialize(reader: CBORReader): PoolParams {
-    let operator = Ed25519KeyHash.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): PoolParams {
+    let operator = Ed25519KeyHash.deserialize(reader, [...path, "operator"]);
 
-    let vrf_keyhash = VRFKeyHash.deserialize(reader);
+    let vrf_keyhash = VRFKeyHash.deserialize(reader, [...path, "vrf_keyhash"]);
 
-    let pledge = BigNum.deserialize(reader);
+    let pledge = BigNum.deserialize(reader, [...path, "pledge"]);
 
-    let cost = BigNum.deserialize(reader);
+    let cost = BigNum.deserialize(reader, [...path, "cost"]);
 
-    let margin = UnitInterval.deserialize(reader);
+    let margin = UnitInterval.deserialize(reader, [...path, "margin"]);
 
-    let reward_account = RewardAddress.deserialize(reader);
+    let reward_account = RewardAddress.deserialize(reader, [
+      ...path,
+      "reward_account",
+    ]);
 
-    let pool_owners = Ed25519KeyHashes.deserialize(reader);
+    let pool_owners = Ed25519KeyHashes.deserialize(reader, [
+      ...path,
+      "pool_owners",
+    ]);
 
-    let relays = Relays.deserialize(reader);
+    let relays = Relays.deserialize(reader, [...path, "relays"]);
 
     let pool_metadata =
-      reader.readNullable((r) => PoolMetadata.deserialize(r)) ?? undefined;
+      reader.readNullable(
+        (r) => PoolMetadata.deserialize(r, [...path, "pool_metadata"]),
+        path,
+      ) ?? undefined;
 
     return new PoolParams(
       operator,
@@ -8956,13 +9871,19 @@ export class PoolParams {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PoolParams {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PoolParams"],
+  ): PoolParams {
     let reader = new CBORReader(data);
-    return PoolParams.deserialize(reader);
+    return PoolParams.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): PoolParams {
-    return PoolParams.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PoolParams"],
+  ): PoolParams {
+    return PoolParams.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -8975,8 +9896,8 @@ export class PoolParams {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): PoolParams {
-    return PoolParams.from_bytes(this.to_bytes());
+  clone(path: string[]): PoolParams {
+    return PoolParams.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -8999,8 +9920,8 @@ export class PoolRegistration {
     this._pool_params = pool_params;
   }
 
-  static deserialize(reader: CBORReader): PoolRegistration {
-    let pool_params = PoolParams.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): PoolRegistration {
+    let pool_params = PoolParams.deserialize(reader, [...path, "PoolParams"]);
     return new PoolRegistration(pool_params);
   }
 
@@ -9011,13 +9932,19 @@ export class PoolRegistration {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PoolRegistration {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PoolRegistration"],
+  ): PoolRegistration {
     let reader = new CBORReader(data);
-    return PoolRegistration.deserialize(reader);
+    return PoolRegistration.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): PoolRegistration {
-    return PoolRegistration.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PoolRegistration"],
+  ): PoolRegistration {
+    return PoolRegistration.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -9030,8 +9957,8 @@ export class PoolRegistration {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): PoolRegistration {
-    return PoolRegistration.from_bytes(this.to_bytes());
+  clone(path: string[]): PoolRegistration {
+    return PoolRegistration.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -9064,10 +9991,13 @@ export class PoolRetirement {
     this._epoch = epoch;
   }
 
-  static deserialize(reader: CBORReader): PoolRetirement {
-    let pool_keyhash = Ed25519KeyHash.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): PoolRetirement {
+    let pool_keyhash = Ed25519KeyHash.deserialize(reader, [
+      ...path,
+      "pool_keyhash",
+    ]);
 
-    let epoch = Number(reader.readInt());
+    let epoch = Number(reader.readInt([...path, "epoch"]));
 
     return new PoolRetirement(pool_keyhash, epoch);
   }
@@ -9080,13 +10010,19 @@ export class PoolRetirement {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PoolRetirement {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PoolRetirement"],
+  ): PoolRetirement {
     let reader = new CBORReader(data);
-    return PoolRetirement.deserialize(reader);
+    return PoolRetirement.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): PoolRetirement {
-    return PoolRetirement.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PoolRetirement"],
+  ): PoolRetirement {
+    return PoolRetirement.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -9099,8 +10035,8 @@ export class PoolRetirement {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): PoolRetirement {
-    return PoolRetirement.from_bytes(this.to_bytes());
+  clone(path: string[]): PoolRetirement {
+    return PoolRetirement.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -9183,24 +10119,59 @@ export class PoolVotingThresholds {
     this._security_relevant_threshold = security_relevant_threshold;
   }
 
-  static deserialize(reader: CBORReader): PoolVotingThresholds {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): PoolVotingThresholds {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 5) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 5. Received " + len,
+        "Insufficient number of fields in record. Expected 5. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let motion_no_confidence = UnitInterval.deserialize(reader);
+    const motion_no_confidence_path = [
+      ...path,
+      "UnitInterval(motion_no_confidence)",
+    ];
+    let motion_no_confidence = UnitInterval.deserialize(
+      reader,
+      motion_no_confidence_path,
+    );
 
-    let committee_normal = UnitInterval.deserialize(reader);
+    const committee_normal_path = [...path, "UnitInterval(committee_normal)"];
+    let committee_normal = UnitInterval.deserialize(
+      reader,
+      committee_normal_path,
+    );
 
-    let committee_no_confidence = UnitInterval.deserialize(reader);
+    const committee_no_confidence_path = [
+      ...path,
+      "UnitInterval(committee_no_confidence)",
+    ];
+    let committee_no_confidence = UnitInterval.deserialize(
+      reader,
+      committee_no_confidence_path,
+    );
 
-    let hard_fork_initiation = UnitInterval.deserialize(reader);
+    const hard_fork_initiation_path = [
+      ...path,
+      "UnitInterval(hard_fork_initiation)",
+    ];
+    let hard_fork_initiation = UnitInterval.deserialize(
+      reader,
+      hard_fork_initiation_path,
+    );
 
-    let security_relevant_threshold = UnitInterval.deserialize(reader);
+    const security_relevant_threshold_path = [
+      ...path,
+      "UnitInterval(security_relevant_threshold)",
+    ];
+    let security_relevant_threshold = UnitInterval.deserialize(
+      reader,
+      security_relevant_threshold_path,
+    );
 
     return new PoolVotingThresholds(
       motion_no_confidence,
@@ -9224,13 +10195,19 @@ export class PoolVotingThresholds {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): PoolVotingThresholds {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PoolVotingThresholds"],
+  ): PoolVotingThresholds {
     let reader = new CBORReader(data);
-    return PoolVotingThresholds.deserialize(reader);
+    return PoolVotingThresholds.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): PoolVotingThresholds {
-    return PoolVotingThresholds.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PoolVotingThresholds"],
+  ): PoolVotingThresholds {
+    return PoolVotingThresholds.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -9243,8 +10220,8 @@ export class PoolVotingThresholds {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): PoolVotingThresholds {
-    return PoolVotingThresholds.from_bytes(this.to_bytes());
+  clone(path: string[]): PoolVotingThresholds {
+    return PoolVotingThresholds.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -9269,8 +10246,8 @@ export class PrivateKey {
     return bytesToHex(this.as_bytes());
   }
 
-  static deserialize(reader: CBORReader): PrivateKey {
-    return new PrivateKey(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): PrivateKey {
+    return new PrivateKey(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -9417,13 +10394,21 @@ export class ProposedProtocolParameterUpdates {
     return keys;
   }
 
-  static deserialize(reader: CBORReader): ProposedProtocolParameterUpdates {
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): ProposedProtocolParameterUpdates {
     let ret = new ProposedProtocolParameterUpdates([]);
-    reader.readMap((reader) =>
-      ret.insert(
-        GenesisHash.deserialize(reader),
-        ProtocolParamUpdate.deserialize(reader),
-      ),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          GenesisHash.deserialize(reader, [...path, "GenesisHash#" + idx]),
+          ProtocolParamUpdate.deserialize(reader, [
+            ...path,
+            "ProtocolParamUpdate#" + idx,
+          ]),
+        ),
+      path,
     );
     return ret;
   }
@@ -9438,13 +10423,22 @@ export class ProposedProtocolParameterUpdates {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ProposedProtocolParameterUpdates {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ProposedProtocolParameterUpdates"],
+  ): ProposedProtocolParameterUpdates {
     let reader = new CBORReader(data);
-    return ProposedProtocolParameterUpdates.deserialize(reader);
+    return ProposedProtocolParameterUpdates.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ProposedProtocolParameterUpdates {
-    return ProposedProtocolParameterUpdates.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["ProposedProtocolParameterUpdates"],
+  ): ProposedProtocolParameterUpdates {
+    return ProposedProtocolParameterUpdates.from_bytes(
+      hexToBytes(hex_str),
+      path,
+    );
   }
 
   to_bytes(): Uint8Array {
@@ -9457,8 +10451,8 @@ export class ProposedProtocolParameterUpdates {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ProposedProtocolParameterUpdates {
-    return ProposedProtocolParameterUpdates.from_bytes(this.to_bytes());
+  clone(path: string[]): ProposedProtocolParameterUpdates {
+    return ProposedProtocolParameterUpdates.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -9812,132 +10806,209 @@ export class ProtocolParamUpdate {
     this._script_cost_per_byte = script_cost_per_byte;
   }
 
-  static deserialize(reader: CBORReader): ProtocolParamUpdate {
+  static deserialize(reader: CBORReader, path: string[]): ProtocolParamUpdate {
     let fields: any = {};
     reader.readMap((r) => {
-      let key = Number(r.readUint());
+      let key = Number(r.readUint(path));
       switch (key) {
-        case 0:
-          fields.minfee_a = BigNum.deserialize(r);
+        case 0: {
+          const new_path = [...path, "BigNum(minfee_a)"];
+          fields.minfee_a = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 1:
-          fields.minfee_b = BigNum.deserialize(r);
+        case 1: {
+          const new_path = [...path, "BigNum(minfee_b)"];
+          fields.minfee_b = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 2:
-          fields.max_block_body_size = Number(r.readInt());
+        case 2: {
+          const new_path = [...path, "number(max_block_body_size)"];
+          fields.max_block_body_size = Number(r.readInt(new_path));
           break;
+        }
 
-        case 3:
-          fields.max_tx_size = Number(r.readInt());
+        case 3: {
+          const new_path = [...path, "number(max_tx_size)"];
+          fields.max_tx_size = Number(r.readInt(new_path));
           break;
+        }
 
-        case 4:
-          fields.max_block_header_size = Number(r.readInt());
+        case 4: {
+          const new_path = [...path, "number(max_block_header_size)"];
+          fields.max_block_header_size = Number(r.readInt(new_path));
           break;
+        }
 
-        case 5:
-          fields.key_deposit = BigNum.deserialize(r);
+        case 5: {
+          const new_path = [...path, "BigNum(key_deposit)"];
+          fields.key_deposit = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 6:
-          fields.pool_deposit = BigNum.deserialize(r);
+        case 6: {
+          const new_path = [...path, "BigNum(pool_deposit)"];
+          fields.pool_deposit = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 7:
-          fields.max_epoch = Number(r.readInt());
+        case 7: {
+          const new_path = [...path, "number(max_epoch)"];
+          fields.max_epoch = Number(r.readInt(new_path));
           break;
+        }
 
-        case 8:
-          fields.n_opt = Number(r.readInt());
+        case 8: {
+          const new_path = [...path, "number(n_opt)"];
+          fields.n_opt = Number(r.readInt(new_path));
           break;
+        }
 
-        case 9:
-          fields.pool_pledge_influence = UnitInterval.deserialize(r);
+        case 9: {
+          const new_path = [...path, "UnitInterval(pool_pledge_influence)"];
+          fields.pool_pledge_influence = UnitInterval.deserialize(r, new_path);
           break;
+        }
 
-        case 10:
-          fields.expansion_rate = UnitInterval.deserialize(r);
+        case 10: {
+          const new_path = [...path, "UnitInterval(expansion_rate)"];
+          fields.expansion_rate = UnitInterval.deserialize(r, new_path);
           break;
+        }
 
-        case 11:
-          fields.treasury_growth_rate = UnitInterval.deserialize(r);
+        case 11: {
+          const new_path = [...path, "UnitInterval(treasury_growth_rate)"];
+          fields.treasury_growth_rate = UnitInterval.deserialize(r, new_path);
           break;
+        }
 
-        case 16:
-          fields.min_pool_cost = BigNum.deserialize(r);
+        case 16: {
+          const new_path = [...path, "BigNum(min_pool_cost)"];
+          fields.min_pool_cost = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 17:
-          fields.ada_per_utxo_byte = BigNum.deserialize(r);
+        case 17: {
+          const new_path = [...path, "BigNum(ada_per_utxo_byte)"];
+          fields.ada_per_utxo_byte = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 18:
-          fields.costmdls = Costmdls.deserialize(r);
+        case 18: {
+          const new_path = [...path, "Costmdls(costmdls)"];
+          fields.costmdls = Costmdls.deserialize(r, new_path);
           break;
+        }
 
-        case 19:
-          fields.execution_costs = ExUnitPrices.deserialize(r);
+        case 19: {
+          const new_path = [...path, "ExUnitPrices(execution_costs)"];
+          fields.execution_costs = ExUnitPrices.deserialize(r, new_path);
           break;
+        }
 
-        case 20:
-          fields.max_tx_ex_units = ExUnits.deserialize(r);
+        case 20: {
+          const new_path = [...path, "ExUnits(max_tx_ex_units)"];
+          fields.max_tx_ex_units = ExUnits.deserialize(r, new_path);
           break;
+        }
 
-        case 21:
-          fields.max_block_ex_units = ExUnits.deserialize(r);
+        case 21: {
+          const new_path = [...path, "ExUnits(max_block_ex_units)"];
+          fields.max_block_ex_units = ExUnits.deserialize(r, new_path);
           break;
+        }
 
-        case 22:
-          fields.max_value_size = Number(r.readInt());
+        case 22: {
+          const new_path = [...path, "number(max_value_size)"];
+          fields.max_value_size = Number(r.readInt(new_path));
           break;
+        }
 
-        case 23:
-          fields.collateral_percentage = Number(r.readInt());
+        case 23: {
+          const new_path = [...path, "number(collateral_percentage)"];
+          fields.collateral_percentage = Number(r.readInt(new_path));
           break;
+        }
 
-        case 24:
-          fields.max_collateral_inputs = Number(r.readInt());
+        case 24: {
+          const new_path = [...path, "number(max_collateral_inputs)"];
+          fields.max_collateral_inputs = Number(r.readInt(new_path));
           break;
+        }
 
-        case 25:
-          fields.pool_voting_thresholds = PoolVotingThresholds.deserialize(r);
+        case 25: {
+          const new_path = [
+            ...path,
+            "PoolVotingThresholds(pool_voting_thresholds)",
+          ];
+          fields.pool_voting_thresholds = PoolVotingThresholds.deserialize(
+            r,
+            new_path,
+          );
           break;
+        }
 
-        case 26:
-          fields.drep_voting_thresholds = DRepVotingThresholds.deserialize(r);
+        case 26: {
+          const new_path = [
+            ...path,
+            "DRepVotingThresholds(drep_voting_thresholds)",
+          ];
+          fields.drep_voting_thresholds = DRepVotingThresholds.deserialize(
+            r,
+            new_path,
+          );
           break;
+        }
 
-        case 27:
-          fields.min_committee_size = Number(r.readInt());
+        case 27: {
+          const new_path = [...path, "number(min_committee_size)"];
+          fields.min_committee_size = Number(r.readInt(new_path));
           break;
+        }
 
-        case 28:
-          fields.committee_term_limit = Number(r.readInt());
+        case 28: {
+          const new_path = [...path, "number(committee_term_limit)"];
+          fields.committee_term_limit = Number(r.readInt(new_path));
           break;
+        }
 
-        case 29:
-          fields.governance_action_validity_period = Number(r.readInt());
+        case 29: {
+          const new_path = [
+            ...path,
+            "number(governance_action_validity_period)",
+          ];
+          fields.governance_action_validity_period = Number(
+            r.readInt(new_path),
+          );
           break;
+        }
 
-        case 30:
-          fields.governance_action_deposit = BigNum.deserialize(r);
+        case 30: {
+          const new_path = [...path, "BigNum(governance_action_deposit)"];
+          fields.governance_action_deposit = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 31:
-          fields.drep_deposit = BigNum.deserialize(r);
+        case 31: {
+          const new_path = [...path, "BigNum(drep_deposit)"];
+          fields.drep_deposit = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 32:
-          fields.drep_inactivity_period = Number(r.readInt());
+        case 32: {
+          const new_path = [...path, "number(drep_inactivity_period)"];
+          fields.drep_inactivity_period = Number(r.readInt(new_path));
           break;
+        }
 
-        case 33:
-          fields.script_cost_per_byte = UnitInterval.deserialize(r);
+        case 33: {
+          const new_path = [...path, "UnitInterval(script_cost_per_byte)"];
+          fields.script_cost_per_byte = UnitInterval.deserialize(r, new_path);
           break;
+        }
       }
-    });
+    }, path);
 
     let minfee_a = fields.minfee_a;
 
@@ -10192,13 +11263,19 @@ export class ProtocolParamUpdate {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ProtocolParamUpdate {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ProtocolParamUpdate"],
+  ): ProtocolParamUpdate {
     let reader = new CBORReader(data);
-    return ProtocolParamUpdate.deserialize(reader);
+    return ProtocolParamUpdate.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ProtocolParamUpdate {
-    return ProtocolParamUpdate.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["ProtocolParamUpdate"],
+  ): ProtocolParamUpdate {
+    return ProtocolParamUpdate.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -10211,8 +11288,8 @@ export class ProtocolParamUpdate {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ProtocolParamUpdate {
-    return ProtocolParamUpdate.from_bytes(this.to_bytes());
+  clone(path: string[]): ProtocolParamUpdate {
+    return ProtocolParamUpdate.from_bytes(this.to_bytes(), path);
   }
 
   static new(): ProtocolParamUpdate {
@@ -10280,18 +11357,23 @@ export class ProtocolVersion {
     this._minor = minor;
   }
 
-  static deserialize(reader: CBORReader): ProtocolVersion {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): ProtocolVersion {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let major = Number(reader.readInt());
+    const major_path = [...path, "number(major)"];
+    let major = Number(reader.readInt(major_path));
 
-    let minor = Number(reader.readInt());
+    const minor_path = [...path, "number(minor)"];
+    let minor = Number(reader.readInt(minor_path));
 
     return new ProtocolVersion(major, minor);
   }
@@ -10306,13 +11388,19 @@ export class ProtocolVersion {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ProtocolVersion {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ProtocolVersion"],
+  ): ProtocolVersion {
     let reader = new CBORReader(data);
-    return ProtocolVersion.deserialize(reader);
+    return ProtocolVersion.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ProtocolVersion {
-    return ProtocolVersion.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["ProtocolVersion"],
+  ): ProtocolVersion {
+    return ProtocolVersion.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -10325,8 +11413,8 @@ export class ProtocolVersion {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ProtocolVersion {
-    return ProtocolVersion.from_bytes(this.to_bytes());
+  clone(path: string[]): ProtocolVersion {
+    return ProtocolVersion.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -10365,8 +11453,8 @@ export class PublicKey {
     return PublicKey.from_bytes(this.as_bytes());
   }
 
-  static deserialize(reader: CBORReader): PublicKey {
-    return new PublicKey(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): PublicKey {
+    return new PublicKey(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -10460,22 +11548,29 @@ export class Redeemer {
     this._ex_units = ex_units;
   }
 
-  static deserialize(reader: CBORReader): Redeemer {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): Redeemer {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " + len,
+        "Insufficient number of fields in record. Expected 4. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let tag = RedeemerTag.deserialize(reader);
+    const tag_path = [...path, "RedeemerTag(tag)"];
+    let tag = RedeemerTag.deserialize(reader, tag_path);
 
-    let index = BigNum.deserialize(reader);
+    const index_path = [...path, "BigNum(index)"];
+    let index = BigNum.deserialize(reader, index_path);
 
-    let data = PlutusData.deserialize(reader);
+    const data_path = [...path, "PlutusData(data)"];
+    let data = PlutusData.deserialize(reader, data_path);
 
-    let ex_units = ExUnits.deserialize(reader);
+    const ex_units_path = [...path, "ExUnits(ex_units)"];
+    let ex_units = ExUnits.deserialize(reader, ex_units_path);
 
     return new Redeemer(tag, index, data, ex_units);
   }
@@ -10492,13 +11587,13 @@ export class Redeemer {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Redeemer {
+  static from_bytes(data: Uint8Array, path: string[] = ["Redeemer"]): Redeemer {
     let reader = new CBORReader(data);
-    return Redeemer.deserialize(reader);
+    return Redeemer.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Redeemer {
-    return Redeemer.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Redeemer"]): Redeemer {
+    return Redeemer.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -10511,8 +11606,8 @@ export class Redeemer {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Redeemer {
-    return Redeemer.from_bytes(this.to_bytes());
+  clone(path: string[]): Redeemer {
+    return Redeemer.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -10559,15 +11654,23 @@ export class RedeemerTag {
     return this.kind_;
   }
 
-  static deserialize(reader: CBORReader): RedeemerTag {
-    let kind = Number(reader.readInt());
+  static deserialize(reader: CBORReader, path: string[]): RedeemerTag {
+    let kind = Number(reader.readInt(path));
     if (kind == 0) return new RedeemerTag(0);
     if (kind == 1) return new RedeemerTag(1);
     if (kind == 2) return new RedeemerTag(2);
     if (kind == 3) return new RedeemerTag(3);
     if (kind == 4) return new RedeemerTag(4);
     if (kind == 5) return new RedeemerTag(5);
-    throw "Unrecognized enum value: " + kind + " for " + RedeemerTag;
+    throw (
+      "Unrecognized enum value: " +
+      kind +
+      " for " +
+      RedeemerTag +
+      "(at " +
+      path.join("/") +
+      ")"
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -10577,13 +11680,19 @@ export class RedeemerTag {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): RedeemerTag {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["RedeemerTag"],
+  ): RedeemerTag {
     let reader = new CBORReader(data);
-    return RedeemerTag.deserialize(reader);
+    return RedeemerTag.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): RedeemerTag {
-    return RedeemerTag.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["RedeemerTag"],
+  ): RedeemerTag {
+    return RedeemerTag.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -10596,8 +11705,8 @@ export class RedeemerTag {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): RedeemerTag {
-    return RedeemerTag.from_bytes(this.to_bytes());
+  clone(path: string[]): RedeemerTag {
+    return RedeemerTag.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -10628,13 +11737,16 @@ export class Redeemers {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Redeemers {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["Redeemers"],
+  ): Redeemers {
     let reader = new CBORReader(data);
-    return Redeemers.deserialize(reader);
+    return Redeemers.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Redeemers {
-    return Redeemers.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Redeemers"]): Redeemers {
+    return Redeemers.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -10647,8 +11759,8 @@ export class Redeemers {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Redeemers {
-    return Redeemers.from_bytes(this.to_bytes());
+  clone(path: string[]): Redeemers {
+    return Redeemers.from_bytes(this.to_bytes(), path);
   }
 
   total_ex_units(): ExUnits {
@@ -10661,35 +11773,46 @@ export class Redeemers {
     return ExUnits.new(mems, steps);
   }
 
-  static deserialize(reader: CBORReader): Redeemers {
-    if (reader.peekType() == "array") {
-      return Redeemers.deserializeArray(reader);
-    } else if (reader.peekType() == "map") {
-      return Redeemers.deserializeMap(reader);
+  static deserialize(reader: CBORReader, path: string[]): Redeemers {
+    if (reader.peekType(path) == "array") {
+      return Redeemers.deserializeArray(reader, path);
+    } else if (reader.peekType(path) == "map") {
+      return Redeemers.deserializeMap(reader, path);
     }
-    throw new Error("Expected either an array or a map");
+    throw new Error(
+      "Expected either an array or a map (at " + path.join("/") + ")",
+    );
   }
 
-  static deserializeArray(reader: CBORReader): Redeemers {
+  static deserializeArray(reader: CBORReader, path: string[]): Redeemers {
     let redeemers = Redeemers.new();
-    reader.readArray((reader) => {
-      let item = RedeemersArrayItem.deserialize(reader);
+    reader.readArray((reader, idx) => {
+      let item = RedeemersArrayItem.deserialize(reader, [
+        ...path,
+        "RedeemersArrayItem#" + idx,
+      ]);
       redeemers.add(
         Redeemer.new(item.tag(), item.index(), item.data(), item.ex_units()),
       );
-    });
+    }, path);
     return redeemers;
   }
 
-  static deserializeMap(reader: CBORReader): Redeemers {
+  static deserializeMap(reader: CBORReader, path: string[]): Redeemers {
     let redeemers = Redeemers.new();
-    reader.readMap((reader) => {
-      let key = RedeemersKey.deserialize(reader);
-      let value = RedeemersValue.deserialize(reader);
+    reader.readMap((reader, idx) => {
+      let key = RedeemersKey.deserialize(reader, [
+        ...path,
+        `RedeemersKey#${idx}`,
+      ]);
+      let value = RedeemersValue.deserialize(reader, [
+        ...path,
+        `RedeemersValue#${idx}`,
+      ]);
       redeemers.add(
         Redeemer.new(key.tag(), key.index(), value.data(), value.ex_units()),
       );
-    });
+    }, path);
     return redeemers;
   }
 
@@ -10762,22 +11885,29 @@ export class RedeemersArrayItem {
     this._ex_units = ex_units;
   }
 
-  static deserialize(reader: CBORReader): RedeemersArrayItem {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): RedeemersArrayItem {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " + len,
+        "Insufficient number of fields in record. Expected 4. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let tag = RedeemerTag.deserialize(reader);
+    const tag_path = [...path, "RedeemerTag(tag)"];
+    let tag = RedeemerTag.deserialize(reader, tag_path);
 
-    let index = BigNum.deserialize(reader);
+    const index_path = [...path, "BigNum(index)"];
+    let index = BigNum.deserialize(reader, index_path);
 
-    let data = PlutusData.deserialize(reader);
+    const data_path = [...path, "PlutusData(data)"];
+    let data = PlutusData.deserialize(reader, data_path);
 
-    let ex_units = ExUnits.deserialize(reader);
+    const ex_units_path = [...path, "ExUnits(ex_units)"];
+    let ex_units = ExUnits.deserialize(reader, ex_units_path);
 
     return new RedeemersArrayItem(tag, index, data, ex_units);
   }
@@ -10794,13 +11924,19 @@ export class RedeemersArrayItem {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): RedeemersArrayItem {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["RedeemersArrayItem"],
+  ): RedeemersArrayItem {
     let reader = new CBORReader(data);
-    return RedeemersArrayItem.deserialize(reader);
+    return RedeemersArrayItem.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): RedeemersArrayItem {
-    return RedeemersArrayItem.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["RedeemersArrayItem"],
+  ): RedeemersArrayItem {
+    return RedeemersArrayItem.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -10813,8 +11949,8 @@ export class RedeemersArrayItem {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): RedeemersArrayItem {
-    return RedeemersArrayItem.from_bytes(this.to_bytes());
+  clone(path: string[]): RedeemersArrayItem {
+    return RedeemersArrayItem.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -10847,18 +11983,23 @@ export class RedeemersKey {
     this._index = index;
   }
 
-  static deserialize(reader: CBORReader): RedeemersKey {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): RedeemersKey {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let tag = RedeemerTag.deserialize(reader);
+    const tag_path = [...path, "RedeemerTag(tag)"];
+    let tag = RedeemerTag.deserialize(reader, tag_path);
 
-    let index = BigNum.deserialize(reader);
+    const index_path = [...path, "BigNum(index)"];
+    let index = BigNum.deserialize(reader, index_path);
 
     return new RedeemersKey(tag, index);
   }
@@ -10873,13 +12014,19 @@ export class RedeemersKey {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): RedeemersKey {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["RedeemersKey"],
+  ): RedeemersKey {
     let reader = new CBORReader(data);
-    return RedeemersKey.deserialize(reader);
+    return RedeemersKey.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): RedeemersKey {
-    return RedeemersKey.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["RedeemersKey"],
+  ): RedeemersKey {
+    return RedeemersKey.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -10892,8 +12039,8 @@ export class RedeemersKey {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): RedeemersKey {
-    return RedeemersKey.from_bytes(this.to_bytes());
+  clone(path: string[]): RedeemersKey {
+    return RedeemersKey.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -10926,18 +12073,23 @@ export class RedeemersValue {
     this._ex_units = ex_units;
   }
 
-  static deserialize(reader: CBORReader): RedeemersValue {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): RedeemersValue {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let data = PlutusData.deserialize(reader);
+    const data_path = [...path, "PlutusData(data)"];
+    let data = PlutusData.deserialize(reader, data_path);
 
-    let ex_units = ExUnits.deserialize(reader);
+    const ex_units_path = [...path, "ExUnits(ex_units)"];
+    let ex_units = ExUnits.deserialize(reader, ex_units_path);
 
     return new RedeemersValue(data, ex_units);
   }
@@ -10952,13 +12104,19 @@ export class RedeemersValue {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): RedeemersValue {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["RedeemersValue"],
+  ): RedeemersValue {
     let reader = new CBORReader(data);
-    return RedeemersValue.deserialize(reader);
+    return RedeemersValue.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): RedeemersValue {
-    return RedeemersValue.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["RedeemersValue"],
+  ): RedeemersValue {
+    return RedeemersValue.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -10971,8 +12129,8 @@ export class RedeemersValue {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): RedeemersValue {
-    return RedeemersValue.from_bytes(this.to_bytes());
+  clone(path: string[]): RedeemersValue {
+    return RedeemersValue.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11005,10 +12163,13 @@ export class RegCert {
     this._coin = coin;
   }
 
-  static deserialize(reader: CBORReader): RegCert {
-    let stake_credential = Credential.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): RegCert {
+    let stake_credential = Credential.deserialize(reader, [
+      ...path,
+      "stake_credential",
+    ]);
 
-    let coin = BigNum.deserialize(reader);
+    let coin = BigNum.deserialize(reader, [...path, "coin"]);
 
     return new RegCert(stake_credential, coin);
   }
@@ -11021,13 +12182,13 @@ export class RegCert {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): RegCert {
+  static from_bytes(data: Uint8Array, path: string[] = ["RegCert"]): RegCert {
     let reader = new CBORReader(data);
-    return RegCert.deserialize(reader);
+    return RegCert.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): RegCert {
-    return RegCert.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["RegCert"]): RegCert {
+    return RegCert.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -11040,8 +12201,8 @@ export class RegCert {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): RegCert {
-    return RegCert.from_bytes(this.to_bytes());
+  clone(path: string[]): RegCert {
+    return RegCert.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11091,9 +12252,9 @@ export class Relay {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): Relay {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
+  static deserialize(reader: CBORReader, path: string[]): Relay {
+    let len = reader.readArrayTag(path);
+    let tag = Number(reader.readUint(path));
     let variant: RelayVariant;
 
     switch (tag) {
@@ -11103,7 +12264,10 @@ export class Relay {
         }
         variant = {
           kind: 0,
-          value: SingleHostAddr.deserialize(reader),
+          value: SingleHostAddr.deserialize(reader, [
+            ...path,
+            "SingleHostAddr",
+          ]),
         };
 
         break;
@@ -11114,7 +12278,10 @@ export class Relay {
         }
         variant = {
           kind: 1,
-          value: SingleHostName.deserialize(reader),
+          value: SingleHostName.deserialize(reader, [
+            ...path,
+            "SingleHostName",
+          ]),
         };
 
         break;
@@ -11125,7 +12292,7 @@ export class Relay {
         }
         variant = {
           kind: 2,
-          value: MultiHostName.deserialize(reader),
+          value: MultiHostName.deserialize(reader, [...path, "MultiHostName"]),
         };
 
         break;
@@ -11135,7 +12302,9 @@ export class Relay {
       reader.readBreak();
     }
 
-    throw new Error("Unexpected tag for Relay: " + tag);
+    throw new Error(
+      "Unexpected tag for Relay: " + tag + "(at " + path.join("/") + ")",
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -11161,13 +12330,13 @@ export class Relay {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Relay {
+  static from_bytes(data: Uint8Array, path: string[] = ["Relay"]): Relay {
     let reader = new CBORReader(data);
-    return Relay.deserialize(reader);
+    return Relay.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Relay {
-    return Relay.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Relay"]): Relay {
+    return Relay.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -11180,8 +12349,8 @@ export class Relay {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Relay {
-    return Relay.from_bytes(this.to_bytes());
+  clone(path: string[]): Relay {
+    return Relay.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11209,8 +12378,13 @@ export class Relays {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): Relays {
-    return new Relays(reader.readArray((reader) => Relay.deserialize(reader)));
+  static deserialize(reader: CBORReader, path: string[]): Relays {
+    return new Relays(
+      reader.readArray(
+        (reader, idx) => Relay.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -11220,13 +12394,13 @@ export class Relays {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Relays {
+  static from_bytes(data: Uint8Array, path: string[] = ["Relays"]): Relays {
     let reader = new CBORReader(data);
-    return Relays.deserialize(reader);
+    return Relays.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Relays {
-    return Relays.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Relays"]): Relays {
+    return Relays.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -11239,8 +12413,8 @@ export class Relays {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Relays {
-    return Relays.from_bytes(this.to_bytes());
+  clone(path: string[]): Relays {
+    return Relays.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11268,9 +12442,13 @@ export class RewardAddresses {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): RewardAddresses {
+  static deserialize(reader: CBORReader, path: string[]): RewardAddresses {
     return new RewardAddresses(
-      reader.readArray((reader) => RewardAddress.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          RewardAddress.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -11281,13 +12459,19 @@ export class RewardAddresses {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): RewardAddresses {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["RewardAddresses"],
+  ): RewardAddresses {
     let reader = new CBORReader(data);
-    return RewardAddresses.deserialize(reader);
+    return RewardAddresses.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): RewardAddresses {
-    return RewardAddresses.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["RewardAddresses"],
+  ): RewardAddresses {
+    return RewardAddresses.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -11300,8 +12484,8 @@ export class RewardAddresses {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): RewardAddresses {
-    return RewardAddresses.from_bytes(this.to_bytes());
+  clone(path: string[]): RewardAddresses {
+    return RewardAddresses.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11324,8 +12508,11 @@ export class ScriptAll {
     this._native_scripts = native_scripts;
   }
 
-  static deserialize(reader: CBORReader): ScriptAll {
-    let native_scripts = NativeScripts.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): ScriptAll {
+    let native_scripts = NativeScripts.deserialize(reader, [
+      ...path,
+      "native_scripts",
+    ]);
 
     return new ScriptAll(native_scripts);
   }
@@ -11337,13 +12524,16 @@ export class ScriptAll {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ScriptAll {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ScriptAll"],
+  ): ScriptAll {
     let reader = new CBORReader(data);
-    return ScriptAll.deserialize(reader);
+    return ScriptAll.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ScriptAll {
-    return ScriptAll.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["ScriptAll"]): ScriptAll {
+    return ScriptAll.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -11356,8 +12546,8 @@ export class ScriptAll {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ScriptAll {
-    return ScriptAll.from_bytes(this.to_bytes());
+  clone(path: string[]): ScriptAll {
+    return ScriptAll.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11380,8 +12570,11 @@ export class ScriptAny {
     this._native_scripts = native_scripts;
   }
 
-  static deserialize(reader: CBORReader): ScriptAny {
-    let native_scripts = NativeScripts.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): ScriptAny {
+    let native_scripts = NativeScripts.deserialize(reader, [
+      ...path,
+      "native_scripts",
+    ]);
 
     return new ScriptAny(native_scripts);
   }
@@ -11393,13 +12586,16 @@ export class ScriptAny {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ScriptAny {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ScriptAny"],
+  ): ScriptAny {
     let reader = new CBORReader(data);
-    return ScriptAny.deserialize(reader);
+    return ScriptAny.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ScriptAny {
-    return ScriptAny.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["ScriptAny"]): ScriptAny {
+    return ScriptAny.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -11412,8 +12608,8 @@ export class ScriptAny {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ScriptAny {
-    return ScriptAny.from_bytes(this.to_bytes());
+  clone(path: string[]): ScriptAny {
+    return ScriptAny.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11466,8 +12662,8 @@ export class ScriptDataHash {
     return ScriptDataHash.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): ScriptDataHash {
-    return new ScriptDataHash(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): ScriptDataHash {
+    return new ScriptDataHash(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -11524,8 +12720,8 @@ export class ScriptHash {
     return ScriptHash.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): ScriptHash {
-    return new ScriptHash(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): ScriptHash {
+    return new ScriptHash(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -11557,9 +12753,13 @@ export class ScriptHashes {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): ScriptHashes {
+  static deserialize(reader: CBORReader, path: string[]): ScriptHashes {
     return new ScriptHashes(
-      reader.readArray((reader) => ScriptHash.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          ScriptHash.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -11570,13 +12770,19 @@ export class ScriptHashes {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ScriptHashes {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ScriptHashes"],
+  ): ScriptHashes {
     let reader = new CBORReader(data);
-    return ScriptHashes.deserialize(reader);
+    return ScriptHashes.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ScriptHashes {
-    return ScriptHashes.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["ScriptHashes"],
+  ): ScriptHashes {
+    return ScriptHashes.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -11589,8 +12795,8 @@ export class ScriptHashes {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ScriptHashes {
-    return ScriptHashes.from_bytes(this.to_bytes());
+  clone(path: string[]): ScriptHashes {
+    return ScriptHashes.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11623,10 +12829,13 @@ export class ScriptNOfK {
     this._native_scripts = native_scripts;
   }
 
-  static deserialize(reader: CBORReader): ScriptNOfK {
-    let n = Number(reader.readInt());
+  static deserialize(reader: CBORReader, path: string[]): ScriptNOfK {
+    let n = Number(reader.readInt([...path, "n"]));
 
-    let native_scripts = NativeScripts.deserialize(reader);
+    let native_scripts = NativeScripts.deserialize(reader, [
+      ...path,
+      "native_scripts",
+    ]);
 
     return new ScriptNOfK(n, native_scripts);
   }
@@ -11639,13 +12848,19 @@ export class ScriptNOfK {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ScriptNOfK {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ScriptNOfK"],
+  ): ScriptNOfK {
     let reader = new CBORReader(data);
-    return ScriptNOfK.deserialize(reader);
+    return ScriptNOfK.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ScriptNOfK {
-    return ScriptNOfK.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["ScriptNOfK"],
+  ): ScriptNOfK {
+    return ScriptNOfK.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -11658,8 +12873,8 @@ export class ScriptNOfK {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ScriptNOfK {
-    return ScriptNOfK.from_bytes(this.to_bytes());
+  clone(path: string[]): ScriptNOfK {
+    return ScriptNOfK.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11678,8 +12893,8 @@ export class ScriptPubkey {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): ScriptPubkey {
-    return new ScriptPubkey(Ed25519KeyHash.deserialize(reader));
+  static deserialize(reader: CBORReader, path: string[]): ScriptPubkey {
+    return new ScriptPubkey(Ed25519KeyHash.deserialize(reader, path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -11689,13 +12904,19 @@ export class ScriptPubkey {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ScriptPubkey {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ScriptPubkey"],
+  ): ScriptPubkey {
     let reader = new CBORReader(data);
-    return ScriptPubkey.deserialize(reader);
+    return ScriptPubkey.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ScriptPubkey {
-    return ScriptPubkey.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["ScriptPubkey"],
+  ): ScriptPubkey {
+    return ScriptPubkey.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -11708,8 +12929,8 @@ export class ScriptPubkey {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ScriptPubkey {
-    return ScriptPubkey.from_bytes(this.to_bytes());
+  clone(path: string[]): ScriptPubkey {
+    return ScriptPubkey.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11732,8 +12953,11 @@ export class ScriptPubname {
     this._addr_keyhash = addr_keyhash;
   }
 
-  static deserialize(reader: CBORReader): ScriptPubname {
-    let addr_keyhash = Ed25519KeyHash.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): ScriptPubname {
+    let addr_keyhash = Ed25519KeyHash.deserialize(reader, [
+      ...path,
+      "addr_keyhash",
+    ]);
 
     return new ScriptPubname(addr_keyhash);
   }
@@ -11745,13 +12969,19 @@ export class ScriptPubname {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ScriptPubname {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ScriptPubname"],
+  ): ScriptPubname {
     let reader = new CBORReader(data);
-    return ScriptPubname.deserialize(reader);
+    return ScriptPubname.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ScriptPubname {
-    return ScriptPubname.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["ScriptPubname"],
+  ): ScriptPubname {
+    return ScriptPubname.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -11764,8 +12994,8 @@ export class ScriptPubname {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ScriptPubname {
-    return ScriptPubname.from_bytes(this.to_bytes());
+  clone(path: string[]): ScriptPubname {
+    return ScriptPubname.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11825,9 +13055,9 @@ export class ScriptRef {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): ScriptRef {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
+  static deserialize(reader: CBORReader, path: string[]): ScriptRef {
+    let len = reader.readArrayTag(path);
+    let tag = Number(reader.readUint(path));
     let variant: ScriptRefVariant;
 
     switch (tag) {
@@ -11837,7 +13067,7 @@ export class ScriptRef {
         }
         variant = {
           kind: 0,
-          value: NativeScript.deserialize(reader),
+          value: NativeScript.deserialize(reader, [...path, "NativeScript"]),
         };
 
         break;
@@ -11848,7 +13078,7 @@ export class ScriptRef {
         }
         variant = {
           kind: 1,
-          value: PlutusScript.deserialize(reader),
+          value: PlutusScript.deserialize(reader, [...path, "PlutusScript"]),
         };
 
         break;
@@ -11859,7 +13089,7 @@ export class ScriptRef {
         }
         variant = {
           kind: 2,
-          value: PlutusScript.deserialize(reader),
+          value: PlutusScript.deserialize(reader, [...path, "PlutusScript"]),
         };
 
         break;
@@ -11870,7 +13100,7 @@ export class ScriptRef {
         }
         variant = {
           kind: 3,
-          value: PlutusScript.deserialize(reader),
+          value: PlutusScript.deserialize(reader, [...path, "PlutusScript"]),
         };
 
         break;
@@ -11880,7 +13110,9 @@ export class ScriptRef {
       reader.readBreak();
     }
 
-    throw new Error("Unexpected tag for ScriptRef: " + tag);
+    throw new Error(
+      "Unexpected tag for ScriptRef: " + tag + "(at " + path.join("/") + ")",
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -11911,13 +13143,16 @@ export class ScriptRef {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): ScriptRef {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["ScriptRef"],
+  ): ScriptRef {
     let reader = new CBORReader(data);
-    return ScriptRef.deserialize(reader);
+    return ScriptRef.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): ScriptRef {
-    return ScriptRef.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["ScriptRef"]): ScriptRef {
+    return ScriptRef.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -11930,8 +13165,8 @@ export class ScriptRef {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): ScriptRef {
-    return ScriptRef.from_bytes(this.to_bytes());
+  clone(path: string[]): ScriptRef {
+    return ScriptRef.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11982,12 +13217,22 @@ export class SingleHostAddr {
     this._ipv6 = ipv6;
   }
 
-  static deserialize(reader: CBORReader): SingleHostAddr {
-    let port = reader.readNullable((r) => Number(r.readInt())) ?? undefined;
+  static deserialize(reader: CBORReader, path: string[]): SingleHostAddr {
+    let port =
+      reader.readNullable((r) => Number(r.readInt([...path, "port"])), path) ??
+      undefined;
 
-    let ipv4 = reader.readNullable((r) => Ipv4.deserialize(r)) ?? undefined;
+    let ipv4 =
+      reader.readNullable(
+        (r) => Ipv4.deserialize(r, [...path, "ipv4"]),
+        path,
+      ) ?? undefined;
 
-    let ipv6 = reader.readNullable((r) => Ipv6.deserialize(r)) ?? undefined;
+    let ipv6 =
+      reader.readNullable(
+        (r) => Ipv6.deserialize(r, [...path, "ipv6"]),
+        path,
+      ) ?? undefined;
 
     return new SingleHostAddr(port, ipv4, ipv6);
   }
@@ -12013,13 +13258,19 @@ export class SingleHostAddr {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): SingleHostAddr {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["SingleHostAddr"],
+  ): SingleHostAddr {
     let reader = new CBORReader(data);
-    return SingleHostAddr.deserialize(reader);
+    return SingleHostAddr.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): SingleHostAddr {
-    return SingleHostAddr.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["SingleHostAddr"],
+  ): SingleHostAddr {
+    return SingleHostAddr.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -12032,8 +13283,8 @@ export class SingleHostAddr {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): SingleHostAddr {
-    return SingleHostAddr.from_bytes(this.to_bytes());
+  clone(path: string[]): SingleHostAddr {
+    return SingleHostAddr.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -12066,10 +13317,12 @@ export class SingleHostName {
     this._dns_name = dns_name;
   }
 
-  static deserialize(reader: CBORReader): SingleHostName {
-    let port = reader.readNullable((r) => Number(r.readInt())) ?? undefined;
+  static deserialize(reader: CBORReader, path: string[]): SingleHostName {
+    let port =
+      reader.readNullable((r) => Number(r.readInt([...path, "port"])), path) ??
+      undefined;
 
-    let dns_name = DNSRecordAorAAAA.deserialize(reader);
+    let dns_name = DNSRecordAorAAAA.deserialize(reader, [...path, "dns_name"]);
 
     return new SingleHostName(port, dns_name);
   }
@@ -12086,13 +13339,19 @@ export class SingleHostName {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): SingleHostName {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["SingleHostName"],
+  ): SingleHostName {
     let reader = new CBORReader(data);
-    return SingleHostName.deserialize(reader);
+    return SingleHostName.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): SingleHostName {
-    return SingleHostName.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["SingleHostName"],
+  ): SingleHostName {
+    return SingleHostName.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -12105,8 +13364,8 @@ export class SingleHostName {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): SingleHostName {
-    return SingleHostName.from_bytes(this.to_bytes());
+  clone(path: string[]): SingleHostName {
+    return SingleHostName.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -12157,12 +13416,21 @@ export class StakeAndVoteDelegation {
     this._drep = drep;
   }
 
-  static deserialize(reader: CBORReader): StakeAndVoteDelegation {
-    let stake_credential = Credential.deserialize(reader);
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): StakeAndVoteDelegation {
+    let stake_credential = Credential.deserialize(reader, [
+      ...path,
+      "stake_credential",
+    ]);
 
-    let pool_keyhash = Ed25519KeyHash.deserialize(reader);
+    let pool_keyhash = Ed25519KeyHash.deserialize(reader, [
+      ...path,
+      "pool_keyhash",
+    ]);
 
-    let drep = DRep.deserialize(reader);
+    let drep = DRep.deserialize(reader, [...path, "drep"]);
 
     return new StakeAndVoteDelegation(stake_credential, pool_keyhash, drep);
   }
@@ -12176,13 +13444,19 @@ export class StakeAndVoteDelegation {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): StakeAndVoteDelegation {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["StakeAndVoteDelegation"],
+  ): StakeAndVoteDelegation {
     let reader = new CBORReader(data);
-    return StakeAndVoteDelegation.deserialize(reader);
+    return StakeAndVoteDelegation.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): StakeAndVoteDelegation {
-    return StakeAndVoteDelegation.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["StakeAndVoteDelegation"],
+  ): StakeAndVoteDelegation {
+    return StakeAndVoteDelegation.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -12195,8 +13469,8 @@ export class StakeAndVoteDelegation {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): StakeAndVoteDelegation {
-    return StakeAndVoteDelegation.from_bytes(this.to_bytes());
+  clone(path: string[]): StakeAndVoteDelegation {
+    return StakeAndVoteDelegation.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -12229,10 +13503,16 @@ export class StakeDelegation {
     this._pool_keyhash = pool_keyhash;
   }
 
-  static deserialize(reader: CBORReader): StakeDelegation {
-    let stake_credential = Credential.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): StakeDelegation {
+    let stake_credential = Credential.deserialize(reader, [
+      ...path,
+      "stake_credential",
+    ]);
 
-    let pool_keyhash = Ed25519KeyHash.deserialize(reader);
+    let pool_keyhash = Ed25519KeyHash.deserialize(reader, [
+      ...path,
+      "pool_keyhash",
+    ]);
 
     return new StakeDelegation(stake_credential, pool_keyhash);
   }
@@ -12245,13 +13525,19 @@ export class StakeDelegation {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): StakeDelegation {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["StakeDelegation"],
+  ): StakeDelegation {
     let reader = new CBORReader(data);
-    return StakeDelegation.deserialize(reader);
+    return StakeDelegation.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): StakeDelegation {
-    return StakeDelegation.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["StakeDelegation"],
+  ): StakeDelegation {
+    return StakeDelegation.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -12264,8 +13550,8 @@ export class StakeDelegation {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): StakeDelegation {
-    return StakeDelegation.from_bytes(this.to_bytes());
+  clone(path: string[]): StakeDelegation {
+    return StakeDelegation.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -12288,8 +13574,11 @@ export class StakeDeregistration {
     this._stake_credential = stake_credential;
   }
 
-  static deserialize(reader: CBORReader): StakeDeregistration {
-    let stake_credential = Credential.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): StakeDeregistration {
+    let stake_credential = Credential.deserialize(reader, [
+      ...path,
+      "stake_credential",
+    ]);
 
     return new StakeDeregistration(stake_credential);
   }
@@ -12301,13 +13590,19 @@ export class StakeDeregistration {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): StakeDeregistration {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["StakeDeregistration"],
+  ): StakeDeregistration {
     let reader = new CBORReader(data);
-    return StakeDeregistration.deserialize(reader);
+    return StakeDeregistration.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): StakeDeregistration {
-    return StakeDeregistration.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["StakeDeregistration"],
+  ): StakeDeregistration {
+    return StakeDeregistration.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -12320,8 +13615,8 @@ export class StakeDeregistration {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): StakeDeregistration {
-    return StakeDeregistration.from_bytes(this.to_bytes());
+  clone(path: string[]): StakeDeregistration {
+    return StakeDeregistration.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -12344,8 +13639,11 @@ export class StakeRegistration {
     this._stake_credential = stake_credential;
   }
 
-  static deserialize(reader: CBORReader): StakeRegistration {
-    let stake_credential = Credential.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): StakeRegistration {
+    let stake_credential = Credential.deserialize(reader, [
+      ...path,
+      "stake_credential",
+    ]);
 
     return new StakeRegistration(stake_credential);
   }
@@ -12357,13 +13655,19 @@ export class StakeRegistration {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): StakeRegistration {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["StakeRegistration"],
+  ): StakeRegistration {
     let reader = new CBORReader(data);
-    return StakeRegistration.deserialize(reader);
+    return StakeRegistration.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): StakeRegistration {
-    return StakeRegistration.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["StakeRegistration"],
+  ): StakeRegistration {
+    return StakeRegistration.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -12376,8 +13680,8 @@ export class StakeRegistration {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): StakeRegistration {
-    return StakeRegistration.from_bytes(this.to_bytes());
+  clone(path: string[]): StakeRegistration {
+    return StakeRegistration.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -12432,12 +13736,21 @@ export class StakeRegistrationAndDelegation {
     this._coin = coin;
   }
 
-  static deserialize(reader: CBORReader): StakeRegistrationAndDelegation {
-    let stake_credential = Credential.deserialize(reader);
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): StakeRegistrationAndDelegation {
+    let stake_credential = Credential.deserialize(reader, [
+      ...path,
+      "stake_credential",
+    ]);
 
-    let pool_keyhash = Ed25519KeyHash.deserialize(reader);
+    let pool_keyhash = Ed25519KeyHash.deserialize(reader, [
+      ...path,
+      "pool_keyhash",
+    ]);
 
-    let coin = BigNum.deserialize(reader);
+    let coin = BigNum.deserialize(reader, [...path, "coin"]);
 
     return new StakeRegistrationAndDelegation(
       stake_credential,
@@ -12455,13 +13768,19 @@ export class StakeRegistrationAndDelegation {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): StakeRegistrationAndDelegation {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["StakeRegistrationAndDelegation"],
+  ): StakeRegistrationAndDelegation {
     let reader = new CBORReader(data);
-    return StakeRegistrationAndDelegation.deserialize(reader);
+    return StakeRegistrationAndDelegation.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): StakeRegistrationAndDelegation {
-    return StakeRegistrationAndDelegation.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["StakeRegistrationAndDelegation"],
+  ): StakeRegistrationAndDelegation {
+    return StakeRegistrationAndDelegation.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -12474,8 +13793,8 @@ export class StakeRegistrationAndDelegation {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): StakeRegistrationAndDelegation {
-    return StakeRegistrationAndDelegation.from_bytes(this.to_bytes());
+  clone(path: string[]): StakeRegistrationAndDelegation {
+    return StakeRegistrationAndDelegation.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -12543,14 +13862,23 @@ export class StakeVoteRegistrationAndDelegation {
     this._coin = coin;
   }
 
-  static deserialize(reader: CBORReader): StakeVoteRegistrationAndDelegation {
-    let stake_credential = Credential.deserialize(reader);
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): StakeVoteRegistrationAndDelegation {
+    let stake_credential = Credential.deserialize(reader, [
+      ...path,
+      "stake_credential",
+    ]);
 
-    let pool_keyhash = Ed25519KeyHash.deserialize(reader);
+    let pool_keyhash = Ed25519KeyHash.deserialize(reader, [
+      ...path,
+      "pool_keyhash",
+    ]);
 
-    let drep = DRep.deserialize(reader);
+    let drep = DRep.deserialize(reader, [...path, "drep"]);
 
-    let coin = BigNum.deserialize(reader);
+    let coin = BigNum.deserialize(reader, [...path, "coin"]);
 
     return new StakeVoteRegistrationAndDelegation(
       stake_credential,
@@ -12570,13 +13898,22 @@ export class StakeVoteRegistrationAndDelegation {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): StakeVoteRegistrationAndDelegation {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["StakeVoteRegistrationAndDelegation"],
+  ): StakeVoteRegistrationAndDelegation {
     let reader = new CBORReader(data);
-    return StakeVoteRegistrationAndDelegation.deserialize(reader);
+    return StakeVoteRegistrationAndDelegation.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): StakeVoteRegistrationAndDelegation {
-    return StakeVoteRegistrationAndDelegation.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["StakeVoteRegistrationAndDelegation"],
+  ): StakeVoteRegistrationAndDelegation {
+    return StakeVoteRegistrationAndDelegation.from_bytes(
+      hexToBytes(hex_str),
+      path,
+    );
   }
 
   to_bytes(): Uint8Array {
@@ -12589,8 +13926,8 @@ export class StakeVoteRegistrationAndDelegation {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): StakeVoteRegistrationAndDelegation {
-    return StakeVoteRegistrationAndDelegation.from_bytes(this.to_bytes());
+  clone(path: string[]): StakeVoteRegistrationAndDelegation {
+    return StakeVoteRegistrationAndDelegation.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -12613,8 +13950,8 @@ export class TimelockExpiry {
     this._slot = slot;
   }
 
-  static deserialize(reader: CBORReader): TimelockExpiry {
-    let slot = BigNum.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): TimelockExpiry {
+    let slot = BigNum.deserialize(reader, [...path, "slot"]);
 
     return new TimelockExpiry(slot);
   }
@@ -12626,13 +13963,19 @@ export class TimelockExpiry {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TimelockExpiry {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TimelockExpiry"],
+  ): TimelockExpiry {
     let reader = new CBORReader(data);
-    return TimelockExpiry.deserialize(reader);
+    return TimelockExpiry.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TimelockExpiry {
-    return TimelockExpiry.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TimelockExpiry"],
+  ): TimelockExpiry {
+    return TimelockExpiry.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -12645,8 +13988,8 @@ export class TimelockExpiry {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TimelockExpiry {
-    return TimelockExpiry.from_bytes(this.to_bytes());
+  clone(path: string[]): TimelockExpiry {
+    return TimelockExpiry.from_bytes(this.to_bytes(), path);
   }
 
   slot(): number {
@@ -12677,8 +14020,8 @@ export class TimelockStart {
     this._slot = slot;
   }
 
-  static deserialize(reader: CBORReader): TimelockStart {
-    let slot = BigNum.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): TimelockStart {
+    let slot = BigNum.deserialize(reader, [...path, "slot"]);
 
     return new TimelockStart(slot);
   }
@@ -12690,13 +14033,19 @@ export class TimelockStart {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TimelockStart {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TimelockStart"],
+  ): TimelockStart {
     let reader = new CBORReader(data);
-    return TimelockStart.deserialize(reader);
+    return TimelockStart.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TimelockStart {
-    return TimelockStart.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TimelockStart"],
+  ): TimelockStart {
+    return TimelockStart.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -12709,8 +14058,8 @@ export class TimelockStart {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TimelockStart {
-    return TimelockStart.from_bytes(this.to_bytes());
+  clone(path: string[]): TimelockStart {
+    return TimelockStart.from_bytes(this.to_bytes(), path);
   }
 
   slot(): number {
@@ -12772,23 +14121,36 @@ export class Transaction {
     this._auxiliary_data = auxiliary_data;
   }
 
-  static deserialize(reader: CBORReader): Transaction {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): Transaction {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " + len,
+        "Insufficient number of fields in record. Expected 4. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let body = TransactionBody.deserialize(reader);
+    const body_path = [...path, "TransactionBody(body)"];
+    let body = TransactionBody.deserialize(reader, body_path);
 
-    let witness_set = TransactionWitnessSet.deserialize(reader);
+    const witness_set_path = [...path, "TransactionWitnessSet(witness_set)"];
+    let witness_set = TransactionWitnessSet.deserialize(
+      reader,
+      witness_set_path,
+    );
 
-    let is_valid = reader.readBoolean();
+    const is_valid_path = [...path, "boolean(is_valid)"];
+    let is_valid = reader.readBoolean(is_valid_path);
 
+    const auxiliary_data_path = [...path, "AuxiliaryData(auxiliary_data)"];
     let auxiliary_data =
-      reader.readNullable((r) => AuxiliaryData.deserialize(r)) ?? undefined;
+      reader.readNullable(
+        (r) => AuxiliaryData.deserialize(r, auxiliary_data_path),
+        path,
+      ) ?? undefined;
 
     return new Transaction(body, witness_set, is_valid, auxiliary_data);
   }
@@ -12809,13 +14171,19 @@ export class Transaction {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Transaction {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["Transaction"],
+  ): Transaction {
     let reader = new CBORReader(data);
-    return Transaction.deserialize(reader);
+    return Transaction.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Transaction {
-    return Transaction.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["Transaction"],
+  ): Transaction {
+    return Transaction.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -12828,8 +14196,8 @@ export class Transaction {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Transaction {
-    return Transaction.from_bytes(this.to_bytes());
+  clone(path: string[]): Transaction {
+    return Transaction.from_bytes(this.to_bytes(), path);
   }
 
   static new(
@@ -12865,9 +14233,13 @@ export class TransactionBodies {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): TransactionBodies {
+  static deserialize(reader: CBORReader, path: string[]): TransactionBodies {
     return new TransactionBodies(
-      reader.readArray((reader) => TransactionBody.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          TransactionBody.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -12878,13 +14250,19 @@ export class TransactionBodies {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionBodies {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionBodies"],
+  ): TransactionBodies {
     let reader = new CBORReader(data);
-    return TransactionBodies.deserialize(reader);
+    return TransactionBodies.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TransactionBodies {
-    return TransactionBodies.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionBodies"],
+  ): TransactionBodies {
+    return TransactionBodies.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -12897,8 +14275,8 @@ export class TransactionBodies {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TransactionBodies {
-    return TransactionBodies.from_bytes(this.to_bytes());
+  clone(path: string[]): TransactionBodies {
+    return TransactionBodies.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -13134,101 +14512,150 @@ export class TransactionBody {
     this._donation = donation;
   }
 
-  static deserialize(reader: CBORReader): TransactionBody {
+  static deserialize(reader: CBORReader, path: string[]): TransactionBody {
     let fields: any = {};
     reader.readMap((r) => {
-      let key = Number(r.readUint());
+      let key = Number(r.readUint(path));
       switch (key) {
-        case 0:
-          fields.inputs = TransactionInputs.deserialize(r);
+        case 0: {
+          const new_path = [...path, "TransactionInputs(inputs)"];
+          fields.inputs = TransactionInputs.deserialize(r, new_path);
           break;
+        }
 
-        case 1:
-          fields.outputs = TransactionOutputs.deserialize(r);
+        case 1: {
+          const new_path = [...path, "TransactionOutputs(outputs)"];
+          fields.outputs = TransactionOutputs.deserialize(r, new_path);
           break;
+        }
 
-        case 2:
-          fields.fee = BigNum.deserialize(r);
+        case 2: {
+          const new_path = [...path, "BigNum(fee)"];
+          fields.fee = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 3:
-          fields.ttl = BigNum.deserialize(r);
+        case 3: {
+          const new_path = [...path, "BigNum(ttl)"];
+          fields.ttl = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 4:
-          fields.certs = Certificates.deserialize(r);
+        case 4: {
+          const new_path = [...path, "Certificates(certs)"];
+          fields.certs = Certificates.deserialize(r, new_path);
           break;
+        }
 
-        case 5:
-          fields.withdrawals = Withdrawals.deserialize(r);
+        case 5: {
+          const new_path = [...path, "Withdrawals(withdrawals)"];
+          fields.withdrawals = Withdrawals.deserialize(r, new_path);
           break;
+        }
 
-        case 7:
-          fields.auxiliary_data_hash = AuxiliaryDataHash.deserialize(r);
+        case 7: {
+          const new_path = [...path, "AuxiliaryDataHash(auxiliary_data_hash)"];
+          fields.auxiliary_data_hash = AuxiliaryDataHash.deserialize(
+            r,
+            new_path,
+          );
           break;
+        }
 
-        case 8:
-          fields.validity_start_interval = BigNum.deserialize(r);
+        case 8: {
+          const new_path = [...path, "BigNum(validity_start_interval)"];
+          fields.validity_start_interval = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 9:
-          fields.mint = Mint.deserialize(r);
+        case 9: {
+          const new_path = [...path, "Mint(mint)"];
+          fields.mint = Mint.deserialize(r, new_path);
           break;
+        }
 
-        case 11:
-          fields.script_data_hash = ScriptDataHash.deserialize(r);
+        case 11: {
+          const new_path = [...path, "ScriptDataHash(script_data_hash)"];
+          fields.script_data_hash = ScriptDataHash.deserialize(r, new_path);
           break;
+        }
 
-        case 13:
-          fields.collateral = TransactionInputs.deserialize(r);
+        case 13: {
+          const new_path = [...path, "TransactionInputs(collateral)"];
+          fields.collateral = TransactionInputs.deserialize(r, new_path);
           break;
+        }
 
-        case 14:
-          fields.required_signers = Ed25519KeyHashes.deserialize(r);
+        case 14: {
+          const new_path = [...path, "Ed25519KeyHashes(required_signers)"];
+          fields.required_signers = Ed25519KeyHashes.deserialize(r, new_path);
           break;
+        }
 
-        case 15:
-          fields.network_id = NetworkId.deserialize(r);
+        case 15: {
+          const new_path = [...path, "NetworkId(network_id)"];
+          fields.network_id = NetworkId.deserialize(r, new_path);
           break;
+        }
 
-        case 16:
-          fields.collateral_return = TransactionOutput.deserialize(r);
+        case 16: {
+          const new_path = [...path, "TransactionOutput(collateral_return)"];
+          fields.collateral_return = TransactionOutput.deserialize(r, new_path);
           break;
+        }
 
-        case 17:
-          fields.total_collateral = BigNum.deserialize(r);
+        case 17: {
+          const new_path = [...path, "BigNum(total_collateral)"];
+          fields.total_collateral = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 18:
-          fields.reference_inputs = TransactionInputs.deserialize(r);
+        case 18: {
+          const new_path = [...path, "TransactionInputs(reference_inputs)"];
+          fields.reference_inputs = TransactionInputs.deserialize(r, new_path);
           break;
+        }
 
-        case 19:
-          fields.voting_procedures = VotingProcedures.deserialize(r);
+        case 19: {
+          const new_path = [...path, "VotingProcedures(voting_procedures)"];
+          fields.voting_procedures = VotingProcedures.deserialize(r, new_path);
           break;
+        }
 
-        case 20:
-          fields.voting_proposals = VotingProposals.deserialize(r);
+        case 20: {
+          const new_path = [...path, "VotingProposals(voting_proposals)"];
+          fields.voting_proposals = VotingProposals.deserialize(r, new_path);
           break;
+        }
 
-        case 21:
-          fields.current_treasury_value = BigNum.deserialize(r);
+        case 21: {
+          const new_path = [...path, "BigNum(current_treasury_value)"];
+          fields.current_treasury_value = BigNum.deserialize(r, new_path);
           break;
+        }
 
-        case 22:
-          fields.donation = BigNum.deserialize(r);
+        case 22: {
+          const new_path = [...path, "BigNum(donation)"];
+          fields.donation = BigNum.deserialize(r, new_path);
           break;
+        }
       }
-    });
+    }, path);
 
     if (fields.inputs === undefined)
-      throw new Error("Value not provided for field 0 (inputs)");
+      throw new Error(
+        "Value not provided for field 0 (inputs) (at " + path.join("/") + ")",
+      );
     let inputs = fields.inputs;
     if (fields.outputs === undefined)
-      throw new Error("Value not provided for field 1 (outputs)");
+      throw new Error(
+        "Value not provided for field 1 (outputs) (at " + path.join("/") + ")",
+      );
     let outputs = fields.outputs;
     if (fields.fee === undefined)
-      throw new Error("Value not provided for field 2 (fee)");
+      throw new Error(
+        "Value not provided for field 2 (fee) (at " + path.join("/") + ")",
+      );
     let fee = fields.fee;
 
     let ttl = fields.ttl;
@@ -13392,13 +14819,19 @@ export class TransactionBody {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionBody {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionBody"],
+  ): TransactionBody {
     let reader = new CBORReader(data);
-    return TransactionBody.deserialize(reader);
+    return TransactionBody.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TransactionBody {
-    return TransactionBody.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionBody"],
+  ): TransactionBody {
+    return TransactionBody.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -13411,8 +14844,8 @@ export class TransactionBody {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TransactionBody {
-    return TransactionBody.from_bytes(this.to_bytes());
+  clone(path: string[]): TransactionBody {
+    return TransactionBody.from_bytes(this.to_bytes(), path);
   }
 
   ttl(): number | undefined {
@@ -13437,11 +14870,12 @@ export class TransactionBody {
     inputs: TransactionInputs,
     outputs: TransactionOutputs,
     fee: BigNum,
+    path: string[] = ["TransactionBody"],
     ttl?: number,
   ): TransactionBody {
     return new TransactionBody(
-      inputs.clone(),
-      outputs.clone(),
+      inputs.clone([...path, "TransactionInputs"]),
+      outputs.clone([...path, "TransactionOutputs"]),
       fee,
       ttl != null ? BigNum._from_number(ttl) : undefined,
       undefined,
@@ -13467,8 +14901,9 @@ export class TransactionBody {
     inputs: TransactionInputs,
     outputs: TransactionOutputs,
     fee: BigNum,
+    path: string[],
   ): TransactionBody {
-    return TransactionBody.new(inputs, outputs, fee, undefined);
+    return TransactionBody.new(inputs, outputs, fee, path, undefined);
   }
 }
 
@@ -13521,8 +14956,8 @@ export class TransactionHash {
     return TransactionHash.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): TransactionHash {
-    return new TransactionHash(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): TransactionHash {
+    return new TransactionHash(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -13559,18 +14994,26 @@ export class TransactionInput {
     this._index = index;
   }
 
-  static deserialize(reader: CBORReader): TransactionInput {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): TransactionInput {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let transaction_id = TransactionHash.deserialize(reader);
+    const transaction_id_path = [...path, "TransactionHash(transaction_id)"];
+    let transaction_id = TransactionHash.deserialize(
+      reader,
+      transaction_id_path,
+    );
 
-    let index = Number(reader.readInt());
+    const index_path = [...path, "number(index)"];
+    let index = Number(reader.readInt(index_path));
 
     return new TransactionInput(transaction_id, index);
   }
@@ -13585,13 +15028,19 @@ export class TransactionInput {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionInput {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionInput"],
+  ): TransactionInput {
     let reader = new CBORReader(data);
-    return TransactionInput.deserialize(reader);
+    return TransactionInput.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TransactionInput {
-    return TransactionInput.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionInput"],
+  ): TransactionInput {
+    return TransactionInput.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -13604,8 +15053,8 @@ export class TransactionInput {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TransactionInput {
-    return TransactionInput.from_bytes(this.to_bytes());
+  clone(path: string[]): TransactionInput {
+    return TransactionInput.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -13644,13 +15093,22 @@ export class TransactionInputs {
     return false;
   }
 
-  static deserialize(reader: CBORReader): TransactionInputs {
+  static deserialize(reader: CBORReader, path: string[]): TransactionInputs {
     let ret = new TransactionInputs();
-    if (reader.peekType() == "tagged") {
-      let tag = reader.readTaggedTag();
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
       if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
     }
-    reader.readArray((reader) => ret.add(TransactionInput.deserialize(reader)));
+    reader.readArray(
+      (reader, idx) =>
+        ret.add(
+          TransactionInput.deserialize(reader, [
+            ...path,
+            "TransactionInput#" + idx,
+          ]),
+        ),
+      path,
+    );
     return ret;
   }
 
@@ -13662,13 +15120,19 @@ export class TransactionInputs {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionInputs {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionInputs"],
+  ): TransactionInputs {
     let reader = new CBORReader(data);
-    return TransactionInputs.deserialize(reader);
+    return TransactionInputs.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TransactionInputs {
-    return TransactionInputs.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionInputs"],
+  ): TransactionInputs {
+    return TransactionInputs.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -13681,8 +15145,8 @@ export class TransactionInputs {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TransactionInputs {
-    return TransactionInputs.from_bytes(this.to_bytes());
+  clone(path: string[]): TransactionInputs {
+    return TransactionInputs.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -13757,22 +15221,25 @@ export class TransactionMetadatum {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): TransactionMetadatum {
-    let tag = reader.peekType();
+  static deserialize(reader: CBORReader, path: string[]): TransactionMetadatum {
+    let tag = reader.peekType(path);
     let variant: TransactionMetadatumVariant;
 
     switch (tag) {
       case "map":
         variant = {
           kind: TransactionMetadatumKind.MetadataMap,
-          value: MetadataMap.deserialize(reader),
+          value: MetadataMap.deserialize(reader, [...path, "MetadataMap(map)"]),
         };
         break;
 
       case "array":
         variant = {
           kind: TransactionMetadatumKind.MetadataList,
-          value: MetadataList.deserialize(reader),
+          value: MetadataList.deserialize(reader, [
+            ...path,
+            "MetadataList(list)",
+          ]),
         };
         break;
 
@@ -13780,26 +15247,32 @@ export class TransactionMetadatum {
       case "nint":
         variant = {
           kind: TransactionMetadatumKind.Int,
-          value: Int.deserialize(reader),
+          value: Int.deserialize(reader, [...path, "Int(int)"]),
         };
         break;
 
       case "bytes":
         variant = {
           kind: TransactionMetadatumKind.Bytes,
-          value: reader.readBytes(),
+          value: reader.readBytes([...path, "bytes(bytes)"]),
         };
         break;
 
       case "string":
         variant = {
           kind: TransactionMetadatumKind.Text,
-          value: reader.readString(),
+          value: reader.readString([...path, "string(text)"]),
         };
         break;
 
       default:
-        throw new Error("Unexpected subtype for TransactionMetadatum: " + tag);
+        throw new Error(
+          "Unexpected subtype for TransactionMetadatum: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     return new TransactionMetadatum(variant);
@@ -13832,13 +15305,19 @@ export class TransactionMetadatum {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionMetadatum {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionMetadatum"],
+  ): TransactionMetadatum {
     let reader = new CBORReader(data);
-    return TransactionMetadatum.deserialize(reader);
+    return TransactionMetadatum.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TransactionMetadatum {
-    return TransactionMetadatum.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionMetadatum"],
+  ): TransactionMetadatum {
+    return TransactionMetadatum.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -13851,8 +15330,8 @@ export class TransactionMetadatum {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TransactionMetadatum {
-    return TransactionMetadatum.from_bytes(this.to_bytes());
+  clone(path: string[]): TransactionMetadatum {
+    return TransactionMetadatum.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -13880,9 +15359,15 @@ export class TransactionMetadatumLabels {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): TransactionMetadatumLabels {
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): TransactionMetadatumLabels {
     return new TransactionMetadatumLabels(
-      reader.readArray((reader) => BigNum.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) => BigNum.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -13893,13 +15378,19 @@ export class TransactionMetadatumLabels {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionMetadatumLabels {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionMetadatumLabels"],
+  ): TransactionMetadatumLabels {
     let reader = new CBORReader(data);
-    return TransactionMetadatumLabels.deserialize(reader);
+    return TransactionMetadatumLabels.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TransactionMetadatumLabels {
-    return TransactionMetadatumLabels.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionMetadatumLabels"],
+  ): TransactionMetadatumLabels {
+    return TransactionMetadatumLabels.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -13912,8 +15403,8 @@ export class TransactionMetadatumLabels {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TransactionMetadatumLabels {
-    return TransactionMetadatumLabels.from_bytes(this.to_bytes());
+  clone(path: string[]): TransactionMetadatumLabels {
+    return TransactionMetadatumLabels.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -13967,34 +15458,46 @@ export class TransactionOutput {
     this._script_ref = script_ref;
   }
 
-  static deserialize(reader: CBORReader): TransactionOutput {
+  static deserialize(reader: CBORReader, path: string[]): TransactionOutput {
     let fields: any = {};
     reader.readMap((r) => {
-      let key = Number(r.readUint());
+      let key = Number(r.readUint(path));
       switch (key) {
-        case 0:
-          fields.address = Address.deserialize(r);
+        case 0: {
+          const new_path = [...path, "Address(address)"];
+          fields.address = Address.deserialize(r, new_path);
           break;
+        }
 
-        case 1:
-          fields.amount = Value.deserialize(r);
+        case 1: {
+          const new_path = [...path, "Value(amount)"];
+          fields.amount = Value.deserialize(r, new_path);
           break;
+        }
 
-        case 2:
-          fields.plutus_data = PlutusData.deserialize(r);
+        case 2: {
+          const new_path = [...path, "PlutusData(plutus_data)"];
+          fields.plutus_data = PlutusData.deserialize(r, new_path);
           break;
+        }
 
-        case 3:
-          fields.script_ref = ScriptRef.deserialize(r);
+        case 3: {
+          const new_path = [...path, "ScriptRef(script_ref)"];
+          fields.script_ref = ScriptRef.deserialize(r, new_path);
           break;
+        }
       }
-    });
+    }, path);
 
     if (fields.address === undefined)
-      throw new Error("Value not provided for field 0 (address)");
+      throw new Error(
+        "Value not provided for field 0 (address) (at " + path.join("/") + ")",
+      );
     let address = fields.address;
     if (fields.amount === undefined)
-      throw new Error("Value not provided for field 1 (amount)");
+      throw new Error(
+        "Value not provided for field 1 (amount) (at " + path.join("/") + ")",
+      );
     let amount = fields.amount;
 
     let plutus_data = fields.plutus_data;
@@ -14029,13 +15532,19 @@ export class TransactionOutput {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionOutput {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionOutput"],
+  ): TransactionOutput {
     let reader = new CBORReader(data);
-    return TransactionOutput.deserialize(reader);
+    return TransactionOutput.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TransactionOutput {
-    return TransactionOutput.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionOutput"],
+  ): TransactionOutput {
+    return TransactionOutput.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -14048,8 +15557,8 @@ export class TransactionOutput {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TransactionOutput {
-    return TransactionOutput.from_bytes(this.to_bytes());
+  clone(path: string[]): TransactionOutput {
+    return TransactionOutput.from_bytes(this.to_bytes(), path);
   }
 
   static new(address: Address, amount: Value): TransactionOutput {
@@ -14081,9 +15590,13 @@ export class TransactionOutputs {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): TransactionOutputs {
+  static deserialize(reader: CBORReader, path: string[]): TransactionOutputs {
     return new TransactionOutputs(
-      reader.readArray((reader) => TransactionOutput.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          TransactionOutput.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -14094,13 +15607,19 @@ export class TransactionOutputs {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionOutputs {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionOutputs"],
+  ): TransactionOutputs {
     let reader = new CBORReader(data);
-    return TransactionOutputs.deserialize(reader);
+    return TransactionOutputs.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TransactionOutputs {
-    return TransactionOutputs.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionOutputs"],
+  ): TransactionOutputs {
+    return TransactionOutputs.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -14113,8 +15632,8 @@ export class TransactionOutputs {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TransactionOutputs {
-    return TransactionOutputs.from_bytes(this.to_bytes());
+  clone(path: string[]): TransactionOutputs {
+    return TransactionOutputs.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -14212,44 +15731,63 @@ export class TransactionWitnessSet {
     this._plutus_scripts_v3 = plutus_scripts_v3;
   }
 
-  static deserialize(reader: CBORReader): TransactionWitnessSet {
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): TransactionWitnessSet {
     let fields: any = {};
     reader.readMap((r) => {
-      let key = Number(r.readUint());
+      let key = Number(r.readUint(path));
       switch (key) {
-        case 0:
-          fields.vkeys = Vkeywitnesses.deserialize(r);
+        case 0: {
+          const new_path = [...path, "Vkeywitnesses(vkeys)"];
+          fields.vkeys = Vkeywitnesses.deserialize(r, new_path);
           break;
+        }
 
-        case 1:
-          fields.native_scripts = NativeScripts.deserialize(r);
+        case 1: {
+          const new_path = [...path, "NativeScripts(native_scripts)"];
+          fields.native_scripts = NativeScripts.deserialize(r, new_path);
           break;
+        }
 
-        case 2:
-          fields.bootstraps = BootstrapWitnesses.deserialize(r);
+        case 2: {
+          const new_path = [...path, "BootstrapWitnesses(bootstraps)"];
+          fields.bootstraps = BootstrapWitnesses.deserialize(r, new_path);
           break;
+        }
 
-        case 3:
-          fields.plutus_scripts_v1 = PlutusScripts.deserialize(r);
+        case 3: {
+          const new_path = [...path, "PlutusScripts(plutus_scripts_v1)"];
+          fields.plutus_scripts_v1 = PlutusScripts.deserialize(r, new_path);
           break;
+        }
 
-        case 4:
-          fields.plutus_data = PlutusList.deserialize(r);
+        case 4: {
+          const new_path = [...path, "PlutusList(plutus_data)"];
+          fields.plutus_data = PlutusList.deserialize(r, new_path);
           break;
+        }
 
-        case 5:
-          fields.redeemers = Redeemers.deserialize(r);
+        case 5: {
+          const new_path = [...path, "Redeemers(redeemers)"];
+          fields.redeemers = Redeemers.deserialize(r, new_path);
           break;
+        }
 
-        case 6:
-          fields.plutus_scripts_v2 = PlutusScripts.deserialize(r);
+        case 6: {
+          const new_path = [...path, "PlutusScripts(plutus_scripts_v2)"];
+          fields.plutus_scripts_v2 = PlutusScripts.deserialize(r, new_path);
           break;
+        }
 
-        case 7:
-          fields.plutus_scripts_v3 = PlutusScripts.deserialize(r);
+        case 7: {
+          const new_path = [...path, "PlutusScripts(plutus_scripts_v3)"];
+          fields.plutus_scripts_v3 = PlutusScripts.deserialize(r, new_path);
           break;
+        }
       }
-    });
+    }, path);
 
     let vkeys = fields.vkeys;
 
@@ -14327,13 +15865,19 @@ export class TransactionWitnessSet {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionWitnessSet {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionWitnessSet"],
+  ): TransactionWitnessSet {
     let reader = new CBORReader(data);
-    return TransactionWitnessSet.deserialize(reader);
+    return TransactionWitnessSet.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TransactionWitnessSet {
-    return TransactionWitnessSet.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionWitnessSet"],
+  ): TransactionWitnessSet {
+    return TransactionWitnessSet.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -14346,8 +15890,8 @@ export class TransactionWitnessSet {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TransactionWitnessSet {
-    return TransactionWitnessSet.from_bytes(this.to_bytes());
+  clone(path: string[]): TransactionWitnessSet {
+    return TransactionWitnessSet.from_bytes(this.to_bytes(), path);
   }
 
   static new(): TransactionWitnessSet {
@@ -14388,9 +15932,16 @@ export class TransactionWitnessSets {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): TransactionWitnessSets {
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): TransactionWitnessSets {
     return new TransactionWitnessSets(
-      reader.readArray((reader) => TransactionWitnessSet.deserialize(reader)),
+      reader.readArray(
+        (reader, idx) =>
+          TransactionWitnessSet.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
     );
   }
 
@@ -14401,13 +15952,19 @@ export class TransactionWitnessSets {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TransactionWitnessSets {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionWitnessSets"],
+  ): TransactionWitnessSets {
     let reader = new CBORReader(data);
-    return TransactionWitnessSets.deserialize(reader);
+    return TransactionWitnessSets.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TransactionWitnessSets {
-    return TransactionWitnessSets.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionWitnessSets"],
+  ): TransactionWitnessSets {
+    return TransactionWitnessSets.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -14420,8 +15977,8 @@ export class TransactionWitnessSets {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TransactionWitnessSets {
-    return TransactionWitnessSets.from_bytes(this.to_bytes());
+  clone(path: string[]): TransactionWitnessSets {
+    return TransactionWitnessSets.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -14473,10 +16030,15 @@ export class TreasuryWithdrawals {
     return keys;
   }
 
-  static deserialize(reader: CBORReader): TreasuryWithdrawals {
+  static deserialize(reader: CBORReader, path: string[]): TreasuryWithdrawals {
     let ret = new TreasuryWithdrawals([]);
-    reader.readMap((reader) =>
-      ret.insert(RewardAddress.deserialize(reader), BigNum.deserialize(reader)),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          RewardAddress.deserialize(reader, [...path, "RewardAddress#" + idx]),
+          BigNum.deserialize(reader, [...path, "BigNum#" + idx]),
+        ),
+      path,
     );
     return ret;
   }
@@ -14491,13 +16053,19 @@ export class TreasuryWithdrawals {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TreasuryWithdrawals {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TreasuryWithdrawals"],
+  ): TreasuryWithdrawals {
     let reader = new CBORReader(data);
-    return TreasuryWithdrawals.deserialize(reader);
+    return TreasuryWithdrawals.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TreasuryWithdrawals {
-    return TreasuryWithdrawals.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TreasuryWithdrawals"],
+  ): TreasuryWithdrawals {
+    return TreasuryWithdrawals.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -14510,8 +16078,8 @@ export class TreasuryWithdrawals {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TreasuryWithdrawals {
-    return TreasuryWithdrawals.from_bytes(this.to_bytes());
+  clone(path: string[]): TreasuryWithdrawals {
+    return TreasuryWithdrawals.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -14550,11 +16118,20 @@ export class TreasuryWithdrawalsAction {
     this._policy_hash = policy_hash;
   }
 
-  static deserialize(reader: CBORReader): TreasuryWithdrawalsAction {
-    let withdrawals = TreasuryWithdrawals.deserialize(reader);
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): TreasuryWithdrawalsAction {
+    let withdrawals = TreasuryWithdrawals.deserialize(reader, [
+      ...path,
+      "withdrawals",
+    ]);
 
     let policy_hash =
-      reader.readNullable((r) => ScriptHash.deserialize(r)) ?? undefined;
+      reader.readNullable(
+        (r) => ScriptHash.deserialize(r, [...path, "policy_hash"]),
+        path,
+      ) ?? undefined;
 
     return new TreasuryWithdrawalsAction(withdrawals, policy_hash);
   }
@@ -14571,13 +16148,19 @@ export class TreasuryWithdrawalsAction {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): TreasuryWithdrawalsAction {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TreasuryWithdrawalsAction"],
+  ): TreasuryWithdrawalsAction {
     let reader = new CBORReader(data);
-    return TreasuryWithdrawalsAction.deserialize(reader);
+    return TreasuryWithdrawalsAction.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): TreasuryWithdrawalsAction {
-    return TreasuryWithdrawalsAction.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TreasuryWithdrawalsAction"],
+  ): TreasuryWithdrawalsAction {
+    return TreasuryWithdrawalsAction.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -14590,8 +16173,8 @@ export class TreasuryWithdrawalsAction {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): TreasuryWithdrawalsAction {
-    return TreasuryWithdrawalsAction.from_bytes(this.to_bytes());
+  clone(path: string[]): TreasuryWithdrawalsAction {
+    return TreasuryWithdrawalsAction.from_bytes(this.to_bytes(), path);
   }
 
   static new(withdrawals: TreasuryWithdrawals): TreasuryWithdrawalsAction {
@@ -14617,8 +16200,8 @@ export class URL {
     return this.inner;
   }
 
-  static deserialize(reader: CBORReader): URL {
-    return new URL(reader.readString());
+  static deserialize(reader: CBORReader, path: string[]): URL {
+    return new URL(reader.readString(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -14628,13 +16211,13 @@ export class URL {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): URL {
+  static from_bytes(data: Uint8Array, path: string[] = ["URL"]): URL {
     let reader = new CBORReader(data);
-    return URL.deserialize(reader);
+    return URL.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): URL {
-    return URL.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["URL"]): URL {
+    return URL.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -14647,8 +16230,8 @@ export class URL {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): URL {
-    return URL.from_bytes(this.to_bytes());
+  clone(path: string[]): URL {
+    return URL.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -14681,27 +16264,37 @@ export class UnitInterval {
     this._denominator = denominator;
   }
 
-  static deserialize(reader: CBORReader): UnitInterval {
-    let taggedTag = reader.readTaggedTag();
+  static deserialize(
+    reader: CBORReader,
+    path: string[] = ["UnitInterval"],
+  ): UnitInterval {
+    let taggedTag = reader.readTaggedTag(path);
     if (taggedTag != 30) {
-      throw new Error("Expected tag 30, got " + taggedTag);
-    }
-
-    return UnitInterval.deserializeInner(reader);
-  }
-
-  static deserializeInner(reader: CBORReader): UnitInterval {
-    let len = reader.readArrayTag();
-
-    if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Expected tag 30, got " + taggedTag + " (at " + path + ")",
       );
     }
 
-    let numerator = BigNum.deserialize(reader);
+    return UnitInterval.deserializeInner(reader, path);
+  }
 
-    let denominator = BigNum.deserialize(reader);
+  static deserializeInner(reader: CBORReader, path: string[]): UnitInterval {
+    let len = reader.readArrayTag(path);
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
+      );
+    }
+
+    const numerator_path = [...path, "BigNum(numerator)"];
+    let numerator = BigNum.deserialize(reader, numerator_path);
+
+    const denominator_path = [...path, "BigNum(denominator)"];
+    let denominator = BigNum.deserialize(reader, denominator_path);
 
     return new UnitInterval(numerator, denominator);
   }
@@ -14722,13 +16315,19 @@ export class UnitInterval {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): UnitInterval {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["UnitInterval"],
+  ): UnitInterval {
     let reader = new CBORReader(data);
-    return UnitInterval.deserialize(reader);
+    return UnitInterval.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): UnitInterval {
-    return UnitInterval.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["UnitInterval"],
+  ): UnitInterval {
+    return UnitInterval.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -14741,8 +16340,8 @@ export class UnitInterval {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): UnitInterval {
-    return UnitInterval.from_bytes(this.to_bytes());
+  clone(path: string[]): UnitInterval {
+    return UnitInterval.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -14775,10 +16374,13 @@ export class UnregCert {
     this._coin = coin;
   }
 
-  static deserialize(reader: CBORReader): UnregCert {
-    let stake_credential = Credential.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): UnregCert {
+    let stake_credential = Credential.deserialize(reader, [
+      ...path,
+      "stake_credential",
+    ]);
 
-    let coin = BigNum.deserialize(reader);
+    let coin = BigNum.deserialize(reader, [...path, "coin"]);
 
     return new UnregCert(stake_credential, coin);
   }
@@ -14791,13 +16393,16 @@ export class UnregCert {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): UnregCert {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["UnregCert"],
+  ): UnregCert {
     let reader = new CBORReader(data);
-    return UnregCert.deserialize(reader);
+    return UnregCert.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): UnregCert {
-    return UnregCert.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["UnregCert"]): UnregCert {
+    return UnregCert.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -14810,8 +16415,8 @@ export class UnregCert {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): UnregCert {
-    return UnregCert.from_bytes(this.to_bytes());
+  clone(path: string[]): UnregCert {
+    return UnregCert.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -14854,19 +16459,30 @@ export class Update {
     this._epoch = epoch;
   }
 
-  static deserialize(reader: CBORReader): Update {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): Update {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
+    const proposed_protocol_parameter_updates_path = [
+      ...path,
+      "ProposedProtocolParameterUpdates(proposed_protocol_parameter_updates)",
+    ];
     let proposed_protocol_parameter_updates =
-      ProposedProtocolParameterUpdates.deserialize(reader);
+      ProposedProtocolParameterUpdates.deserialize(
+        reader,
+        proposed_protocol_parameter_updates_path,
+      );
 
-    let epoch = Number(reader.readInt());
+    const epoch_path = [...path, "number(epoch)"];
+    let epoch = Number(reader.readInt(epoch_path));
 
     return new Update(proposed_protocol_parameter_updates, epoch);
   }
@@ -14881,13 +16497,13 @@ export class Update {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Update {
+  static from_bytes(data: Uint8Array, path: string[] = ["Update"]): Update {
     let reader = new CBORReader(data);
-    return Update.deserialize(reader);
+    return Update.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Update {
-    return Update.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Update"]): Update {
+    return Update.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -14900,8 +16516,8 @@ export class Update {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Update {
-    return Update.from_bytes(this.to_bytes());
+  clone(path: string[]): Update {
+    return Update.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -14959,13 +16575,19 @@ export class UpdateCommitteeAction {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): UpdateCommitteeAction {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["UpdateCommitteeAction"],
+  ): UpdateCommitteeAction {
     let reader = new CBORReader(data);
-    return UpdateCommitteeAction.deserialize(reader);
+    return UpdateCommitteeAction.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): UpdateCommitteeAction {
-    return UpdateCommitteeAction.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["UpdateCommitteeAction"],
+  ): UpdateCommitteeAction {
+    return UpdateCommitteeAction.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -14978,8 +16600,8 @@ export class UpdateCommitteeAction {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): UpdateCommitteeAction {
-    return UpdateCommitteeAction.from_bytes(this.to_bytes());
+  clone(path: string[]): UpdateCommitteeAction {
+    return UpdateCommitteeAction.from_bytes(this.to_bytes(), path);
   }
 
   static new(
@@ -14993,13 +16615,24 @@ export class UpdateCommitteeAction {
     );
   }
 
-  static deserialize(reader: CBORReader): UpdateCommitteeAction {
-    let gov_action_id = reader.readNullable((reader) =>
-      GovernanceActionId.deserialize(reader),
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): UpdateCommitteeAction {
+    let gov_action_id = reader.readNullable(
+      (reader) =>
+        GovernanceActionId.deserialize(reader, [...path, "gov_action_id"]),
+      path,
     );
-    let members_to_remove = Credentials.deserialize(reader);
-    let members = CommitteeEpochs.deserialize(reader);
-    let quorum_threshold = UnitInterval.deserialize(reader);
+    let members_to_remove = Credentials.deserialize(reader, [
+      ...path,
+      "members_to_remove",
+    ]);
+    let members = CommitteeEpochs.deserialize(reader, [...path, "members"]);
+    let quorum_threshold = UnitInterval.deserialize(reader, [
+      ...path,
+      "quorum_threshold",
+    ]);
     return UpdateCommitteeAction.new_with_action_id(
       gov_action_id != null ? gov_action_id : undefined,
       new Committee(quorum_threshold, members),
@@ -15045,18 +16678,23 @@ export class VRFCert {
     this._proof = proof;
   }
 
-  static deserialize(reader: CBORReader): VRFCert {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): VRFCert {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let output = reader.readBytes();
+    const output_path = [...path, "bytes(output)"];
+    let output = reader.readBytes(output_path);
 
-    let proof = reader.readBytes();
+    const proof_path = [...path, "bytes(proof)"];
+    let proof = reader.readBytes(proof_path);
 
     return new VRFCert(output, proof);
   }
@@ -15071,13 +16709,13 @@ export class VRFCert {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): VRFCert {
+  static from_bytes(data: Uint8Array, path: string[] = ["VRFCert"]): VRFCert {
     let reader = new CBORReader(data);
-    return VRFCert.deserialize(reader);
+    return VRFCert.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): VRFCert {
-    return VRFCert.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["VRFCert"]): VRFCert {
+    return VRFCert.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -15090,8 +16728,8 @@ export class VRFCert {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): VRFCert {
-    return VRFCert.from_bytes(this.to_bytes());
+  clone(path: string[]): VRFCert {
+    return VRFCert.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -15144,8 +16782,8 @@ export class VRFKeyHash {
     return VRFKeyHash.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): VRFKeyHash {
-    return new VRFKeyHash(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): VRFKeyHash {
+    return new VRFKeyHash(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -15202,8 +16840,8 @@ export class VRFVKey {
     return VRFVKey.from_bytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): VRFVKey {
-    return new VRFVKey(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): VRFVKey {
+    return new VRFVKey(reader.readBytes(path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -15240,19 +16878,27 @@ export class Value {
     this._multiasset = multiasset;
   }
 
-  static deserializeRecord(reader: CBORReader): Value {
-    let len = reader.readArrayTag();
+  static deserializeRecord(reader: CBORReader, path: string[]): Value {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let coin = BigNum.deserialize(reader);
+    const coin_path = [...path, "BigNum(coin)"];
+    let coin = BigNum.deserialize(reader, coin_path);
 
+    const multiasset_path = [...path, "MultiAsset(multiasset)"];
     let multiasset =
-      reader.readNullable((r) => MultiAsset.deserialize(r)) ?? undefined;
+      reader.readNullable(
+        (r) => MultiAsset.deserialize(r, multiasset_path),
+        path,
+      ) ?? undefined;
 
     return new Value(coin, multiasset);
   }
@@ -15271,13 +16917,13 @@ export class Value {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Value {
+  static from_bytes(data: Uint8Array, path: string[] = ["Value"]): Value {
     let reader = new CBORReader(data);
-    return Value.deserialize(reader);
+    return Value.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Value {
-    return Value.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Value"]): Value {
+    return Value.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -15290,8 +16936,8 @@ export class Value {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Value {
-    return Value.from_bytes(this.to_bytes());
+  clone(path: string[]): Value {
+    return Value.from_bytes(this.to_bytes(), path);
   }
 
   static zero(): Value {
@@ -15310,11 +16956,11 @@ export class Value {
     return Value.new_with_assets(BigNum.zero(), multiasset);
   }
 
-  static deserialize(reader: CBORReader): Value {
-    if (reader.peekType() == "array") {
-      return Value.deserializeRecord(reader);
+  static deserialize(reader: CBORReader, path: string[]): Value {
+    if (reader.peekType(path) == "array") {
+      return Value.deserializeRecord(reader, path);
     }
-    return Value.new(BigNum.deserialize(reader));
+    return Value.new(BigNum.deserialize(reader, path));
   }
 
   serialize(writer: CBORWriter): void {
@@ -15325,25 +16971,25 @@ export class Value {
     }
   }
 
-  checked_add(rhs: Value): Value {
+  checked_add(rhs: Value, path: string[]): Value {
     let coin = this._coin.checked_add(rhs._coin);
     let multiasset: MultiAsset | undefined;
     if (this._multiasset != null) {
-      multiasset = this._multiasset.clone();
+      multiasset = this._multiasset.clone(path);
       if (rhs._multiasset != null) {
         multiasset._inplace_checked_add(rhs._multiasset);
       }
     } else if (rhs._multiasset != null) {
-      multiasset = rhs._multiasset.clone();
+      multiasset = rhs._multiasset.clone(path);
     }
     return new Value(coin, multiasset);
   }
 
-  checked_sub(rhs: Value): Value {
+  checked_sub(rhs: Value, path: string[]): Value {
     let coin = this._coin.checked_sub(rhs._coin);
     let multiasset: MultiAsset | undefined;
     if (this._multiasset != null) {
-      multiasset = this._multiasset.clone();
+      multiasset = this._multiasset.clone(path);
       if (rhs._multiasset != null) {
         multiasset._inplace_clamped_sub(rhs._multiasset);
       }
@@ -15351,11 +16997,11 @@ export class Value {
     return new Value(coin, multiasset);
   }
 
-  clamped_sub(rhs: Value): Value {
+  clamped_sub(rhs: Value, path: string[]): Value {
     let coin = this._coin.clamped_sub(rhs._coin);
     let multiasset: MultiAsset | undefined;
     if (this._multiasset != null) {
-      multiasset = this._multiasset.clone();
+      multiasset = this._multiasset.clone(path);
       if (rhs._multiasset != null) {
         multiasset._inplace_clamped_sub(rhs._multiasset);
       }
@@ -15398,16 +17044,20 @@ export class Vkey {
     this._public_key = public_key;
   }
 
-  static deserialize(reader: CBORReader): Vkey {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): Vkey {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 1) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " + len,
+        "Insufficient number of fields in record. Expected 1. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let public_key = PublicKey.deserialize(reader);
+    const public_key_path = [...path, "PublicKey(public_key)"];
+    let public_key = PublicKey.deserialize(reader, public_key_path);
 
     return new Vkey(public_key);
   }
@@ -15421,13 +17071,13 @@ export class Vkey {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Vkey {
+  static from_bytes(data: Uint8Array, path: string[] = ["Vkey"]): Vkey {
     let reader = new CBORReader(data);
-    return Vkey.deserialize(reader);
+    return Vkey.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Vkey {
-    return Vkey.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Vkey"]): Vkey {
+    return Vkey.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -15440,8 +17090,8 @@ export class Vkey {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Vkey {
-    return Vkey.from_bytes(this.to_bytes());
+  clone(path: string[]): Vkey {
+    return Vkey.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -15469,8 +17119,13 @@ export class Vkeys {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): Vkeys {
-    return new Vkeys(reader.readArray((reader) => Vkey.deserialize(reader)));
+  static deserialize(reader: CBORReader, path: string[]): Vkeys {
+    return new Vkeys(
+      reader.readArray(
+        (reader, idx) => Vkey.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -15480,13 +17135,13 @@ export class Vkeys {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Vkeys {
+  static from_bytes(data: Uint8Array, path: string[] = ["Vkeys"]): Vkeys {
     let reader = new CBORReader(data);
-    return Vkeys.deserialize(reader);
+    return Vkeys.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Vkeys {
-    return Vkeys.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Vkeys"]): Vkeys {
+    return Vkeys.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -15499,8 +17154,8 @@ export class Vkeys {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Vkeys {
-    return Vkeys.from_bytes(this.to_bytes());
+  clone(path: string[]): Vkeys {
+    return Vkeys.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -15533,18 +17188,23 @@ export class Vkeywitness {
     this._signature = signature;
   }
 
-  static deserialize(reader: CBORReader): Vkeywitness {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): Vkeywitness {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let vkey = Vkey.deserialize(reader);
+    const vkey_path = [...path, "Vkey(vkey)"];
+    let vkey = Vkey.deserialize(reader, vkey_path);
 
-    let signature = Ed25519Signature.deserialize(reader);
+    const signature_path = [...path, "Ed25519Signature(signature)"];
+    let signature = Ed25519Signature.deserialize(reader, signature_path);
 
     return new Vkeywitness(vkey, signature);
   }
@@ -15559,13 +17219,19 @@ export class Vkeywitness {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Vkeywitness {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["Vkeywitness"],
+  ): Vkeywitness {
     let reader = new CBORReader(data);
-    return Vkeywitness.deserialize(reader);
+    return Vkeywitness.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Vkeywitness {
-    return Vkeywitness.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["Vkeywitness"],
+  ): Vkeywitness {
+    return Vkeywitness.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -15578,8 +17244,8 @@ export class Vkeywitness {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Vkeywitness {
-    return Vkeywitness.from_bytes(this.to_bytes());
+  clone(path: string[]): Vkeywitness {
+    return Vkeywitness.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -15618,13 +17284,19 @@ export class Vkeywitnesses {
     return false;
   }
 
-  static deserialize(reader: CBORReader): Vkeywitnesses {
+  static deserialize(reader: CBORReader, path: string[]): Vkeywitnesses {
     let ret = new Vkeywitnesses();
-    if (reader.peekType() == "tagged") {
-      let tag = reader.readTaggedTag();
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
       if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
     }
-    reader.readArray((reader) => ret.add(Vkeywitness.deserialize(reader)));
+    reader.readArray(
+      (reader, idx) =>
+        ret.add(
+          Vkeywitness.deserialize(reader, [...path, "Vkeywitness#" + idx]),
+        ),
+      path,
+    );
     return ret;
   }
 
@@ -15636,13 +17308,19 @@ export class Vkeywitnesses {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Vkeywitnesses {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["Vkeywitnesses"],
+  ): Vkeywitnesses {
     let reader = new CBORReader(data);
-    return Vkeywitnesses.deserialize(reader);
+    return Vkeywitnesses.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Vkeywitnesses {
-    return Vkeywitnesses.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["Vkeywitnesses"],
+  ): Vkeywitnesses {
+    return Vkeywitnesses.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -15655,8 +17333,8 @@ export class Vkeywitnesses {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Vkeywitnesses {
-    return Vkeywitnesses.from_bytes(this.to_bytes());
+  clone(path: string[]): Vkeywitnesses {
+    return Vkeywitnesses.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -15689,10 +17367,13 @@ export class VoteDelegation {
     this._drep = drep;
   }
 
-  static deserialize(reader: CBORReader): VoteDelegation {
-    let stake_credential = Credential.deserialize(reader);
+  static deserialize(reader: CBORReader, path: string[]): VoteDelegation {
+    let stake_credential = Credential.deserialize(reader, [
+      ...path,
+      "stake_credential",
+    ]);
 
-    let drep = DRep.deserialize(reader);
+    let drep = DRep.deserialize(reader, [...path, "drep"]);
 
     return new VoteDelegation(stake_credential, drep);
   }
@@ -15705,13 +17386,19 @@ export class VoteDelegation {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): VoteDelegation {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["VoteDelegation"],
+  ): VoteDelegation {
     let reader = new CBORReader(data);
-    return VoteDelegation.deserialize(reader);
+    return VoteDelegation.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): VoteDelegation {
-    return VoteDelegation.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["VoteDelegation"],
+  ): VoteDelegation {
+    return VoteDelegation.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -15724,8 +17411,8 @@ export class VoteDelegation {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): VoteDelegation {
-    return VoteDelegation.from_bytes(this.to_bytes());
+  clone(path: string[]): VoteDelegation {
+    return VoteDelegation.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -15735,8 +17422,11 @@ export enum VoteKind {
   Abstain = 2,
 }
 
-export function deserializeVoteKind(reader: CBORReader): VoteKind {
-  let value = Number(reader.readInt());
+export function deserializeVoteKind(
+  reader: CBORReader,
+  path: string[],
+): VoteKind {
+  let value = Number(reader.readInt(path));
   switch (value) {
     case 0:
       return VoteKind.No;
@@ -15745,7 +17435,9 @@ export function deserializeVoteKind(reader: CBORReader): VoteKind {
     case 2:
       return VoteKind.Abstain;
   }
-  throw new Error("Invalid value for enum VoteKind: " + value);
+  throw new Error(
+    "Invalid value for enum VoteKind: " + value + "(at " + path.join("/") + ")",
+  );
 }
 
 export function serializeVoteKind(writer: CBORWriter, value: VoteKind): void {
@@ -15791,12 +17483,18 @@ export class VoteRegistrationAndDelegation {
     this._coin = coin;
   }
 
-  static deserialize(reader: CBORReader): VoteRegistrationAndDelegation {
-    let stake_credential = Credential.deserialize(reader);
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): VoteRegistrationAndDelegation {
+    let stake_credential = Credential.deserialize(reader, [
+      ...path,
+      "stake_credential",
+    ]);
 
-    let drep = DRep.deserialize(reader);
+    let drep = DRep.deserialize(reader, [...path, "drep"]);
 
-    let coin = BigNum.deserialize(reader);
+    let coin = BigNum.deserialize(reader, [...path, "coin"]);
 
     return new VoteRegistrationAndDelegation(stake_credential, drep, coin);
   }
@@ -15810,13 +17508,19 @@ export class VoteRegistrationAndDelegation {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): VoteRegistrationAndDelegation {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["VoteRegistrationAndDelegation"],
+  ): VoteRegistrationAndDelegation {
     let reader = new CBORReader(data);
-    return VoteRegistrationAndDelegation.deserialize(reader);
+    return VoteRegistrationAndDelegation.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): VoteRegistrationAndDelegation {
-    return VoteRegistrationAndDelegation.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["VoteRegistrationAndDelegation"],
+  ): VoteRegistrationAndDelegation {
+    return VoteRegistrationAndDelegation.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -15829,8 +17533,8 @@ export class VoteRegistrationAndDelegation {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): VoteRegistrationAndDelegation {
-    return VoteRegistrationAndDelegation.from_bytes(this.to_bytes());
+  clone(path: string[]): VoteRegistrationAndDelegation {
+    return VoteRegistrationAndDelegation.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -15909,9 +17613,9 @@ export class Voter {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader): Voter {
-    let len = reader.readArrayTag();
-    let tag = Number(reader.readUint());
+  static deserialize(reader: CBORReader, path: string[]): Voter {
+    let len = reader.readArrayTag(path);
+    let tag = Number(reader.readUint(path));
     let variant: VoterVariant;
 
     switch (tag) {
@@ -15923,7 +17627,10 @@ export class Voter {
         }
         variant = {
           kind: 0,
-          value: Ed25519KeyHash.deserialize(reader),
+          value: Ed25519KeyHash.deserialize(reader, [
+            ...path,
+            "Ed25519KeyHash",
+          ]),
         };
 
         break;
@@ -15936,7 +17643,7 @@ export class Voter {
         }
         variant = {
           kind: 1,
-          value: ScriptHash.deserialize(reader),
+          value: ScriptHash.deserialize(reader, [...path, "ScriptHash"]),
         };
 
         break;
@@ -15947,7 +17654,10 @@ export class Voter {
         }
         variant = {
           kind: 2,
-          value: Ed25519KeyHash.deserialize(reader),
+          value: Ed25519KeyHash.deserialize(reader, [
+            ...path,
+            "Ed25519KeyHash",
+          ]),
         };
 
         break;
@@ -15958,7 +17668,7 @@ export class Voter {
         }
         variant = {
           kind: 3,
-          value: ScriptHash.deserialize(reader),
+          value: ScriptHash.deserialize(reader, [...path, "ScriptHash"]),
         };
 
         break;
@@ -15969,7 +17679,10 @@ export class Voter {
         }
         variant = {
           kind: 4,
-          value: Ed25519KeyHash.deserialize(reader),
+          value: Ed25519KeyHash.deserialize(reader, [
+            ...path,
+            "Ed25519KeyHash",
+          ]),
         };
 
         break;
@@ -15979,7 +17692,9 @@ export class Voter {
       reader.readBreak();
     }
 
-    throw new Error("Unexpected tag for Voter: " + tag);
+    throw new Error(
+      "Unexpected tag for Voter: " + tag + "(at " + path.join("/") + ")",
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -16015,13 +17730,13 @@ export class Voter {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Voter {
+  static from_bytes(data: Uint8Array, path: string[] = ["Voter"]): Voter {
     let reader = new CBORReader(data);
-    return Voter.deserialize(reader);
+    return Voter.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Voter {
-    return Voter.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Voter"]): Voter {
+    return Voter.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -16034,8 +17749,8 @@ export class Voter {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Voter {
-    return Voter.from_bytes(this.to_bytes());
+  clone(path: string[]): Voter {
+    return Voter.from_bytes(this.to_bytes(), path);
   }
 
   has_script_credentials(): boolean {
@@ -16125,8 +17840,13 @@ export class Voters {
     this.items.push(elem);
   }
 
-  static deserialize(reader: CBORReader): Voters {
-    return new Voters(reader.readArray((reader) => Voter.deserialize(reader)));
+  static deserialize(reader: CBORReader, path: string[]): Voters {
+    return new Voters(
+      reader.readArray(
+        (reader, idx) => Voter.deserialize(reader, [...path, "Elem#" + idx]),
+        path,
+      ),
+    );
   }
 
   serialize(writer: CBORWriter): void {
@@ -16136,13 +17856,13 @@ export class Voters {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Voters {
+  static from_bytes(data: Uint8Array, path: string[] = ["Voters"]): Voters {
     let reader = new CBORReader(data);
-    return Voters.deserialize(reader);
+    return Voters.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Voters {
-    return Voters.from_bytes(hexToBytes(hex_str));
+  static from_hex(hex_str: string, path: string[] = ["Voters"]): Voters {
+    return Voters.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -16155,8 +17875,8 @@ export class Voters {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Voters {
-    return Voters.from_bytes(this.to_bytes());
+  clone(path: string[]): Voters {
+    return Voters.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -16189,18 +17909,25 @@ export class VotingProcedure {
     this._anchor = anchor;
   }
 
-  static deserialize(reader: CBORReader): VotingProcedure {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): VotingProcedure {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " + len,
+        "Insufficient number of fields in record. Expected 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let vote = deserializeVoteKind(reader);
+    const vote_path = [...path, "VoteKind(vote)"];
+    let vote = deserializeVoteKind(reader, vote_path);
 
-    let anchor = reader.readNullable((r) => Anchor.deserialize(r)) ?? undefined;
+    const anchor_path = [...path, "Anchor(anchor)"];
+    let anchor =
+      reader.readNullable((r) => Anchor.deserialize(r, anchor_path), path) ??
+      undefined;
 
     return new VotingProcedure(vote, anchor);
   }
@@ -16219,13 +17946,19 @@ export class VotingProcedure {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): VotingProcedure {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["VotingProcedure"],
+  ): VotingProcedure {
     let reader = new CBORReader(data);
-    return VotingProcedure.deserialize(reader);
+    return VotingProcedure.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): VotingProcedure {
-    return VotingProcedure.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["VotingProcedure"],
+  ): VotingProcedure {
+    return VotingProcedure.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -16238,8 +17971,8 @@ export class VotingProcedure {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): VotingProcedure {
-    return VotingProcedure.from_bytes(this.to_bytes());
+  clone(path: string[]): VotingProcedure {
+    return VotingProcedure.from_bytes(this.to_bytes(), path);
   }
 
   static new(vote: VoteKind): VotingProcedure {
@@ -16295,13 +18028,18 @@ export class VotingProcedures {
     return keys;
   }
 
-  static deserialize(reader: CBORReader): VotingProcedures {
+  static deserialize(reader: CBORReader, path: string[]): VotingProcedures {
     let ret = new VotingProcedures([]);
-    reader.readMap((reader) =>
-      ret._insert(
-        Voter.deserialize(reader),
-        GovernanceActions.deserialize(reader),
-      ),
+    reader.readMap(
+      (reader, idx) =>
+        ret._insert(
+          Voter.deserialize(reader, [...path, "Voter#" + idx]),
+          GovernanceActions.deserialize(reader, [
+            ...path,
+            "GovernanceActions#" + idx,
+          ]),
+        ),
+      path,
     );
     return ret;
   }
@@ -16316,13 +18054,19 @@ export class VotingProcedures {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): VotingProcedures {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["VotingProcedures"],
+  ): VotingProcedures {
     let reader = new CBORReader(data);
-    return VotingProcedures.deserialize(reader);
+    return VotingProcedures.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): VotingProcedures {
-    return VotingProcedures.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["VotingProcedures"],
+  ): VotingProcedures {
+    return VotingProcedures.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -16335,8 +18079,8 @@ export class VotingProcedures {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): VotingProcedures {
-    return VotingProcedures.from_bytes(this.to_bytes());
+  clone(path: string[]): VotingProcedures {
+    return VotingProcedures.from_bytes(this.to_bytes(), path);
   }
 
   insert(
@@ -16422,22 +18166,35 @@ export class VotingProposal {
     this._anchor = anchor;
   }
 
-  static deserialize(reader: CBORReader): VotingProposal {
-    let len = reader.readArrayTag();
+  static deserialize(reader: CBORReader, path: string[]): VotingProposal {
+    let len = reader.readArrayTag(path);
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " + len,
+        "Insufficient number of fields in record. Expected 4. Received " +
+          len +
+          "(at " +
+          path.join("/"),
       );
     }
 
-    let deposit = BigNum.deserialize(reader);
+    const deposit_path = [...path, "BigNum(deposit)"];
+    let deposit = BigNum.deserialize(reader, deposit_path);
 
-    let reward_account = RewardAddress.deserialize(reader);
+    const reward_account_path = [...path, "RewardAddress(reward_account)"];
+    let reward_account = RewardAddress.deserialize(reader, reward_account_path);
 
-    let governance_action = GovernanceAction.deserialize(reader);
+    const governance_action_path = [
+      ...path,
+      "GovernanceAction(governance_action)",
+    ];
+    let governance_action = GovernanceAction.deserialize(
+      reader,
+      governance_action_path,
+    );
 
-    let anchor = Anchor.deserialize(reader);
+    const anchor_path = [...path, "Anchor(anchor)"];
+    let anchor = Anchor.deserialize(reader, anchor_path);
 
     return new VotingProposal(
       deposit,
@@ -16459,13 +18216,19 @@ export class VotingProposal {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): VotingProposal {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["VotingProposal"],
+  ): VotingProposal {
     let reader = new CBORReader(data);
-    return VotingProposal.deserialize(reader);
+    return VotingProposal.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): VotingProposal {
-    return VotingProposal.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["VotingProposal"],
+  ): VotingProposal {
+    return VotingProposal.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -16478,8 +18241,8 @@ export class VotingProposal {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): VotingProposal {
-    return VotingProposal.from_bytes(this.to_bytes());
+  clone(path: string[]): VotingProposal {
+    return VotingProposal.from_bytes(this.to_bytes(), path);
   }
 
   static new(
@@ -16532,13 +18295,22 @@ export class VotingProposals {
     return false;
   }
 
-  static deserialize(reader: CBORReader): VotingProposals {
+  static deserialize(reader: CBORReader, path: string[]): VotingProposals {
     let ret = new VotingProposals();
-    if (reader.peekType() == "tagged") {
-      let tag = reader.readTaggedTag();
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
       if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
     }
-    reader.readArray((reader) => ret.add(VotingProposal.deserialize(reader)));
+    reader.readArray(
+      (reader, idx) =>
+        ret.add(
+          VotingProposal.deserialize(reader, [
+            ...path,
+            "VotingProposal#" + idx,
+          ]),
+        ),
+      path,
+    );
     return ret;
   }
 
@@ -16550,13 +18322,19 @@ export class VotingProposals {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): VotingProposals {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["VotingProposals"],
+  ): VotingProposals {
     let reader = new CBORReader(data);
-    return VotingProposals.deserialize(reader);
+    return VotingProposals.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): VotingProposals {
-    return VotingProposals.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["VotingProposals"],
+  ): VotingProposals {
+    return VotingProposals.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -16569,8 +18347,8 @@ export class VotingProposals {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): VotingProposals {
-    return VotingProposals.from_bytes(this.to_bytes());
+  clone(path: string[]): VotingProposals {
+    return VotingProposals.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -16616,10 +18394,15 @@ export class Withdrawals {
     );
   }
 
-  static deserialize(reader: CBORReader): Withdrawals {
+  static deserialize(reader: CBORReader, path: string[]): Withdrawals {
     let ret = new Withdrawals([]);
-    reader.readMap((reader) =>
-      ret.insert(RewardAddress.deserialize(reader), BigNum.deserialize(reader)),
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          RewardAddress.deserialize(reader, [...path, "RewardAddress#" + idx]),
+          BigNum.deserialize(reader, [...path, "BigNum#" + idx]),
+        ),
+      path,
     );
     return ret;
   }
@@ -16634,13 +18417,19 @@ export class Withdrawals {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): Withdrawals {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["Withdrawals"],
+  ): Withdrawals {
     let reader = new CBORReader(data);
-    return Withdrawals.deserialize(reader);
+    return Withdrawals.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): Withdrawals {
-    return Withdrawals.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["Withdrawals"],
+  ): Withdrawals {
+    return Withdrawals.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -16653,8 +18442,8 @@ export class Withdrawals {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): Withdrawals {
-    return Withdrawals.from_bytes(this.to_bytes());
+  clone(path: string[]): Withdrawals {
+    return Withdrawals.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -16693,13 +18482,19 @@ export class certificates {
     return false;
   }
 
-  static deserialize(reader: CBORReader): certificates {
+  static deserialize(reader: CBORReader, path: string[]): certificates {
     let ret = new certificates();
-    if (reader.peekType() == "tagged") {
-      let tag = reader.readTaggedTag();
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
       if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
     }
-    reader.readArray((reader) => ret.add(Certificate.deserialize(reader)));
+    reader.readArray(
+      (reader, idx) =>
+        ret.add(
+          Certificate.deserialize(reader, [...path, "Certificate#" + idx]),
+        ),
+      path,
+    );
     return ret;
   }
 
@@ -16711,13 +18506,19 @@ export class certificates {
   // no-op
   free(): void {}
 
-  static from_bytes(data: Uint8Array): certificates {
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["certificates"],
+  ): certificates {
     let reader = new CBORReader(data);
-    return certificates.deserialize(reader);
+    return certificates.deserialize(reader, path);
   }
 
-  static from_hex(hex_str: string): certificates {
-    return certificates.from_bytes(hexToBytes(hex_str));
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["certificates"],
+  ): certificates {
+    return certificates.from_bytes(hexToBytes(hex_str), path);
   }
 
   to_bytes(): Uint8Array {
@@ -16730,7 +18531,7 @@ export class certificates {
     return bytesToHex(this.to_bytes());
   }
 
-  clone(): certificates {
-    return certificates.from_bytes(this.to_bytes());
+  clone(path: string[]): certificates {
+    return certificates.from_bytes(this.to_bytes(), path);
   }
 }

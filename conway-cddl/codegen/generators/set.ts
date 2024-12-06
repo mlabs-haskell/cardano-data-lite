@@ -64,14 +64,14 @@ export class GenSet extends CodeGeneratorBase {
     `;
   }
 
-  generateDeserialize(reader: string): string {
+  generateDeserialize(reader: string, path: string): string {
     return `
       let ret = new ${this.name}();
-      if(${reader}.peekType() == "tagged") {
-        let tag = ${reader}.readTaggedTag();
+      if(${reader}.peekType(${path}) == "tagged") {
+        let tag = ${reader}.readTaggedTag(${path});
         if(tag != 258) throw new Error("Expected tag 258. Got " + tag);
       }
-      ${reader}.readArray(reader => ret.add(${this.typeUtils.readType(reader, this.item)}));
+      ${reader}.readArray((reader, idx) => ret.add(${this.typeUtils.readType(reader, this.item, `[...${path}, '${this.item}#' + idx]`)}), ${path});
       return ret;
     `;
   }

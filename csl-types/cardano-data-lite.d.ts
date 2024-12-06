@@ -7,14 +7,14 @@ export declare class Anchor {
     set_url(url: URL): void;
     anchor_data_hash(): AnchorDataHash;
     set_anchor_data_hash(anchor_data_hash: AnchorDataHash): void;
-    static deserialize(reader: CBORReader): Anchor;
+    static deserialize(reader: CBORReader, path: string[]): Anchor;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Anchor;
-    static from_hex(hex_str: string): Anchor;
+    static from_bytes(data: Uint8Array, path?: string[]): Anchor;
+    static from_hex(hex_str: string, path?: string[]): Anchor;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Anchor;
+    clone(path: string[]): Anchor;
 }
 export declare class AnchorDataHash {
     private inner;
@@ -28,7 +28,7 @@ export declare class AnchorDataHash {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): AnchorDataHash;
-    static deserialize(reader: CBORReader): AnchorDataHash;
+    static deserialize(reader: CBORReader, path: string[]): AnchorDataHash;
     serialize(writer: CBORWriter): void;
 }
 export declare class AssetName {
@@ -36,14 +36,14 @@ export declare class AssetName {
     constructor(inner: Uint8Array);
     static new(inner: Uint8Array): AssetName;
     name(): Uint8Array;
-    static deserialize(reader: CBORReader): AssetName;
+    static deserialize(reader: CBORReader, path: string[]): AssetName;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): AssetName;
-    static from_hex(hex_str: string): AssetName;
+    static from_bytes(data: Uint8Array, path?: string[]): AssetName;
+    static from_hex(hex_str: string, path?: string[]): AssetName;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): AssetName;
+    clone(path: string[]): AssetName;
 }
 export declare class AssetNames {
     private items;
@@ -52,14 +52,14 @@ export declare class AssetNames {
     len(): number;
     get(index: number): AssetName;
     add(elem: AssetName): void;
-    static deserialize(reader: CBORReader): AssetNames;
+    static deserialize(reader: CBORReader, path: string[]): AssetNames;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): AssetNames;
-    static from_hex(hex_str: string): AssetNames;
+    static from_bytes(data: Uint8Array, path?: string[]): AssetNames;
+    static from_hex(hex_str: string, path?: string[]): AssetNames;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): AssetNames;
+    clone(path: string[]): AssetNames;
 }
 export declare class Assets {
     _items: [AssetName, BigNum][];
@@ -70,14 +70,14 @@ export declare class Assets {
     get(key: AssetName): BigNum | undefined;
     _remove_many(keys: AssetName[]): void;
     keys(): AssetNames;
-    static deserialize(reader: CBORReader): Assets;
+    static deserialize(reader: CBORReader, path: string[]): Assets;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Assets;
-    static from_hex(hex_str: string): Assets;
+    static from_bytes(data: Uint8Array, path?: string[]): Assets;
+    static from_hex(hex_str: string, path?: string[]): Assets;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Assets;
+    clone(path: string[]): Assets;
     _inplace_checked_add(rhs: Assets): void;
     _inplace_clamped_sub(rhs: Assets): void;
     _normalize(): void;
@@ -100,14 +100,14 @@ export declare class AuxiliaryData {
     set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts): void;
     plutus_scripts_v3(): PlutusScripts;
     set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts): void;
-    static deserialize(reader: CBORReader): AuxiliaryData;
+    static deserialize(reader: CBORReader, path: string[]): AuxiliaryData;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): AuxiliaryData;
-    static from_hex(hex_str: string): AuxiliaryData;
+    static from_bytes(data: Uint8Array, path?: string[]): AuxiliaryData;
+    static from_hex(hex_str: string, path?: string[]): AuxiliaryData;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): AuxiliaryData;
+    clone(path: string[]): AuxiliaryData;
     static new(): AuxiliaryData;
 }
 export declare class AuxiliaryDataHash {
@@ -122,7 +122,7 @@ export declare class AuxiliaryDataHash {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): AuxiliaryDataHash;
-    static deserialize(reader: CBORReader): AuxiliaryDataHash;
+    static deserialize(reader: CBORReader, path: string[]): AuxiliaryDataHash;
     serialize(writer: CBORWriter): void;
 }
 export declare class AuxiliaryDataSet {
@@ -133,14 +133,14 @@ export declare class AuxiliaryDataSet {
     insert(key: number, value: AuxiliaryData): AuxiliaryData | undefined;
     get(key: number): AuxiliaryData | undefined;
     _remove_many(keys: number[]): void;
-    static deserialize(reader: CBORReader): AuxiliaryDataSet;
+    static deserialize(reader: CBORReader, path: string[]): AuxiliaryDataSet;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): AuxiliaryDataSet;
-    static from_hex(hex_str: string): AuxiliaryDataSet;
+    static from_bytes(data: Uint8Array, path?: string[]): AuxiliaryDataSet;
+    static from_hex(hex_str: string, path?: string[]): AuxiliaryDataSet;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): AuxiliaryDataSet;
+    clone(path: string[]): AuxiliaryDataSet;
     indices(): Uint32Array;
 }
 export declare class BigNum {
@@ -148,14 +148,14 @@ export declare class BigNum {
     constructor(inner: bigint);
     static new(inner: bigint): BigNum;
     toJsValue(): bigint;
-    static deserialize(reader: CBORReader): BigNum;
+    static deserialize(reader: CBORReader, path: string[]): BigNum;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): BigNum;
-    static from_hex(hex_str: string): BigNum;
+    static from_bytes(data: Uint8Array, path?: string[]): BigNum;
+    static from_hex(hex_str: string, path?: string[]): BigNum;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): BigNum;
+    clone(path: string[]): BigNum;
     static _maxU64(): bigint;
     static from_str(string: string): BigNum;
     to_str(): string;
@@ -181,7 +181,7 @@ export declare class Bip32PrivateKey {
     static from_hex(hex_str: string): Bip32PrivateKey;
     as_bytes(): Uint8Array;
     to_hex(): string;
-    static deserialize(reader: CBORReader): Bip32PrivateKey;
+    static deserialize(reader: CBORReader, path: string[]): Bip32PrivateKey;
     serialize(writer: CBORWriter): void;
     static _LEN: number;
     static _BECH32_HRP: string;
@@ -207,7 +207,7 @@ export declare class Bip32PublicKey {
     static from_hex(hex_str: string): Bip32PublicKey;
     as_bytes(): Uint8Array;
     to_hex(): string;
-    static deserialize(reader: CBORReader): Bip32PublicKey;
+    static deserialize(reader: CBORReader, path: string[]): Bip32PublicKey;
     serialize(writer: CBORWriter): void;
     static _LEN: number;
     static _BECH32_HRP: string;
@@ -235,14 +235,14 @@ export declare class Block {
     set_auxiliary_data_set(auxiliary_data_set: AuxiliaryDataSet): void;
     invalid_transactions(): Uint32Array;
     set_invalid_transactions(invalid_transactions: Uint32Array): void;
-    static deserialize(reader: CBORReader): Block;
+    static deserialize(reader: CBORReader, path: string[]): Block;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Block;
-    static from_hex(hex_str: string): Block;
+    static from_bytes(data: Uint8Array, path?: string[]): Block;
+    static from_hex(hex_str: string, path?: string[]): Block;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Block;
+    clone(path: string[]): Block;
 }
 export declare class BlockHash {
     private inner;
@@ -256,7 +256,7 @@ export declare class BlockHash {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): BlockHash;
-    static deserialize(reader: CBORReader): BlockHash;
+    static deserialize(reader: CBORReader, path: string[]): BlockHash;
     serialize(writer: CBORWriter): void;
 }
 export declare class BootstrapWitness {
@@ -274,14 +274,14 @@ export declare class BootstrapWitness {
     set_chain_code(chain_code: Uint8Array): void;
     attributes(): Uint8Array;
     set_attributes(attributes: Uint8Array): void;
-    static deserialize(reader: CBORReader): BootstrapWitness;
+    static deserialize(reader: CBORReader, path: string[]): BootstrapWitness;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): BootstrapWitness;
-    static from_hex(hex_str: string): BootstrapWitness;
+    static from_bytes(data: Uint8Array, path?: string[]): BootstrapWitness;
+    static from_hex(hex_str: string, path?: string[]): BootstrapWitness;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): BootstrapWitness;
+    clone(path: string[]): BootstrapWitness;
 }
 export declare class BootstrapWitnesses {
     private items;
@@ -290,14 +290,14 @@ export declare class BootstrapWitnesses {
     len(): number;
     get(index: number): BootstrapWitness;
     add(elem: BootstrapWitness): void;
-    static deserialize(reader: CBORReader): BootstrapWitnesses;
+    static deserialize(reader: CBORReader, path: string[]): BootstrapWitnesses;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): BootstrapWitnesses;
-    static from_hex(hex_str: string): BootstrapWitnesses;
+    static from_bytes(data: Uint8Array, path?: string[]): BootstrapWitnesses;
+    static from_hex(hex_str: string, path?: string[]): BootstrapWitnesses;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): BootstrapWitnesses;
+    clone(path: string[]): BootstrapWitnesses;
 }
 export declare class CSLBigInt {
     private inner;
@@ -305,11 +305,11 @@ export declare class CSLBigInt {
     static new(inner: bigint): CSLBigInt;
     toJsValue(): bigint;
     free(): void;
-    static from_bytes(data: Uint8Array): CSLBigInt;
-    static from_hex(hex_str: string): CSLBigInt;
+    static from_bytes(data: Uint8Array, path?: string[]): CSLBigInt;
+    static from_hex(hex_str: string, path?: string[]): CSLBigInt;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): CSLBigInt;
+    clone(path: string[]): CSLBigInt;
     static from_str(string: string): CSLBigInt;
     to_str(): string;
     static zero(): CSLBigInt;
@@ -327,7 +327,7 @@ export declare class CSLBigInt {
     as_u64(): BigNum | undefined;
     as_int(): Int | undefined;
     serialize(writer: CBORWriter): void;
-    static deserialize(reader: CBORReader): CSLBigInt;
+    static deserialize(reader: CBORReader, path: string[]): CSLBigInt;
 }
 export { CSLBigInt as BigInt };
 export declare enum CertificateKind {
@@ -439,14 +439,14 @@ export declare class Certificate {
     as_drep_deregistration(): DRepDeregistration | undefined;
     as_drep_update(): DRepUpdate | undefined;
     kind(): CertificateKind;
-    static deserialize(reader: CBORReader): Certificate;
+    static deserialize(reader: CBORReader, path: string[]): Certificate;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Certificate;
-    static from_hex(hex_str: string): Certificate;
+    static from_bytes(data: Uint8Array, path?: string[]): Certificate;
+    static from_hex(hex_str: string, path?: string[]): Certificate;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Certificate;
+    clone(path: string[]): Certificate;
 }
 export declare class Certificates {
     private items;
@@ -456,14 +456,14 @@ export declare class Certificates {
     get(index: number): Certificate;
     add(elem: Certificate): boolean;
     contains(elem: Certificate): boolean;
-    static deserialize(reader: CBORReader): Certificates;
+    static deserialize(reader: CBORReader, path: string[]): Certificates;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Certificates;
-    static from_hex(hex_str: string): Certificates;
+    static from_bytes(data: Uint8Array, path?: string[]): Certificates;
+    static from_hex(hex_str: string, path?: string[]): Certificates;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Certificates;
+    clone(path: string[]): Certificates;
 }
 export declare class ChangeConfig {
     private _address;
@@ -476,14 +476,14 @@ export declare class ChangeConfig {
     set_plutus_data(plutus_data: OutputDatum | undefined): void;
     script_ref(): ScriptRef | undefined;
     set_script_ref(script_ref: ScriptRef | undefined): void;
-    static deserialize(reader: CBORReader): ChangeConfig;
+    static deserialize(reader: CBORReader, path: string[]): ChangeConfig;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ChangeConfig;
-    static from_hex(hex_str: string): ChangeConfig;
+    static from_bytes(data: Uint8Array, path?: string[]): ChangeConfig;
+    static from_hex(hex_str: string, path?: string[]): ChangeConfig;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ChangeConfig;
+    clone(path: string[]): ChangeConfig;
     static new(address: Address): ChangeConfig;
     change_address(address: Address): ChangeConfig;
     change_plutus_data(plutus_data: OutputDatum): ChangeConfig;
@@ -507,14 +507,14 @@ export declare class CommitteeColdResign {
     set_committee_cold_credential(committee_cold_credential: Credential): void;
     anchor(): Anchor | undefined;
     set_anchor(anchor: Anchor | undefined): void;
-    static deserialize(reader: CBORReader): CommitteeColdResign;
+    static deserialize(reader: CBORReader, path: string[]): CommitteeColdResign;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): CommitteeColdResign;
-    static from_hex(hex_str: string): CommitteeColdResign;
+    static from_bytes(data: Uint8Array, path?: string[]): CommitteeColdResign;
+    static from_hex(hex_str: string, path?: string[]): CommitteeColdResign;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): CommitteeColdResign;
+    clone(path: string[]): CommitteeColdResign;
     static new(committee_cold_credential: Credential): CommitteeColdResign;
 }
 export declare class CommitteeEpochs {
@@ -525,14 +525,14 @@ export declare class CommitteeEpochs {
     insert(key: Credential, value: number): number | undefined;
     get(key: Credential): number | undefined;
     _remove_many(keys: Credential[]): void;
-    static deserialize(reader: CBORReader): CommitteeEpochs;
+    static deserialize(reader: CBORReader, path: string[]): CommitteeEpochs;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): CommitteeEpochs;
-    static from_hex(hex_str: string): CommitteeEpochs;
+    static from_bytes(data: Uint8Array, path?: string[]): CommitteeEpochs;
+    static from_hex(hex_str: string, path?: string[]): CommitteeEpochs;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): CommitteeEpochs;
+    clone(path: string[]): CommitteeEpochs;
 }
 export declare class CommitteeHotAuth {
     private _committee_cold_credential;
@@ -543,14 +543,14 @@ export declare class CommitteeHotAuth {
     set_committee_cold_credential(committee_cold_credential: Credential): void;
     committee_hot_credential(): Credential;
     set_committee_hot_credential(committee_hot_credential: Credential): void;
-    static deserialize(reader: CBORReader): CommitteeHotAuth;
+    static deserialize(reader: CBORReader, path: string[]): CommitteeHotAuth;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): CommitteeHotAuth;
-    static from_hex(hex_str: string): CommitteeHotAuth;
+    static from_bytes(data: Uint8Array, path?: string[]): CommitteeHotAuth;
+    static from_hex(hex_str: string, path?: string[]): CommitteeHotAuth;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): CommitteeHotAuth;
+    clone(path: string[]): CommitteeHotAuth;
 }
 export declare class Constitution {
     private _anchor;
@@ -560,14 +560,14 @@ export declare class Constitution {
     set_anchor(anchor: Anchor): void;
     scripthash(): ScriptHash | undefined;
     set_scripthash(scripthash: ScriptHash | undefined): void;
-    static deserialize(reader: CBORReader): Constitution;
+    static deserialize(reader: CBORReader, path: string[]): Constitution;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Constitution;
-    static from_hex(hex_str: string): Constitution;
+    static from_bytes(data: Uint8Array, path?: string[]): Constitution;
+    static from_hex(hex_str: string, path?: string[]): Constitution;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Constitution;
+    clone(path: string[]): Constitution;
     static new(anchor: Anchor): Constitution;
 }
 export declare class ConstrPlutusData {
@@ -579,14 +579,14 @@ export declare class ConstrPlutusData {
     set_alternative(alternative: BigNum): void;
     data(): PlutusList;
     set_data(data: PlutusList): void;
-    static deserialize(reader: CBORReader): ConstrPlutusData;
+    static deserialize(reader: CBORReader, path: string[]): ConstrPlutusData;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ConstrPlutusData;
-    static from_hex(hex_str: string): ConstrPlutusData;
+    static from_bytes(data: Uint8Array, path?: string[]): ConstrPlutusData;
+    static from_hex(hex_str: string, path?: string[]): ConstrPlutusData;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ConstrPlutusData;
+    clone(path: string[]): ConstrPlutusData;
 }
 export declare class CostModel {
     private items;
@@ -595,14 +595,14 @@ export declare class CostModel {
     len(): number;
     get(index: number): Int;
     add(elem: Int): void;
-    static deserialize(reader: CBORReader): CostModel;
+    static deserialize(reader: CBORReader, path: string[]): CostModel;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): CostModel;
-    static from_hex(hex_str: string): CostModel;
+    static from_bytes(data: Uint8Array, path?: string[]): CostModel;
+    static from_hex(hex_str: string, path?: string[]): CostModel;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): CostModel;
+    clone(path: string[]): CostModel;
     set(operation: number, cost: Int): Int;
 }
 export declare class Costmdls {
@@ -614,14 +614,14 @@ export declare class Costmdls {
     get(key: Language): CostModel | undefined;
     _remove_many(keys: Language[]): void;
     keys(): Languages;
-    static deserialize(reader: CBORReader): Costmdls;
+    static deserialize(reader: CBORReader, path: string[]): Costmdls;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Costmdls;
-    static from_hex(hex_str: string): Costmdls;
+    static from_bytes(data: Uint8Array, path?: string[]): Costmdls;
+    static from_hex(hex_str: string, path?: string[]): Costmdls;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Costmdls;
+    clone(path: string[]): Costmdls;
     retain_language_versions(languages: Languages): Costmdls;
 }
 export declare class Credentials {
@@ -632,42 +632,42 @@ export declare class Credentials {
     get(index: number): Credential;
     add(elem: Credential): boolean;
     contains(elem: Credential): boolean;
-    static deserialize(reader: CBORReader): Credentials;
+    static deserialize(reader: CBORReader, path: string[]): Credentials;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Credentials;
-    static from_hex(hex_str: string): Credentials;
+    static from_bytes(data: Uint8Array, path?: string[]): Credentials;
+    static from_hex(hex_str: string, path?: string[]): Credentials;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Credentials;
+    clone(path: string[]): Credentials;
 }
 export declare class DNSRecordAorAAAA {
     private inner;
     constructor(inner: string);
     static new(inner: string): DNSRecordAorAAAA;
     record(): string;
-    static deserialize(reader: CBORReader): DNSRecordAorAAAA;
+    static deserialize(reader: CBORReader, path: string[]): DNSRecordAorAAAA;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): DNSRecordAorAAAA;
-    static from_hex(hex_str: string): DNSRecordAorAAAA;
+    static from_bytes(data: Uint8Array, path?: string[]): DNSRecordAorAAAA;
+    static from_hex(hex_str: string, path?: string[]): DNSRecordAorAAAA;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): DNSRecordAorAAAA;
+    clone(path: string[]): DNSRecordAorAAAA;
 }
 export declare class DNSRecordSRV {
     private inner;
     constructor(inner: string);
     static new(inner: string): DNSRecordSRV;
     record(): string;
-    static deserialize(reader: CBORReader): DNSRecordSRV;
+    static deserialize(reader: CBORReader, path: string[]): DNSRecordSRV;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): DNSRecordSRV;
-    static from_hex(hex_str: string): DNSRecordSRV;
+    static from_bytes(data: Uint8Array, path?: string[]): DNSRecordSRV;
+    static from_hex(hex_str: string, path?: string[]): DNSRecordSRV;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): DNSRecordSRV;
+    clone(path: string[]): DNSRecordSRV;
 }
 export declare enum DRepKind {
     Ed25519KeyHash = 0,
@@ -696,14 +696,14 @@ export declare class DRep {
     as_key_hash(): Ed25519KeyHash | undefined;
     as_script_hash(): ScriptHash | undefined;
     kind(): DRepKind;
-    static deserialize(reader: CBORReader): DRep;
+    static deserialize(reader: CBORReader, path: string[]): DRep;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): DRep;
-    static from_hex(hex_str: string): DRep;
+    static from_bytes(data: Uint8Array, path?: string[]): DRep;
+    static from_hex(hex_str: string, path?: string[]): DRep;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): DRep;
+    clone(path: string[]): DRep;
 }
 export declare class DRepDeregistration {
     private _drep_credential;
@@ -714,14 +714,14 @@ export declare class DRepDeregistration {
     set_drep_credential(drep_credential: Credential): void;
     coin(): BigNum;
     set_coin(coin: BigNum): void;
-    static deserialize(reader: CBORReader): DRepDeregistration;
+    static deserialize(reader: CBORReader, path: string[]): DRepDeregistration;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): DRepDeregistration;
-    static from_hex(hex_str: string): DRepDeregistration;
+    static from_bytes(data: Uint8Array, path?: string[]): DRepDeregistration;
+    static from_hex(hex_str: string, path?: string[]): DRepDeregistration;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): DRepDeregistration;
+    clone(path: string[]): DRepDeregistration;
 }
 export declare class DRepRegistration {
     private _voting_credential;
@@ -734,14 +734,14 @@ export declare class DRepRegistration {
     set_coin(coin: BigNum): void;
     anchor(): Anchor | undefined;
     set_anchor(anchor: Anchor | undefined): void;
-    static deserialize(reader: CBORReader): DRepRegistration;
+    static deserialize(reader: CBORReader, path: string[]): DRepRegistration;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): DRepRegistration;
-    static from_hex(hex_str: string): DRepRegistration;
+    static from_bytes(data: Uint8Array, path?: string[]): DRepRegistration;
+    static from_hex(hex_str: string, path?: string[]): DRepRegistration;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): DRepRegistration;
+    clone(path: string[]): DRepRegistration;
     static new(voting_credential: Credential, coin: BigNum): DRepRegistration;
 }
 export declare class DRepUpdate {
@@ -752,14 +752,14 @@ export declare class DRepUpdate {
     set_drep_credential(drep_credential: Credential): void;
     anchor(): Anchor | undefined;
     set_anchor(anchor: Anchor | undefined): void;
-    static deserialize(reader: CBORReader): DRepUpdate;
+    static deserialize(reader: CBORReader, path: string[]): DRepUpdate;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): DRepUpdate;
-    static from_hex(hex_str: string): DRepUpdate;
+    static from_bytes(data: Uint8Array, path?: string[]): DRepUpdate;
+    static from_hex(hex_str: string, path?: string[]): DRepUpdate;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): DRepUpdate;
+    clone(path: string[]): DRepUpdate;
     static new(drep_credential: Credential): DRepUpdate;
 }
 export declare class DRepVotingThresholds {
@@ -795,14 +795,14 @@ export declare class DRepVotingThresholds {
     set_pp_governance_group(pp_governance_group: UnitInterval): void;
     treasury_withdrawal(): UnitInterval;
     set_treasury_withdrawal(treasury_withdrawal: UnitInterval): void;
-    static deserialize(reader: CBORReader): DRepVotingThresholds;
+    static deserialize(reader: CBORReader, path: string[]): DRepVotingThresholds;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): DRepVotingThresholds;
-    static from_hex(hex_str: string): DRepVotingThresholds;
+    static from_bytes(data: Uint8Array, path?: string[]): DRepVotingThresholds;
+    static from_hex(hex_str: string, path?: string[]): DRepVotingThresholds;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): DRepVotingThresholds;
+    clone(path: string[]): DRepVotingThresholds;
 }
 export declare class DataCost {
     private _coins_per_byte;
@@ -810,14 +810,14 @@ export declare class DataCost {
     static new(coins_per_byte: BigNum): DataCost;
     coins_per_byte(): BigNum;
     set_coins_per_byte(coins_per_byte: BigNum): void;
-    static deserialize(reader: CBORReader): DataCost;
+    static deserialize(reader: CBORReader, path: string[]): DataCost;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): DataCost;
-    static from_hex(hex_str: string): DataCost;
+    static from_bytes(data: Uint8Array, path?: string[]): DataCost;
+    static from_hex(hex_str: string, path?: string[]): DataCost;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): DataCost;
+    clone(path: string[]): DataCost;
 }
 export declare class DataHash {
     private inner;
@@ -831,7 +831,7 @@ export declare class DataHash {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): DataHash;
-    static deserialize(reader: CBORReader): DataHash;
+    static deserialize(reader: CBORReader, path: string[]): DataHash;
     serialize(writer: CBORWriter): void;
 }
 export declare enum DataOptionKind {
@@ -853,14 +853,14 @@ export declare class DataOption {
     as_hash(): DataHash | undefined;
     as_data(): PlutusData | undefined;
     kind(): DataOptionKind;
-    static deserialize(reader: CBORReader): DataOption;
+    static deserialize(reader: CBORReader, path: string[]): DataOption;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): DataOption;
-    static from_hex(hex_str: string): DataOption;
+    static from_bytes(data: Uint8Array, path?: string[]): DataOption;
+    static from_hex(hex_str: string, path?: string[]): DataOption;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): DataOption;
+    clone(path: string[]): DataOption;
 }
 export declare enum DatumSourceKind {
     PlutusData = 0,
@@ -881,14 +881,14 @@ export declare class DatumSource {
     as_datum(): PlutusData | undefined;
     as_ref_input(): TransactionInput | undefined;
     kind(): DatumSourceKind;
-    static deserialize(reader: CBORReader): DatumSource;
+    static deserialize(reader: CBORReader, path: string[]): DatumSource;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): DatumSource;
-    static from_hex(hex_str: string): DatumSource;
+    static from_bytes(data: Uint8Array, path?: string[]): DatumSource;
+    static from_hex(hex_str: string, path?: string[]): DatumSource;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): DatumSource;
+    clone(path: string[]): DatumSource;
     static new(datum: PlutusData): DatumSource;
 }
 export declare class Ed25519KeyHash {
@@ -903,7 +903,7 @@ export declare class Ed25519KeyHash {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): Ed25519KeyHash;
-    static deserialize(reader: CBORReader): Ed25519KeyHash;
+    static deserialize(reader: CBORReader, path: string[]): Ed25519KeyHash;
     serialize(writer: CBORWriter): void;
 }
 export declare class Ed25519KeyHashes {
@@ -914,14 +914,14 @@ export declare class Ed25519KeyHashes {
     get(index: number): Ed25519KeyHash;
     add(elem: Ed25519KeyHash): boolean;
     contains(elem: Ed25519KeyHash): boolean;
-    static deserialize(reader: CBORReader): Ed25519KeyHashes;
+    static deserialize(reader: CBORReader, path: string[]): Ed25519KeyHashes;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Ed25519KeyHashes;
-    static from_hex(hex_str: string): Ed25519KeyHashes;
+    static from_bytes(data: Uint8Array, path?: string[]): Ed25519KeyHashes;
+    static from_hex(hex_str: string, path?: string[]): Ed25519KeyHashes;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Ed25519KeyHashes;
+    clone(path: string[]): Ed25519KeyHashes;
 }
 export declare class Ed25519Signature {
     private inner;
@@ -933,7 +933,7 @@ export declare class Ed25519Signature {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): Ed25519Signature;
-    static deserialize(reader: CBORReader): Ed25519Signature;
+    static deserialize(reader: CBORReader, path: string[]): Ed25519Signature;
     serialize(writer: CBORWriter): void;
     static _BECH32_HRP: string;
     static from_bech32(bech_str: string): Ed25519Signature;
@@ -948,14 +948,14 @@ export declare class ExUnitPrices {
     set_mem_price(mem_price: UnitInterval): void;
     step_price(): UnitInterval;
     set_step_price(step_price: UnitInterval): void;
-    static deserialize(reader: CBORReader): ExUnitPrices;
+    static deserialize(reader: CBORReader, path: string[]): ExUnitPrices;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ExUnitPrices;
-    static from_hex(hex_str: string): ExUnitPrices;
+    static from_bytes(data: Uint8Array, path?: string[]): ExUnitPrices;
+    static from_hex(hex_str: string, path?: string[]): ExUnitPrices;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ExUnitPrices;
+    clone(path: string[]): ExUnitPrices;
 }
 export declare class ExUnits {
     private _mem;
@@ -966,14 +966,14 @@ export declare class ExUnits {
     set_mem(mem: BigNum): void;
     steps(): BigNum;
     set_steps(steps: BigNum): void;
-    static deserialize(reader: CBORReader): ExUnits;
+    static deserialize(reader: CBORReader, path: string[]): ExUnits;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ExUnits;
-    static from_hex(hex_str: string): ExUnits;
+    static from_bytes(data: Uint8Array, path?: string[]): ExUnits;
+    static from_hex(hex_str: string, path?: string[]): ExUnits;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ExUnits;
+    clone(path: string[]): ExUnits;
 }
 export declare class GeneralTransactionMetadata {
     _items: [BigNum, TransactionMetadatum][];
@@ -984,14 +984,14 @@ export declare class GeneralTransactionMetadata {
     get(key: BigNum): TransactionMetadatum | undefined;
     _remove_many(keys: BigNum[]): void;
     keys(): TransactionMetadatumLabels;
-    static deserialize(reader: CBORReader): GeneralTransactionMetadata;
+    static deserialize(reader: CBORReader, path: string[]): GeneralTransactionMetadata;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): GeneralTransactionMetadata;
-    static from_hex(hex_str: string): GeneralTransactionMetadata;
+    static from_bytes(data: Uint8Array, path?: string[]): GeneralTransactionMetadata;
+    static from_hex(hex_str: string, path?: string[]): GeneralTransactionMetadata;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): GeneralTransactionMetadata;
+    clone(path: string[]): GeneralTransactionMetadata;
 }
 export declare class GenesisDelegateHash {
     private inner;
@@ -1005,7 +1005,7 @@ export declare class GenesisDelegateHash {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): GenesisDelegateHash;
-    static deserialize(reader: CBORReader): GenesisDelegateHash;
+    static deserialize(reader: CBORReader, path: string[]): GenesisDelegateHash;
     serialize(writer: CBORWriter): void;
 }
 export declare class GenesisHash {
@@ -1020,7 +1020,7 @@ export declare class GenesisHash {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): GenesisHash;
-    static deserialize(reader: CBORReader): GenesisHash;
+    static deserialize(reader: CBORReader, path: string[]): GenesisHash;
     serialize(writer: CBORWriter): void;
 }
 export declare class GenesisHashes {
@@ -1030,14 +1030,14 @@ export declare class GenesisHashes {
     len(): number;
     get(index: number): GenesisHash;
     add(elem: GenesisHash): void;
-    static deserialize(reader: CBORReader): GenesisHashes;
+    static deserialize(reader: CBORReader, path: string[]): GenesisHashes;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): GenesisHashes;
-    static from_hex(hex_str: string): GenesisHashes;
+    static from_bytes(data: Uint8Array, path?: string[]): GenesisHashes;
+    static from_hex(hex_str: string, path?: string[]): GenesisHashes;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): GenesisHashes;
+    clone(path: string[]): GenesisHashes;
 }
 export declare enum GovernanceActionKind {
     ParameterChangeAction = 0,
@@ -1088,14 +1088,14 @@ export declare class GovernanceAction {
     as_new_constitution_action(): NewConstitutionAction | undefined;
     as_info_action(): InfoAction | undefined;
     kind(): GovernanceActionKind;
-    static deserialize(reader: CBORReader): GovernanceAction;
+    static deserialize(reader: CBORReader, path: string[]): GovernanceAction;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): GovernanceAction;
-    static from_hex(hex_str: string): GovernanceAction;
+    static from_bytes(data: Uint8Array, path?: string[]): GovernanceAction;
+    static from_hex(hex_str: string, path?: string[]): GovernanceAction;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): GovernanceAction;
+    clone(path: string[]): GovernanceAction;
 }
 export declare class GovernanceActionId {
     private _transaction_id;
@@ -1106,14 +1106,14 @@ export declare class GovernanceActionId {
     set_transaction_id(transaction_id: TransactionHash): void;
     index(): number;
     set_index(index: number): void;
-    static deserialize(reader: CBORReader): GovernanceActionId;
+    static deserialize(reader: CBORReader, path: string[]): GovernanceActionId;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): GovernanceActionId;
-    static from_hex(hex_str: string): GovernanceActionId;
+    static from_bytes(data: Uint8Array, path?: string[]): GovernanceActionId;
+    static from_hex(hex_str: string, path?: string[]): GovernanceActionId;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): GovernanceActionId;
+    clone(path: string[]): GovernanceActionId;
 }
 export declare class GovernanceActionIds {
     private items;
@@ -1122,14 +1122,14 @@ export declare class GovernanceActionIds {
     len(): number;
     get(index: number): GovernanceActionId;
     add(elem: GovernanceActionId): void;
-    static deserialize(reader: CBORReader): GovernanceActionIds;
+    static deserialize(reader: CBORReader, path: string[]): GovernanceActionIds;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): GovernanceActionIds;
-    static from_hex(hex_str: string): GovernanceActionIds;
+    static from_bytes(data: Uint8Array, path?: string[]): GovernanceActionIds;
+    static from_hex(hex_str: string, path?: string[]): GovernanceActionIds;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): GovernanceActionIds;
+    clone(path: string[]): GovernanceActionIds;
 }
 export declare class GovernanceActions {
     _items: [GovernanceActionId, VotingProcedure][];
@@ -1140,14 +1140,14 @@ export declare class GovernanceActions {
     get(key: GovernanceActionId): VotingProcedure | undefined;
     _remove_many(keys: GovernanceActionId[]): void;
     keys(): GovernanceActionIds;
-    static deserialize(reader: CBORReader): GovernanceActions;
+    static deserialize(reader: CBORReader, path: string[]): GovernanceActions;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): GovernanceActions;
-    static from_hex(hex_str: string): GovernanceActions;
+    static from_bytes(data: Uint8Array, path?: string[]): GovernanceActions;
+    static from_hex(hex_str: string, path?: string[]): GovernanceActions;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): GovernanceActions;
+    clone(path: string[]): GovernanceActions;
 }
 export declare class HardForkInitiationAction {
     private _gov_action_id;
@@ -1158,14 +1158,14 @@ export declare class HardForkInitiationAction {
     set_gov_action_id(gov_action_id: GovernanceActionId | undefined): void;
     protocol_version(): ProtocolVersion;
     set_protocol_version(protocol_version: ProtocolVersion): void;
-    static deserialize(reader: CBORReader): HardForkInitiationAction;
+    static deserialize(reader: CBORReader, path: string[]): HardForkInitiationAction;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): HardForkInitiationAction;
-    static from_hex(hex_str: string): HardForkInitiationAction;
+    static from_bytes(data: Uint8Array, path?: string[]): HardForkInitiationAction;
+    static from_hex(hex_str: string, path?: string[]): HardForkInitiationAction;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): HardForkInitiationAction;
+    clone(path: string[]): HardForkInitiationAction;
     static new(protocol_version: ProtocolVersion): HardForkInitiationAction;
 }
 export declare class Header {
@@ -1177,14 +1177,14 @@ export declare class Header {
     set_header_body(header_body: HeaderBody): void;
     body_signature(): KESSignature;
     set_body_signature(body_signature: KESSignature): void;
-    static deserialize(reader: CBORReader): Header;
+    static deserialize(reader: CBORReader, path: string[]): Header;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Header;
-    static from_hex(hex_str: string): Header;
+    static from_bytes(data: Uint8Array, path?: string[]): Header;
+    static from_hex(hex_str: string, path?: string[]): Header;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Header;
+    clone(path: string[]): Header;
 }
 export declare class HeaderBody {
     private _block_number;
@@ -1219,41 +1219,41 @@ export declare class HeaderBody {
     set_operational_cert(operational_cert: OperationalCert): void;
     protocol_version(): ProtocolVersion;
     set_protocol_version(protocol_version: ProtocolVersion): void;
-    static deserialize(reader: CBORReader): HeaderBody;
+    static deserialize(reader: CBORReader, path: string[]): HeaderBody;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): HeaderBody;
-    static from_hex(hex_str: string): HeaderBody;
+    static from_bytes(data: Uint8Array, path?: string[]): HeaderBody;
+    static from_hex(hex_str: string, path?: string[]): HeaderBody;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): HeaderBody;
+    clone(path: string[]): HeaderBody;
     slot(): number;
     static new(block_number: number, slot: number, prev_hash: BlockHash | undefined, issuer_vkey: Vkey, vrf_vkey: VRFVKey, vrf_result: VRFCert, block_body_size: number, block_body_hash: BlockHash, operational_cert: OperationalCert, protocol_version: ProtocolVersion): HeaderBody;
 }
 export declare class InfoAction {
     constructor();
     static new(): InfoAction;
-    static deserialize(reader: CBORReader): InfoAction;
+    static deserialize(reader: CBORReader, path: string[]): InfoAction;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): InfoAction;
-    static from_hex(hex_str: string): InfoAction;
+    static from_bytes(data: Uint8Array, path?: string[]): InfoAction;
+    static from_hex(hex_str: string, path?: string[]): InfoAction;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): InfoAction;
+    clone(path: string[]): InfoAction;
 }
 export declare class Int {
     private inner;
     constructor(inner: bigint);
     toJsValue(): bigint;
-    static deserialize(reader: CBORReader): Int;
+    static deserialize(reader: CBORReader, path: string[]): Int;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Int;
-    static from_hex(hex_str: string): Int;
+    static from_bytes(data: Uint8Array, path?: string[]): Int;
+    static from_hex(hex_str: string, path?: string[]): Int;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Int;
+    clone(path: string[]): Int;
     static _maxI32(): number;
     static _minI32(): number;
     static from_str(string: string): Int;
@@ -1273,42 +1273,42 @@ export declare class Ipv4 {
     constructor(inner: Uint8Array);
     static new(inner: Uint8Array): Ipv4;
     ip(): Uint8Array;
-    static deserialize(reader: CBORReader): Ipv4;
+    static deserialize(reader: CBORReader, path: string[]): Ipv4;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Ipv4;
-    static from_hex(hex_str: string): Ipv4;
+    static from_bytes(data: Uint8Array, path?: string[]): Ipv4;
+    static from_hex(hex_str: string, path?: string[]): Ipv4;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Ipv4;
+    clone(path: string[]): Ipv4;
 }
 export declare class Ipv6 {
     private inner;
     constructor(inner: Uint8Array);
     static new(inner: Uint8Array): Ipv6;
     ip(): Uint8Array;
-    static deserialize(reader: CBORReader): Ipv6;
+    static deserialize(reader: CBORReader, path: string[]): Ipv6;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Ipv6;
-    static from_hex(hex_str: string): Ipv6;
+    static from_bytes(data: Uint8Array, path?: string[]): Ipv6;
+    static from_hex(hex_str: string, path?: string[]): Ipv6;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Ipv6;
+    clone(path: string[]): Ipv6;
 }
 export declare class KESSignature {
     private inner;
     constructor(inner: Uint8Array);
     static new(inner: Uint8Array): KESSignature;
     toJsValue(): Uint8Array;
-    static deserialize(reader: CBORReader): KESSignature;
+    static deserialize(reader: CBORReader, path: string[]): KESSignature;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): KESSignature;
-    static from_hex(hex_str: string): KESSignature;
+    static from_bytes(data: Uint8Array, path?: string[]): KESSignature;
+    static from_hex(hex_str: string, path?: string[]): KESSignature;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): KESSignature;
+    clone(path: string[]): KESSignature;
 }
 export declare class KESVKey {
     private inner;
@@ -1322,7 +1322,7 @@ export declare class KESVKey {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): KESVKey;
-    static deserialize(reader: CBORReader): KESVKey;
+    static deserialize(reader: CBORReader, path: string[]): KESVKey;
     serialize(writer: CBORWriter): void;
 }
 export declare enum LanguageKind {
@@ -1337,14 +1337,14 @@ export declare class Language {
     static new_plutus_v2(): Language;
     static new_plutus_v3(): Language;
     kind(): LanguageKind;
-    static deserialize(reader: CBORReader): Language;
+    static deserialize(reader: CBORReader, path: string[]): Language;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Language;
-    static from_hex(hex_str: string): Language;
+    static from_bytes(data: Uint8Array, path?: string[]): Language;
+    static from_hex(hex_str: string, path?: string[]): Language;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Language;
+    clone(path: string[]): Language;
 }
 export declare class Languages {
     private items;
@@ -1353,14 +1353,14 @@ export declare class Languages {
     len(): number;
     get(index: number): Language;
     add(elem: Language): void;
-    static deserialize(reader: CBORReader): Languages;
+    static deserialize(reader: CBORReader, path: string[]): Languages;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Languages;
-    static from_hex(hex_str: string): Languages;
+    static from_bytes(data: Uint8Array, path?: string[]): Languages;
+    static from_hex(hex_str: string, path?: string[]): Languages;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Languages;
+    clone(path: string[]): Languages;
     static list(): Languages;
 }
 export declare class MetadataList {
@@ -1370,14 +1370,14 @@ export declare class MetadataList {
     len(): number;
     get(index: number): TransactionMetadatum;
     add(elem: TransactionMetadatum): void;
-    static deserialize(reader: CBORReader): MetadataList;
+    static deserialize(reader: CBORReader, path: string[]): MetadataList;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): MetadataList;
-    static from_hex(hex_str: string): MetadataList;
+    static from_bytes(data: Uint8Array, path?: string[]): MetadataList;
+    static from_hex(hex_str: string, path?: string[]): MetadataList;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): MetadataList;
+    clone(path: string[]): MetadataList;
 }
 export declare class MetadataMap {
     _items: [TransactionMetadatum, TransactionMetadatum][];
@@ -1388,14 +1388,14 @@ export declare class MetadataMap {
     _get(key: TransactionMetadatum): TransactionMetadatum | undefined;
     _remove_many(keys: TransactionMetadatum[]): void;
     keys(): MetadataList;
-    static deserialize(reader: CBORReader): MetadataMap;
+    static deserialize(reader: CBORReader, path: string[]): MetadataMap;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): MetadataMap;
-    static from_hex(hex_str: string): MetadataMap;
+    static from_bytes(data: Uint8Array, path?: string[]): MetadataMap;
+    static from_hex(hex_str: string, path?: string[]): MetadataMap;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): MetadataMap;
+    clone(path: string[]): MetadataMap;
     insert_str(key: string, value: TransactionMetadatum): TransactionMetadatum | undefined;
     insert_i32(key: number, value: TransactionMetadatum): TransactionMetadatum | undefined;
     get(key: TransactionMetadatum): TransactionMetadatum;
@@ -1411,14 +1411,14 @@ export declare class Mint {
     insert(key: ScriptHash, value: MintAssets): MintAssets | undefined;
     _remove_many(keys: ScriptHash[]): void;
     keys(): ScriptHashes;
-    static deserialize(reader: CBORReader): Mint;
+    static deserialize(reader: CBORReader, path: string[]): Mint;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Mint;
-    static from_hex(hex_str: string): Mint;
+    static from_bytes(data: Uint8Array, path?: string[]): Mint;
+    static from_hex(hex_str: string, path?: string[]): Mint;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Mint;
+    clone(path: string[]): Mint;
     get(key: ScriptHash): MintsAssets | undefined;
     _as_multiasset(isPositive: boolean): MultiAsset;
     as_positive_multiasset(): MultiAsset;
@@ -1433,14 +1433,14 @@ export declare class MintAssets {
     get(key: AssetName): Int | undefined;
     _remove_many(keys: AssetName[]): void;
     keys(): AssetNames;
-    static deserialize(reader: CBORReader): MintAssets;
+    static deserialize(reader: CBORReader, path: string[]): MintAssets;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): MintAssets;
-    static from_hex(hex_str: string): MintAssets;
+    static from_bytes(data: Uint8Array, path?: string[]): MintAssets;
+    static from_hex(hex_str: string, path?: string[]): MintAssets;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): MintAssets;
+    clone(path: string[]): MintAssets;
 }
 export declare class MintsAssets {
     private items;
@@ -1449,14 +1449,14 @@ export declare class MintsAssets {
     len(): number;
     get(index: number): MintAssets;
     add(elem: MintAssets): void;
-    static deserialize(reader: CBORReader): MintsAssets;
+    static deserialize(reader: CBORReader, path: string[]): MintsAssets;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): MintsAssets;
-    static from_hex(hex_str: string): MintsAssets;
+    static from_bytes(data: Uint8Array, path?: string[]): MintsAssets;
+    static from_hex(hex_str: string, path?: string[]): MintsAssets;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): MintsAssets;
+    clone(path: string[]): MintsAssets;
 }
 export declare class MultiAsset {
     _items: [ScriptHash, Assets][];
@@ -1467,17 +1467,17 @@ export declare class MultiAsset {
     get(key: ScriptHash): Assets | undefined;
     _remove_many(keys: ScriptHash[]): void;
     keys(): ScriptHashes;
-    static deserialize(reader: CBORReader): MultiAsset;
+    static deserialize(reader: CBORReader, path: string[]): MultiAsset;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): MultiAsset;
-    static from_hex(hex_str: string): MultiAsset;
+    static from_bytes(data: Uint8Array, path?: string[]): MultiAsset;
+    static from_hex(hex_str: string, path?: string[]): MultiAsset;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): MultiAsset;
+    clone(path: string[]): MultiAsset;
     set_asset(policy_id: ScriptHash, asset_name: AssetName, value: BigNum): BigNum | undefined;
     get_asset(policy_id: ScriptHash, asset_name: AssetName): BigNum;
-    sub(rhs: MultiAsset): MultiAsset;
+    sub(rhs: MultiAsset, path: string[]): MultiAsset;
     _inplace_checked_add(rhs: MultiAsset): void;
     _inplace_clamped_sub(rhs: MultiAsset): void;
     _normalize(): void;
@@ -1489,14 +1489,14 @@ export declare class MultiHostName {
     static new(dns_name: DNSRecordSRV): MultiHostName;
     dns_name(): DNSRecordSRV;
     set_dns_name(dns_name: DNSRecordSRV): void;
-    static deserialize(reader: CBORReader): MultiHostName;
+    static deserialize(reader: CBORReader, path: string[]): MultiHostName;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): MultiHostName;
-    static from_hex(hex_str: string): MultiHostName;
+    static from_bytes(data: Uint8Array, path?: string[]): MultiHostName;
+    static from_hex(hex_str: string, path?: string[]): MultiHostName;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): MultiHostName;
+    clone(path: string[]): MultiHostName;
 }
 export declare enum NativeScriptKind {
     ScriptPubkey = 0,
@@ -1541,14 +1541,14 @@ export declare class NativeScript {
     as_timelock_start(): TimelockStart | undefined;
     as_timelock_expiry(): TimelockExpiry | undefined;
     kind(): NativeScriptKind;
-    static deserialize(reader: CBORReader): NativeScript;
+    static deserialize(reader: CBORReader, path: string[]): NativeScript;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): NativeScript;
-    static from_hex(hex_str: string): NativeScript;
+    static from_bytes(data: Uint8Array, path?: string[]): NativeScript;
+    static from_hex(hex_str: string, path?: string[]): NativeScript;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): NativeScript;
+    clone(path: string[]): NativeScript;
 }
 export declare class NativeScriptRefInput {
     private _script_hash;
@@ -1562,14 +1562,14 @@ export declare class NativeScriptRefInput {
     set_input(input: TransactionInput): void;
     script_size(): number;
     set_script_size(script_size: number): void;
-    static deserialize(reader: CBORReader): NativeScriptRefInput;
+    static deserialize(reader: CBORReader, path: string[]): NativeScriptRefInput;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): NativeScriptRefInput;
-    static from_hex(hex_str: string): NativeScriptRefInput;
+    static from_bytes(data: Uint8Array, path?: string[]): NativeScriptRefInput;
+    static from_hex(hex_str: string, path?: string[]): NativeScriptRefInput;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): NativeScriptRefInput;
+    clone(path: string[]): NativeScriptRefInput;
 }
 export declare enum NativeScriptSourceKind {
     NativeScript = 0,
@@ -1590,14 +1590,14 @@ export declare class NativeScriptSource {
     as_script(): NativeScript | undefined;
     as__ref_input(): NativeScriptRefInput | undefined;
     kind(): NativeScriptSourceKind;
-    static deserialize(reader: CBORReader): NativeScriptSource;
+    static deserialize(reader: CBORReader, path: string[]): NativeScriptSource;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): NativeScriptSource;
-    static from_hex(hex_str: string): NativeScriptSource;
+    static from_bytes(data: Uint8Array, path?: string[]): NativeScriptSource;
+    static from_hex(hex_str: string, path?: string[]): NativeScriptSource;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): NativeScriptSource;
+    clone(path: string[]): NativeScriptSource;
     static new(script: NativeScript): NativeScriptSource;
     static new_ref_input(script_hash: ScriptHash, input: TransactionInput, script_size: number): NativeScriptSource;
     set_required_signers(key_hashes: Ed25519KeyHashes): void;
@@ -1610,14 +1610,14 @@ export declare class NativeScripts {
     len(): number;
     get(index: number): NativeScript;
     add(elem: NativeScript): void;
-    static deserialize(reader: CBORReader): NativeScripts;
+    static deserialize(reader: CBORReader, path: string[]): NativeScripts;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): NativeScripts;
-    static from_hex(hex_str: string): NativeScripts;
+    static from_bytes(data: Uint8Array, path?: string[]): NativeScripts;
+    static from_hex(hex_str: string, path?: string[]): NativeScripts;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): NativeScripts;
+    clone(path: string[]): NativeScripts;
 }
 export declare enum NetworkIdKind {
     mainnet = 0,
@@ -1629,14 +1629,14 @@ export declare class NetworkId {
     static new_mainnet(): NetworkId;
     static new_testnet(): NetworkId;
     kind(): NetworkIdKind;
-    static deserialize(reader: CBORReader): NetworkId;
+    static deserialize(reader: CBORReader, path: string[]): NetworkId;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): NetworkId;
-    static from_hex(hex_str: string): NetworkId;
+    static from_bytes(data: Uint8Array, path?: string[]): NetworkId;
+    static from_hex(hex_str: string, path?: string[]): NetworkId;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): NetworkId;
+    clone(path: string[]): NetworkId;
 }
 export declare class NewConstitutionAction {
     private _gov_action_id;
@@ -1647,14 +1647,14 @@ export declare class NewConstitutionAction {
     set_gov_action_id(gov_action_id: GovernanceActionId | undefined): void;
     constitution(): Constitution;
     set_constitution(constitution: Constitution): void;
-    static deserialize(reader: CBORReader): NewConstitutionAction;
+    static deserialize(reader: CBORReader, path: string[]): NewConstitutionAction;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): NewConstitutionAction;
-    static from_hex(hex_str: string): NewConstitutionAction;
+    static from_bytes(data: Uint8Array, path?: string[]): NewConstitutionAction;
+    static from_hex(hex_str: string, path?: string[]): NewConstitutionAction;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): NewConstitutionAction;
+    clone(path: string[]): NewConstitutionAction;
     static new(constitution: Constitution): NewConstitutionAction;
 }
 export declare class NoConfidenceAction {
@@ -1663,14 +1663,14 @@ export declare class NoConfidenceAction {
     static new_with_action_id(gov_action_id: GovernanceActionId | undefined): NoConfidenceAction;
     gov_action_id(): GovernanceActionId | undefined;
     set_gov_action_id(gov_action_id: GovernanceActionId | undefined): void;
-    static deserialize(reader: CBORReader): NoConfidenceAction;
+    static deserialize(reader: CBORReader, path: string[]): NoConfidenceAction;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): NoConfidenceAction;
-    static from_hex(hex_str: string): NoConfidenceAction;
+    static from_bytes(data: Uint8Array, path?: string[]): NoConfidenceAction;
+    static from_hex(hex_str: string, path?: string[]): NoConfidenceAction;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): NoConfidenceAction;
+    clone(path: string[]): NoConfidenceAction;
     static new(): NoConfidenceAction;
 }
 export declare class Nonce {
@@ -1679,14 +1679,14 @@ export declare class Nonce {
     static new(hash: Uint8Array | undefined): Nonce;
     hash(): Uint8Array | undefined;
     set_hash(hash: Uint8Array | undefined): void;
-    static deserialize(reader: CBORReader): Nonce;
+    static deserialize(reader: CBORReader, path: string[]): Nonce;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Nonce;
-    static from_hex(hex_str: string): Nonce;
+    static from_bytes(data: Uint8Array, path?: string[]): Nonce;
+    static from_hex(hex_str: string, path?: string[]): Nonce;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Nonce;
+    clone(path: string[]): Nonce;
     static new_identity(): Nonce;
     static new_from_hash(hash: Uint8Array): Nonce;
     get_hash(): Uint8Array | undefined;
@@ -1706,14 +1706,14 @@ export declare class OperationalCert {
     set_kes_period(kes_period: number): void;
     sigma(): Ed25519Signature;
     set_sigma(sigma: Ed25519Signature): void;
-    static deserialize(reader: CBORReader): OperationalCert;
+    static deserialize(reader: CBORReader, path: string[]): OperationalCert;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): OperationalCert;
-    static from_hex(hex_str: string): OperationalCert;
+    static from_bytes(data: Uint8Array, path?: string[]): OperationalCert;
+    static from_hex(hex_str: string, path?: string[]): OperationalCert;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): OperationalCert;
+    clone(path: string[]): OperationalCert;
 }
 export declare enum OutputDatumKind {
     DataHash = 0,
@@ -1734,14 +1734,14 @@ export declare class OutputDatum {
     as_data_hash(): DataHash | undefined;
     as_data(): PlutusData | undefined;
     kind(): OutputDatumKind;
-    static deserialize(reader: CBORReader): OutputDatum;
+    static deserialize(reader: CBORReader, path: string[]): OutputDatum;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): OutputDatum;
-    static from_hex(hex_str: string): OutputDatum;
+    static from_bytes(data: Uint8Array, path?: string[]): OutputDatum;
+    static from_hex(hex_str: string, path?: string[]): OutputDatum;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): OutputDatum;
+    clone(path: string[]): OutputDatum;
 }
 export declare class ParameterChangeAction {
     private _gov_action_id;
@@ -1755,14 +1755,14 @@ export declare class ParameterChangeAction {
     set_protocol_param_updates(protocol_param_updates: ProtocolParamUpdate): void;
     policy_hash(): ScriptHash | undefined;
     set_policy_hash(policy_hash: ScriptHash | undefined): void;
-    static deserialize(reader: CBORReader): ParameterChangeAction;
+    static deserialize(reader: CBORReader, path: string[]): ParameterChangeAction;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ParameterChangeAction;
-    static from_hex(hex_str: string): ParameterChangeAction;
+    static from_bytes(data: Uint8Array, path?: string[]): ParameterChangeAction;
+    static from_hex(hex_str: string, path?: string[]): ParameterChangeAction;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ParameterChangeAction;
+    clone(path: string[]): ParameterChangeAction;
     static new(protocol_param_updates: ProtocolParamUpdate): ParameterChangeAction;
     static new_with_action_id(gov_action_id: GovernanceActionId, protocol_param_updates: ProtocolParamUpdate): ParameterChangeAction;
     static new_with_policy_hash(protocol_param_updates: ProtocolParamUpdate, policy_hash: ScriptHash): ParameterChangeAction;
@@ -1804,14 +1804,14 @@ export declare class PlutusData {
     as_integer(): CSLBigInt;
     as_bytes(): Uint8Array;
     kind(): PlutusDataKind;
-    static deserialize(reader: CBORReader): PlutusData;
+    static deserialize(reader: CBORReader, path: string[]): PlutusData;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): PlutusData;
-    static from_hex(hex_str: string): PlutusData;
+    static from_bytes(data: Uint8Array, path?: string[]): PlutusData;
+    static from_hex(hex_str: string, path?: string[]): PlutusData;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): PlutusData;
+    clone(path: string[]): PlutusData;
     static new_empty_constr_plutus_data(alternative: BigNum): PlutusData;
     static new_single_value_constr_plutus_data(alternative: BigNum, plutus_data: PlutusData): PlutusData;
     static from_address(address: Address): PlutusData;
@@ -1824,14 +1824,14 @@ export declare class PlutusList {
     get(index: number): PlutusData;
     add(elem: PlutusData): boolean;
     contains(elem: PlutusData): boolean;
-    static deserialize(reader: CBORReader): PlutusList;
+    static deserialize(reader: CBORReader, path: string[]): PlutusList;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): PlutusList;
-    static from_hex(hex_str: string): PlutusList;
+    static from_bytes(data: Uint8Array, path?: string[]): PlutusList;
+    static from_hex(hex_str: string, path?: string[]): PlutusList;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): PlutusList;
+    clone(path: string[]): PlutusList;
 }
 export declare class PlutusMap {
     _items: [PlutusData, PlutusMapValues][];
@@ -1842,14 +1842,14 @@ export declare class PlutusMap {
     get(key: PlutusData): PlutusMapValues | undefined;
     _remove_many(keys: PlutusData[]): void;
     keys(): PlutusList;
-    static deserialize(reader: CBORReader): PlutusMap;
+    static deserialize(reader: CBORReader, path: string[]): PlutusMap;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): PlutusMap;
-    static from_hex(hex_str: string): PlutusMap;
+    static from_bytes(data: Uint8Array, path?: string[]): PlutusMap;
+    static from_hex(hex_str: string, path?: string[]): PlutusMap;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): PlutusMap;
+    clone(path: string[]): PlutusMap;
 }
 export declare class PlutusMapValues {
     private items;
@@ -1858,28 +1858,28 @@ export declare class PlutusMapValues {
     len(): number;
     get(index: number): PlutusData;
     add(elem: PlutusData): void;
-    static deserialize(reader: CBORReader): PlutusMapValues;
+    static deserialize(reader: CBORReader, path: string[]): PlutusMapValues;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): PlutusMapValues;
-    static from_hex(hex_str: string): PlutusMapValues;
+    static from_bytes(data: Uint8Array, path?: string[]): PlutusMapValues;
+    static from_hex(hex_str: string, path?: string[]): PlutusMapValues;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): PlutusMapValues;
+    clone(path: string[]): PlutusMapValues;
 }
 export declare class PlutusScript {
     private inner;
     constructor(inner: Uint8Array);
     static new(inner: Uint8Array): PlutusScript;
     bytes(): Uint8Array;
-    static deserialize(reader: CBORReader): PlutusScript;
+    static deserialize(reader: CBORReader, path: string[]): PlutusScript;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): PlutusScript;
-    static from_hex(hex_str: string): PlutusScript;
+    static from_bytes(data: Uint8Array, path?: string[]): PlutusScript;
+    static from_hex(hex_str: string, path?: string[]): PlutusScript;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): PlutusScript;
+    clone(path: string[]): PlutusScript;
     hash(language_version: number): ScriptHash;
 }
 export declare class PlutusScripts {
@@ -1889,14 +1889,14 @@ export declare class PlutusScripts {
     len(): number;
     get(index: number): PlutusScript;
     add(elem: PlutusScript): void;
-    static deserialize(reader: CBORReader): PlutusScripts;
+    static deserialize(reader: CBORReader, path: string[]): PlutusScripts;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): PlutusScripts;
-    static from_hex(hex_str: string): PlutusScripts;
+    static from_bytes(data: Uint8Array, path?: string[]): PlutusScripts;
+    static from_hex(hex_str: string, path?: string[]): PlutusScripts;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): PlutusScripts;
+    clone(path: string[]): PlutusScripts;
 }
 export declare class PoolMetadata {
     private _url;
@@ -1907,14 +1907,14 @@ export declare class PoolMetadata {
     set_url(url: URL): void;
     pool_metadata_hash(): PoolMetadataHash;
     set_pool_metadata_hash(pool_metadata_hash: PoolMetadataHash): void;
-    static deserialize(reader: CBORReader): PoolMetadata;
+    static deserialize(reader: CBORReader, path: string[]): PoolMetadata;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): PoolMetadata;
-    static from_hex(hex_str: string): PoolMetadata;
+    static from_bytes(data: Uint8Array, path?: string[]): PoolMetadata;
+    static from_hex(hex_str: string, path?: string[]): PoolMetadata;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): PoolMetadata;
+    clone(path: string[]): PoolMetadata;
 }
 export declare class PoolMetadataHash {
     private inner;
@@ -1928,7 +1928,7 @@ export declare class PoolMetadataHash {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): PoolMetadataHash;
-    static deserialize(reader: CBORReader): PoolMetadataHash;
+    static deserialize(reader: CBORReader, path: string[]): PoolMetadataHash;
     serialize(writer: CBORWriter): void;
 }
 export declare class PoolParams {
@@ -1961,14 +1961,14 @@ export declare class PoolParams {
     set_relays(relays: Relays): void;
     pool_metadata(): PoolMetadata | undefined;
     set_pool_metadata(pool_metadata: PoolMetadata | undefined): void;
-    static deserialize(reader: CBORReader): PoolParams;
+    static deserialize(reader: CBORReader, path: string[]): PoolParams;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): PoolParams;
-    static from_hex(hex_str: string): PoolParams;
+    static from_bytes(data: Uint8Array, path?: string[]): PoolParams;
+    static from_hex(hex_str: string, path?: string[]): PoolParams;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): PoolParams;
+    clone(path: string[]): PoolParams;
 }
 export declare class PoolRegistration {
     private _pool_params;
@@ -1976,14 +1976,14 @@ export declare class PoolRegistration {
     static new(pool_params: PoolParams): PoolRegistration;
     pool_params(): PoolParams;
     set_pool_params(pool_params: PoolParams): void;
-    static deserialize(reader: CBORReader): PoolRegistration;
+    static deserialize(reader: CBORReader, path: string[]): PoolRegistration;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): PoolRegistration;
-    static from_hex(hex_str: string): PoolRegistration;
+    static from_bytes(data: Uint8Array, path?: string[]): PoolRegistration;
+    static from_hex(hex_str: string, path?: string[]): PoolRegistration;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): PoolRegistration;
+    clone(path: string[]): PoolRegistration;
 }
 export declare class PoolRetirement {
     private _pool_keyhash;
@@ -1994,14 +1994,14 @@ export declare class PoolRetirement {
     set_pool_keyhash(pool_keyhash: Ed25519KeyHash): void;
     epoch(): number;
     set_epoch(epoch: number): void;
-    static deserialize(reader: CBORReader): PoolRetirement;
+    static deserialize(reader: CBORReader, path: string[]): PoolRetirement;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): PoolRetirement;
-    static from_hex(hex_str: string): PoolRetirement;
+    static from_bytes(data: Uint8Array, path?: string[]): PoolRetirement;
+    static from_hex(hex_str: string, path?: string[]): PoolRetirement;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): PoolRetirement;
+    clone(path: string[]): PoolRetirement;
 }
 export declare class PoolVotingThresholds {
     private _motion_no_confidence;
@@ -2021,14 +2021,14 @@ export declare class PoolVotingThresholds {
     set_hard_fork_initiation(hard_fork_initiation: UnitInterval): void;
     security_relevant_threshold(): UnitInterval;
     set_security_relevant_threshold(security_relevant_threshold: UnitInterval): void;
-    static deserialize(reader: CBORReader): PoolVotingThresholds;
+    static deserialize(reader: CBORReader, path: string[]): PoolVotingThresholds;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): PoolVotingThresholds;
-    static from_hex(hex_str: string): PoolVotingThresholds;
+    static from_bytes(data: Uint8Array, path?: string[]): PoolVotingThresholds;
+    static from_hex(hex_str: string, path?: string[]): PoolVotingThresholds;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): PoolVotingThresholds;
+    clone(path: string[]): PoolVotingThresholds;
 }
 export declare class PrivateKey {
     private inner;
@@ -2039,7 +2039,7 @@ export declare class PrivateKey {
     static new(inner: Uint8Array): PrivateKey;
     as_bytes(): Uint8Array;
     to_hex(): string;
-    static deserialize(reader: CBORReader): PrivateKey;
+    static deserialize(reader: CBORReader, path: string[]): PrivateKey;
     serialize(writer: CBORWriter): void;
     static _KEY_LEN: number;
     static _EXT_KEY_LEN: number;
@@ -2066,14 +2066,14 @@ export declare class ProposedProtocolParameterUpdates {
     get(key: GenesisHash): ProtocolParamUpdate | undefined;
     _remove_many(keys: GenesisHash[]): void;
     keys(): GenesisHashes;
-    static deserialize(reader: CBORReader): ProposedProtocolParameterUpdates;
+    static deserialize(reader: CBORReader, path: string[]): ProposedProtocolParameterUpdates;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ProposedProtocolParameterUpdates;
-    static from_hex(hex_str: string): ProposedProtocolParameterUpdates;
+    static from_bytes(data: Uint8Array, path?: string[]): ProposedProtocolParameterUpdates;
+    static from_hex(hex_str: string, path?: string[]): ProposedProtocolParameterUpdates;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ProposedProtocolParameterUpdates;
+    clone(path: string[]): ProposedProtocolParameterUpdates;
 }
 export declare class ProtocolParamUpdate {
     private _minfee_a;
@@ -2167,14 +2167,14 @@ export declare class ProtocolParamUpdate {
     set_drep_inactivity_period(drep_inactivity_period: number | undefined): void;
     script_cost_per_byte(): UnitInterval | undefined;
     set_script_cost_per_byte(script_cost_per_byte: UnitInterval | undefined): void;
-    static deserialize(reader: CBORReader): ProtocolParamUpdate;
+    static deserialize(reader: CBORReader, path: string[]): ProtocolParamUpdate;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ProtocolParamUpdate;
-    static from_hex(hex_str: string): ProtocolParamUpdate;
+    static from_bytes(data: Uint8Array, path?: string[]): ProtocolParamUpdate;
+    static from_hex(hex_str: string, path?: string[]): ProtocolParamUpdate;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ProtocolParamUpdate;
+    clone(path: string[]): ProtocolParamUpdate;
     static new(): ProtocolParamUpdate;
 }
 export declare class ProtocolVersion {
@@ -2186,14 +2186,14 @@ export declare class ProtocolVersion {
     set_major(major: number): void;
     minor(): number;
     set_minor(minor: number): void;
-    static deserialize(reader: CBORReader): ProtocolVersion;
+    static deserialize(reader: CBORReader, path: string[]): ProtocolVersion;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ProtocolVersion;
-    static from_hex(hex_str: string): ProtocolVersion;
+    static from_bytes(data: Uint8Array, path?: string[]): ProtocolVersion;
+    static from_hex(hex_str: string, path?: string[]): ProtocolVersion;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ProtocolVersion;
+    clone(path: string[]): ProtocolVersion;
 }
 export declare class PublicKey {
     private inner;
@@ -2205,7 +2205,7 @@ export declare class PublicKey {
     as_bytes(): Uint8Array;
     to_hex(): string;
     clone(): PublicKey;
-    static deserialize(reader: CBORReader): PublicKey;
+    static deserialize(reader: CBORReader, path: string[]): PublicKey;
     serialize(writer: CBORWriter): void;
     static _BECH32_HRP: string;
     hash(): Ed25519KeyHash;
@@ -2228,14 +2228,14 @@ export declare class Redeemer {
     set_data(data: PlutusData): void;
     ex_units(): ExUnits;
     set_ex_units(ex_units: ExUnits): void;
-    static deserialize(reader: CBORReader): Redeemer;
+    static deserialize(reader: CBORReader, path: string[]): Redeemer;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Redeemer;
-    static from_hex(hex_str: string): Redeemer;
+    static from_bytes(data: Uint8Array, path?: string[]): Redeemer;
+    static from_hex(hex_str: string, path?: string[]): Redeemer;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Redeemer;
+    clone(path: string[]): Redeemer;
 }
 export declare enum RedeemerTagKind {
     spending = 0,
@@ -2255,14 +2255,14 @@ export declare class RedeemerTag {
     static new_voting(): RedeemerTag;
     static new_proposing(): RedeemerTag;
     kind(): RedeemerTagKind;
-    static deserialize(reader: CBORReader): RedeemerTag;
+    static deserialize(reader: CBORReader, path: string[]): RedeemerTag;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): RedeemerTag;
-    static from_hex(hex_str: string): RedeemerTag;
+    static from_bytes(data: Uint8Array, path?: string[]): RedeemerTag;
+    static from_hex(hex_str: string, path?: string[]): RedeemerTag;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): RedeemerTag;
+    clone(path: string[]): RedeemerTag;
 }
 export declare class Redeemers {
     private items;
@@ -2272,15 +2272,15 @@ export declare class Redeemers {
     get(index: number): Redeemer;
     add(elem: Redeemer): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Redeemers;
-    static from_hex(hex_str: string): Redeemers;
+    static from_bytes(data: Uint8Array, path?: string[]): Redeemers;
+    static from_hex(hex_str: string, path?: string[]): Redeemers;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Redeemers;
+    clone(path: string[]): Redeemers;
     total_ex_units(): ExUnits;
-    static deserialize(reader: CBORReader): Redeemers;
-    static deserializeArray(reader: CBORReader): Redeemers;
-    static deserializeMap(reader: CBORReader): Redeemers;
+    static deserialize(reader: CBORReader, path: string[]): Redeemers;
+    static deserializeArray(reader: CBORReader, path: string[]): Redeemers;
+    static deserializeMap(reader: CBORReader, path: string[]): Redeemers;
     serialize(writer: CBORWriter): void;
 }
 export declare class RedeemersArrayItem {
@@ -2298,14 +2298,14 @@ export declare class RedeemersArrayItem {
     set_data(data: PlutusData): void;
     ex_units(): ExUnits;
     set_ex_units(ex_units: ExUnits): void;
-    static deserialize(reader: CBORReader): RedeemersArrayItem;
+    static deserialize(reader: CBORReader, path: string[]): RedeemersArrayItem;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): RedeemersArrayItem;
-    static from_hex(hex_str: string): RedeemersArrayItem;
+    static from_bytes(data: Uint8Array, path?: string[]): RedeemersArrayItem;
+    static from_hex(hex_str: string, path?: string[]): RedeemersArrayItem;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): RedeemersArrayItem;
+    clone(path: string[]): RedeemersArrayItem;
 }
 export declare class RedeemersKey {
     private _tag;
@@ -2316,14 +2316,14 @@ export declare class RedeemersKey {
     set_tag(tag: RedeemerTag): void;
     index(): BigNum;
     set_index(index: BigNum): void;
-    static deserialize(reader: CBORReader): RedeemersKey;
+    static deserialize(reader: CBORReader, path: string[]): RedeemersKey;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): RedeemersKey;
-    static from_hex(hex_str: string): RedeemersKey;
+    static from_bytes(data: Uint8Array, path?: string[]): RedeemersKey;
+    static from_hex(hex_str: string, path?: string[]): RedeemersKey;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): RedeemersKey;
+    clone(path: string[]): RedeemersKey;
 }
 export declare class RedeemersValue {
     private _data;
@@ -2334,14 +2334,14 @@ export declare class RedeemersValue {
     set_data(data: PlutusData): void;
     ex_units(): ExUnits;
     set_ex_units(ex_units: ExUnits): void;
-    static deserialize(reader: CBORReader): RedeemersValue;
+    static deserialize(reader: CBORReader, path: string[]): RedeemersValue;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): RedeemersValue;
-    static from_hex(hex_str: string): RedeemersValue;
+    static from_bytes(data: Uint8Array, path?: string[]): RedeemersValue;
+    static from_hex(hex_str: string, path?: string[]): RedeemersValue;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): RedeemersValue;
+    clone(path: string[]): RedeemersValue;
 }
 export declare class RegCert {
     private _stake_credential;
@@ -2352,14 +2352,14 @@ export declare class RegCert {
     set_stake_credential(stake_credential: Credential): void;
     coin(): BigNum;
     set_coin(coin: BigNum): void;
-    static deserialize(reader: CBORReader): RegCert;
+    static deserialize(reader: CBORReader, path: string[]): RegCert;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): RegCert;
-    static from_hex(hex_str: string): RegCert;
+    static from_bytes(data: Uint8Array, path?: string[]): RegCert;
+    static from_hex(hex_str: string, path?: string[]): RegCert;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): RegCert;
+    clone(path: string[]): RegCert;
 }
 export declare enum RelayKind {
     SingleHostAddr = 0,
@@ -2386,14 +2386,14 @@ export declare class Relay {
     as_single_host_name(): SingleHostName | undefined;
     as_multi_host_name(): MultiHostName | undefined;
     kind(): RelayKind;
-    static deserialize(reader: CBORReader): Relay;
+    static deserialize(reader: CBORReader, path: string[]): Relay;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Relay;
-    static from_hex(hex_str: string): Relay;
+    static from_bytes(data: Uint8Array, path?: string[]): Relay;
+    static from_hex(hex_str: string, path?: string[]): Relay;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Relay;
+    clone(path: string[]): Relay;
 }
 export declare class Relays {
     private items;
@@ -2402,14 +2402,14 @@ export declare class Relays {
     len(): number;
     get(index: number): Relay;
     add(elem: Relay): void;
-    static deserialize(reader: CBORReader): Relays;
+    static deserialize(reader: CBORReader, path: string[]): Relays;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Relays;
-    static from_hex(hex_str: string): Relays;
+    static from_bytes(data: Uint8Array, path?: string[]): Relays;
+    static from_hex(hex_str: string, path?: string[]): Relays;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Relays;
+    clone(path: string[]): Relays;
 }
 export declare class RewardAddresses {
     private items;
@@ -2418,14 +2418,14 @@ export declare class RewardAddresses {
     len(): number;
     get(index: number): RewardAddress;
     add(elem: RewardAddress): void;
-    static deserialize(reader: CBORReader): RewardAddresses;
+    static deserialize(reader: CBORReader, path: string[]): RewardAddresses;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): RewardAddresses;
-    static from_hex(hex_str: string): RewardAddresses;
+    static from_bytes(data: Uint8Array, path?: string[]): RewardAddresses;
+    static from_hex(hex_str: string, path?: string[]): RewardAddresses;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): RewardAddresses;
+    clone(path: string[]): RewardAddresses;
 }
 export declare class ScriptAll {
     private _native_scripts;
@@ -2433,14 +2433,14 @@ export declare class ScriptAll {
     static new(native_scripts: NativeScripts): ScriptAll;
     native_scripts(): NativeScripts;
     set_native_scripts(native_scripts: NativeScripts): void;
-    static deserialize(reader: CBORReader): ScriptAll;
+    static deserialize(reader: CBORReader, path: string[]): ScriptAll;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ScriptAll;
-    static from_hex(hex_str: string): ScriptAll;
+    static from_bytes(data: Uint8Array, path?: string[]): ScriptAll;
+    static from_hex(hex_str: string, path?: string[]): ScriptAll;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ScriptAll;
+    clone(path: string[]): ScriptAll;
 }
 export declare class ScriptAny {
     private _native_scripts;
@@ -2448,14 +2448,14 @@ export declare class ScriptAny {
     static new(native_scripts: NativeScripts): ScriptAny;
     native_scripts(): NativeScripts;
     set_native_scripts(native_scripts: NativeScripts): void;
-    static deserialize(reader: CBORReader): ScriptAny;
+    static deserialize(reader: CBORReader, path: string[]): ScriptAny;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ScriptAny;
-    static from_hex(hex_str: string): ScriptAny;
+    static from_bytes(data: Uint8Array, path?: string[]): ScriptAny;
+    static from_hex(hex_str: string, path?: string[]): ScriptAny;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ScriptAny;
+    clone(path: string[]): ScriptAny;
 }
 export declare class ScriptDataHash {
     private inner;
@@ -2469,7 +2469,7 @@ export declare class ScriptDataHash {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): ScriptDataHash;
-    static deserialize(reader: CBORReader): ScriptDataHash;
+    static deserialize(reader: CBORReader, path: string[]): ScriptDataHash;
     serialize(writer: CBORWriter): void;
 }
 export declare class ScriptHash {
@@ -2484,7 +2484,7 @@ export declare class ScriptHash {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): ScriptHash;
-    static deserialize(reader: CBORReader): ScriptHash;
+    static deserialize(reader: CBORReader, path: string[]): ScriptHash;
     serialize(writer: CBORWriter): void;
 }
 export declare class ScriptHashes {
@@ -2494,14 +2494,14 @@ export declare class ScriptHashes {
     len(): number;
     get(index: number): ScriptHash;
     add(elem: ScriptHash): void;
-    static deserialize(reader: CBORReader): ScriptHashes;
+    static deserialize(reader: CBORReader, path: string[]): ScriptHashes;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ScriptHashes;
-    static from_hex(hex_str: string): ScriptHashes;
+    static from_bytes(data: Uint8Array, path?: string[]): ScriptHashes;
+    static from_hex(hex_str: string, path?: string[]): ScriptHashes;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ScriptHashes;
+    clone(path: string[]): ScriptHashes;
 }
 export declare class ScriptNOfK {
     private _n;
@@ -2512,28 +2512,28 @@ export declare class ScriptNOfK {
     set_n(n: number): void;
     native_scripts(): NativeScripts;
     set_native_scripts(native_scripts: NativeScripts): void;
-    static deserialize(reader: CBORReader): ScriptNOfK;
+    static deserialize(reader: CBORReader, path: string[]): ScriptNOfK;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ScriptNOfK;
-    static from_hex(hex_str: string): ScriptNOfK;
+    static from_bytes(data: Uint8Array, path?: string[]): ScriptNOfK;
+    static from_hex(hex_str: string, path?: string[]): ScriptNOfK;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ScriptNOfK;
+    clone(path: string[]): ScriptNOfK;
 }
 export declare class ScriptPubkey {
     private inner;
     constructor(inner: Ed25519KeyHash);
     static new(inner: Ed25519KeyHash): ScriptPubkey;
     addr_keyhash(): Ed25519KeyHash;
-    static deserialize(reader: CBORReader): ScriptPubkey;
+    static deserialize(reader: CBORReader, path: string[]): ScriptPubkey;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ScriptPubkey;
-    static from_hex(hex_str: string): ScriptPubkey;
+    static from_bytes(data: Uint8Array, path?: string[]): ScriptPubkey;
+    static from_hex(hex_str: string, path?: string[]): ScriptPubkey;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ScriptPubkey;
+    clone(path: string[]): ScriptPubkey;
 }
 export declare class ScriptPubname {
     private _addr_keyhash;
@@ -2541,14 +2541,14 @@ export declare class ScriptPubname {
     static new(addr_keyhash: Ed25519KeyHash): ScriptPubname;
     addr_keyhash(): Ed25519KeyHash;
     set_addr_keyhash(addr_keyhash: Ed25519KeyHash): void;
-    static deserialize(reader: CBORReader): ScriptPubname;
+    static deserialize(reader: CBORReader, path: string[]): ScriptPubname;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ScriptPubname;
-    static from_hex(hex_str: string): ScriptPubname;
+    static from_bytes(data: Uint8Array, path?: string[]): ScriptPubname;
+    static from_hex(hex_str: string, path?: string[]): ScriptPubname;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ScriptPubname;
+    clone(path: string[]): ScriptPubname;
 }
 export declare enum ScriptRefKind {
     NativeScript = 0,
@@ -2581,14 +2581,14 @@ export declare class ScriptRef {
     as_plutus_script_v2(): PlutusScript | undefined;
     as_plutus_script_v3(): PlutusScript | undefined;
     kind(): ScriptRefKind;
-    static deserialize(reader: CBORReader): ScriptRef;
+    static deserialize(reader: CBORReader, path: string[]): ScriptRef;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): ScriptRef;
-    static from_hex(hex_str: string): ScriptRef;
+    static from_bytes(data: Uint8Array, path?: string[]): ScriptRef;
+    static from_hex(hex_str: string, path?: string[]): ScriptRef;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): ScriptRef;
+    clone(path: string[]): ScriptRef;
 }
 export declare class SingleHostAddr {
     private _port;
@@ -2602,14 +2602,14 @@ export declare class SingleHostAddr {
     set_ipv4(ipv4: Ipv4 | undefined): void;
     ipv6(): Ipv6 | undefined;
     set_ipv6(ipv6: Ipv6 | undefined): void;
-    static deserialize(reader: CBORReader): SingleHostAddr;
+    static deserialize(reader: CBORReader, path: string[]): SingleHostAddr;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): SingleHostAddr;
-    static from_hex(hex_str: string): SingleHostAddr;
+    static from_bytes(data: Uint8Array, path?: string[]): SingleHostAddr;
+    static from_hex(hex_str: string, path?: string[]): SingleHostAddr;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): SingleHostAddr;
+    clone(path: string[]): SingleHostAddr;
 }
 export declare class SingleHostName {
     private _port;
@@ -2620,14 +2620,14 @@ export declare class SingleHostName {
     set_port(port: number | undefined): void;
     dns_name(): DNSRecordAorAAAA;
     set_dns_name(dns_name: DNSRecordAorAAAA): void;
-    static deserialize(reader: CBORReader): SingleHostName;
+    static deserialize(reader: CBORReader, path: string[]): SingleHostName;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): SingleHostName;
-    static from_hex(hex_str: string): SingleHostName;
+    static from_bytes(data: Uint8Array, path?: string[]): SingleHostName;
+    static from_hex(hex_str: string, path?: string[]): SingleHostName;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): SingleHostName;
+    clone(path: string[]): SingleHostName;
 }
 export declare class StakeAndVoteDelegation {
     private _stake_credential;
@@ -2641,14 +2641,14 @@ export declare class StakeAndVoteDelegation {
     set_pool_keyhash(pool_keyhash: Ed25519KeyHash): void;
     drep(): DRep;
     set_drep(drep: DRep): void;
-    static deserialize(reader: CBORReader): StakeAndVoteDelegation;
+    static deserialize(reader: CBORReader, path: string[]): StakeAndVoteDelegation;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): StakeAndVoteDelegation;
-    static from_hex(hex_str: string): StakeAndVoteDelegation;
+    static from_bytes(data: Uint8Array, path?: string[]): StakeAndVoteDelegation;
+    static from_hex(hex_str: string, path?: string[]): StakeAndVoteDelegation;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): StakeAndVoteDelegation;
+    clone(path: string[]): StakeAndVoteDelegation;
 }
 export declare class StakeDelegation {
     private _stake_credential;
@@ -2659,14 +2659,14 @@ export declare class StakeDelegation {
     set_stake_credential(stake_credential: Credential): void;
     pool_keyhash(): Ed25519KeyHash;
     set_pool_keyhash(pool_keyhash: Ed25519KeyHash): void;
-    static deserialize(reader: CBORReader): StakeDelegation;
+    static deserialize(reader: CBORReader, path: string[]): StakeDelegation;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): StakeDelegation;
-    static from_hex(hex_str: string): StakeDelegation;
+    static from_bytes(data: Uint8Array, path?: string[]): StakeDelegation;
+    static from_hex(hex_str: string, path?: string[]): StakeDelegation;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): StakeDelegation;
+    clone(path: string[]): StakeDelegation;
 }
 export declare class StakeDeregistration {
     private _stake_credential;
@@ -2674,14 +2674,14 @@ export declare class StakeDeregistration {
     static new(stake_credential: Credential): StakeDeregistration;
     stake_credential(): Credential;
     set_stake_credential(stake_credential: Credential): void;
-    static deserialize(reader: CBORReader): StakeDeregistration;
+    static deserialize(reader: CBORReader, path: string[]): StakeDeregistration;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): StakeDeregistration;
-    static from_hex(hex_str: string): StakeDeregistration;
+    static from_bytes(data: Uint8Array, path?: string[]): StakeDeregistration;
+    static from_hex(hex_str: string, path?: string[]): StakeDeregistration;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): StakeDeregistration;
+    clone(path: string[]): StakeDeregistration;
 }
 export declare class StakeRegistration {
     private _stake_credential;
@@ -2689,14 +2689,14 @@ export declare class StakeRegistration {
     static new(stake_credential: Credential): StakeRegistration;
     stake_credential(): Credential;
     set_stake_credential(stake_credential: Credential): void;
-    static deserialize(reader: CBORReader): StakeRegistration;
+    static deserialize(reader: CBORReader, path: string[]): StakeRegistration;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): StakeRegistration;
-    static from_hex(hex_str: string): StakeRegistration;
+    static from_bytes(data: Uint8Array, path?: string[]): StakeRegistration;
+    static from_hex(hex_str: string, path?: string[]): StakeRegistration;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): StakeRegistration;
+    clone(path: string[]): StakeRegistration;
 }
 export declare class StakeRegistrationAndDelegation {
     private _stake_credential;
@@ -2710,14 +2710,14 @@ export declare class StakeRegistrationAndDelegation {
     set_pool_keyhash(pool_keyhash: Ed25519KeyHash): void;
     coin(): BigNum;
     set_coin(coin: BigNum): void;
-    static deserialize(reader: CBORReader): StakeRegistrationAndDelegation;
+    static deserialize(reader: CBORReader, path: string[]): StakeRegistrationAndDelegation;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): StakeRegistrationAndDelegation;
-    static from_hex(hex_str: string): StakeRegistrationAndDelegation;
+    static from_bytes(data: Uint8Array, path?: string[]): StakeRegistrationAndDelegation;
+    static from_hex(hex_str: string, path?: string[]): StakeRegistrationAndDelegation;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): StakeRegistrationAndDelegation;
+    clone(path: string[]): StakeRegistrationAndDelegation;
 }
 export declare class StakeVoteRegistrationAndDelegation {
     private _stake_credential;
@@ -2734,14 +2734,14 @@ export declare class StakeVoteRegistrationAndDelegation {
     set_drep(drep: DRep): void;
     coin(): BigNum;
     set_coin(coin: BigNum): void;
-    static deserialize(reader: CBORReader): StakeVoteRegistrationAndDelegation;
+    static deserialize(reader: CBORReader, path: string[]): StakeVoteRegistrationAndDelegation;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): StakeVoteRegistrationAndDelegation;
-    static from_hex(hex_str: string): StakeVoteRegistrationAndDelegation;
+    static from_bytes(data: Uint8Array, path?: string[]): StakeVoteRegistrationAndDelegation;
+    static from_hex(hex_str: string, path?: string[]): StakeVoteRegistrationAndDelegation;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): StakeVoteRegistrationAndDelegation;
+    clone(path: string[]): StakeVoteRegistrationAndDelegation;
 }
 export declare class TimelockExpiry {
     private _slot;
@@ -2749,14 +2749,14 @@ export declare class TimelockExpiry {
     static new_timelockexpiry(slot: BigNum): TimelockExpiry;
     slot_bignum(): BigNum;
     set_slot(slot: BigNum): void;
-    static deserialize(reader: CBORReader): TimelockExpiry;
+    static deserialize(reader: CBORReader, path: string[]): TimelockExpiry;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TimelockExpiry;
-    static from_hex(hex_str: string): TimelockExpiry;
+    static from_bytes(data: Uint8Array, path?: string[]): TimelockExpiry;
+    static from_hex(hex_str: string, path?: string[]): TimelockExpiry;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TimelockExpiry;
+    clone(path: string[]): TimelockExpiry;
     slot(): number;
     static new(slot: number): TimelockExpiry;
 }
@@ -2766,14 +2766,14 @@ export declare class TimelockStart {
     static new_timelockstart(slot: BigNum): TimelockStart;
     slot_bignum(): BigNum;
     set_slot(slot: BigNum): void;
-    static deserialize(reader: CBORReader): TimelockStart;
+    static deserialize(reader: CBORReader, path: string[]): TimelockStart;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TimelockStart;
-    static from_hex(hex_str: string): TimelockStart;
+    static from_bytes(data: Uint8Array, path?: string[]): TimelockStart;
+    static from_hex(hex_str: string, path?: string[]): TimelockStart;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TimelockStart;
+    clone(path: string[]): TimelockStart;
     slot(): number;
     static new(slot: number): TimelockStart;
 }
@@ -2791,14 +2791,14 @@ export declare class Transaction {
     set_is_valid(is_valid: boolean): void;
     auxiliary_data(): AuxiliaryData | undefined;
     set_auxiliary_data(auxiliary_data: AuxiliaryData | undefined): void;
-    static deserialize(reader: CBORReader): Transaction;
+    static deserialize(reader: CBORReader, path: string[]): Transaction;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Transaction;
-    static from_hex(hex_str: string): Transaction;
+    static from_bytes(data: Uint8Array, path?: string[]): Transaction;
+    static from_hex(hex_str: string, path?: string[]): Transaction;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Transaction;
+    clone(path: string[]): Transaction;
     static new(body: TransactionBody, witness_set: TransactionWitnessSet, auxiliary_data: AuxiliaryData): Transaction;
 }
 export declare class TransactionBodies {
@@ -2808,14 +2808,14 @@ export declare class TransactionBodies {
     len(): number;
     get(index: number): TransactionBody;
     add(elem: TransactionBody): void;
-    static deserialize(reader: CBORReader): TransactionBodies;
+    static deserialize(reader: CBORReader, path: string[]): TransactionBodies;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TransactionBodies;
-    static from_hex(hex_str: string): TransactionBodies;
+    static from_bytes(data: Uint8Array, path?: string[]): TransactionBodies;
+    static from_hex(hex_str: string, path?: string[]): TransactionBodies;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TransactionBodies;
+    clone(path: string[]): TransactionBodies;
 }
 export declare class TransactionBody {
     private _inputs;
@@ -2879,20 +2879,20 @@ export declare class TransactionBody {
     set_current_treasury_value(current_treasury_value: BigNum | undefined): void;
     donation(): BigNum | undefined;
     set_donation(donation: BigNum | undefined): void;
-    static deserialize(reader: CBORReader): TransactionBody;
+    static deserialize(reader: CBORReader, path: string[]): TransactionBody;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TransactionBody;
-    static from_hex(hex_str: string): TransactionBody;
+    static from_bytes(data: Uint8Array, path?: string[]): TransactionBody;
+    static from_hex(hex_str: string, path?: string[]): TransactionBody;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TransactionBody;
+    clone(path: string[]): TransactionBody;
     ttl(): number | undefined;
     remove_ttl(): void;
     validity_start_interval(): number | undefined;
     set_validity_start_interval(validity_start_interval: number): void;
-    static new(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum, ttl?: number): TransactionBody;
-    static new_tx_body(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum): TransactionBody;
+    static new(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum, path?: string[], ttl?: number): TransactionBody;
+    static new_tx_body(inputs: TransactionInputs, outputs: TransactionOutputs, fee: BigNum, path: string[]): TransactionBody;
 }
 export declare class TransactionHash {
     private inner;
@@ -2906,7 +2906,7 @@ export declare class TransactionHash {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): TransactionHash;
-    static deserialize(reader: CBORReader): TransactionHash;
+    static deserialize(reader: CBORReader, path: string[]): TransactionHash;
     serialize(writer: CBORWriter): void;
 }
 export declare class TransactionInput {
@@ -2918,14 +2918,14 @@ export declare class TransactionInput {
     set_transaction_id(transaction_id: TransactionHash): void;
     index(): number;
     set_index(index: number): void;
-    static deserialize(reader: CBORReader): TransactionInput;
+    static deserialize(reader: CBORReader, path: string[]): TransactionInput;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TransactionInput;
-    static from_hex(hex_str: string): TransactionInput;
+    static from_bytes(data: Uint8Array, path?: string[]): TransactionInput;
+    static from_hex(hex_str: string, path?: string[]): TransactionInput;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TransactionInput;
+    clone(path: string[]): TransactionInput;
 }
 export declare class TransactionInputs {
     private items;
@@ -2935,14 +2935,14 @@ export declare class TransactionInputs {
     get(index: number): TransactionInput;
     add(elem: TransactionInput): boolean;
     contains(elem: TransactionInput): boolean;
-    static deserialize(reader: CBORReader): TransactionInputs;
+    static deserialize(reader: CBORReader, path: string[]): TransactionInputs;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TransactionInputs;
-    static from_hex(hex_str: string): TransactionInputs;
+    static from_bytes(data: Uint8Array, path?: string[]): TransactionInputs;
+    static from_hex(hex_str: string, path?: string[]): TransactionInputs;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TransactionInputs;
+    clone(path: string[]): TransactionInputs;
 }
 export declare enum TransactionMetadatumKind {
     MetadataMap = 0,
@@ -2981,14 +2981,14 @@ export declare class TransactionMetadatum {
     as_bytes(): Uint8Array;
     as_text(): string;
     kind(): TransactionMetadatumKind;
-    static deserialize(reader: CBORReader): TransactionMetadatum;
+    static deserialize(reader: CBORReader, path: string[]): TransactionMetadatum;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TransactionMetadatum;
-    static from_hex(hex_str: string): TransactionMetadatum;
+    static from_bytes(data: Uint8Array, path?: string[]): TransactionMetadatum;
+    static from_hex(hex_str: string, path?: string[]): TransactionMetadatum;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TransactionMetadatum;
+    clone(path: string[]): TransactionMetadatum;
 }
 export declare class TransactionMetadatumLabels {
     private items;
@@ -2997,14 +2997,14 @@ export declare class TransactionMetadatumLabels {
     len(): number;
     get(index: number): BigNum;
     add(elem: BigNum): void;
-    static deserialize(reader: CBORReader): TransactionMetadatumLabels;
+    static deserialize(reader: CBORReader, path: string[]): TransactionMetadatumLabels;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TransactionMetadatumLabels;
-    static from_hex(hex_str: string): TransactionMetadatumLabels;
+    static from_bytes(data: Uint8Array, path?: string[]): TransactionMetadatumLabels;
+    static from_hex(hex_str: string, path?: string[]): TransactionMetadatumLabels;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TransactionMetadatumLabels;
+    clone(path: string[]): TransactionMetadatumLabels;
 }
 export declare class TransactionOutput {
     private _address;
@@ -3020,14 +3020,14 @@ export declare class TransactionOutput {
     set_plutus_data(plutus_data: PlutusData | undefined): void;
     script_ref(): ScriptRef | undefined;
     set_script_ref(script_ref: ScriptRef | undefined): void;
-    static deserialize(reader: CBORReader): TransactionOutput;
+    static deserialize(reader: CBORReader, path: string[]): TransactionOutput;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TransactionOutput;
-    static from_hex(hex_str: string): TransactionOutput;
+    static from_bytes(data: Uint8Array, path?: string[]): TransactionOutput;
+    static from_hex(hex_str: string, path?: string[]): TransactionOutput;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TransactionOutput;
+    clone(path: string[]): TransactionOutput;
     static new(address: Address, amount: Value): TransactionOutput;
 }
 export declare class TransactionOutputs {
@@ -3037,14 +3037,14 @@ export declare class TransactionOutputs {
     len(): number;
     get(index: number): TransactionOutput;
     add(elem: TransactionOutput): void;
-    static deserialize(reader: CBORReader): TransactionOutputs;
+    static deserialize(reader: CBORReader, path: string[]): TransactionOutputs;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TransactionOutputs;
-    static from_hex(hex_str: string): TransactionOutputs;
+    static from_bytes(data: Uint8Array, path?: string[]): TransactionOutputs;
+    static from_hex(hex_str: string, path?: string[]): TransactionOutputs;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TransactionOutputs;
+    clone(path: string[]): TransactionOutputs;
 }
 export declare class TransactionWitnessSet {
     private _vkeys;
@@ -3072,14 +3072,14 @@ export declare class TransactionWitnessSet {
     set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts | undefined): void;
     plutus_scripts_v3(): PlutusScripts | undefined;
     set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts | undefined): void;
-    static deserialize(reader: CBORReader): TransactionWitnessSet;
+    static deserialize(reader: CBORReader, path: string[]): TransactionWitnessSet;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TransactionWitnessSet;
-    static from_hex(hex_str: string): TransactionWitnessSet;
+    static from_bytes(data: Uint8Array, path?: string[]): TransactionWitnessSet;
+    static from_hex(hex_str: string, path?: string[]): TransactionWitnessSet;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TransactionWitnessSet;
+    clone(path: string[]): TransactionWitnessSet;
     static new(): TransactionWitnessSet;
 }
 export declare class TransactionWitnessSets {
@@ -3089,14 +3089,14 @@ export declare class TransactionWitnessSets {
     len(): number;
     get(index: number): TransactionWitnessSet;
     add(elem: TransactionWitnessSet): void;
-    static deserialize(reader: CBORReader): TransactionWitnessSets;
+    static deserialize(reader: CBORReader, path: string[]): TransactionWitnessSets;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TransactionWitnessSets;
-    static from_hex(hex_str: string): TransactionWitnessSets;
+    static from_bytes(data: Uint8Array, path?: string[]): TransactionWitnessSets;
+    static from_hex(hex_str: string, path?: string[]): TransactionWitnessSets;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TransactionWitnessSets;
+    clone(path: string[]): TransactionWitnessSets;
 }
 export declare class TreasuryWithdrawals {
     _items: [RewardAddress, BigNum][];
@@ -3107,14 +3107,14 @@ export declare class TreasuryWithdrawals {
     get(key: RewardAddress): BigNum | undefined;
     _remove_many(keys: RewardAddress[]): void;
     keys(): RewardAddresses;
-    static deserialize(reader: CBORReader): TreasuryWithdrawals;
+    static deserialize(reader: CBORReader, path: string[]): TreasuryWithdrawals;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TreasuryWithdrawals;
-    static from_hex(hex_str: string): TreasuryWithdrawals;
+    static from_bytes(data: Uint8Array, path?: string[]): TreasuryWithdrawals;
+    static from_hex(hex_str: string, path?: string[]): TreasuryWithdrawals;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TreasuryWithdrawals;
+    clone(path: string[]): TreasuryWithdrawals;
 }
 export declare class TreasuryWithdrawalsAction {
     private _withdrawals;
@@ -3125,14 +3125,14 @@ export declare class TreasuryWithdrawalsAction {
     set_withdrawals(withdrawals: TreasuryWithdrawals): void;
     policy_hash(): ScriptHash | undefined;
     set_policy_hash(policy_hash: ScriptHash | undefined): void;
-    static deserialize(reader: CBORReader): TreasuryWithdrawalsAction;
+    static deserialize(reader: CBORReader, path: string[]): TreasuryWithdrawalsAction;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): TreasuryWithdrawalsAction;
-    static from_hex(hex_str: string): TreasuryWithdrawalsAction;
+    static from_bytes(data: Uint8Array, path?: string[]): TreasuryWithdrawalsAction;
+    static from_hex(hex_str: string, path?: string[]): TreasuryWithdrawalsAction;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): TreasuryWithdrawalsAction;
+    clone(path: string[]): TreasuryWithdrawalsAction;
     static new(withdrawals: TreasuryWithdrawals): TreasuryWithdrawalsAction;
 }
 export declare class URL {
@@ -3140,14 +3140,14 @@ export declare class URL {
     constructor(inner: string);
     static new(inner: string): URL;
     url(): string;
-    static deserialize(reader: CBORReader): URL;
+    static deserialize(reader: CBORReader, path: string[]): URL;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): URL;
-    static from_hex(hex_str: string): URL;
+    static from_bytes(data: Uint8Array, path?: string[]): URL;
+    static from_hex(hex_str: string, path?: string[]): URL;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): URL;
+    clone(path: string[]): URL;
 }
 export declare class UnitInterval {
     private _numerator;
@@ -3158,16 +3158,16 @@ export declare class UnitInterval {
     set_numerator(numerator: BigNum): void;
     denominator(): BigNum;
     set_denominator(denominator: BigNum): void;
-    static deserialize(reader: CBORReader): UnitInterval;
-    static deserializeInner(reader: CBORReader): UnitInterval;
+    static deserialize(reader: CBORReader, path?: string[]): UnitInterval;
+    static deserializeInner(reader: CBORReader, path: string[]): UnitInterval;
     serialize(writer: CBORWriter): void;
     serializeInner(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): UnitInterval;
-    static from_hex(hex_str: string): UnitInterval;
+    static from_bytes(data: Uint8Array, path?: string[]): UnitInterval;
+    static from_hex(hex_str: string, path?: string[]): UnitInterval;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): UnitInterval;
+    clone(path: string[]): UnitInterval;
 }
 export declare class UnregCert {
     private _stake_credential;
@@ -3178,14 +3178,14 @@ export declare class UnregCert {
     set_stake_credential(stake_credential: Credential): void;
     coin(): BigNum;
     set_coin(coin: BigNum): void;
-    static deserialize(reader: CBORReader): UnregCert;
+    static deserialize(reader: CBORReader, path: string[]): UnregCert;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): UnregCert;
-    static from_hex(hex_str: string): UnregCert;
+    static from_bytes(data: Uint8Array, path?: string[]): UnregCert;
+    static from_hex(hex_str: string, path?: string[]): UnregCert;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): UnregCert;
+    clone(path: string[]): UnregCert;
 }
 export declare class Update {
     private _proposed_protocol_parameter_updates;
@@ -3196,14 +3196,14 @@ export declare class Update {
     set_proposed_protocol_parameter_updates(proposed_protocol_parameter_updates: ProposedProtocolParameterUpdates): void;
     epoch(): number;
     set_epoch(epoch: number): void;
-    static deserialize(reader: CBORReader): Update;
+    static deserialize(reader: CBORReader, path: string[]): Update;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Update;
-    static from_hex(hex_str: string): Update;
+    static from_bytes(data: Uint8Array, path?: string[]): Update;
+    static from_hex(hex_str: string, path?: string[]): Update;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Update;
+    clone(path: string[]): Update;
 }
 export declare class UpdateCommitteeAction {
     private _gov_action_id;
@@ -3218,13 +3218,13 @@ export declare class UpdateCommitteeAction {
     members_to_remove(): Credentials;
     set_members_to_remove(members_to_remove: Credentials): void;
     free(): void;
-    static from_bytes(data: Uint8Array): UpdateCommitteeAction;
-    static from_hex(hex_str: string): UpdateCommitteeAction;
+    static from_bytes(data: Uint8Array, path?: string[]): UpdateCommitteeAction;
+    static from_hex(hex_str: string, path?: string[]): UpdateCommitteeAction;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): UpdateCommitteeAction;
+    clone(path: string[]): UpdateCommitteeAction;
     static new(committee: Committee, members_to_remove: Credentials): UpdateCommitteeAction;
-    static deserialize(reader: CBORReader): UpdateCommitteeAction;
+    static deserialize(reader: CBORReader, path: string[]): UpdateCommitteeAction;
     serialize(writer: CBORWriter): void;
 }
 export declare class VRFCert {
@@ -3236,14 +3236,14 @@ export declare class VRFCert {
     set_output(output: Uint8Array): void;
     proof(): Uint8Array;
     set_proof(proof: Uint8Array): void;
-    static deserialize(reader: CBORReader): VRFCert;
+    static deserialize(reader: CBORReader, path: string[]): VRFCert;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): VRFCert;
-    static from_hex(hex_str: string): VRFCert;
+    static from_bytes(data: Uint8Array, path?: string[]): VRFCert;
+    static from_hex(hex_str: string, path?: string[]): VRFCert;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): VRFCert;
+    clone(path: string[]): VRFCert;
 }
 export declare class VRFKeyHash {
     private inner;
@@ -3257,7 +3257,7 @@ export declare class VRFKeyHash {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): VRFKeyHash;
-    static deserialize(reader: CBORReader): VRFKeyHash;
+    static deserialize(reader: CBORReader, path: string[]): VRFKeyHash;
     serialize(writer: CBORWriter): void;
 }
 export declare class VRFVKey {
@@ -3272,7 +3272,7 @@ export declare class VRFVKey {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(): VRFVKey;
-    static deserialize(reader: CBORReader): VRFVKey;
+    static deserialize(reader: CBORReader, path: string[]): VRFVKey;
     serialize(writer: CBORWriter): void;
 }
 export declare class Value {
@@ -3284,23 +3284,23 @@ export declare class Value {
     set_coin(coin: BigNum): void;
     multiasset(): MultiAsset | undefined;
     set_multiasset(multiasset: MultiAsset | undefined): void;
-    static deserializeRecord(reader: CBORReader): Value;
+    static deserializeRecord(reader: CBORReader, path: string[]): Value;
     serializeRecord(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Value;
-    static from_hex(hex_str: string): Value;
+    static from_bytes(data: Uint8Array, path?: string[]): Value;
+    static from_hex(hex_str: string, path?: string[]): Value;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Value;
+    clone(path: string[]): Value;
     static zero(): Value;
     is_zero(): boolean;
     static new(coin: BigNum): Value;
     static new_from_assets(multiasset: MultiAsset): Value;
-    static deserialize(reader: CBORReader): Value;
+    static deserialize(reader: CBORReader, path: string[]): Value;
     serialize(writer: CBORWriter): void;
-    checked_add(rhs: Value): Value;
-    checked_sub(rhs: Value): Value;
-    clamped_sub(rhs: Value): Value;
+    checked_add(rhs: Value, path: string[]): Value;
+    checked_sub(rhs: Value, path: string[]): Value;
+    clamped_sub(rhs: Value, path: string[]): Value;
     compare(rhs_value: Value): number | undefined;
 }
 export declare class Vkey {
@@ -3309,14 +3309,14 @@ export declare class Vkey {
     static new(public_key: PublicKey): Vkey;
     public_key(): PublicKey;
     set_public_key(public_key: PublicKey): void;
-    static deserialize(reader: CBORReader): Vkey;
+    static deserialize(reader: CBORReader, path: string[]): Vkey;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Vkey;
-    static from_hex(hex_str: string): Vkey;
+    static from_bytes(data: Uint8Array, path?: string[]): Vkey;
+    static from_hex(hex_str: string, path?: string[]): Vkey;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Vkey;
+    clone(path: string[]): Vkey;
 }
 export declare class Vkeys {
     private items;
@@ -3325,14 +3325,14 @@ export declare class Vkeys {
     len(): number;
     get(index: number): Vkey;
     add(elem: Vkey): void;
-    static deserialize(reader: CBORReader): Vkeys;
+    static deserialize(reader: CBORReader, path: string[]): Vkeys;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Vkeys;
-    static from_hex(hex_str: string): Vkeys;
+    static from_bytes(data: Uint8Array, path?: string[]): Vkeys;
+    static from_hex(hex_str: string, path?: string[]): Vkeys;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Vkeys;
+    clone(path: string[]): Vkeys;
 }
 export declare class Vkeywitness {
     private _vkey;
@@ -3343,14 +3343,14 @@ export declare class Vkeywitness {
     set_vkey(vkey: Vkey): void;
     signature(): Ed25519Signature;
     set_signature(signature: Ed25519Signature): void;
-    static deserialize(reader: CBORReader): Vkeywitness;
+    static deserialize(reader: CBORReader, path: string[]): Vkeywitness;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Vkeywitness;
-    static from_hex(hex_str: string): Vkeywitness;
+    static from_bytes(data: Uint8Array, path?: string[]): Vkeywitness;
+    static from_hex(hex_str: string, path?: string[]): Vkeywitness;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Vkeywitness;
+    clone(path: string[]): Vkeywitness;
 }
 export declare class Vkeywitnesses {
     private items;
@@ -3360,14 +3360,14 @@ export declare class Vkeywitnesses {
     get(index: number): Vkeywitness;
     add(elem: Vkeywitness): boolean;
     contains(elem: Vkeywitness): boolean;
-    static deserialize(reader: CBORReader): Vkeywitnesses;
+    static deserialize(reader: CBORReader, path: string[]): Vkeywitnesses;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Vkeywitnesses;
-    static from_hex(hex_str: string): Vkeywitnesses;
+    static from_bytes(data: Uint8Array, path?: string[]): Vkeywitnesses;
+    static from_hex(hex_str: string, path?: string[]): Vkeywitnesses;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Vkeywitnesses;
+    clone(path: string[]): Vkeywitnesses;
 }
 export declare class VoteDelegation {
     private _stake_credential;
@@ -3378,21 +3378,21 @@ export declare class VoteDelegation {
     set_stake_credential(stake_credential: Credential): void;
     drep(): DRep;
     set_drep(drep: DRep): void;
-    static deserialize(reader: CBORReader): VoteDelegation;
+    static deserialize(reader: CBORReader, path: string[]): VoteDelegation;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): VoteDelegation;
-    static from_hex(hex_str: string): VoteDelegation;
+    static from_bytes(data: Uint8Array, path?: string[]): VoteDelegation;
+    static from_hex(hex_str: string, path?: string[]): VoteDelegation;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): VoteDelegation;
+    clone(path: string[]): VoteDelegation;
 }
 export declare enum VoteKind {
     No = 0,
     Yes = 1,
     Abstain = 2
 }
-export declare function deserializeVoteKind(reader: CBORReader): VoteKind;
+export declare function deserializeVoteKind(reader: CBORReader, path: string[]): VoteKind;
 export declare function serializeVoteKind(writer: CBORWriter, value: VoteKind): void;
 export declare class VoteRegistrationAndDelegation {
     private _stake_credential;
@@ -3406,14 +3406,14 @@ export declare class VoteRegistrationAndDelegation {
     set_drep(drep: DRep): void;
     coin(): BigNum;
     set_coin(coin: BigNum): void;
-    static deserialize(reader: CBORReader): VoteRegistrationAndDelegation;
+    static deserialize(reader: CBORReader, path: string[]): VoteRegistrationAndDelegation;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): VoteRegistrationAndDelegation;
-    static from_hex(hex_str: string): VoteRegistrationAndDelegation;
+    static from_bytes(data: Uint8Array, path?: string[]): VoteRegistrationAndDelegation;
+    static from_hex(hex_str: string, path?: string[]): VoteRegistrationAndDelegation;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): VoteRegistrationAndDelegation;
+    clone(path: string[]): VoteRegistrationAndDelegation;
 }
 export declare enum VoterKind {
     ConstitutionalCommitteeHotKeyHash = 0,
@@ -3452,14 +3452,14 @@ export declare class Voter {
     to_drep_script_hash(): ScriptHash | undefined;
     to_staking_pool_key_hash(): Ed25519KeyHash | undefined;
     kind(): VoterKind;
-    static deserialize(reader: CBORReader): Voter;
+    static deserialize(reader: CBORReader, path: string[]): Voter;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Voter;
-    static from_hex(hex_str: string): Voter;
+    static from_bytes(data: Uint8Array, path?: string[]): Voter;
+    static from_hex(hex_str: string, path?: string[]): Voter;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Voter;
+    clone(path: string[]): Voter;
     has_script_credentials(): boolean;
     to_key_hash(): Ed25519KeyHash | undefined;
     static new_constitutional_committee_hot_credential(cred: Credential): Voter;
@@ -3474,14 +3474,14 @@ export declare class Voters {
     len(): number;
     get(index: number): Voter;
     add(elem: Voter): void;
-    static deserialize(reader: CBORReader): Voters;
+    static deserialize(reader: CBORReader, path: string[]): Voters;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Voters;
-    static from_hex(hex_str: string): Voters;
+    static from_bytes(data: Uint8Array, path?: string[]): Voters;
+    static from_hex(hex_str: string, path?: string[]): Voters;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Voters;
+    clone(path: string[]): Voters;
 }
 export declare class VotingProcedure {
     private _vote;
@@ -3492,14 +3492,14 @@ export declare class VotingProcedure {
     set_vote(vote: VoteKind): void;
     anchor(): Anchor | undefined;
     set_anchor(anchor: Anchor | undefined): void;
-    static deserialize(reader: CBORReader): VotingProcedure;
+    static deserialize(reader: CBORReader, path: string[]): VotingProcedure;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): VotingProcedure;
-    static from_hex(hex_str: string): VotingProcedure;
+    static from_bytes(data: Uint8Array, path?: string[]): VotingProcedure;
+    static from_hex(hex_str: string, path?: string[]): VotingProcedure;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): VotingProcedure;
+    clone(path: string[]): VotingProcedure;
     static new(vote: VoteKind): VotingProcedure;
 }
 export declare class VotingProcedures {
@@ -3511,14 +3511,14 @@ export declare class VotingProcedures {
     _get(key: Voter): GovernanceActions | undefined;
     _remove_many(keys: Voter[]): void;
     keys(): Voters;
-    static deserialize(reader: CBORReader): VotingProcedures;
+    static deserialize(reader: CBORReader, path: string[]): VotingProcedures;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): VotingProcedures;
-    static from_hex(hex_str: string): VotingProcedures;
+    static from_bytes(data: Uint8Array, path?: string[]): VotingProcedures;
+    static from_hex(hex_str: string, path?: string[]): VotingProcedures;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): VotingProcedures;
+    clone(path: string[]): VotingProcedures;
     insert(voter: Voter, governance_action_id: GovernanceActionId, voting_procedure: VotingProcedure): void;
     get(voter: Voter, governance_action_id: GovernanceActionId): VotingProcedure | undefined;
     get_voters(): Voters;
@@ -3538,14 +3538,14 @@ export declare class VotingProposal {
     set_governance_action(governance_action: GovernanceAction): void;
     anchor(): Anchor;
     set_anchor(anchor: Anchor): void;
-    static deserialize(reader: CBORReader): VotingProposal;
+    static deserialize(reader: CBORReader, path: string[]): VotingProposal;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): VotingProposal;
-    static from_hex(hex_str: string): VotingProposal;
+    static from_bytes(data: Uint8Array, path?: string[]): VotingProposal;
+    static from_hex(hex_str: string, path?: string[]): VotingProposal;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): VotingProposal;
+    clone(path: string[]): VotingProposal;
     static new(governance_action: GovernanceAction, anchor: Anchor, reward_account: RewardAddress, deposit: BigNum): VotingProposal;
 }
 export declare class VotingProposals {
@@ -3556,14 +3556,14 @@ export declare class VotingProposals {
     get(index: number): VotingProposal;
     add(elem: VotingProposal): boolean;
     contains(elem: VotingProposal): boolean;
-    static deserialize(reader: CBORReader): VotingProposals;
+    static deserialize(reader: CBORReader, path: string[]): VotingProposals;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): VotingProposals;
-    static from_hex(hex_str: string): VotingProposals;
+    static from_bytes(data: Uint8Array, path?: string[]): VotingProposals;
+    static from_hex(hex_str: string, path?: string[]): VotingProposals;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): VotingProposals;
+    clone(path: string[]): VotingProposals;
 }
 export declare class Withdrawals {
     _items: [RewardAddress, BigNum][];
@@ -3573,14 +3573,14 @@ export declare class Withdrawals {
     insert(key: RewardAddress, value: BigNum): BigNum | undefined;
     get(key: RewardAddress): BigNum | undefined;
     _remove_many(keys: RewardAddress[]): void;
-    static deserialize(reader: CBORReader): Withdrawals;
+    static deserialize(reader: CBORReader, path: string[]): Withdrawals;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): Withdrawals;
-    static from_hex(hex_str: string): Withdrawals;
+    static from_bytes(data: Uint8Array, path?: string[]): Withdrawals;
+    static from_hex(hex_str: string, path?: string[]): Withdrawals;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): Withdrawals;
+    clone(path: string[]): Withdrawals;
 }
 export declare class certificates {
     private items;
@@ -3590,14 +3590,14 @@ export declare class certificates {
     get(index: number): Certificate;
     add(elem: Certificate): boolean;
     contains(elem: Certificate): boolean;
-    static deserialize(reader: CBORReader): certificates;
+    static deserialize(reader: CBORReader, path: string[]): certificates;
     serialize(writer: CBORWriter): void;
     free(): void;
-    static from_bytes(data: Uint8Array): certificates;
-    static from_hex(hex_str: string): certificates;
+    static from_bytes(data: Uint8Array, path?: string[]): certificates;
+    static from_hex(hex_str: string, path?: string[]): certificates;
     to_bytes(): Uint8Array;
     to_hex(): string;
-    clone(): certificates;
+    clone(path: string[]): certificates;
 }
 export declare class BaseAddress {
     _network: number;
@@ -3618,9 +3618,9 @@ export declare class ByronAddress {
     _address_type: ByronAddressType;
     constructor(address: Uint8Array, attributes: ByronAttributes, address_type: ByronAddressType);
     serializeInner(writer: CBORWriter): void;
-    static deserializeInner(reader: CBORReader): ByronAddress;
+    static deserializeInner(reader: CBORReader, path: string[]): ByronAddress;
     serialize(writer: CBORWriter): void;
-    static deserialize(reader: CBORReader): ByronAddress;
+    static deserialize(reader: CBORReader, path: string[]): ByronAddress;
     static from_bytes(bytes: Uint8Array): ByronAddress;
     to_bytes(): Uint8Array;
     byron_protocol_magic(): number;
@@ -3637,7 +3637,7 @@ export declare class ByronAttributes {
     _protocol_magic?: number;
     constructor(derivation_path?: Uint8Array, protocol_magic?: number);
     serialize(writer: CBORWriter): void;
-    static deserialize(reader: CBORReader): ByronAttributes;
+    static deserialize(reader: CBORReader, path: string[]): ByronAttributes;
 }
 export declare enum ByronAddressType {
     PubKey = 0,
@@ -3667,11 +3667,11 @@ export declare class Credential {
     kind(): CredKind;
     has_script_hash(): boolean;
     serialize(writer: CBORWriter): void;
-    static deserialize(reader: CBORReader): Credential;
+    static deserialize(reader: CBORReader, path: string[]): Credential;
     to_bytes(): Uint8Array;
-    static from_bytes(data: Uint8Array): Credential;
+    static from_bytes(data: Uint8Array, path: string[]): Credential;
     to_hex(): string;
-    static from_hex(data: string): Credential;
+    static from_hex(data: string, path: string[]): Credential;
     free(): void;
     _to_raw_bytes(): Uint8Array;
 }
@@ -3722,7 +3722,7 @@ export declare class Address {
     to_bytes(): Uint8Array;
     static from_bytes(bytes: Uint8Array): Address;
     serialize(writer: CBORWriter): void;
-    static deserialize(reader: CBORReader): Address;
+    static deserialize(reader: CBORReader, path: string[]): Address;
 }
 export declare class MalformedAddress {
     _bytes: Uint8Array;
@@ -3754,5 +3754,5 @@ export declare class RewardAddress {
     to_bytes(): Uint8Array;
     static from_bytes(data: Uint8Array): RewardAddress;
     serialize(writer: CBORWriter): void;
-    static deserialize(reader: CBORReader): RewardAddress;
+    static deserialize(reader: CBORReader, path: string[]): RewardAddress;
 }

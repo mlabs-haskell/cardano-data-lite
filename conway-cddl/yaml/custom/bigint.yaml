@@ -120,25 +120,25 @@ CSLBigInt:
       writer.writeBytesChunked(buffer.getBytes(), 64);
     }
 
-    static deserialize(reader: CBORReader): CSLBigInt {
-      let typ = reader.peekType();
+    static deserialize(reader: CBORReader, path: string[]): CSLBigInt {
+      let typ = reader.peekType(path);
       if(typ == "uint" || typ == "nint") {
-        let value = reader.readInt();
+        let value = reader.readInt(path);
         return new CSLBigInt(value);
       }  
       
       // if not uint non nint, must be tagged
-      let tag = reader.readTaggedTag();
+      let tag = reader.readTaggedTag(path);
       let isNegative;
       if(tag == 2) {
         isNegative = false;
       } else if (tag == 3) {
         isNegative = true;
       } else {
-        throw new Error("Unknown tag: " + tag+". Expected 2 or 3");
+        throw new Error("Unknown tag: " + tag + ". Expected 2 or 3 (at" + path.join("/") + ")");
       }
 
-      let bytes = reader.readBytes();
+      let bytes = reader.readBytes(path);
       let valueAbs = bigintFromBytes(bytes.length, bytes);
       let value = isNegative ? valueAbs * -1n : valueAbs;
       return new CSLBigInt(value);

@@ -149,7 +149,7 @@ export class Address {
     writer.writeBytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): Address {
-    return Address.from_bytes(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): Address {
+    return Address.from_bytes(reader.readBytes(path));
   }
 }

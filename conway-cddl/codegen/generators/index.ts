@@ -37,8 +37,8 @@ export class CodeGeneratorBase {
     return contents != null ? contents(newName) : newName;
   }
 
-  deserialize(reader: string): string {
-    return `${this.name}.deserialize(${reader})`;
+  deserialize(reader: string, path: string): string {
+    return `${this.name}.deserialize(${reader}, ${path})`;
   }
 
   serialize(writer: string, value: string): string {
@@ -62,9 +62,9 @@ export class CodeGeneratorBase {
     ${this.renameMethod(
       "from_bytes",
       (from_bytes) => `
-    static ${from_bytes}(data: Uint8Array): ${this.name} {
+    static ${from_bytes}(data: Uint8Array, path: string[] = ['${this.name}']): ${this.name} {
       let reader = new CBORReader(data);
-      return ${this.deserialize("reader")}
+      return ${this.deserialize("reader", "path")}
     }`,
     )}
 
@@ -72,8 +72,8 @@ export class CodeGeneratorBase {
     ${this.renameMethod(
       "from_hex",
       (from_hex) => `
-    static ${from_hex}(hex_str: string): ${this.name} {
-      return ${this.name}.${this.renameMethod("from_bytes")}(hexToBytes(hex_str));
+    static ${from_hex}(hex_str: string, path: string[] = ['${this.name}']): ${this.name} {
+      return ${this.name}.${this.renameMethod("from_bytes")}(hexToBytes(hex_str), path);
     }`,
     )}
 
@@ -100,8 +100,8 @@ export class CodeGeneratorBase {
     ${this.renameMethod(
       "clone",
       (clone) => `
-    ${clone}(): ${this.name} {
-      return ${this.name}.${this.renameMethod("from_bytes")}(this.${this.renameMethod("to_bytes")}());
+    ${clone}(path: string[]): ${this.name} {
+      return ${this.name}.${this.renameMethod("from_bytes")}(this.${this.renameMethod("to_bytes")}(), path);
     }`,
     )}
 
@@ -124,7 +124,7 @@ export class CodeGeneratorBase {
     return "";
   }
 
-  generateDeserialize(_reader: string): string {
+  generateDeserialize(_reader: string, _path: string): string {
     return `throw new Error("Not Implemented");`;
   }
 
@@ -145,9 +145,9 @@ export class CodeGeneratorBase {
       let serializeInner: string;
       if (this.options.tagged.bytes) {
         deserializeInner = `
-          let innerBytes = reader.readBytes();
+          let innerBytes = reader.readBytes(path);
           let innerReader = new CBORReader(innerBytes);
-          return ${this.name}.deserializeInner(innerReader);
+          return ${this.name}.deserializeInner(innerReader, path);
         `;
         serializeInner = `
           let innerWriter = new CBORWriter();
@@ -156,7 +156,7 @@ export class CodeGeneratorBase {
         `;
       } else {
         deserializeInner = `
-          return ${this.name}.deserializeInner(reader);
+          return ${this.name}.deserializeInner(reader, path);
         `;
         serializeInner = `
           this.serializeInner(writer);
@@ -167,17 +167,17 @@ export class CodeGeneratorBase {
         ${this.renameMethod(
           "deserialize",
           (deserialize) => `
-        static ${deserialize}(reader: CBORReader): ${this.name} {
-          let taggedTag = reader.readTaggedTag();
+        static ${deserialize}(reader: CBORReader, path: string[] = ['${this.name}']): ${this.name} {
+          let taggedTag = reader.readTaggedTag(path);
           if (taggedTag != ${this.options.tagged!.tag}) {
-            throw new Error("Expected tag ${this.options.tagged!.tag}, got " + taggedTag);
+            throw new Error("Expected tag ${this.options.tagged!.tag}, got " + taggedTag + " (at " + path + ")");
           }
           ${deserializeInner}
         }`,
         )}
 
-        static deserializeInner(reader: CBORReader): ${this.name} {
-          ${this.generateDeserialize("reader")}
+        static deserializeInner(reader: CBORReader, path: string[]): ${this.name} {
+          ${this.generateDeserialize("reader", "path")}
         }`;
 
       serialize = `
@@ -198,8 +198,8 @@ export class CodeGeneratorBase {
         ${this.renameMethod(
           "deserialize",
           (deserialize) => `
-        static ${deserialize}(reader: CBORReader): ${this.name} {
-          ${this.generateDeserialize("reader")}
+        static ${deserialize}(reader: CBORReader, path: string[]): ${this.name} {
+          ${this.generateDeserialize("reader", "path")}
         }`,
         )}
   
@@ -275,25 +275,25 @@ export class TypeUtils {
     }
   }
 
-  readType(reader: string, type: string): string {
+  readType(reader: string, type: string, path: string): string {
     let codegen = this.customTypes[type];
     if (codegen != null) {
-      return codegen.deserialize(reader);
+      return codegen.deserialize(reader, path);
     }
 
     switch (type) {
       case "string":
-        return `${reader}.readString()`;
+        return `${reader}.readString(${path})`;
       case "number":
-        return `Number(${reader}.readInt())`;
+        return `Number(${reader}.readInt(${path}))`;
       case "bigint":
-        return `${reader}.readInt()`;
+        return `${reader}.readInt(${path})`;
       case "boolean":
-        return `${reader}.readBoolean()`;
+        return `${reader}.readBoolean(${path})`;
       case "bytes":
-        return `${reader}.readBytes()`;
+        return `${reader}.readBytes(${path})`;
       case "arrayToUint32Array":
-        return `new Uint32Array(${reader}.readArray((reader) => Number(reader.readUint())));`;
+        return `new Uint32Array(${reader}.readArray((reader) => Number(reader.readUint(${path})), ${path}));`;
       default:
         console.error("Can't decode: " + type);
         return `$$CANT_READ("${type}")`;

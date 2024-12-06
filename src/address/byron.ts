@@ -28,13 +28,14 @@ export class ByronAddress {
     writer.writeInt(BigInt(this._address_type));
   }
 
-  static deserializeInner(reader: CBORReader): ByronAddress {
-    let len = reader.readArrayTag();
-    if (len != 3) throw new Error("Expected length == 3");
+  static deserializeInner(reader: CBORReader, path: string[]): ByronAddress {
+    let len = reader.readArrayTag(path);
+    if (len != 3)
+      throw new Error(`Expected length == 3 (at ${path.join("/")})`);
 
-    let address = reader.readBytes();
-    let attributes = ByronAttributes.deserialize(reader);
-    let address_type = Number(reader.readInt());
+    let address = reader.readBytes([...path, "0"]);
+    let attributes = ByronAttributes.deserialize(reader, [...path, "1"]);
+    let address_type = Number(reader.readInt([...path, "2"]));
 
     return new ByronAddress(address, attributes, address_type);
   }
@@ -48,24 +49,32 @@ export class ByronAddress {
     writer.writeInt(BigInt(crc32));
   }
 
-  static deserialize(reader: CBORReader): ByronAddress {
-    let len = reader.readArrayTag();
-    if (len != 2) throw new Error("Expected length == 2");
-    let tag = reader.readTaggedTag();
-    if (tag != 24) throw new Error("Expected tag 24");
+  static deserialize(reader: CBORReader, path: string[]): ByronAddress {
+    let len = reader.readArrayTag(path);
+    if (len != 2)
+      throw new Error(`Expected length == 2 (at ${path.join("/")})`);
 
-    let wrappedBytes = reader.readBytes();
-    let crc32 = Number(reader.readInt());
+    let tag = reader.readTaggedTag([...path, "0"]);
+    if (tag != 24)
+      throw new Error(`Expected tag 24 (at ${[...path, "0"].join("/")})`);
+    let wrappedBytes = reader.readBytes([...path, "0", "0"]);
+
+    let crc32 = Number(reader.readInt([...path, "1"]));
 
     let calculatedCrc32 = new Crc32().update(wrappedBytes).digest();
-    if (crc32 != calculatedCrc32) throw new Error("Invalid CRC32");
+    if (crc32 != calculatedCrc32)
+      throw new Error(`Invalid CRC32 (at ${path.join("/")})`);
 
-    let bytes = new CBORReader(wrappedBytes).readBytes();
-    return ByronAddress.deserializeInner(new CBORReader(bytes));
+    let bytes = new CBORReader(wrappedBytes).readBytes([...path, "0", "0"]);
+    return ByronAddress.deserializeInner(new CBORReader(bytes), [
+      ...path,
+      "0",
+      "0",
+    ]);
   }
 
   static from_bytes(bytes: Uint8Array): ByronAddress {
-    return ByronAddress.deserialize(new CBORReader(bytes));
+    return ByronAddress.deserialize(new CBORReader(bytes), []);
   }
 
   to_bytes(): Uint8Array {
@@ -99,7 +108,7 @@ export class ByronAddress {
 
   static from_base58(s: string): ByronAddress {
     let bytes = base58_to_binary(s);
-    return ByronAddress.deserialize(new CBORReader(bytes));
+    return ByronAddress.deserialize(new CBORReader(bytes), []);
   }
 
   to_base58(): string {
@@ -153,23 +162,28 @@ export class ByronAttributes {
     }
   }
 
-  static deserialize(reader: CBORReader): ByronAttributes {
+  static deserialize(reader: CBORReader, path: string[]): ByronAttributes {
     let derivation_path: Uint8Array | undefined = undefined;
     let protocol_magic: number | undefined = undefined;
 
     reader.readMap((reader) => {
-      let key = Number(reader.readInt());
+      let key = Number(reader.readInt([...path, "$key"]));
       switch (key) {
         case 1:
-          derivation_path = reader.readBytes();
+          derivation_path = reader.readBytes([...path, String(key)]);
           break;
         case 2:
-          protocol_magic = Number(new CBORReader(reader.readBytes()).readInt());
+          protocol_magic = Number(
+            new CBORReader(reader.readBytes([...path, String(key)])).readInt([
+              ...path,
+              String(key),
+            ]),
+          );
           break;
         default:
-          throw new Error(`Unknown key ${key}`);
+          throw new Error(`Unknown key ${key} (at ${path.join("/")})`);
       }
-    });
+    }, path);
 
     return new ByronAttributes(derivation_path, protocol_magic);
   }

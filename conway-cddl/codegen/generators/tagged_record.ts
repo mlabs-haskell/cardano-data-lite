@@ -54,6 +54,7 @@ export class GenTaggedRecord extends CodeGeneratorBase {
     reader: string,
     arrayLen: string,
     assignToVar: string,
+    path: string
   ) {
     let variantLen = this.getVariantLen(variant);
     return `
@@ -64,7 +65,7 @@ export class GenTaggedRecord extends CodeGeneratorBase {
         kind: ${variant.tag},
         ${
           variant.value != null
-            ? `value: ${this.typeUtils.readType(reader, variant.value)},`
+            ? `value: ${this.typeUtils.readType(reader, variant.value, `[...${path}, '${variant.value}']`)},`
             : ""
         }
       };
@@ -147,10 +148,10 @@ export class GenTaggedRecord extends CodeGeneratorBase {
     `;
   }
 
-  generateDeserialize(reader: string): string {
+  generateDeserialize(reader: string, path: string): string {
     return `
-      let len = ${reader}.readArrayTag();
-      let tag = Number(${reader}.readUint());
+      let len = ${reader}.readArrayTag(${path});
+      let tag = Number(${reader}.readUint(${path}));
       let variant: ${this.name}Variant;
 
       switch(tag) {
@@ -158,7 +159,7 @@ export class GenTaggedRecord extends CodeGeneratorBase {
           .map(
             (x) => `
             case ${x.tag}:
-              ${this.deserializeVariant(x, reader, "len", "variant")}
+              ${this.deserializeVariant(x, reader, "len", "variant", path)}
               break;
             `,
           )
@@ -169,7 +170,7 @@ export class GenTaggedRecord extends CodeGeneratorBase {
         ${reader}.readBreak();
       }
       
-      throw new Error("Unexpected tag for ${this.name}: " + tag);
+      throw new Error("Unexpected tag for ${this.name}: " + tag + "(at " + ${path}.join("/") + ")");
     `;
   }
 

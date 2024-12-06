@@ -70,7 +70,7 @@ export class RewardAddress {
     writer.writeBytes(this.to_bytes());
   }
 
-  static deserialize(reader: CBORReader): RewardAddress {
-    return RewardAddress.from_bytes(reader.readBytes());
+  static deserialize(reader: CBORReader, path: string[]): RewardAddress {
+    return RewardAddress.from_bytes(reader.readBytes(path));
   }
 }
