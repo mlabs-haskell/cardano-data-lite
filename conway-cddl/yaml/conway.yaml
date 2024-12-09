@@ -1607,7 +1607,7 @@ TransactionWitnessSet:
       type: PlutusScripts
       optional: true
     - id: 4
-      name: plutus_data
+      name: inner_plutus_data
       type: PlutusSet
       optional: true
     - id: 5
@@ -1636,6 +1636,14 @@ TransactionWitnessSet:
         undefined,
         undefined,
       );
+    }
+
+    plutus_data(): PlutusList | undefined {
+      return this.inner_plutus_data()?.as_list();
+    }
+
+    set_plutus_data(plutus_data: PlutusList): void {
+      this._inner_plutus_data = plutus_data.as_set();
     }
 
 Vkeywitnesses:
@@ -1670,6 +1678,10 @@ PlutusScript:
 PlutusSet:
   type: set
   item: PlutusData
+  extra_methods: |
+    as_list(): PlutusList {
+      return new PlutusList(this.items, this.definiteEncoding);
+    }
 
 # ; The real type of  plutus_v1_script, plutus_v2_script and plutus_v3_script is bytes.
 # ; However, because we enforce uniqueness when many scripts are supplied,
@@ -2111,6 +2123,14 @@ ProposedProtocolParameterUpdates:
 PlutusList:
   type: array
   item: PlutusData
+  extra_methods: |
+    as_set(): PlutusSet {
+      let set = new PlutusSet(this.definiteEncoding); 
+      for (let i = 0; i < this.len(); i++) {
+        set.add(this.items[i]);
+      }
+      return set;
+    }
 
 PlutusMap:
   type: map

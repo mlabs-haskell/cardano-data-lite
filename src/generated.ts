@@ -9882,6 +9882,14 @@ export class PlutusList {
   clone(path: string[]): PlutusList {
     return PlutusList.from_bytes(this.to_bytes(), path);
   }
+
+  as_set(): PlutusSet {
+    let set = new PlutusSet(this.definiteEncoding);
+    for (let i = 0; i < this.len(); i++) {
+      set.add(this.items[i]);
+    }
+    return set;
+  }
 }
 
 export class PlutusMap {
@@ -10324,6 +10332,10 @@ export class PlutusSet {
 
   clone(path: string[]): PlutusSet {
     return PlutusSet.from_bytes(this.to_bytes(), path);
+  }
+
+  as_list(): PlutusList {
+    return new PlutusList(this.items, this.definiteEncoding);
   }
 }
 
@@ -17062,7 +17074,7 @@ export class TransactionWitnessSet {
   private _native_scripts: NativeScripts | undefined;
   private _bootstraps: BootstrapWitnesses | undefined;
   private _plutus_scripts_v1: PlutusScripts | undefined;
-  private _plutus_data: PlutusSet | undefined;
+  private _inner_plutus_data: PlutusSet | undefined;
   private _redeemers: Redeemers | undefined;
   private _plutus_scripts_v2: PlutusScripts | undefined;
   private _plutus_scripts_v3: PlutusScripts | undefined;
@@ -17072,7 +17084,7 @@ export class TransactionWitnessSet {
     native_scripts: NativeScripts | undefined,
     bootstraps: BootstrapWitnesses | undefined,
     plutus_scripts_v1: PlutusScripts | undefined,
-    plutus_data: PlutusSet | undefined,
+    inner_plutus_data: PlutusSet | undefined,
     redeemers: Redeemers | undefined,
     plutus_scripts_v2: PlutusScripts | undefined,
     plutus_scripts_v3: PlutusScripts | undefined,
@@ -17081,7 +17093,7 @@ export class TransactionWitnessSet {
     this._native_scripts = native_scripts;
     this._bootstraps = bootstraps;
     this._plutus_scripts_v1 = plutus_scripts_v1;
-    this._plutus_data = plutus_data;
+    this._inner_plutus_data = inner_plutus_data;
     this._redeemers = redeemers;
     this._plutus_scripts_v2 = plutus_scripts_v2;
     this._plutus_scripts_v3 = plutus_scripts_v3;
@@ -17119,12 +17131,12 @@ export class TransactionWitnessSet {
     this._plutus_scripts_v1 = plutus_scripts_v1;
   }
 
-  plutus_data(): PlutusSet | undefined {
-    return this._plutus_data;
+  inner_plutus_data(): PlutusSet | undefined {
+    return this._inner_plutus_data;
   }
 
-  set_plutus_data(plutus_data: PlutusSet | undefined): void {
-    this._plutus_data = plutus_data;
+  set_inner_plutus_data(inner_plutus_data: PlutusSet | undefined): void {
+    this._inner_plutus_data = inner_plutus_data;
   }
 
   redeemers(): Redeemers | undefined {
@@ -17184,8 +17196,8 @@ export class TransactionWitnessSet {
         }
 
         case 4: {
-          const new_path = [...path, "PlutusSet(plutus_data)"];
-          fields.plutus_data = PlutusSet.deserialize(r, new_path);
+          const new_path = [...path, "PlutusSet(inner_plutus_data)"];
+          fields.inner_plutus_data = PlutusSet.deserialize(r, new_path);
           break;
         }
 
@@ -17217,7 +17229,7 @@ export class TransactionWitnessSet {
 
     let plutus_scripts_v1 = fields.plutus_scripts_v1;
 
-    let plutus_data = fields.plutus_data;
+    let inner_plutus_data = fields.inner_plutus_data;
 
     let redeemers = fields.redeemers;
 
@@ -17230,7 +17242,7 @@ export class TransactionWitnessSet {
       native_scripts,
       bootstraps,
       plutus_scripts_v1,
-      plutus_data,
+      inner_plutus_data,
       redeemers,
       plutus_scripts_v2,
       plutus_scripts_v3,
@@ -17243,7 +17255,7 @@ export class TransactionWitnessSet {
     if (this._native_scripts === undefined) len -= 1;
     if (this._bootstraps === undefined) len -= 1;
     if (this._plutus_scripts_v1 === undefined) len -= 1;
-    if (this._plutus_data === undefined) len -= 1;
+    if (this._inner_plutus_data === undefined) len -= 1;
     if (this._redeemers === undefined) len -= 1;
     if (this._plutus_scripts_v2 === undefined) len -= 1;
     if (this._plutus_scripts_v3 === undefined) len -= 1;
@@ -17264,9 +17276,9 @@ export class TransactionWitnessSet {
       writer.writeInt(3n);
       this._plutus_scripts_v1.serialize(writer);
     }
-    if (this._plutus_data !== undefined) {
+    if (this._inner_plutus_data !== undefined) {
       writer.writeInt(4n);
-      this._plutus_data.serialize(writer);
+      this._inner_plutus_data.serialize(writer);
     }
     if (this._redeemers !== undefined) {
       writer.writeInt(5n);
@@ -17325,6 +17337,14 @@ export class TransactionWitnessSet {
       undefined,
       undefined,
     );
+  }
+
+  plutus_data(): PlutusList | undefined {
+    return this.inner_plutus_data()?.as_list();
+  }
+
+  set_plutus_data(plutus_data: PlutusList): void {
+    this._inner_plutus_data = plutus_data.as_set();
   }
 }
 
