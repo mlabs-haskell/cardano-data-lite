@@ -12581,6 +12581,56 @@ export class PublicKey {
   }
 }
 
+export class Redeemer {
+  private inner: RedeemersArrayItem;
+
+  constructor(inner: RedeemersArrayItem) {
+    this.inner = inner;
+  }
+
+  static new(inner: RedeemersArrayItem): Redeemer {
+    return new Redeemer(inner);
+  }
+
+  redeemerArrayItem(): RedeemersArrayItem {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): Redeemer {
+    return new Redeemer(RedeemersArrayItem.deserialize(reader, path));
+  }
+
+  serialize(writer: CBORWriter): void {
+    this.inner.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array, path: string[] = ["Redeemer"]): Redeemer {
+    let reader = new CBORReader(data);
+    return Redeemer.deserialize(reader, path);
+  }
+
+  static from_hex(hex_str: string, path: string[] = ["Redeemer"]): Redeemer {
+    return Redeemer.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): Redeemer {
+    return Redeemer.from_bytes(this.to_bytes(), path);
+  }
+}
+
 export enum RedeemerTagKind {
   spending = 0,
   minting = 1,
@@ -12820,6 +12870,53 @@ export class Redeemers {
       }
     }
     return ExUnits.new(mems, steps);
+  }
+
+  static new(): Redeemers {
+    return Redeemers.new_redeemers_map(RedeemersMap.new());
+  }
+
+  len(): number {
+    return this.variant.value.len();
+  }
+
+  add(elem: Redeemer): void {
+    switch (this.variant.kind) {
+      case 0:
+        this.variant.value.add(elem.redeemerArrayItem());
+        break;
+      case 1: {
+        const r = elem.redeemerArrayItem();
+        this.variant.value.insert(
+          RedeemersKey.new(r.tag(), r.index()),
+          RedeemersValue.new(r.data(), r.ex_units()),
+        );
+        break;
+      }
+    }
+  }
+
+  get(index: number): Redeemer {
+    switch (this.variant.kind) {
+      case 0:
+        return Redeemer.new(this.variant.value.get(index));
+      case 1: {
+        const key = this.variant.value.keys().get(index);
+        const r = this.variant.value.get(key);
+        if (r === undefined) {
+          throw "Unexpected undefined key in Redeemers";
+        } else {
+          return Redeemer.new(
+            RedeemersArrayItem.new(
+              key.tag(),
+              key.index(),
+              r.data(),
+              r.ex_units(),
+            ),
+          );
+        }
+      }
+    }
   }
 }
 
