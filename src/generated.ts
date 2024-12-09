@@ -12604,10 +12604,6 @@ export class Redeemer {
     this.inner = inner;
   }
 
-  static new(inner: RedeemersArrayItem): Redeemer {
-    return new Redeemer(inner);
-  }
-
   redeemerArrayItem(): RedeemersArrayItem {
     return this.inner;
   }
@@ -12644,6 +12640,15 @@ export class Redeemer {
 
   clone(path: string[]): Redeemer {
     return Redeemer.from_bytes(this.to_bytes(), path);
+  }
+
+  static new(
+    tag: RedeemerTag,
+    index: BigNum,
+    data: PlutusData,
+    ex_units: ExUnits,
+  ) {
+    return new Redeemer(new RedeemersArrayItem(tag, index, data, ex_units));
   }
 }
 
@@ -12915,14 +12920,14 @@ export class Redeemers {
   get(index: number): Redeemer {
     switch (this.variant.kind) {
       case 0:
-        return Redeemer.new(this.variant.value.get(index));
+        return new Redeemer(this.variant.value.get(index));
       case 1: {
         const key = this.variant.value.keys().get(index);
         const r = this.variant.value.get(key);
         if (r === undefined) {
           throw "Unexpected undefined key in Redeemers";
         } else {
-          return Redeemer.new(
+          return new Redeemer(
             RedeemersArrayItem.new(
               key.tag(),
               key.index(),
