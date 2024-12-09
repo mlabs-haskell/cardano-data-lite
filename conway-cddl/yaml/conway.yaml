@@ -11,6 +11,32 @@
 #    ;    length of transaction_bodies
 Block:
   type: record
+  methods:
+    new: null
+  extra_methods: |
+    static new(
+      header: Header,
+      transaction_bodies: TransactionBodies,
+      transaction_witness_sets: TransactionWitnessSets,
+      auxiliary_data_set: AuxiliaryDataSet,
+      invalid_transactions: Uint32Array
+    ): Block {
+      return new Block(
+        header,
+        transaction_bodies,
+        transaction_witness_sets,
+        auxiliary_data_set,
+        new InvalidTransactions(invalid_transactions) 
+      );
+    }
+    
+    invalid_transactions(): Uint32Array {
+      return this.inner_invalid_transactions().as_uint32Array();
+    }
+
+    set_invalid_transactions(invalid_transactions: Uint32Array) {
+      this._inner_invalid_transactions = new InvalidTransactions(invalid_transactions);
+    }
   fields:
     - name: header
       type: Header
@@ -20,7 +46,7 @@ Block:
       type: TransactionWitnessSets
     - name: auxiliary_data_set
       type: AuxiliaryDataSet
-    - name: invalid_transactions
+    - name: inner_invalid_transactions
       type: InvalidTransactions
 
 TransactionBodies:
@@ -49,6 +75,10 @@ AuxiliaryDataSet:
 # no item type means that it is encoded as a Uint32Array
 InvalidTransactions:
   type: array
+  extra_methods: |
+    as_uint32Array(): Uint32Array {
+      return this.items;
+    }
 
 # transaction =
 #   [ transaction_body

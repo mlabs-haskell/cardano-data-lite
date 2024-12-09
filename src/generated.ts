@@ -1431,36 +1431,20 @@ export class Block {
   private _transaction_bodies: TransactionBodies;
   private _transaction_witness_sets: TransactionWitnessSets;
   private _auxiliary_data_set: AuxiliaryDataSet;
-  private _invalid_transactions: InvalidTransactions;
+  private _inner_invalid_transactions: InvalidTransactions;
 
   constructor(
     header: Header,
     transaction_bodies: TransactionBodies,
     transaction_witness_sets: TransactionWitnessSets,
     auxiliary_data_set: AuxiliaryDataSet,
-    invalid_transactions: InvalidTransactions,
+    inner_invalid_transactions: InvalidTransactions,
   ) {
     this._header = header;
     this._transaction_bodies = transaction_bodies;
     this._transaction_witness_sets = transaction_witness_sets;
     this._auxiliary_data_set = auxiliary_data_set;
-    this._invalid_transactions = invalid_transactions;
-  }
-
-  static new(
-    header: Header,
-    transaction_bodies: TransactionBodies,
-    transaction_witness_sets: TransactionWitnessSets,
-    auxiliary_data_set: AuxiliaryDataSet,
-    invalid_transactions: InvalidTransactions,
-  ) {
-    return new Block(
-      header,
-      transaction_bodies,
-      transaction_witness_sets,
-      auxiliary_data_set,
-      invalid_transactions,
-    );
+    this._inner_invalid_transactions = inner_invalid_transactions;
   }
 
   header(): Header {
@@ -1497,12 +1481,14 @@ export class Block {
     this._auxiliary_data_set = auxiliary_data_set;
   }
 
-  invalid_transactions(): InvalidTransactions {
-    return this._invalid_transactions;
+  inner_invalid_transactions(): InvalidTransactions {
+    return this._inner_invalid_transactions;
   }
 
-  set_invalid_transactions(invalid_transactions: InvalidTransactions): void {
-    this._invalid_transactions = invalid_transactions;
+  set_inner_invalid_transactions(
+    inner_invalid_transactions: InvalidTransactions,
+  ): void {
+    this._inner_invalid_transactions = inner_invalid_transactions;
   }
 
   static deserialize(reader: CBORReader, path: string[]): Block {
@@ -1547,13 +1533,13 @@ export class Block {
       auxiliary_data_set_path,
     );
 
-    const invalid_transactions_path = [
+    const inner_invalid_transactions_path = [
       ...path,
-      "InvalidTransactions(invalid_transactions)",
+      "InvalidTransactions(inner_invalid_transactions)",
     ];
-    let invalid_transactions = InvalidTransactions.deserialize(
+    let inner_invalid_transactions = InvalidTransactions.deserialize(
       reader,
-      invalid_transactions_path,
+      inner_invalid_transactions_path,
     );
 
     return new Block(
@@ -1561,7 +1547,7 @@ export class Block {
       transaction_bodies,
       transaction_witness_sets,
       auxiliary_data_set,
-      invalid_transactions,
+      inner_invalid_transactions,
     );
   }
 
@@ -1574,7 +1560,7 @@ export class Block {
     this._transaction_bodies.serialize(writer);
     this._transaction_witness_sets.serialize(writer);
     this._auxiliary_data_set.serialize(writer);
-    this._invalid_transactions.serialize(writer);
+    this._inner_invalid_transactions.serialize(writer);
   }
 
   // no-op
@@ -1601,6 +1587,32 @@ export class Block {
 
   clone(path: string[]): Block {
     return Block.from_bytes(this.to_bytes(), path);
+  }
+
+  static new(
+    header: Header,
+    transaction_bodies: TransactionBodies,
+    transaction_witness_sets: TransactionWitnessSets,
+    auxiliary_data_set: AuxiliaryDataSet,
+    invalid_transactions: Uint32Array,
+  ): Block {
+    return new Block(
+      header,
+      transaction_bodies,
+      transaction_witness_sets,
+      auxiliary_data_set,
+      new InvalidTransactions(invalid_transactions),
+    );
+  }
+
+  invalid_transactions(): Uint32Array {
+    return this.inner_invalid_transactions().as_uint32Array();
+  }
+
+  set_invalid_transactions(invalid_transactions: Uint32Array) {
+    this._inner_invalid_transactions = new InvalidTransactions(
+      invalid_transactions,
+    );
   }
 }
 
@@ -7058,6 +7070,10 @@ export class InvalidTransactions {
 
   clone(path: string[]): InvalidTransactions {
     return InvalidTransactions.from_bytes(this.to_bytes(), path);
+  }
+
+  as_uint32Array(): Uint32Array {
+    return this.items;
   }
 }
 
