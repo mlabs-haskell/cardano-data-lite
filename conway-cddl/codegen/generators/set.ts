@@ -20,7 +20,7 @@ export class GenSet extends CodeGeneratorBase {
   generateMembers(): string {
     return `
       private items: ${this.itemJsType()}[];
-      private encoding: "definite" | "indefinite";
+      private definiteEncoding: boolean;
       private nonEmptyTag: boolean;
 
       private setItems(items: ${this.itemJsType()}[]) {
@@ -31,9 +31,9 @@ export class GenSet extends CodeGeneratorBase {
 
   generateConstructor(): string {
     return `
-      constructor(encoding: "definite" | "indefinite" = "definite", nonEmptyTag: boolean = true) {
+      constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
         this.items = [];
-        this.encoding = encoding;
+        this.definiteEncoding = definiteEncoding;
         this.nonEmptyTag = nonEmptyTag;
       }
     `;
@@ -83,12 +83,12 @@ export class GenSet extends CodeGeneratorBase {
           nonEmptyTag = true;
         }
       }
-      const { items, encoding } = ${reader}.readArray(
+      const { items, definiteEncoding } = ${reader}.readArray(
         (reader, idx) =>
           ${this.typeUtils.readType( reader, this.item, `[...${path}, '${this.item}#' + idx]`)},
           ${path}
       );
-      let ret = new ${this.name}(encoding, nonEmptyTag);
+      let ret = new ${this.name}(definiteEncoding, nonEmptyTag);
       ret.setItems(items);
       return ret;
     `;

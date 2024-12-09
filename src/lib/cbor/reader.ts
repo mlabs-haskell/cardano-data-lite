@@ -133,13 +133,13 @@ export class CBORReader {
     else this.readN(n, fn);
   }
 
-  readArray<T>(readItem: (reader: CBORReader, idx: number) => T, path: string[]): { items: T[], encoding: "definite" | "indefinite" } {
+  readArray<T>(readItem: (reader: CBORReader, idx: number) => T, path: string[]): { items: T[], definiteEncoding: boolean} {
     let ret: T[] = [];
     const len: number | null = this.readArrayTag(path);
     this.readMultiple(len, (reader, idx) =>
       ret.push(readItem(reader, idx)),
     );
-    return { items: ret, encoding: typeof(len) === "number" ? "definite" : "indefinite" };
+    return { items: ret, definiteEncoding: typeof(len) === "number"};
   }
 
   readMap<T>(readItem: (reader: CBORReader, idx: number) => T, path: string[]): T[] {

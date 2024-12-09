@@ -218,14 +218,11 @@ export class AssetName {
 
 export class AssetNames {
   private items: AssetName[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: AssetName[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: AssetName[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): AssetNames {
@@ -246,18 +243,18 @@ export class AssetNames {
   }
 
   static deserialize(reader: CBORReader, path: string[]): AssetNames {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) => AssetName.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new AssetNames(items, encoding);
+    return new AssetNames(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -1797,19 +1794,16 @@ export class BootstrapWitness {
 
 export class BootstrapWitnesses {
   private items: BootstrapWitness[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
   private nonEmptyTag: boolean;
 
   private setItems(items: BootstrapWitness[]) {
     this.items = items;
   }
 
-  constructor(
-    encoding: "definite" | "indefinite" = "definite",
-    nonEmptyTag: boolean = true,
-  ) {
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
     this.nonEmptyTag = nonEmptyTag;
   }
 
@@ -1851,7 +1845,7 @@ export class BootstrapWitnesses {
         nonEmptyTag = true;
       }
     }
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         BootstrapWitness.deserialize(reader, [
           ...path,
@@ -1859,7 +1853,7 @@ export class BootstrapWitnesses {
         ]),
       path,
     );
-    let ret = new BootstrapWitnesses(encoding, nonEmptyTag);
+    let ret = new BootstrapWitnesses(definiteEncoding, nonEmptyTag);
     ret.setItems(items);
     return ret;
   }
@@ -2696,19 +2690,16 @@ export class Certificate {
 
 export class Certificates {
   private items: Certificate[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
   private nonEmptyTag: boolean;
 
   private setItems(items: Certificate[]) {
     this.items = items;
   }
 
-  constructor(
-    encoding: "definite" | "indefinite" = "definite",
-    nonEmptyTag: boolean = true,
-  ) {
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
     this.nonEmptyTag = nonEmptyTag;
   }
 
@@ -2750,12 +2741,12 @@ export class Certificates {
         nonEmptyTag = true;
       }
     }
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         Certificate.deserialize(reader, [...path, "Certificate#" + idx]),
       path,
     );
-    let ret = new Certificates(encoding, nonEmptyTag);
+    let ret = new Certificates(definiteEncoding, nonEmptyTag);
     ret.setItems(items);
     return ret;
   }
@@ -3484,11 +3475,11 @@ export class ConstrPlutusData {
 
 export class CostModel {
   private items: Int[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(items: Int[], encoding: "definite" | "indefinite" = "definite") {
+  constructor(items: Int[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): CostModel {
@@ -3509,18 +3500,18 @@ export class CostModel {
   }
 
   static deserialize(reader: CBORReader, path: string[]): CostModel {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) => Int.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new CostModel(items, encoding);
+    return new CostModel(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -3681,19 +3672,16 @@ export class Costmdls {
 
 export class Credentials {
   private items: Credential[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
   private nonEmptyTag: boolean;
 
   private setItems(items: Credential[]) {
     this.items = items;
   }
 
-  constructor(
-    encoding: "definite" | "indefinite" = "definite",
-    nonEmptyTag: boolean = true,
-  ) {
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
     this.nonEmptyTag = nonEmptyTag;
   }
 
@@ -3735,12 +3723,12 @@ export class Credentials {
         nonEmptyTag = true;
       }
     }
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         Credential.deserialize(reader, [...path, "Credential#" + idx]),
       path,
     );
-    let ret = new Credentials(encoding, nonEmptyTag);
+    let ret = new Credentials(definiteEncoding, nonEmptyTag);
     ret.setItems(items);
     return ret;
   }
@@ -5151,19 +5139,16 @@ export class Ed25519KeyHash {
 
 export class Ed25519KeyHashes {
   private items: Ed25519KeyHash[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
   private nonEmptyTag: boolean;
 
   private setItems(items: Ed25519KeyHash[]) {
     this.items = items;
   }
 
-  constructor(
-    encoding: "definite" | "indefinite" = "definite",
-    nonEmptyTag: boolean = true,
-  ) {
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
     this.nonEmptyTag = nonEmptyTag;
   }
 
@@ -5205,12 +5190,12 @@ export class Ed25519KeyHashes {
         nonEmptyTag = true;
       }
     }
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         Ed25519KeyHash.deserialize(reader, [...path, "Ed25519KeyHash#" + idx]),
       path,
     );
-    let ret = new Ed25519KeyHashes(encoding, nonEmptyTag);
+    let ret = new Ed25519KeyHashes(definiteEncoding, nonEmptyTag);
     ret.setItems(items);
     return ret;
   }
@@ -5723,14 +5708,11 @@ export class GenesisHash {
 
 export class GenesisHashes {
   private items: GenesisHash[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: GenesisHash[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: GenesisHash[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): GenesisHashes {
@@ -5751,19 +5733,19 @@ export class GenesisHashes {
   }
 
   static deserialize(reader: CBORReader, path: string[]): GenesisHashes {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         GenesisHash.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new GenesisHashes(items, encoding);
+    return new GenesisHashes(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -6196,14 +6178,11 @@ export class GovernanceActionId {
 
 export class GovernanceActionIds {
   private items: GovernanceActionId[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: GovernanceActionId[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: GovernanceActionId[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): GovernanceActionIds {
@@ -6224,19 +6203,19 @@ export class GovernanceActionIds {
   }
 
   static deserialize(reader: CBORReader, path: string[]): GovernanceActionIds {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         GovernanceActionId.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new GovernanceActionIds(items, encoding);
+    return new GovernanceActionIds(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -7017,14 +6996,11 @@ export class Int {
 
 export class InvalidTransactions {
   private items: Uint32Array;
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: Uint32Array,
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: Uint32Array, definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): InvalidTransactions {
@@ -7036,19 +7012,19 @@ export class InvalidTransactions {
   }
 
   static deserialize(reader: CBORReader, path: string[]): InvalidTransactions {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) => Number(reader.readUint([...path, "Byte#" + idx])),
       path,
     );
 
-    return new InvalidTransactions(new Uint32Array(items), encoding);
+    return new InvalidTransactions(new Uint32Array(items), definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => writer.writeInt(BigInt(x)),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -7382,14 +7358,11 @@ export class Language {
 
 export class Languages {
   private items: Language[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: Language[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: Language[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): Languages {
@@ -7410,18 +7383,18 @@ export class Languages {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Languages {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) => Language.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new Languages(items, encoding);
+    return new Languages(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -7465,14 +7438,11 @@ export class Languages {
 
 export class MetadataList {
   private items: TransactionMetadatum[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: TransactionMetadatum[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: TransactionMetadatum[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): MetadataList {
@@ -7493,19 +7463,19 @@ export class MetadataList {
   }
 
   static deserialize(reader: CBORReader, path: string[]): MetadataList {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         TransactionMetadatum.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new MetadataList(items, encoding);
+    return new MetadataList(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -7934,14 +7904,11 @@ export class MintAssets {
 
 export class MintsAssets {
   private items: MintAssets[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: MintAssets[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: MintAssets[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): MintsAssets {
@@ -7962,18 +7929,18 @@ export class MintsAssets {
   }
 
   static deserialize(reader: CBORReader, path: string[]): MintsAssets {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) => MintAssets.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new MintsAssets(items, encoding);
+    return new MintsAssets(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -8765,19 +8732,16 @@ export class NativeScriptSource {
 
 export class NativeScripts {
   private items: NativeScript[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
   private nonEmptyTag: boolean;
 
   private setItems(items: NativeScript[]) {
     this.items = items;
   }
 
-  constructor(
-    encoding: "definite" | "indefinite" = "definite",
-    nonEmptyTag: boolean = true,
-  ) {
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
     this.nonEmptyTag = nonEmptyTag;
   }
 
@@ -8819,12 +8783,12 @@ export class NativeScripts {
         nonEmptyTag = true;
       }
     }
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         NativeScript.deserialize(reader, [...path, "NativeScript#" + idx]),
       path,
     );
-    let ret = new NativeScripts(encoding, nonEmptyTag);
+    let ret = new NativeScripts(definiteEncoding, nonEmptyTag);
     ret.setItems(items);
     return ret;
   }
@@ -9831,14 +9795,11 @@ export class PlutusData {
 
 export class PlutusList {
   private items: PlutusData[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: PlutusData[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: PlutusData[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): PlutusList {
@@ -9859,18 +9820,18 @@ export class PlutusList {
   }
 
   static deserialize(reader: CBORReader, path: string[]): PlutusList {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) => PlutusData.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new PlutusList(items, encoding);
+    return new PlutusList(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -10010,14 +9971,11 @@ export class PlutusMap {
 
 export class PlutusMapValues {
   private items: PlutusData[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: PlutusData[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: PlutusData[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): PlutusMapValues {
@@ -10038,18 +9996,18 @@ export class PlutusMapValues {
   }
 
   static deserialize(reader: CBORReader, path: string[]): PlutusMapValues {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) => PlutusData.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new PlutusMapValues(items, encoding);
+    return new PlutusMapValues(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -10152,19 +10110,16 @@ export class PlutusScript {
 
 export class PlutusScripts {
   private items: PlutusScript[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
   private nonEmptyTag: boolean;
 
   private setItems(items: PlutusScript[]) {
     this.items = items;
   }
 
-  constructor(
-    encoding: "definite" | "indefinite" = "definite",
-    nonEmptyTag: boolean = true,
-  ) {
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
     this.nonEmptyTag = nonEmptyTag;
   }
 
@@ -10206,12 +10161,12 @@ export class PlutusScripts {
         nonEmptyTag = true;
       }
     }
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         PlutusScript.deserialize(reader, [...path, "PlutusScript#" + idx]),
       path,
     );
-    let ret = new PlutusScripts(encoding, nonEmptyTag);
+    let ret = new PlutusScripts(definiteEncoding, nonEmptyTag);
     ret.setItems(items);
     return ret;
   }
@@ -10258,19 +10213,16 @@ export class PlutusScripts {
 
 export class PlutusSet {
   private items: PlutusData[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
   private nonEmptyTag: boolean;
 
   private setItems(items: PlutusData[]) {
     this.items = items;
   }
 
-  constructor(
-    encoding: "definite" | "indefinite" = "definite",
-    nonEmptyTag: boolean = true,
-  ) {
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
     this.nonEmptyTag = nonEmptyTag;
   }
 
@@ -10312,12 +10264,12 @@ export class PlutusSet {
         nonEmptyTag = true;
       }
     }
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         PlutusData.deserialize(reader, [...path, "PlutusData#" + idx]),
       path,
     );
-    let ret = new PlutusSet(encoding, nonEmptyTag);
+    let ret = new PlutusSet(definiteEncoding, nonEmptyTag);
     ret.setItems(items);
     return ret;
   }
@@ -12873,14 +12825,11 @@ export class Redeemers {
 
 export class RedeemersArray {
   private items: RedeemersArrayItem[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: RedeemersArrayItem[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: RedeemersArrayItem[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): RedeemersArray {
@@ -12901,19 +12850,19 @@ export class RedeemersArray {
   }
 
   static deserialize(reader: CBORReader, path: string[]): RedeemersArray {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         RedeemersArrayItem.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new RedeemersArray(items, encoding);
+    return new RedeemersArray(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -13174,14 +13123,11 @@ export class RedeemersKey {
 
 export class RedeemersKeys {
   private items: RedeemersKey[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: RedeemersKey[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: RedeemersKey[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): RedeemersKeys {
@@ -13202,19 +13148,19 @@ export class RedeemersKeys {
   }
 
   static deserialize(reader: CBORReader, path: string[]): RedeemersKeys {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         RedeemersKey.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new RedeemersKeys(items, encoding);
+    return new RedeemersKeys(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -13672,14 +13618,11 @@ export class Relay {
 
 export class Relays {
   private items: Relay[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: Relay[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: Relay[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): Relays {
@@ -13700,18 +13643,18 @@ export class Relays {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Relays {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) => Relay.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new Relays(items, encoding);
+    return new Relays(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -13744,14 +13687,11 @@ export class Relays {
 
 export class RewardAddresses {
   private items: RewardAddress[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: RewardAddress[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: RewardAddress[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): RewardAddresses {
@@ -13772,19 +13712,19 @@ export class RewardAddresses {
   }
 
   static deserialize(reader: CBORReader, path: string[]): RewardAddresses {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         RewardAddress.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new RewardAddresses(items, encoding);
+    return new RewardAddresses(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -14063,14 +14003,11 @@ export class ScriptHash {
 
 export class ScriptHashes {
   private items: ScriptHash[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: ScriptHash[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: ScriptHash[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): ScriptHashes {
@@ -14091,18 +14028,18 @@ export class ScriptHashes {
   }
 
   static deserialize(reader: CBORReader, path: string[]): ScriptHashes {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) => ScriptHash.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new ScriptHashes(items, encoding);
+    return new ScriptHashes(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -15559,14 +15496,11 @@ export class Transaction {
 
 export class TransactionBodies {
   private items: TransactionBody[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: TransactionBody[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: TransactionBody[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): TransactionBodies {
@@ -15587,19 +15521,19 @@ export class TransactionBodies {
   }
 
   static deserialize(reader: CBORReader, path: string[]): TransactionBodies {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         TransactionBody.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new TransactionBodies(items, encoding);
+    return new TransactionBodies(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -16418,19 +16352,16 @@ export class TransactionInput {
 
 export class TransactionInputs {
   private items: TransactionInput[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
   private nonEmptyTag: boolean;
 
   private setItems(items: TransactionInput[]) {
     this.items = items;
   }
 
-  constructor(
-    encoding: "definite" | "indefinite" = "definite",
-    nonEmptyTag: boolean = true,
-  ) {
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
     this.nonEmptyTag = nonEmptyTag;
   }
 
@@ -16472,7 +16403,7 @@ export class TransactionInputs {
         nonEmptyTag = true;
       }
     }
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         TransactionInput.deserialize(reader, [
           ...path,
@@ -16480,7 +16411,7 @@ export class TransactionInputs {
         ]),
       path,
     );
-    let ret = new TransactionInputs(encoding, nonEmptyTag);
+    let ret = new TransactionInputs(definiteEncoding, nonEmptyTag);
     ret.setItems(items);
     return ret;
   }
@@ -16712,14 +16643,11 @@ export class TransactionMetadatum {
 
 export class TransactionMetadatumLabels {
   private items: BigNum[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: BigNum[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: BigNum[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): TransactionMetadatumLabels {
@@ -16743,18 +16671,18 @@ export class TransactionMetadatumLabels {
     reader: CBORReader,
     path: string[],
   ): TransactionMetadatumLabels {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) => BigNum.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new TransactionMetadatumLabels(items, encoding);
+    return new TransactionMetadatumLabels(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -16937,14 +16865,11 @@ export class TransactionOutput {
 
 export class TransactionOutputs {
   private items: TransactionOutput[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: TransactionOutput[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: TransactionOutput[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): TransactionOutputs {
@@ -16965,19 +16890,19 @@ export class TransactionOutputs {
   }
 
   static deserialize(reader: CBORReader, path: string[]): TransactionOutputs {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         TransactionOutput.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new TransactionOutputs(items, encoding);
+    return new TransactionOutputs(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -17287,14 +17212,14 @@ export class TransactionWitnessSet {
 
 export class TransactionWitnessSets {
   private items: TransactionWitnessSet[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
   constructor(
     items: TransactionWitnessSet[],
-    encoding: "definite" | "indefinite" = "definite",
+    definiteEncoding: boolean = true,
   ) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): TransactionWitnessSets {
@@ -17318,19 +17243,19 @@ export class TransactionWitnessSets {
     reader: CBORReader,
     path: string[],
   ): TransactionWitnessSets {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         TransactionWitnessSet.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new TransactionWitnessSets(items, encoding);
+    return new TransactionWitnessSets(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -18476,11 +18401,11 @@ export class Vkey {
 
 export class Vkeys {
   private items: Vkey[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(items: Vkey[], encoding: "definite" | "indefinite" = "definite") {
+  constructor(items: Vkey[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): Vkeys {
@@ -18501,18 +18426,18 @@ export class Vkeys {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Vkeys {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) => Vkey.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new Vkeys(items, encoding);
+    return new Vkeys(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -18637,19 +18562,16 @@ export class Vkeywitness {
 
 export class Vkeywitnesses {
   private items: Vkeywitness[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
   private nonEmptyTag: boolean;
 
   private setItems(items: Vkeywitness[]) {
     this.items = items;
   }
 
-  constructor(
-    encoding: "definite" | "indefinite" = "definite",
-    nonEmptyTag: boolean = true,
-  ) {
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
     this.nonEmptyTag = nonEmptyTag;
   }
 
@@ -18691,12 +18613,12 @@ export class Vkeywitnesses {
         nonEmptyTag = true;
       }
     }
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         Vkeywitness.deserialize(reader, [...path, "Vkeywitness#" + idx]),
       path,
     );
-    let ret = new Vkeywitnesses(encoding, nonEmptyTag);
+    let ret = new Vkeywitnesses(definiteEncoding, nonEmptyTag);
     ret.setItems(items);
     return ret;
   }
@@ -19224,14 +19146,11 @@ export class Voter {
 
 export class Voters {
   private items: Voter[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
 
-  constructor(
-    items: Voter[],
-    encoding: "definite" | "indefinite" = "definite",
-  ) {
+  constructor(items: Voter[], definiteEncoding: boolean = true) {
     this.items = items;
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): Voters {
@@ -19252,18 +19171,18 @@ export class Voters {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Voters {
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) => Voter.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return new Voters(items, encoding);
+    return new Voters(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
-      this.encoding,
+      this.definiteEncoding,
     );
   }
 
@@ -19680,19 +19599,16 @@ export class VotingProposal {
 
 export class VotingProposals {
   private items: VotingProposal[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
   private nonEmptyTag: boolean;
 
   private setItems(items: VotingProposal[]) {
     this.items = items;
   }
 
-  constructor(
-    encoding: "definite" | "indefinite" = "definite",
-    nonEmptyTag: boolean = true,
-  ) {
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
     this.nonEmptyTag = nonEmptyTag;
   }
 
@@ -19734,12 +19650,12 @@ export class VotingProposals {
         nonEmptyTag = true;
       }
     }
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         VotingProposal.deserialize(reader, [...path, "VotingProposal#" + idx]),
       path,
     );
-    let ret = new VotingProposals(encoding, nonEmptyTag);
+    let ret = new VotingProposals(definiteEncoding, nonEmptyTag);
     ret.setItems(items);
     return ret;
   }
@@ -19881,19 +19797,16 @@ export class Withdrawals {
 
 export class certificates {
   private items: Certificate[];
-  private encoding: "definite" | "indefinite";
+  private definiteEncoding: boolean;
   private nonEmptyTag: boolean;
 
   private setItems(items: Certificate[]) {
     this.items = items;
   }
 
-  constructor(
-    encoding: "definite" | "indefinite" = "definite",
-    nonEmptyTag: boolean = true,
-  ) {
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
-    this.encoding = encoding;
+    this.definiteEncoding = definiteEncoding;
     this.nonEmptyTag = nonEmptyTag;
   }
 
@@ -19935,12 +19848,12 @@ export class certificates {
         nonEmptyTag = true;
       }
     }
-    const { items, encoding } = reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
         Certificate.deserialize(reader, [...path, "Certificate#" + idx]),
       path,
     );
-    let ret = new certificates(encoding, nonEmptyTag);
+    let ret = new certificates(definiteEncoding, nonEmptyTag);
     ret.setItems(items);
     return ret;
   }

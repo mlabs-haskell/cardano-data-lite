@@ -71,13 +71,13 @@ export class CBORWriter {
   writeArray<T>(
     array: { length: number } & Iterable<T>,
     write: (writer: CBORWriter, value: T) => void,
-    encoding: "definite" | "indefinite" = "definite"
+    definiteEncoding: boolean = true
   ) {
-    this.writeArrayTag(encoding == "definite" ? array.length : null);
+    this.writeArrayTag(definiteEncoding ? array.length : null);
     for (let item of array) {
       write(this, item);
     }
-    if (encoding == "indefinite") {
+    if (!definiteEncoding) {
       this.buffer.pushByte(0xff);
     }
   }
