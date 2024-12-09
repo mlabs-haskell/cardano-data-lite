@@ -47,7 +47,8 @@ export declare class AssetName {
 }
 export declare class AssetNames {
     private items;
-    constructor(items: AssetName[]);
+    private definiteEncoding;
+    constructor(items: AssetName[], definiteEncoding?: boolean);
     static new(): AssetNames;
     len(): number;
     get(index: number): AssetName;
@@ -277,9 +278,8 @@ export declare class Block {
     private _transaction_bodies;
     private _transaction_witness_sets;
     private _auxiliary_data_set;
-    private _invalid_transactions;
-    constructor(header: Header, transaction_bodies: TransactionBodies, transaction_witness_sets: TransactionWitnessSets, auxiliary_data_set: AuxiliaryDataSet, invalid_transactions: Uint32Array);
-    static new(header: Header, transaction_bodies: TransactionBodies, transaction_witness_sets: TransactionWitnessSets, auxiliary_data_set: AuxiliaryDataSet, invalid_transactions: Uint32Array): Block;
+    private _inner_invalid_transactions;
+    constructor(header: Header, transaction_bodies: TransactionBodies, transaction_witness_sets: TransactionWitnessSets, auxiliary_data_set: AuxiliaryDataSet, inner_invalid_transactions: InvalidTransactions);
     header(): Header;
     set_header(header: Header): void;
     transaction_bodies(): TransactionBodies;
@@ -288,8 +288,8 @@ export declare class Block {
     set_transaction_witness_sets(transaction_witness_sets: TransactionWitnessSets): void;
     auxiliary_data_set(): AuxiliaryDataSet;
     set_auxiliary_data_set(auxiliary_data_set: AuxiliaryDataSet): void;
-    invalid_transactions(): Uint32Array;
-    set_invalid_transactions(invalid_transactions: Uint32Array): void;
+    inner_invalid_transactions(): InvalidTransactions;
+    set_inner_invalid_transactions(inner_invalid_transactions: InvalidTransactions): void;
     static deserialize(reader: CBORReader, path: string[]): Block;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -298,6 +298,9 @@ export declare class Block {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): Block;
+    static new(header: Header, transaction_bodies: TransactionBodies, transaction_witness_sets: TransactionWitnessSets, auxiliary_data_set: AuxiliaryDataSet, invalid_transactions: Uint32Array): Block;
+    invalid_transactions(): Uint32Array;
+    set_invalid_transactions(invalid_transactions: Uint32Array): void;
 }
 export declare class BlockHash {
     private inner;
@@ -340,11 +343,15 @@ export declare class BootstrapWitness {
 }
 export declare class BootstrapWitnesses {
     private items;
-    constructor(items: BootstrapWitness[]);
+    private definiteEncoding;
+    private nonEmptyTag;
+    private setItems;
+    constructor(definiteEncoding?: boolean, nonEmptyTag?: boolean);
     static new(): BootstrapWitnesses;
     len(): number;
     get(index: number): BootstrapWitness;
-    add(elem: BootstrapWitness): void;
+    add(elem: BootstrapWitness): boolean;
+    contains(elem: BootstrapWitness): boolean;
     static deserialize(reader: CBORReader, path: string[]): BootstrapWitnesses;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -505,7 +512,10 @@ export declare class Certificate {
 }
 export declare class Certificates {
     private items;
-    constructor();
+    private definiteEncoding;
+    private nonEmptyTag;
+    private setItems;
+    constructor(definiteEncoding?: boolean, nonEmptyTag?: boolean);
     static new(): Certificates;
     len(): number;
     get(index: number): Certificate;
@@ -629,23 +639,27 @@ export declare class ConstrPlutusData {
     private _alternative;
     private _data;
     constructor(alternative: BigNum, data: PlutusList);
-    static new(alternative: BigNum, data: PlutusList): ConstrPlutusData;
+    static uncheckedNew(alternative: BigNum, data: PlutusList): ConstrPlutusData;
     alternative(): BigNum;
     set_alternative(alternative: BigNum): void;
     data(): PlutusList;
     set_data(data: PlutusList): void;
-    static deserialize(reader: CBORReader, path: string[]): ConstrPlutusData;
-    serialize(writer: CBORWriter): void;
+    static deserializeWithSeparateIdx(reader: CBORReader, path: string[]): ConstrPlutusData;
+    serializeWithSeparateIdx(writer: CBORWriter): void;
     free(): void;
     static from_bytes(data: Uint8Array, path?: string[]): ConstrPlutusData;
     static from_hex(hex_str: string, path?: string[]): ConstrPlutusData;
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): ConstrPlutusData;
+    static deserialize(reader: CBORReader, path: string[]): ConstrPlutusData;
+    serialize(writer: CBORWriter): void;
+    static new(alternative: BigNum, data: PlutusList): ConstrPlutusData;
 }
 export declare class CostModel {
     private items;
-    constructor(items: Int[]);
+    private definiteEncoding;
+    constructor(items: Int[], definiteEncoding?: boolean);
     static new(): CostModel;
     len(): number;
     get(index: number): Int;
@@ -681,7 +695,10 @@ export declare class Costmdls {
 }
 export declare class Credentials {
     private items;
-    constructor();
+    private definiteEncoding;
+    private nonEmptyTag;
+    private setItems;
+    constructor(definiteEncoding?: boolean, nonEmptyTag?: boolean);
     static new(): Credentials;
     len(): number;
     get(index: number): Credential;
@@ -859,6 +876,22 @@ export declare class DRepVotingThresholds {
     to_hex(): string;
     clone(path: string[]): DRepVotingThresholds;
 }
+export declare class Data {
+    private inner;
+    constructor(inner: Uint8Array);
+    static new(inner: Uint8Array): Data;
+    encoded_plutus_data(): Uint8Array;
+    static deserialize(reader: CBORReader, path?: string[]): Data;
+    static deserializeInner(reader: CBORReader, path: string[]): Data;
+    serialize(writer: CBORWriter): void;
+    serializeInner(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array, path?: string[]): Data;
+    static from_hex(hex_str: string, path?: string[]): Data;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(path: string[]): Data;
+}
 export declare class DataCost {
     private _coins_per_byte;
     constructor(coins_per_byte: BigNum);
@@ -891,22 +924,22 @@ export declare class DataHash {
 }
 export declare enum DataOptionKind {
     DataHash = 0,
-    PlutusData = 1
+    Data = 1
 }
 export type DataOptionVariant = {
     kind: 0;
     value: DataHash;
 } | {
     kind: 1;
-    value: PlutusData;
+    value: Data;
 };
 export declare class DataOption {
     private variant;
     constructor(variant: DataOptionVariant);
     static new_hash(hash: DataHash): DataOption;
-    static new_data(data: PlutusData): DataOption;
+    static new_data(data: Data): DataOption;
     as_hash(): DataHash | undefined;
-    as_data(): PlutusData | undefined;
+    as_data(): Data | undefined;
     kind(): DataOptionKind;
     static deserialize(reader: CBORReader, path: string[]): DataOption;
     serialize(writer: CBORWriter): void;
@@ -963,7 +996,10 @@ export declare class Ed25519KeyHash {
 }
 export declare class Ed25519KeyHashes {
     private items;
-    constructor();
+    private definiteEncoding;
+    private nonEmptyTag;
+    private setItems;
+    constructor(definiteEncoding?: boolean, nonEmptyTag?: boolean);
     static new(): Ed25519KeyHashes;
     len(): number;
     get(index: number): Ed25519KeyHash;
@@ -1080,7 +1116,8 @@ export declare class GenesisHash {
 }
 export declare class GenesisHashes {
     private items;
-    constructor(items: GenesisHash[]);
+    private definiteEncoding;
+    constructor(items: GenesisHash[], definiteEncoding?: boolean);
     static new(): GenesisHashes;
     len(): number;
     get(index: number): GenesisHash;
@@ -1172,7 +1209,8 @@ export declare class GovernanceActionId {
 }
 export declare class GovernanceActionIds {
     private items;
-    constructor(items: GovernanceActionId[]);
+    private definiteEncoding;
+    constructor(items: GovernanceActionId[], definiteEncoding?: boolean);
     static new(): GovernanceActionIds;
     len(): number;
     get(index: number): GovernanceActionId;
@@ -1323,6 +1361,22 @@ export declare class Int {
     as_i32_or_nothing(): number | undefined;
     as_i32_or_fail(): number;
 }
+export declare class InvalidTransactions {
+    private items;
+    private definiteEncoding;
+    constructor(items: Uint32Array, definiteEncoding?: boolean);
+    static new(): InvalidTransactions;
+    len(): number;
+    static deserialize(reader: CBORReader, path: string[]): InvalidTransactions;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array, path?: string[]): InvalidTransactions;
+    static from_hex(hex_str: string, path?: string[]): InvalidTransactions;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(path: string[]): InvalidTransactions;
+    as_uint32Array(): Uint32Array;
+}
 export declare class Ipv4 {
     private inner;
     constructor(inner: Uint8Array);
@@ -1403,7 +1457,8 @@ export declare class Language {
 }
 export declare class Languages {
     private items;
-    constructor(items: Language[]);
+    private definiteEncoding;
+    constructor(items: Language[], definiteEncoding?: boolean);
     static new(): Languages;
     len(): number;
     get(index: number): Language;
@@ -1420,7 +1475,8 @@ export declare class Languages {
 }
 export declare class MetadataList {
     private items;
-    constructor(items: TransactionMetadatum[]);
+    private definiteEncoding;
+    constructor(items: TransactionMetadatum[], definiteEncoding?: boolean);
     static new(): MetadataList;
     len(): number;
     get(index: number): TransactionMetadatum;
@@ -1499,7 +1555,8 @@ export declare class MintAssets {
 }
 export declare class MintsAssets {
     private items;
-    constructor(items: MintAssets[]);
+    private definiteEncoding;
+    constructor(items: MintAssets[], definiteEncoding?: boolean);
     static new(): MintsAssets;
     len(): number;
     get(index: number): MintAssets;
@@ -1660,11 +1717,15 @@ export declare class NativeScriptSource {
 }
 export declare class NativeScripts {
     private items;
-    constructor(items: NativeScript[]);
+    private definiteEncoding;
+    private nonEmptyTag;
+    private setItems;
+    constructor(definiteEncoding?: boolean, nonEmptyTag?: boolean);
     static new(): NativeScripts;
     len(): number;
     get(index: number): NativeScript;
-    add(elem: NativeScript): void;
+    add(elem: NativeScript): boolean;
+    contains(elem: NativeScript): boolean;
     static deserialize(reader: CBORReader, path: string[]): NativeScripts;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -1873,12 +1934,12 @@ export declare class PlutusData {
 }
 export declare class PlutusList {
     private items;
-    constructor();
+    private definiteEncoding;
+    constructor(items: PlutusData[], definiteEncoding?: boolean);
     static new(): PlutusList;
     len(): number;
     get(index: number): PlutusData;
-    add(elem: PlutusData): boolean;
-    contains(elem: PlutusData): boolean;
+    add(elem: PlutusData): void;
     static deserialize(reader: CBORReader, path: string[]): PlutusList;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -1887,6 +1948,7 @@ export declare class PlutusList {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): PlutusList;
+    as_set(): PlutusSet;
 }
 export declare class PlutusMap {
     _items: [PlutusData, PlutusMapValues][];
@@ -1908,7 +1970,8 @@ export declare class PlutusMap {
 }
 export declare class PlutusMapValues {
     private items;
-    constructor(items: PlutusData[]);
+    private definiteEncoding;
+    constructor(items: PlutusData[], definiteEncoding?: boolean);
     static new(): PlutusMapValues;
     len(): number;
     get(index: number): PlutusData;
@@ -1939,11 +2002,15 @@ export declare class PlutusScript {
 }
 export declare class PlutusScripts {
     private items;
-    constructor(items: PlutusScript[]);
+    private definiteEncoding;
+    private nonEmptyTag;
+    private setItems;
+    constructor(definiteEncoding?: boolean, nonEmptyTag?: boolean);
     static new(): PlutusScripts;
     len(): number;
     get(index: number): PlutusScript;
-    add(elem: PlutusScript): void;
+    add(elem: PlutusScript): boolean;
+    contains(elem: PlutusScript): boolean;
     static deserialize(reader: CBORReader, path: string[]): PlutusScripts;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -1952,6 +2019,27 @@ export declare class PlutusScripts {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): PlutusScripts;
+}
+export declare class PlutusSet {
+    private items;
+    private definiteEncoding;
+    private nonEmptyTag;
+    private setItems;
+    constructor(definiteEncoding?: boolean, nonEmptyTag?: boolean);
+    static new(): PlutusSet;
+    len(): number;
+    get(index: number): PlutusData;
+    add(elem: PlutusData): boolean;
+    contains(elem: PlutusData): boolean;
+    static deserialize(reader: CBORReader, path: string[]): PlutusSet;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array, path?: string[]): PlutusSet;
+    static from_hex(hex_str: string, path?: string[]): PlutusSet;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(path: string[]): PlutusSet;
+    as_list(): PlutusList;
 }
 export declare class PoolMetadata {
     private _url;
@@ -2088,16 +2176,16 @@ export declare class PoolVotingThresholds {
 export declare class PostAlonzoTransactionOutput {
     private _address;
     private _amount;
-    private _plutus_data;
+    private _datum_option;
     private _script_ref;
-    constructor(address: Address, amount: Value, plutus_data: PlutusData | undefined, script_ref: ScriptRef | undefined);
-    static new(address: Address, amount: Value, plutus_data: PlutusData | undefined, script_ref: ScriptRef | undefined): PostAlonzoTransactionOutput;
+    constructor(address: Address, amount: Value, datum_option: DataOption | undefined, script_ref: ScriptRef | undefined);
+    static new(address: Address, amount: Value, datum_option: DataOption | undefined, script_ref: ScriptRef | undefined): PostAlonzoTransactionOutput;
     address(): Address;
     set_address(address: Address): void;
     amount(): Value;
     set_amount(amount: Value): void;
-    plutus_data(): PlutusData | undefined;
-    set_plutus_data(plutus_data: PlutusData | undefined): void;
+    datum_option(): DataOption | undefined;
+    set_datum_option(datum_option: DataOption | undefined): void;
     script_ref(): ScriptRef | undefined;
     set_script_ref(script_ref: ScriptRef | undefined): void;
     static deserialize(reader: CBORReader, path: string[]): PostAlonzoTransactionOutput;
@@ -2113,14 +2201,14 @@ export declare class PreBabbageTransactionOutput {
     private _address;
     private _amount;
     private _datum_hash;
-    constructor(address: Address, amount: Value, datum_hash: DataHash);
-    static new(address: Address, amount: Value, datum_hash: DataHash): PreBabbageTransactionOutput;
+    constructor(address: Address, amount: Value, datum_hash: DataHash | undefined);
+    static new(address: Address, amount: Value, datum_hash: DataHash | undefined): PreBabbageTransactionOutput;
     address(): Address;
     set_address(address: Address): void;
     amount(): Value;
     set_amount(amount: Value): void;
-    datum_hash(): DataHash;
-    set_datum_hash(datum_hash: DataHash): void;
+    datum_hash(): DataHash | undefined;
+    set_datum_hash(datum_hash: DataHash | undefined): void;
     static deserialize(reader: CBORReader, path: string[]): PreBabbageTransactionOutput;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -2314,20 +2402,9 @@ export declare class PublicKey {
     to_bech32(): void;
 }
 export declare class Redeemer {
-    private _tag;
-    private _index;
-    private _data;
-    private _ex_units;
-    constructor(tag: RedeemerTag, index: BigNum, data: PlutusData, ex_units: ExUnits);
-    static new(tag: RedeemerTag, index: BigNum, data: PlutusData, ex_units: ExUnits): Redeemer;
-    tag(): RedeemerTag;
-    set_tag(tag: RedeemerTag): void;
-    index(): BigNum;
-    set_index(index: BigNum): void;
-    data(): PlutusData;
-    set_data(data: PlutusData): void;
-    ex_units(): ExUnits;
-    set_ex_units(ex_units: ExUnits): void;
+    private inner;
+    constructor(inner: RedeemersArrayItem);
+    redeemerArrayItem(): RedeemersArrayItem;
     static deserialize(reader: CBORReader, path: string[]): Redeemer;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -2336,6 +2413,7 @@ export declare class Redeemer {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): Redeemer;
+    static new(tag: RedeemerTag, index: BigNum, data: PlutusData, ex_units: ExUnits): Redeemer;
 }
 export declare enum RedeemerTagKind {
     spending = 0,
@@ -2364,13 +2442,27 @@ export declare class RedeemerTag {
     to_hex(): string;
     clone(path: string[]): RedeemerTag;
 }
+export declare enum RedeemersKind {
+    RedeemersArray = 0,
+    RedeemersMap = 1
+}
+export type RedeemersVariant = {
+    kind: 0;
+    value: RedeemersArray;
+} | {
+    kind: 1;
+    value: RedeemersMap;
+};
 export declare class Redeemers {
-    private items;
-    constructor(items: Redeemer[]);
-    static new(): Redeemers;
-    len(): number;
-    get(index: number): Redeemer;
-    add(elem: Redeemer): void;
+    private variant;
+    constructor(variant: RedeemersVariant);
+    static new_redeemers_array(redeemers_array: RedeemersArray): Redeemers;
+    static new_redeemers_map(redeemers_map: RedeemersMap): Redeemers;
+    as_redeemers_array(): RedeemersArray;
+    as_redeemers_map(): RedeemersMap;
+    kind(): RedeemersKind;
+    static deserialize(reader: CBORReader, path: string[]): Redeemers;
+    serialize(writer: CBORWriter): void;
     free(): void;
     static from_bytes(data: Uint8Array, path?: string[]): Redeemers;
     static from_hex(hex_str: string, path?: string[]): Redeemers;
@@ -2378,10 +2470,27 @@ export declare class Redeemers {
     to_hex(): string;
     clone(path: string[]): Redeemers;
     total_ex_units(): ExUnits;
-    static deserialize(reader: CBORReader, path: string[]): Redeemers;
-    static deserializeArray(reader: CBORReader, path: string[]): Redeemers;
-    static deserializeMap(reader: CBORReader, path: string[]): Redeemers;
+    static new(): Redeemers;
+    len(): number;
+    add(elem: Redeemer): void;
+    get(index: number): Redeemer;
+}
+export declare class RedeemersArray {
+    private items;
+    private definiteEncoding;
+    constructor(items: RedeemersArrayItem[], definiteEncoding?: boolean);
+    static new(): RedeemersArray;
+    len(): number;
+    get(index: number): RedeemersArrayItem;
+    add(elem: RedeemersArrayItem): void;
+    static deserialize(reader: CBORReader, path: string[]): RedeemersArray;
     serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array, path?: string[]): RedeemersArray;
+    static from_hex(hex_str: string, path?: string[]): RedeemersArray;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(path: string[]): RedeemersArray;
 }
 export declare class RedeemersArrayItem {
     private _tag;
@@ -2424,6 +2533,41 @@ export declare class RedeemersKey {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): RedeemersKey;
+}
+export declare class RedeemersKeys {
+    private items;
+    private definiteEncoding;
+    constructor(items: RedeemersKey[], definiteEncoding?: boolean);
+    static new(): RedeemersKeys;
+    len(): number;
+    get(index: number): RedeemersKey;
+    add(elem: RedeemersKey): void;
+    static deserialize(reader: CBORReader, path: string[]): RedeemersKeys;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array, path?: string[]): RedeemersKeys;
+    static from_hex(hex_str: string, path?: string[]): RedeemersKeys;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(path: string[]): RedeemersKeys;
+}
+export declare class RedeemersMap {
+    _items: [RedeemersKey, RedeemersValue][];
+    constructor(items: [RedeemersKey, RedeemersValue][]);
+    static new(): RedeemersMap;
+    len(): number;
+    insert(key: RedeemersKey, value: RedeemersValue): RedeemersValue | undefined;
+    get(key: RedeemersKey): RedeemersValue | undefined;
+    _remove_many(keys: RedeemersKey[]): void;
+    keys(): RedeemersKeys;
+    static deserialize(reader: CBORReader, path: string[]): RedeemersMap;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array, path?: string[]): RedeemersMap;
+    static from_hex(hex_str: string, path?: string[]): RedeemersMap;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(path: string[]): RedeemersMap;
 }
 export declare class RedeemersValue {
     private _data;
@@ -2497,7 +2641,8 @@ export declare class Relay {
 }
 export declare class Relays {
     private items;
-    constructor(items: Relay[]);
+    private definiteEncoding;
+    constructor(items: Relay[], definiteEncoding?: boolean);
     static new(): Relays;
     len(): number;
     get(index: number): Relay;
@@ -2513,7 +2658,8 @@ export declare class Relays {
 }
 export declare class RewardAddresses {
     private items;
-    constructor(items: RewardAddress[]);
+    private definiteEncoding;
+    constructor(items: RewardAddress[], definiteEncoding?: boolean);
     static new(): RewardAddresses;
     len(): number;
     get(index: number): RewardAddress;
@@ -2589,7 +2735,8 @@ export declare class ScriptHash {
 }
 export declare class ScriptHashes {
     private items;
-    constructor(items: ScriptHash[]);
+    private definiteEncoding;
+    constructor(items: ScriptHash[], definiteEncoding?: boolean);
     static new(): ScriptHashes;
     len(): number;
     get(index: number): ScriptHash;
@@ -2903,7 +3050,8 @@ export declare class Transaction {
 }
 export declare class TransactionBodies {
     private items;
-    constructor(items: TransactionBody[]);
+    private definiteEncoding;
+    constructor(items: TransactionBody[], definiteEncoding?: boolean);
     static new(): TransactionBodies;
     len(): number;
     get(index: number): TransactionBody;
@@ -3029,7 +3177,10 @@ export declare class TransactionInput {
 }
 export declare class TransactionInputs {
     private items;
-    constructor();
+    private definiteEncoding;
+    private nonEmptyTag;
+    private setItems;
+    constructor(definiteEncoding?: boolean, nonEmptyTag?: boolean);
     static new(): TransactionInputs;
     len(): number;
     get(index: number): TransactionInput;
@@ -3092,7 +3243,8 @@ export declare class TransactionMetadatum {
 }
 export declare class TransactionMetadatumLabels {
     private items;
-    constructor(items: BigNum[]);
+    private definiteEncoding;
+    constructor(items: BigNum[], definiteEncoding?: boolean);
     static new(): TransactionMetadatumLabels;
     len(): number;
     get(index: number): BigNum;
@@ -3137,7 +3289,8 @@ export declare class TransactionOutput {
 }
 export declare class TransactionOutputs {
     private items;
-    constructor(items: TransactionOutput[]);
+    private definiteEncoding;
+    constructor(items: TransactionOutput[], definiteEncoding?: boolean);
     static new(): TransactionOutputs;
     len(): number;
     get(index: number): TransactionOutput;
@@ -3156,11 +3309,11 @@ export declare class TransactionWitnessSet {
     private _native_scripts;
     private _bootstraps;
     private _plutus_scripts_v1;
-    private _plutus_data;
+    private _inner_plutus_data;
     private _redeemers;
     private _plutus_scripts_v2;
     private _plutus_scripts_v3;
-    constructor(vkeys: Vkeywitnesses | undefined, native_scripts: NativeScripts | undefined, bootstraps: BootstrapWitnesses | undefined, plutus_scripts_v1: PlutusScripts | undefined, plutus_data: PlutusList | undefined, redeemers: Redeemers | undefined, plutus_scripts_v2: PlutusScripts | undefined, plutus_scripts_v3: PlutusScripts | undefined);
+    constructor(vkeys: Vkeywitnesses | undefined, native_scripts: NativeScripts | undefined, bootstraps: BootstrapWitnesses | undefined, plutus_scripts_v1: PlutusScripts | undefined, inner_plutus_data: PlutusSet | undefined, redeemers: Redeemers | undefined, plutus_scripts_v2: PlutusScripts | undefined, plutus_scripts_v3: PlutusScripts | undefined);
     vkeys(): Vkeywitnesses | undefined;
     set_vkeys(vkeys: Vkeywitnesses | undefined): void;
     native_scripts(): NativeScripts | undefined;
@@ -3169,8 +3322,8 @@ export declare class TransactionWitnessSet {
     set_bootstraps(bootstraps: BootstrapWitnesses | undefined): void;
     plutus_scripts_v1(): PlutusScripts | undefined;
     set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts | undefined): void;
-    plutus_data(): PlutusList | undefined;
-    set_plutus_data(plutus_data: PlutusList | undefined): void;
+    inner_plutus_data(): PlutusSet | undefined;
+    set_inner_plutus_data(inner_plutus_data: PlutusSet | undefined): void;
     redeemers(): Redeemers | undefined;
     set_redeemers(redeemers: Redeemers | undefined): void;
     plutus_scripts_v2(): PlutusScripts | undefined;
@@ -3186,10 +3339,13 @@ export declare class TransactionWitnessSet {
     to_hex(): string;
     clone(path: string[]): TransactionWitnessSet;
     static new(): TransactionWitnessSet;
+    plutus_data(): PlutusList | undefined;
+    set_plutus_data(plutus_data: PlutusList): void;
 }
 export declare class TransactionWitnessSets {
     private items;
-    constructor(items: TransactionWitnessSet[]);
+    private definiteEncoding;
+    constructor(items: TransactionWitnessSet[], definiteEncoding?: boolean);
     static new(): TransactionWitnessSets;
     len(): number;
     get(index: number): TransactionWitnessSet;
@@ -3425,7 +3581,8 @@ export declare class Vkey {
 }
 export declare class Vkeys {
     private items;
-    constructor(items: Vkey[]);
+    private definiteEncoding;
+    constructor(items: Vkey[], definiteEncoding?: boolean);
     static new(): Vkeys;
     len(): number;
     get(index: number): Vkey;
@@ -3459,7 +3616,10 @@ export declare class Vkeywitness {
 }
 export declare class Vkeywitnesses {
     private items;
-    constructor();
+    private definiteEncoding;
+    private nonEmptyTag;
+    private setItems;
+    constructor(definiteEncoding?: boolean, nonEmptyTag?: boolean);
     static new(): Vkeywitnesses;
     len(): number;
     get(index: number): Vkeywitness;
@@ -3574,7 +3734,8 @@ export declare class Voter {
 }
 export declare class Voters {
     private items;
-    constructor(items: Voter[]);
+    private definiteEncoding;
+    constructor(items: Voter[], definiteEncoding?: boolean);
     static new(): Voters;
     len(): number;
     get(index: number): Voter;
@@ -3655,7 +3816,10 @@ export declare class VotingProposal {
 }
 export declare class VotingProposals {
     private items;
-    constructor();
+    private definiteEncoding;
+    private nonEmptyTag;
+    private setItems;
+    constructor(definiteEncoding?: boolean, nonEmptyTag?: boolean);
     static new(): VotingProposals;
     len(): number;
     get(index: number): VotingProposal;
@@ -3689,7 +3853,10 @@ export declare class Withdrawals {
 }
 export declare class certificates {
     private items;
-    constructor();
+    private definiteEncoding;
+    private nonEmptyTag;
+    private setItems;
+    constructor(definiteEncoding?: boolean, nonEmptyTag?: boolean);
     static new(): certificates;
     len(): number;
     get(index: number): Certificate;
