@@ -20,10 +20,6 @@ export class CBORReader {
     this.buffer = buffer;
   }
 
-  debugBuffer(): void {
-    console.log("buffer: ", bytesToHex(this.buffer));
-  }
-
   peekType(path: string[]): CBORType {
     let tag = this.buffer[0] >> 5;
     switch (tag) {
