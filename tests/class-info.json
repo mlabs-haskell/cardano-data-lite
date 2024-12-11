@@ -17,8 +17,6 @@
     "LinearFee",
     "LegacyDaedalusPrivateKey",
     "Strings",
-    "TransactionUnspentOutput",
-    "TransactionUnspentOutputs",
     "TransactionBatch",
     "TransactionBatchList",
     "PlutusWitness",
@@ -26,7 +24,12 @@
     "MintWitness",
     "PlutusScriptSource",
     "AuxiliaryDataShelleyMa",
-    "AuxiliaryDataPostAlonzo"
+    "AuxiliaryDataPostAlonzo",
+    "ScriptAll",
+    "ScriptAny",
+    "ScriptNOfK",
+    "InvalidBefore",
+    "InvalidHereafter"
   ],
   "ignore_methods": {
     "Certificate": [

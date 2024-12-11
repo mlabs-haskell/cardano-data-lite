@@ -1,0 +1,13 @@
+# These are not transaction components, but these available in CSL as utils and
+# can also be serialized to CBOR.
+TransactionUnspentOutput:
+  type: record
+  fields:
+    - name: input
+      type: TransactionInput
+    - name: output
+      type: TransactionOutput
+
+TransactionUnspentOutputs:
+  type: array
+  item: TransactionUnspentOutput

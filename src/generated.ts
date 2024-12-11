@@ -17069,6 +17069,183 @@ export class TransactionOutputs {
   }
 }
 
+export class TransactionUnspentOutput {
+  private _input: TransactionInput;
+  private _output: TransactionOutput;
+
+  constructor(input: TransactionInput, output: TransactionOutput) {
+    this._input = input;
+    this._output = output;
+  }
+
+  static new(input: TransactionInput, output: TransactionOutput) {
+    return new TransactionUnspentOutput(input, output);
+  }
+
+  input(): TransactionInput {
+    return this._input;
+  }
+
+  set_input(input: TransactionInput): void {
+    this._input = input;
+  }
+
+  output(): TransactionOutput {
+    return this._output;
+  }
+
+  set_output(output: TransactionOutput): void {
+    this._output = output;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): TransactionUnspentOutput {
+    let len = reader.readArrayTag(path);
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected at least 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
+      );
+    }
+
+    const input_path = [...path, "TransactionInput(input)"];
+    let input = TransactionInput.deserialize(reader, input_path);
+
+    const output_path = [...path, "TransactionOutput(output)"];
+    let output = TransactionOutput.deserialize(reader, output_path);
+
+    return new TransactionUnspentOutput(input, output);
+  }
+
+  serialize(writer: CBORWriter): void {
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
+
+    this._input.serialize(writer);
+    this._output.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionUnspentOutput"],
+  ): TransactionUnspentOutput {
+    let reader = new CBORReader(data);
+    return TransactionUnspentOutput.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionUnspentOutput"],
+  ): TransactionUnspentOutput {
+    return TransactionUnspentOutput.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): TransactionUnspentOutput {
+    return TransactionUnspentOutput.from_bytes(this.to_bytes(), path);
+  }
+}
+
+export class TransactionUnspentOutputs {
+  private items: TransactionUnspentOutput[];
+  private definiteEncoding: boolean;
+
+  constructor(
+    items: TransactionUnspentOutput[],
+    definiteEncoding: boolean = true,
+  ) {
+    this.items = items;
+    this.definiteEncoding = definiteEncoding;
+  }
+
+  static new(): TransactionUnspentOutputs {
+    return new TransactionUnspentOutputs([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): TransactionUnspentOutput {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: TransactionUnspentOutput): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): TransactionUnspentOutputs {
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        TransactionUnspentOutput.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
+    );
+    return new TransactionUnspentOutputs(items, definiteEncoding);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionUnspentOutputs"],
+  ): TransactionUnspentOutputs {
+    let reader = new CBORReader(data);
+    return TransactionUnspentOutputs.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionUnspentOutputs"],
+  ): TransactionUnspentOutputs {
+    return TransactionUnspentOutputs.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): TransactionUnspentOutputs {
+    return TransactionUnspentOutputs.from_bytes(this.to_bytes(), path);
+  }
+}
+
 export class TransactionWitnessSet {
   private _vkeys: Vkeywitnesses | undefined;
   private _native_scripts: NativeScripts | undefined;

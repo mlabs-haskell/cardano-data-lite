@@ -35,7 +35,7 @@ async function main() {
 
   let yamlDir = path.join(curDir, "..", "yaml");
 
-  let files = [path.join(yamlDir, "conway.yaml")];
+  let files = [path.join(yamlDir, "conway.yaml"), path.join(yamlDir, "utils.yaml")];
 
   let customDir = path.join(yamlDir, "custom");
 
