@@ -38,7 +38,7 @@ PrivateKey:
     }
 
     static from_bech32(bech_str: string): PrivateKey {
-      let decoded = bech32.decode(bech_str);
+      let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
       let words = decoded.words;
       let bytesArray = bech32.fromWords(words);
       let bytes = new Uint8Array(bytesArray);
@@ -114,7 +114,7 @@ PublicKey:
     }
 
     static from_bech32(bech_str: string): PublicKey {
-      let decoded = bech32.decode(bech_str);
+      let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
       let words = decoded.words;
       let bytesArray = bech32.fromWords(words);
       let bytes = new Uint8Array(bytesArray);
@@ -150,7 +150,7 @@ Bip32PrivateKey:
     }
 
     static from_bech32(bech_str: string): Bip32PrivateKey {
-      let decoded = bech32.decode(bech_str);
+      let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
       let words = decoded.words;
       let bytesArray = bech32.fromWords(words);
       let bytes = new Uint8Array(bytesArray);
@@ -255,7 +255,7 @@ Bip32PublicKey:
     }
 
     static from_bech32(bech_str: string): Bip32PublicKey {
-      let decoded = bech32.decode(bech_str);
+      let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
       let words = decoded.words;
       let bytesArray = bech32.fromWords(words);
       let bytes = new Uint8Array(bytesArray);

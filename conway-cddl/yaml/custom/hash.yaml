@@ -69,9 +69,9 @@ Ed25519Signature:
     to_bech32: null
     from_bech32: null
   extra_methods: |
-    static _BECH32_HRP = "ed25519_sk";
+    static _BECH32_HRP = "ed25519_sig";
     static from_bech32(bech_str: string): Ed25519Signature {
-      let decoded = bech32.decode(bech_str);
+      let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
       let words = decoded.words;
       let bytesArray = bech32.fromWords(words);
       let bytes = new Uint8Array(bytesArray);
