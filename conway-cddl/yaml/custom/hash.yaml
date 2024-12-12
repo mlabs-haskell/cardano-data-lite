@@ -84,7 +84,7 @@ Ed25519Signature:
 
     to_bech32() {
       let prefix = Ed25519Signature._BECH32_HRP;
-      bech32.encode(prefix, this.inner);
+      return bech32.encode(prefix, bech32.toWords(this.inner), Number.MAX_SAFE_INTEGER);
     }
 
 KESSignature:

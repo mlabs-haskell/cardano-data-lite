@@ -34,7 +34,7 @@ PrivateKey:
 
     to_bech32() {
       let prefix = this.options?.isExtended ? PrivateKey._EXT_BECH32_HRP : PrivateKey._BECH32_HRP;
-      bech32.encode(prefix, this.inner);
+      return bech32.encode(prefix, bech32.toWords(this.inner), Number.MAX_SAFE_INTEGER);
     }
 
     static from_bech32(bech_str: string): PrivateKey {
@@ -127,7 +127,7 @@ PublicKey:
 
     to_bech32() {
       let prefix = PublicKey._BECH32_HRP;
-      bech32.encode(prefix, this.inner);
+      return bech32.encode(prefix, bech32.toWords(this.inner), Number.MAX_SAFE_INTEGER);
     }
 
 Bip32PrivateKey:
@@ -163,7 +163,7 @@ Bip32PrivateKey:
 
     to_bech32(): string {
       let prefix = Bip32PrivateKey._BECH32_HRP;
-      return bech32.encode(prefix, this.inner);
+      return bech32.encode(prefix, bech32.toWords(this.inner), Number.MAX_SAFE_INTEGER);
     }
 
     to_raw_key(): PrivateKey {
@@ -268,7 +268,7 @@ Bip32PublicKey:
 
     to_bech32(): string {
       let prefix = Bip32PublicKey._BECH32_HRP;
-      return bech32.encode(prefix, this.inner);
+      return bech32.encode(prefix, bech32.toWords(this.inner), Number.MAX_SAFE_INTEGER);
     }
 
     to_raw_key(): PublicKey {
