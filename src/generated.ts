@@ -6,6 +6,13 @@ import { arrayEq } from "./lib/eq";
 import { bech32 } from "bech32";
 import * as cdlCrypto from "./lib/bip32-ed25519";
 import { Address, Credential, CredKind, RewardAddress } from "./address";
+import { webcrypto } from "crypto";
+
+// Polyfill the global "crypto" object if it doesn't exist
+if (typeof globalThis.crypto === "undefined") {
+  // @ts-expect-error: Assigning Node.js webcrypto to globalThis.crypto
+  globalThis.crypto = webcrypto;
+}
 
 function $$UN(id: string, ...args: any): any {
   throw "Undefined function: " + id;
@@ -116,7 +123,7 @@ export class AnchorDataHash {
   }
 
   static from_bech32(bech_str: string): AnchorDataHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -126,7 +133,7 @@ export class AnchorDataHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -618,7 +625,7 @@ export class AuxiliaryDataHash {
   }
 
   static from_bech32(bech_str: string): AuxiliaryDataHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -628,7 +635,7 @@ export class AuxiliaryDataHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -1249,7 +1256,7 @@ export class Bip32PrivateKey {
   }
 
   static from_bech32(bech_str: string): Bip32PrivateKey {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -1262,7 +1269,11 @@ export class Bip32PrivateKey {
 
   to_bech32(): string {
     let prefix = Bip32PrivateKey._BECH32_HRP;
-    return bech32.encode(prefix, this.inner);
+    return bech32.encode(
+      prefix,
+      bech32.toWords(this.inner),
+      Number.MAX_SAFE_INTEGER,
+    );
   }
 
   to_raw_key(): PrivateKey {
@@ -1393,7 +1404,7 @@ export class Bip32PublicKey {
   }
 
   static from_bech32(bech_str: string): Bip32PublicKey {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -1406,7 +1417,11 @@ export class Bip32PublicKey {
 
   to_bech32(): string {
     let prefix = Bip32PublicKey._BECH32_HRP;
-    return bech32.encode(prefix, this.inner);
+    return bech32.encode(
+      prefix,
+      bech32.toWords(this.inner),
+      Number.MAX_SAFE_INTEGER,
+    );
   }
 
   to_raw_key(): PublicKey {
@@ -1629,7 +1644,7 @@ export class BlockHash {
   }
 
   static from_bech32(bech_str: string): BlockHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -1639,7 +1654,7 @@ export class BlockHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -4775,7 +4790,7 @@ export class DataHash {
   }
 
   static from_bech32(bech_str: string): DataHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -4785,7 +4800,7 @@ export class DataHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -5098,7 +5113,7 @@ export class Ed25519KeyHash {
   }
 
   static from_bech32(bech_str: string): Ed25519KeyHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -5108,7 +5123,7 @@ export class Ed25519KeyHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -5289,9 +5304,9 @@ export class Ed25519Signature {
     writer.writeBytes(this.inner);
   }
 
-  static _BECH32_HRP = "ed25519_sk";
+  static _BECH32_HRP = "ed25519_sig";
   static from_bech32(bech_str: string): Ed25519Signature {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -5304,7 +5319,11 @@ export class Ed25519Signature {
 
   to_bech32() {
     let prefix = Ed25519Signature._BECH32_HRP;
-    bech32.encode(prefix, this.inner);
+    return bech32.encode(
+      prefix,
+      bech32.toWords(this.inner),
+      Number.MAX_SAFE_INTEGER,
+    );
   }
 }
 
@@ -5609,7 +5628,7 @@ export class GenesisDelegateHash {
   }
 
   static from_bech32(bech_str: string): GenesisDelegateHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -5619,7 +5638,7 @@ export class GenesisDelegateHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -5667,7 +5686,7 @@ export class GenesisHash {
   }
 
   static from_bech32(bech_str: string): GenesisHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -5677,7 +5696,7 @@ export class GenesisHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -7246,7 +7265,7 @@ export class KESVKey {
   }
 
   static from_bech32(bech_str: string): KESVKey {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -7256,7 +7275,7 @@ export class KESVKey {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -10444,7 +10463,7 @@ export class PoolMetadataHash {
   }
 
   static from_bech32(bech_str: string): PoolMetadataHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -10454,7 +10473,7 @@ export class PoolMetadataHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -11393,11 +11412,15 @@ export class PrivateKey {
     let prefix = this.options?.isExtended
       ? PrivateKey._EXT_BECH32_HRP
       : PrivateKey._BECH32_HRP;
-    bech32.encode(prefix, this.inner);
+    return bech32.encode(
+      prefix,
+      bech32.toWords(this.inner),
+      Number.MAX_SAFE_INTEGER,
+    );
   }
 
   static from_bech32(bech_str: string): PrivateKey {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -12589,7 +12612,7 @@ export class PublicKey {
   }
 
   static from_bech32(bech_str: string): PublicKey {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -12602,7 +12625,11 @@ export class PublicKey {
 
   to_bech32() {
     let prefix = PublicKey._BECH32_HRP;
-    bech32.encode(prefix, this.inner);
+    return bech32.encode(
+      prefix,
+      bech32.toWords(this.inner),
+      Number.MAX_SAFE_INTEGER,
+    );
   }
 }
 
@@ -14025,7 +14052,7 @@ export class ScriptDataHash {
   }
 
   static from_bech32(bech_str: string): ScriptDataHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -14035,7 +14062,7 @@ export class ScriptDataHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -14083,7 +14110,7 @@ export class ScriptHash {
   }
 
   static from_bech32(bech_str: string): ScriptHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -14093,7 +14120,7 @@ export class ScriptHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -16362,7 +16389,7 @@ export class TransactionHash {
   }
 
   static from_bech32(bech_str: string): TransactionHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -16372,7 +16399,7 @@ export class TransactionHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -17012,6 +17039,71 @@ export class TransactionOutput {
       kind: 1,
       value: post_alonzo_transaction_output,
     });
+  }
+
+  address(): Address {
+    return this.variant.value.address();
+  }
+
+  set_address(address: Address): void {
+    return this.variant.value.set_address(address);
+  }
+
+  amount(): Value {
+    return this.variant.value.amount();
+  }
+
+  set_amount(amount: Value): void {
+    this.variant.value.set_amount(amount);
+  }
+
+  data_hash(): DataHash | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return this.as_pre_babbage_transaction_output().datum_hash();
+      case 1:
+        const opt = this.as_post_alonzo_transaction_output().datum_option();
+        return opt?.as_hash();
+    }
+  }
+
+  set_data_hash(data_hash: DataHash | undefined): void {
+    switch (this.variant.kind) {
+      case 0:
+        let bto = this.as_pre_babbage_transaction_output();
+        bto.set_datum_hash(data_hash);
+        this.variant = { kind: 0, value: bto };
+        break;
+      case 1:
+        let ato = this.as_post_alonzo_transaction_output();
+        if (data_hash) {
+          ato.set_datum_option(DataOption.new_hash(data_hash));
+        } else {
+          ato.set_datum_option(undefined);
+        }
+        this.variant = { kind: 1, value: ato };
+        break;
+    }
+  }
+
+  script_ref(): ScriptRef | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return undefined;
+      case 1:
+        this.as_post_alonzo_transaction_output().script_ref();
+    }
+  }
+
+  set_script_ref(script_ref: ScriptRef | undefined): void {
+    switch (this.variant.kind) {
+      case 0:
+        break;
+      case 1:
+        let pat = this.as_post_alonzo_transaction_output();
+        pat.set_script_ref(script_ref);
+        this.variant = { kind: 1, value: pat };
+    }
   }
 }
 
@@ -18399,7 +18491,7 @@ export class VRFKeyHash {
   }
 
   static from_bech32(bech_str: string): VRFKeyHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -18409,7 +18501,7 @@ export class VRFKeyHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -18457,7 +18549,7 @@ export class VRFVKey {
   }
 
   static from_bech32(bech_str: string): VRFVKey {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -18467,7 +18559,7 @@ export class VRFVKey {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op

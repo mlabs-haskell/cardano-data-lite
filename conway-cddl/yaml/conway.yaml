@@ -26,10 +26,10 @@ Block:
         transaction_bodies,
         transaction_witness_sets,
         auxiliary_data_set,
-        new InvalidTransactions(invalid_transactions) 
+        new InvalidTransactions(invalid_transactions)
       );
     }
-    
+
     invalid_transactions(): Uint32Array {
       return this.inner_invalid_transactions().as_uint32Array();
     }
@@ -107,9 +107,9 @@ Transaction:
       auxiliary_data: AuxiliaryData
     ): Transaction {
       return new Transaction(
-        body, 
-        witness_set, 
-        true, 
+        body,
+        witness_set,
+        true,
         auxiliary_data
       );
     }
@@ -173,15 +173,15 @@ HeaderBody:
     }
 
     static new(
-      block_number: number, 
-      slot: number, 
-      prev_hash: BlockHash | undefined, 
-      issuer_vkey: Vkey, 
-      vrf_vkey: VRFVKey, 
-      vrf_result: VRFCert, 
-      block_body_size: number, 
+      block_number: number,
+      slot: number,
+      prev_hash: BlockHash | undefined,
+      issuer_vkey: Vkey,
+      vrf_vkey: VRFVKey,
+      vrf_result: VRFCert,
+      block_body_size: number,
       block_body_hash: BlockHash,
-      operational_cert: OperationalCert, 
+      operational_cert: OperationalCert,
       protocol_version: ProtocolVersion
     ): HeaderBody {
       return new HeaderBody(
@@ -355,8 +355,8 @@ TransactionBody:
     }
 
     static new(
-      inputs: TransactionInputs, 
-      outputs: TransactionOutputs, 
+      inputs: TransactionInputs,
+      outputs: TransactionOutputs,
       fee: BigNum,
       path: string[] = ['TransactionBody'],
       ttl?: number
@@ -386,8 +386,8 @@ TransactionBody:
     }
 
     static new_tx_body(
-      inputs: TransactionInputs, 
-      outputs: TransactionOutputs, 
+      inputs: TransactionInputs,
+      outputs: TransactionOutputs,
       fee: BigNum,
       path: string[]
     ): TransactionBody {
@@ -450,15 +450,15 @@ VotingProposal:
     new: null
   extra_methods: |
     static new(
-      governance_action: GovernanceAction, 
-      anchor: Anchor, 
-      reward_account: RewardAddress, 
+      governance_action: GovernanceAction,
+      anchor: Anchor,
+      reward_account: RewardAddress,
       deposit: BigNum
     ): VotingProposal {
       return new VotingProposal(
-        deposit, 
-        reward_account, 
-        governance_action, 
+        deposit,
+        reward_account,
+        governance_action,
         anchor
       )
     }
@@ -534,18 +534,18 @@ ParameterChangeAction:
       protocol_param_updates: ProtocolParamUpdate
     ): ParameterChangeAction {
       return new ParameterChangeAction(
-        undefined, 
-        protocol_param_updates, 
+        undefined,
+        protocol_param_updates,
         undefined
       );
     }
     static new_with_action_id(
-      gov_action_id: GovernanceActionId, 
+      gov_action_id: GovernanceActionId,
       protocol_param_updates: ProtocolParamUpdate
     ): ParameterChangeAction {
       return new ParameterChangeAction(
-        gov_action_id, 
-        protocol_param_updates, 
+        gov_action_id,
+        protocol_param_updates,
         undefined
       );
     }
@@ -554,8 +554,8 @@ ParameterChangeAction:
       policy_hash: ScriptHash
     ): ParameterChangeAction {
       return new ParameterChangeAction(
-        undefined, 
-        protocol_param_updates, 
+        undefined,
+        protocol_param_updates,
         policy_hash
       );
     }
@@ -725,6 +725,94 @@ TransactionOutput:
     static new(address: Address, amount: Value): TransactionOutput {
       const post_alonzo_transaction_output = new PostAlonzoTransactionOutput(address, amount, undefined, undefined);
       return new TransactionOutput({kind: 1, value: post_alonzo_transaction_output});
+    }
+
+    address(): Address {
+      return this.variant.value.address();
+    }
+
+    set_address(address: Address): void {
+      return this.variant.value.set_address(address);
+    }
+
+    amount(): Value {
+      return this.variant.value.amount();
+    }
+
+    set_amount(amount: Value): void {
+      this.variant.value.set_amount(amount);
+    }
+
+    data_hash(): DataHash | undefined {
+      switch (this.variant.kind) {
+        case 0:
+          return this.as_pre_babbage_transaction_output().datum_hash();
+        case 1:
+          const opt = this.as_post_alonzo_transaction_output().datum_option();
+          return opt?.as_hash();
+      }
+    }
+
+    set_data_hash(data_hash: DataHash | undefined): void {
+      switch (this.variant.kind) {
+        case 0:
+          let bto = this.as_pre_babbage_transaction_output();
+          bto.set_datum_hash(data_hash);
+          this.variant = { kind: 0, value: bto };
+          break;
+        case 1:
+          let ato = this.as_post_alonzo_transaction_output();
+          if (data_hash) {
+            ato.set_datum_option(DataOption.new_hash(data_hash));
+          } else {
+            ato.set_datum_option(undefined);
+          }
+          this.variant = { kind: 1, value: ato };
+          break;
+      }
+    }
+
+    script_ref(): ScriptRef | undefined {
+      switch (this.variant.kind) {
+        case 0:
+          return undefined;
+        case 1:
+          this.as_post_alonzo_transaction_output().script_ref();
+      }
+    }
+
+    set_script_ref(script_ref: ScriptRef | undefined): void {
+      switch (this.variant.kind) {
+        case 0:
+          break;
+        case 1:
+          let pat = this.as_post_alonzo_transaction_output();
+          pat.set_script_ref(script_ref);
+          this.variant = { kind: 1, value: pat };
+      }
+    }
+
+    datum_option(): DataOption | undefined {
+      switch (this.variant.kind) {
+        case 0:
+          return undefined;
+        case 1:
+          this.as_post_alonzo_transaction_output().datum_option();
+      }
+    }
+
+    set_datum_option(datum_option: DataOption | undefined): void {
+      switch (this.variant.kind) {
+        case 0:
+          if (datum_option) {
+            const pbt = this.as_pre_babbage_transaction_output()
+            this.variant = { kind: 1, value: PostAlonzoTransactionOutput.new(pbt.address(), pbt.amount(), datum_option, undefined) };
+          }
+        case 1:
+          let pat = this.as_post_alonzo_transaction_output();
+          pat.set_datum_option(datum_option);
+          this.variant = { kind: 1, value: pat };
+      }
     }
 
 # post_alonzo_transaction_output =
@@ -1093,6 +1181,9 @@ CommitteeColdResign:
     static new(committee_cold_credential: Credential): CommitteeColdResign {
       return new CommitteeColdResign(committee_cold_credential, undefined);
     }
+    static new_with_anchor(committee_cold_credential: Credential, anchor: Anchor) {
+      return new CommitteeColdResign(committee_cold_credential, anchor);
+    }
 
 DRepRegistration:
   type: record_fragment
@@ -1109,6 +1200,9 @@ DRepRegistration:
   extra_methods: |
     static new(voting_credential: Credential, coin: BigNum): DRepRegistration {
       return new DRepRegistration(voting_credential,coin, undefined);
+    }
+    static new_with_anchor(voting_credential: Credential, coin: BigNum, anchor: Anchor) {
+      return new DRepRegistration(voting_credential, coin, anchor);
     }
 
 DRepDeregistration:
@@ -1132,6 +1226,9 @@ DRepUpdate:
   extra_methods: |
     static new(drep_credential: Credential): DRepUpdate {
       return new DRepUpdate(drep_credential, undefined);
+    }
+    static new_with_anchor(drep_credential: Credential, anchor: Anchor) {
+      return new DRepUpdate(drep_credential, anchor);
     }
 
 # delta_coin = int
@@ -2031,9 +2128,9 @@ NetworkId:
   type: enum
   values:
     - name: mainnet
-      value: 0
-    - name: testnet
       value: 1
+    - name: testnet
+      value: 0
 
 # epoch = uint
 
@@ -2149,7 +2246,7 @@ PlutusList:
   item: PlutusData
   extra_methods: |
     as_set(): PlutusSet {
-      let set = new PlutusSet(this.definiteEncoding); 
+      let set = new PlutusSet(this.definiteEncoding);
       for (let i = 0; i < this.len(); i++) {
         set.add(this.items[i]);
       }
@@ -2218,7 +2315,7 @@ Vkey:
     serialize(writer: CBORWriter): void {
       this._public_key.serialize(writer);
     }
-   
+
 Vkeys:
   type: array
   item: Vkey
