@@ -775,32 +775,12 @@ TransactionOutput:
       }
     }
 
-    script_ref(): ScriptRef | undefined {
-      switch (this.variant.kind) {
-        case 0:
-          return undefined;
-        case 1:
-          this.as_post_alonzo_transaction_output().script_ref();
-      }
-    }
-
-    set_script_ref(script_ref: ScriptRef | undefined): void {
-      switch (this.variant.kind) {
-        case 0:
-          break;
-        case 1:
-          let pat = this.as_post_alonzo_transaction_output();
-          pat.set_script_ref(script_ref);
-          this.variant = { kind: 1, value: pat };
-      }
-    }
-
     datum_option(): DataOption | undefined {
       switch (this.variant.kind) {
         case 0:
           return undefined;
         case 1:
-          this.as_post_alonzo_transaction_output().datum_option();
+          return this.as_post_alonzo_transaction_output().datum_option();
       }
     }
 
@@ -814,6 +794,29 @@ TransactionOutput:
         case 1:
           let pat = this.as_post_alonzo_transaction_output();
           pat.set_datum_option(datum_option);
+          this.variant = { kind: 1, value: pat };
+      }
+    }
+
+    script_ref(): ScriptRef | undefined {
+      switch (this.variant.kind) {
+        case 0:
+          return undefined;
+        case 1:
+          return this.as_post_alonzo_transaction_output().script_ref();
+      }
+    }
+
+    set_script_ref(script_ref: ScriptRef | undefined): void {
+      switch (this.variant.kind) {
+        case 0:
+          if (ScriptRef) {
+            const pbt = this.as_pre_babbage_transaction_output()
+            this.variant = { kind: 1, value: PostAlonzoTransactionOutput.new(pbt.address(), pbt.amount(), undefined, script_ref) };
+          }
+        case 1:
+          let pat = this.as_post_alonzo_transaction_output();
+          pat.set_script_ref(script_ref);
           this.variant = { kind: 1, value: pat };
       }
     }
