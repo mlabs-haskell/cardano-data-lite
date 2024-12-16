@@ -644,6 +644,9 @@ Constitution:
     static new(anchor: Anchor): Constitution {
       return new Constitution(anchor, undefined);
     }
+    static new_with_script_hash(anchor: Anchor, scripthash: ScriptHash | undefined) {
+      return new Constitution(anchor, scripthash);
+    }
 
 Voters:
   type: array
