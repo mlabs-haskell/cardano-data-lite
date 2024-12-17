@@ -1965,6 +1965,180 @@ AuxiliaryData:
       return new AuxiliaryData({kind: 2, value: post_alonzo_auxiliary_data})
     }
 
+    metadata(): GeneralTransactionMetadata | undefined {
+      switch (this.variant.kind) {
+        case 0:
+          return this.variant.value;
+        case 1:
+          return this.variant.value.transaction_metadata();
+        case 2:
+          return this.variant.value.metadata();
+      }
+    }
+
+    set_metadata(metadata: GeneralTransactionMetadata): void {
+      switch (this.variant.kind) {
+        case 0:
+          this.variant = { kind: 0, value: metadata };
+          break;
+        case 1:
+          this.variant.value.set_transaction_metadata(metadata);
+          break;
+        case 2:
+          this.variant.value.set_metadata(metadata);
+          break;
+      }
+    }
+
+    native_scripts(): NativeScripts | undefined {
+      switch (this.variant.kind) {
+        case 0:
+          return undefined;
+        case 1:
+          return this.variant.value.auxiliary_scripts();
+        case 2:
+          return this.variant.value.native_scripts();
+      }
+    }
+
+    set_native_scripts(native_scripts: NativeScripts): void {
+      switch (this.variant.kind) {
+        case 0:
+          let v = AuxiliaryDataPostAlonzo.new(
+            this.variant.value,
+            native_scripts,
+            undefined,
+            undefined,
+            undefined,
+          );
+          this.variant = { kind: 2, value: v };
+          break;
+        case 1:
+          this.variant.value.set_auxiliary_scripts(native_scripts);
+          break;
+        case 2:
+          this.variant.value.set_native_scripts(native_scripts);
+          break;
+      }
+    }
+
+    plutus_scripts_v1(): PlutusScripts | undefined {
+      switch (this.variant.kind) {
+        case 0:
+          return undefined;
+        case 1:
+          return undefined;
+        case 2:
+          return this.variant.value.plutus_scripts_v1();
+      }
+    }
+
+    set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts): void {
+      switch (this.variant.kind) {
+        case 0:
+          let v1 = AuxiliaryDataPostAlonzo.new(
+            this.variant.value,
+            undefined,
+            plutus_scripts_v1,
+            undefined,
+            undefined,
+          );
+          this.variant = { kind: 2, value: v1 };
+          break;
+        case 1:
+          let v2 = AuxiliaryDataPostAlonzo.new(
+            this.variant.value.transaction_metadata(),
+            this.variant.value.auxiliary_scripts(),
+            plutus_scripts_v1,
+            undefined,
+            undefined,
+          );
+          this.variant = { kind: 2, value: v2 };
+          break;
+        case 2:
+          this.variant.value.set_plutus_scripts_v1(plutus_scripts_v1);
+          break;
+      }
+    }
+
+    plutus_scripts_v2(): PlutusScripts | undefined {
+      switch (this.variant.kind) {
+        case 0:
+          return undefined;
+        case 1:
+          return undefined;
+        case 2:
+          return this.variant.value.plutus_scripts_v2();
+      }
+    }
+
+    set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts): void {
+      switch (this.variant.kind) {
+        case 0:
+          let v1 = AuxiliaryDataPostAlonzo.new(
+            this.variant.value,
+            undefined,
+            undefined,
+            plutus_scripts_v2,
+            undefined,
+          );
+          this.variant = { kind: 2, value: v1 };
+          break;
+        case 1:
+          let v2 = AuxiliaryDataPostAlonzo.new(
+            this.variant.value.transaction_metadata(),
+            this.variant.value.auxiliary_scripts(),
+            undefined,
+            plutus_scripts_v2,
+            undefined,
+          );
+          this.variant = { kind: 2, value: v2 };
+          break;
+        case 2:
+          this.variant.value.set_plutus_scripts_v2(plutus_scripts_v2);
+          break;
+      }
+    }
+
+    plutus_scripts_v3(): PlutusScripts | undefined {
+      switch (this.variant.kind) {
+        case 0:
+          return undefined;
+        case 1:
+          return undefined;
+        case 2:
+          return this.variant.value.plutus_scripts_v3();
+      }
+    }
+
+    set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts): void {
+      switch (this.variant.kind) {
+        case 0:
+          let v3 = AuxiliaryDataPostAlonzo.new(
+            this.variant.value,
+            undefined,
+            undefined,
+            undefined,
+            plutus_scripts_v3,
+          );
+          this.variant = { kind: 2, value: v3 };
+          break;
+        case 1:
+          let v2 = AuxiliaryDataPostAlonzo.new(
+            this.variant.value.transaction_metadata(),
+            this.variant.value.auxiliary_scripts(),
+            undefined,
+            undefined,
+            plutus_scripts_v3,
+          );
+          this.variant = { kind: 2, value: v2 };
+          break;
+        case 2:
+          this.variant.value.set_plutus_scripts_v3(plutus_scripts_v3);
+          break;
+      }
+    }
+
 # vkeywitness = [ $vkey, $signature ]
 Vkeywitness:
   type: record
