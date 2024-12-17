@@ -610,6 +610,180 @@ export class AuxiliaryData {
     );
     return new AuxiliaryData({ kind: 2, value: post_alonzo_auxiliary_data });
   }
+
+  metadata(): GeneralTransactionMetadata | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return this.variant.value;
+      case 1:
+        return this.variant.value.transaction_metadata();
+      case 2:
+        return this.variant.value.metadata();
+    }
+  }
+
+  set_metadata(metadata: GeneralTransactionMetadata): void {
+    switch (this.variant.kind) {
+      case 0:
+        this.variant = { kind: 0, value: metadata };
+        break;
+      case 1:
+        this.variant.value.set_transaction_metadata(metadata);
+        break;
+      case 2:
+        this.variant.value.set_metadata(metadata);
+        break;
+    }
+  }
+
+  native_scripts(): NativeScripts | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return undefined;
+      case 1:
+        return this.variant.value.auxiliary_scripts();
+      case 2:
+        return this.variant.value.native_scripts();
+    }
+  }
+
+  set_native_scripts(native_scripts: NativeScripts): void {
+    switch (this.variant.kind) {
+      case 0:
+        let v = AuxiliaryDataPostAlonzo.new(
+          this.variant.value,
+          native_scripts,
+          undefined,
+          undefined,
+          undefined,
+        );
+        this.variant = { kind: 2, value: v };
+        break;
+      case 1:
+        this.variant.value.set_auxiliary_scripts(native_scripts);
+        break;
+      case 2:
+        this.variant.value.set_native_scripts(native_scripts);
+        break;
+    }
+  }
+
+  plutus_scripts_v1(): PlutusScripts | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return undefined;
+      case 1:
+        return undefined;
+      case 2:
+        return this.variant.value.plutus_scripts_v1();
+    }
+  }
+
+  set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts): void {
+    switch (this.variant.kind) {
+      case 0:
+        let v1 = AuxiliaryDataPostAlonzo.new(
+          this.variant.value,
+          undefined,
+          plutus_scripts_v1,
+          undefined,
+          undefined,
+        );
+        this.variant = { kind: 2, value: v1 };
+        break;
+      case 1:
+        let v2 = AuxiliaryDataPostAlonzo.new(
+          this.variant.value.transaction_metadata(),
+          this.variant.value.auxiliary_scripts(),
+          plutus_scripts_v1,
+          undefined,
+          undefined,
+        );
+        this.variant = { kind: 2, value: v2 };
+        break;
+      case 2:
+        this.variant.value.set_plutus_scripts_v1(plutus_scripts_v1);
+        break;
+    }
+  }
+
+  plutus_scripts_v2(): PlutusScripts | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return undefined;
+      case 1:
+        return undefined;
+      case 2:
+        return this.variant.value.plutus_scripts_v2();
+    }
+  }
+
+  set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts): void {
+    switch (this.variant.kind) {
+      case 0:
+        let v1 = AuxiliaryDataPostAlonzo.new(
+          this.variant.value,
+          undefined,
+          undefined,
+          plutus_scripts_v2,
+          undefined,
+        );
+        this.variant = { kind: 2, value: v1 };
+        break;
+      case 1:
+        let v2 = AuxiliaryDataPostAlonzo.new(
+          this.variant.value.transaction_metadata(),
+          this.variant.value.auxiliary_scripts(),
+          undefined,
+          plutus_scripts_v2,
+          undefined,
+        );
+        this.variant = { kind: 2, value: v2 };
+        break;
+      case 2:
+        this.variant.value.set_plutus_scripts_v2(plutus_scripts_v2);
+        break;
+    }
+  }
+
+  plutus_scripts_v3(): PlutusScripts | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return undefined;
+      case 1:
+        return undefined;
+      case 2:
+        return this.variant.value.plutus_scripts_v3();
+    }
+  }
+
+  set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts): void {
+    switch (this.variant.kind) {
+      case 0:
+        let v3 = AuxiliaryDataPostAlonzo.new(
+          this.variant.value,
+          undefined,
+          undefined,
+          undefined,
+          plutus_scripts_v3,
+        );
+        this.variant = { kind: 2, value: v3 };
+        break;
+      case 1:
+        let v2 = AuxiliaryDataPostAlonzo.new(
+          this.variant.value.transaction_metadata(),
+          this.variant.value.auxiliary_scripts(),
+          undefined,
+          undefined,
+          plutus_scripts_v3,
+        );
+        this.variant = { kind: 2, value: v2 };
+        break;
+      case 2:
+        this.variant.value.set_plutus_scripts_v3(plutus_scripts_v3);
+        break;
+    }
+  }
 }
 
 export class AuxiliaryDataHash {
@@ -3074,6 +3248,12 @@ export class CommitteeColdResign {
   static new(committee_cold_credential: Credential): CommitteeColdResign {
     return new CommitteeColdResign(committee_cold_credential, undefined);
   }
+  static new_with_anchor(
+    committee_cold_credential: Credential,
+    anchor: Anchor,
+  ) {
+    return new CommitteeColdResign(committee_cold_credential, anchor);
+  }
 }
 
 export class CommitteeEpochs {
@@ -3361,6 +3541,12 @@ export class Constitution {
 
   static new(anchor: Anchor): Constitution {
     return new Constitution(anchor, undefined);
+  }
+  static new_with_script_hash(
+    anchor: Anchor,
+    scripthash: ScriptHash | undefined,
+  ) {
+    return new Constitution(anchor, scripthash);
   }
 }
 
@@ -4251,6 +4437,13 @@ export class DRepRegistration {
   static new(voting_credential: Credential, coin: BigNum): DRepRegistration {
     return new DRepRegistration(voting_credential, coin, undefined);
   }
+  static new_with_anchor(
+    voting_credential: Credential,
+    coin: BigNum,
+    anchor: Anchor,
+  ) {
+    return new DRepRegistration(voting_credential, coin, anchor);
+  }
 }
 
 export class DRepUpdate {
@@ -4336,6 +4529,9 @@ export class DRepUpdate {
 
   static new(drep_credential: Credential): DRepUpdate {
     return new DRepUpdate(drep_credential, undefined);
+  }
+  static new_with_anchor(drep_credential: Credential, anchor: Anchor) {
+    return new DRepUpdate(drep_credential, anchor);
   }
 }
 
@@ -8863,8 +9059,8 @@ export class NativeScripts {
 }
 
 export enum NetworkIdKind {
-  mainnet = 0,
-  testnet = 1,
+  mainnet = 1,
+  testnet = 0,
 }
 
 export class NetworkId {
@@ -8875,11 +9071,11 @@ export class NetworkId {
   }
 
   static new_mainnet(): NetworkId {
-    return new NetworkId(0);
+    return new NetworkId(1);
   }
 
   static new_testnet(): NetworkId {
-    return new NetworkId(1);
+    return new NetworkId(0);
   }
   kind(): NetworkIdKind {
     return this.kind_;
@@ -8887,8 +9083,8 @@ export class NetworkId {
 
   static deserialize(reader: CBORReader, path: string[]): NetworkId {
     let kind = Number(reader.readInt(path));
-    if (kind == 0) return new NetworkId(0);
     if (kind == 1) return new NetworkId(1);
+    if (kind == 0) return new NetworkId(0);
     throw (
       "Unrecognized enum value: " +
       kind +
@@ -17086,19 +17282,61 @@ export class TransactionOutput {
     }
   }
 
+  datum_option(): DataOption | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return undefined;
+      case 1:
+        return this.as_post_alonzo_transaction_output().datum_option();
+    }
+  }
+
+  set_datum_option(datum_option: DataOption | undefined): void {
+    switch (this.variant.kind) {
+      case 0:
+        if (datum_option) {
+          const pbt = this.as_pre_babbage_transaction_output();
+          this.variant = {
+            kind: 1,
+            value: PostAlonzoTransactionOutput.new(
+              pbt.address(),
+              pbt.amount(),
+              datum_option,
+              undefined,
+            ),
+          };
+        }
+      case 1:
+        let pat = this.as_post_alonzo_transaction_output();
+        pat.set_datum_option(datum_option);
+        this.variant = { kind: 1, value: pat };
+    }
+  }
+
   script_ref(): ScriptRef | undefined {
     switch (this.variant.kind) {
       case 0:
         return undefined;
       case 1:
-        this.as_post_alonzo_transaction_output().script_ref();
+        return this.as_post_alonzo_transaction_output().script_ref();
     }
   }
 
   set_script_ref(script_ref: ScriptRef | undefined): void {
     switch (this.variant.kind) {
       case 0:
-        break;
+        if (ScriptRef) {
+          const pbt = this.as_pre_babbage_transaction_output();
+          this.variant = {
+            kind: 1,
+            value: PostAlonzoTransactionOutput.new(
+              pbt.address(),
+              pbt.amount(),
+              undefined,
+              script_ref,
+            ),
+          };
+        }
       case 1:
         let pat = this.as_post_alonzo_transaction_output();
         pat.set_script_ref(script_ref);
