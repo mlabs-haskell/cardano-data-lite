@@ -3444,18 +3444,18 @@ export class ConstrPlutusData {
   }
 
   static deserialize(reader: CBORReader, path: string[]): ConstrPlutusData {
-    const alternative = reader.readTaggedTagAsBigInt(path);
-    if (Number(alternative) >= 121 && Number(alternative) <= 127) {
+    const tag = reader.readTaggedTagAsBigInt(path);
+    if (Number(tag) >= 121 && Number(tag) <= 127) {
       return ConstrPlutusData.new(
-        BigNum.new(alternative),
+        BigNum.new(tag).checked_sub(BigNum.from_str("121")),
         PlutusList.deserialize(reader, [...path, "PlutusList(data)"]),
       );
-    } else if (Number(alternative) == 102) {
+    } else if (Number(tag) == 102) {
       return ConstrPlutusData.deserializeWithSeparateIdx(reader, path);
     } else {
       throw new Error(
-        "Unexpected alternative for ConstrPlutusData: " +
-          alternative +
+        "Unexpected tagfor ConstrPlutusData: " +
+          tag +
           "(at " +
           path.join("/") +
           ")",
@@ -3465,23 +3465,17 @@ export class ConstrPlutusData {
 
   serialize(writer: CBORWriter): void {
     const alternative = this.alternative().toJsValue();
-    writer.writeTaggedTag(Number(alternative));
-    if (alternative == 102n) {
+    if (alternative > 6) {
+      writer.writeTaggedTag(102);
       this.serializeWithSeparateIdx(writer);
     } else {
+      writer.writeTaggedTag(Number(alternative) + 121);
       this.data().serialize(writer);
     }
   }
 
   static new(alternative: BigNum, data: PlutusList): ConstrPlutusData {
-    const alt = Number(alternative.toJsValue());
-    if (alt != 102 && (alt < 121 || alt > 127)) {
-      throw new Error(
-        "Unexpected alternative for ConstrPlutusData: " + alternative,
-      );
-    } else {
-      return ConstrPlutusData.uncheckedNew(alternative, data);
-    }
+    return ConstrPlutusData.uncheckedNew(alternative, data);
   }
 }
 
