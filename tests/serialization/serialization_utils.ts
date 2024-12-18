@@ -42,7 +42,7 @@ export function retrieveTxsFromDir(path: string): Array<TransactionInfo> {
       console.log(`(retrieveTxsFromDir) Failed to parse filename: ${file}`);
       exit(-1);
     } else {
-      const cbor = fs.readFileSync(`${path}/${file}`, { encoding: "utf-8"});
+      const cbor = fs.readFileSync(`${path}/${file}`, { encoding: "utf-8"}).trim();
       tinfos.push({"hash": match.groups["hash"], "cbor": cbor})
     }
   }
