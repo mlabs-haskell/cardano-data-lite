@@ -36,7 +36,7 @@ export function retrieveTxsFromDir(path: string): Array<TransactionInfo> {
 
   let tinfos: Array<TransactionInfo> = [];
   for (const file of files) {
-    const fileRegex = /(?<idx>[0-9]{3})-(?<hash>[0123456789abcdef]+)\.cbor/;
+    const fileRegex = /(?<idx>[0-9]{3})-(?<hash>\w+)\.cbor/;
     const match = file.match(fileRegex);
     if (!match || !match.groups || !match.groups["hash"]) {
       console.log(`(retrieveTxsFromDir) Failed to parse filename: ${file}`);
