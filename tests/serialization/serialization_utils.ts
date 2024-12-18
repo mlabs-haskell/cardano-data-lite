@@ -106,6 +106,7 @@ function explodeTx(tx: csl.Transaction): Component {
   let schema: Schema = Value.Parse(Schema, value);
   let children: Array<Component> = [];
   explodeValue(key, tx, schema, schemata, children, "tx")
+  
   return { type: key, key: "tx", path: "tx", cbor: tx.to_bytes(), children: children, failed: false };
 }
 
@@ -166,7 +167,9 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
           extractLog(`Variant name: ${variant.name}\nVariant type: ${variant.value}`);
           let grandchildren = [];
           explodeValue(variant.name, taggedValue, schemata[variant.value], schemata, grandchildren, newComponentPath)
-          children.push({ type: variant.value, key: key, path: newComponentPath, children: grandchildren, cbor: taggedValue.to_bytes(), failed: false })
+          if (taggedValue.to_bytes) {
+            children.push({ type: variant.value, key: key, path: newComponentPath, children: grandchildren, cbor: taggedValue.to_bytes(), failed: false })
+          }
         }
       }
       break;
