@@ -3251,11 +3251,11 @@ export class CommitteeHotAuth {
 
 export class Constitution {
   private _anchor: Anchor;
-  private _scripthash: ScriptHash | undefined;
+  private _script_hash: ScriptHash | undefined;
 
-  constructor(anchor: Anchor, scripthash: ScriptHash | undefined) {
+  constructor(anchor: Anchor, script_hash: ScriptHash | undefined) {
     this._anchor = anchor;
-    this._scripthash = scripthash;
+    this._script_hash = script_hash;
   }
 
   anchor(): Anchor {
@@ -3266,12 +3266,12 @@ export class Constitution {
     this._anchor = anchor;
   }
 
-  scripthash(): ScriptHash | undefined {
-    return this._scripthash;
+  script_hash(): ScriptHash | undefined {
+    return this._script_hash;
   }
 
-  set_scripthash(scripthash: ScriptHash | undefined): void {
-    this._scripthash = scripthash;
+  set_script_hash(script_hash: ScriptHash | undefined): void {
+    this._script_hash = script_hash;
   }
 
   static deserialize(reader: CBORReader, path: string[]): Constitution {
@@ -3289,14 +3289,14 @@ export class Constitution {
     const anchor_path = [...path, "Anchor(anchor)"];
     let anchor = Anchor.deserialize(reader, anchor_path);
 
-    const scripthash_path = [...path, "ScriptHash(scripthash)"];
-    let scripthash =
+    const script_hash_path = [...path, "ScriptHash(script_hash)"];
+    let script_hash =
       reader.readNullable(
-        (r) => ScriptHash.deserialize(r, scripthash_path),
+        (r) => ScriptHash.deserialize(r, script_hash_path),
         path,
       ) ?? undefined;
 
-    return new Constitution(anchor, scripthash);
+    return new Constitution(anchor, script_hash);
   }
 
   serialize(writer: CBORWriter): void {
@@ -3305,10 +3305,10 @@ export class Constitution {
     writer.writeArrayTag(arrayLen);
 
     this._anchor.serialize(writer);
-    if (this._scripthash == null) {
+    if (this._script_hash == null) {
       writer.writeNull();
     } else {
-      this._scripthash.serialize(writer);
+      this._script_hash.serialize(writer);
     }
   }
 
@@ -11583,7 +11583,7 @@ export class ProtocolParamUpdate {
   private _treasury_growth_rate: UnitInterval | undefined;
   private _min_pool_cost: BigNum | undefined;
   private _ada_per_utxo_byte: BigNum | undefined;
-  private _costmdls: Costmdls | undefined;
+  private _cost_models: Costmdls | undefined;
   private _execution_costs: ExUnitPrices | undefined;
   private _max_tx_ex_units: ExUnits | undefined;
   private _max_block_ex_units: ExUnits | undefined;
@@ -11598,7 +11598,7 @@ export class ProtocolParamUpdate {
   private _governance_action_deposit: BigNum | undefined;
   private _drep_deposit: BigNum | undefined;
   private _drep_inactivity_period: number | undefined;
-  private _script_cost_per_byte: UnitInterval | undefined;
+  private _ref_script_coins_per_byte: UnitInterval | undefined;
 
   constructor(
     minfee_a: BigNum | undefined,
@@ -11615,7 +11615,7 @@ export class ProtocolParamUpdate {
     treasury_growth_rate: UnitInterval | undefined,
     min_pool_cost: BigNum | undefined,
     ada_per_utxo_byte: BigNum | undefined,
-    costmdls: Costmdls | undefined,
+    cost_models: Costmdls | undefined,
     execution_costs: ExUnitPrices | undefined,
     max_tx_ex_units: ExUnits | undefined,
     max_block_ex_units: ExUnits | undefined,
@@ -11630,7 +11630,7 @@ export class ProtocolParamUpdate {
     governance_action_deposit: BigNum | undefined,
     drep_deposit: BigNum | undefined,
     drep_inactivity_period: number | undefined,
-    script_cost_per_byte: UnitInterval | undefined,
+    ref_script_coins_per_byte: UnitInterval | undefined,
   ) {
     this._minfee_a = minfee_a;
     this._minfee_b = minfee_b;
@@ -11646,7 +11646,7 @@ export class ProtocolParamUpdate {
     this._treasury_growth_rate = treasury_growth_rate;
     this._min_pool_cost = min_pool_cost;
     this._ada_per_utxo_byte = ada_per_utxo_byte;
-    this._costmdls = costmdls;
+    this._cost_models = cost_models;
     this._execution_costs = execution_costs;
     this._max_tx_ex_units = max_tx_ex_units;
     this._max_block_ex_units = max_block_ex_units;
@@ -11661,7 +11661,7 @@ export class ProtocolParamUpdate {
     this._governance_action_deposit = governance_action_deposit;
     this._drep_deposit = drep_deposit;
     this._drep_inactivity_period = drep_inactivity_period;
-    this._script_cost_per_byte = script_cost_per_byte;
+    this._ref_script_coins_per_byte = ref_script_coins_per_byte;
   }
 
   minfee_a(): BigNum | undefined {
@@ -11780,12 +11780,12 @@ export class ProtocolParamUpdate {
     this._ada_per_utxo_byte = ada_per_utxo_byte;
   }
 
-  costmdls(): Costmdls | undefined {
-    return this._costmdls;
+  cost_models(): Costmdls | undefined {
+    return this._cost_models;
   }
 
-  set_costmdls(costmdls: Costmdls | undefined): void {
-    this._costmdls = costmdls;
+  set_cost_models(cost_models: Costmdls | undefined): void {
+    this._cost_models = cost_models;
   }
 
   execution_costs(): ExUnitPrices | undefined {
@@ -11908,14 +11908,14 @@ export class ProtocolParamUpdate {
     this._drep_inactivity_period = drep_inactivity_period;
   }
 
-  script_cost_per_byte(): UnitInterval | undefined {
-    return this._script_cost_per_byte;
+  ref_script_coins_per_byte(): UnitInterval | undefined {
+    return this._ref_script_coins_per_byte;
   }
 
-  set_script_cost_per_byte(
-    script_cost_per_byte: UnitInterval | undefined,
+  set_ref_script_coins_per_byte(
+    ref_script_coins_per_byte: UnitInterval | undefined,
   ): void {
-    this._script_cost_per_byte = script_cost_per_byte;
+    this._ref_script_coins_per_byte = ref_script_coins_per_byte;
   }
 
   static deserialize(reader: CBORReader, path: string[]): ProtocolParamUpdate {
@@ -12008,8 +12008,8 @@ export class ProtocolParamUpdate {
         }
 
         case 18: {
-          const new_path = [...path, "Costmdls(costmdls)"];
-          fields.costmdls = Costmdls.deserialize(r, new_path);
+          const new_path = [...path, "Costmdls(cost_models)"];
+          fields.cost_models = Costmdls.deserialize(r, new_path);
           break;
         }
 
@@ -12115,8 +12115,11 @@ export class ProtocolParamUpdate {
         }
 
         case 33: {
-          const new_path = [...path, "UnitInterval(script_cost_per_byte)"];
-          fields.script_cost_per_byte = UnitInterval.deserialize(r, new_path);
+          const new_path = [...path, "UnitInterval(ref_script_coins_per_byte)"];
+          fields.ref_script_coins_per_byte = UnitInterval.deserialize(
+            r,
+            new_path,
+          );
           break;
         }
       }
@@ -12150,7 +12153,7 @@ export class ProtocolParamUpdate {
 
     let ada_per_utxo_byte = fields.ada_per_utxo_byte;
 
-    let costmdls = fields.costmdls;
+    let cost_models = fields.cost_models;
 
     let execution_costs = fields.execution_costs;
 
@@ -12181,7 +12184,7 @@ export class ProtocolParamUpdate {
 
     let drep_inactivity_period = fields.drep_inactivity_period;
 
-    let script_cost_per_byte = fields.script_cost_per_byte;
+    let ref_script_coins_per_byte = fields.ref_script_coins_per_byte;
 
     return new ProtocolParamUpdate(
       minfee_a,
@@ -12198,7 +12201,7 @@ export class ProtocolParamUpdate {
       treasury_growth_rate,
       min_pool_cost,
       ada_per_utxo_byte,
-      costmdls,
+      cost_models,
       execution_costs,
       max_tx_ex_units,
       max_block_ex_units,
@@ -12213,7 +12216,7 @@ export class ProtocolParamUpdate {
       governance_action_deposit,
       drep_deposit,
       drep_inactivity_period,
-      script_cost_per_byte,
+      ref_script_coins_per_byte,
     );
   }
 
@@ -12233,7 +12236,7 @@ export class ProtocolParamUpdate {
     if (this._treasury_growth_rate === undefined) len -= 1;
     if (this._min_pool_cost === undefined) len -= 1;
     if (this._ada_per_utxo_byte === undefined) len -= 1;
-    if (this._costmdls === undefined) len -= 1;
+    if (this._cost_models === undefined) len -= 1;
     if (this._execution_costs === undefined) len -= 1;
     if (this._max_tx_ex_units === undefined) len -= 1;
     if (this._max_block_ex_units === undefined) len -= 1;
@@ -12248,7 +12251,7 @@ export class ProtocolParamUpdate {
     if (this._governance_action_deposit === undefined) len -= 1;
     if (this._drep_deposit === undefined) len -= 1;
     if (this._drep_inactivity_period === undefined) len -= 1;
-    if (this._script_cost_per_byte === undefined) len -= 1;
+    if (this._ref_script_coins_per_byte === undefined) len -= 1;
     writer.writeMapTag(len);
     if (this._minfee_a !== undefined) {
       writer.writeInt(0n);
@@ -12306,9 +12309,9 @@ export class ProtocolParamUpdate {
       writer.writeInt(17n);
       this._ada_per_utxo_byte.serialize(writer);
     }
-    if (this._costmdls !== undefined) {
+    if (this._cost_models !== undefined) {
       writer.writeInt(18n);
-      this._costmdls.serialize(writer);
+      this._cost_models.serialize(writer);
     }
     if (this._execution_costs !== undefined) {
       writer.writeInt(19n);
@@ -12366,9 +12369,9 @@ export class ProtocolParamUpdate {
       writer.writeInt(32n);
       writer.writeInt(BigInt(this._drep_inactivity_period));
     }
-    if (this._script_cost_per_byte !== undefined) {
+    if (this._ref_script_coins_per_byte !== undefined) {
       writer.writeInt(33n);
-      this._script_cost_per_byte.serialize(writer);
+      this._ref_script_coins_per_byte.serialize(writer);
     }
   }
 

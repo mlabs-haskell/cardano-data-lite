@@ -635,7 +635,7 @@ Constitution:
   fields:
     - name: anchor
       type: Anchor
-    - name: scripthash
+    - name: script_hash
       type: ScriptHash
       nullable: true
   methods:
@@ -1419,7 +1419,7 @@ ProtocolParamUpdate:
       type: BigNum
       optional: true
     - id: 18
-      name: costmdls
+      name: cost_models
       type: Costmdls
       optional: true
     - id: 19
@@ -1479,7 +1479,7 @@ ProtocolParamUpdate:
       type: number
       optional: true
     - id: 33
-      name: script_cost_per_byte
+      name: ref_script_coins_per_byte
       type: UnitInterval
       optional: true
   methods:
