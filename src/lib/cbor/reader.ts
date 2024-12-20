@@ -160,7 +160,10 @@ export class CBORReader {
   }
 
   readNullable<T>(fn: (reader: CBORReader) => T, path: string[]): T | null {
-    if (this.peekType(path) == "null") return null;
+    if (this.peekType(path) == "null") {
+      this.buffer = this.buffer.slice(1);
+      return null
+    };
     return fn(this);
   }
 
