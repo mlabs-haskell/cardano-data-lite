@@ -14458,7 +14458,7 @@ export class ScriptRef {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader, path: string[]): ScriptRef {
+  static deserializeInner(reader: CBORReader, path: string[]): ScriptRef {
     let len = reader.readArrayTag(path);
     let tag = Number(reader.readUint(path));
     let variant: ScriptRefVariant;
@@ -14525,7 +14525,7 @@ export class ScriptRef {
     return new ScriptRef(variant);
   }
 
-  serialize(writer: CBORWriter): void {
+  serializeInner(writer: CBORWriter): void {
     switch (this.variant.kind) {
       case 0:
         writer.writeArrayTag(2);
@@ -14577,6 +14577,31 @@ export class ScriptRef {
 
   clone(path: string[]): ScriptRef {
     return ScriptRef.from_bytes(this.to_bytes(), path);
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): ScriptRef {
+    const tag = reader.readTaggedTag(path);
+    if (tag != 24) {
+      throw new Error(
+        "Expected a CBOR encoded item when deserializing ScriptRef (at " +
+          path.join("/") +
+          ")",
+      );
+    }
+    let bytes = reader.readBytes(path);
+    let new_reader = new CBORReader(bytes);
+
+    return ScriptRef.deserializeInner(new_reader, path);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeTaggedTag(24);
+
+    let bytes_writer = new CBORWriter();
+    this.serializeInner(bytes_writer);
+    let bytes = bytes_writer.getBytes();
+
+    writer.writeBytes(bytes);
   }
 }
 

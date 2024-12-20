@@ -2079,6 +2079,30 @@ DataOption:
 # script = [ 0, native_script // 1, plutus_v1_script // 2, plutus_v2_script // 3, plutus_v3_script ]
 ScriptRef:
   type: tagged_record
+  methods:
+    deserialize: deserializeInner
+    serialize: serializeInner
+  extra_methods: |
+    static deserialize(reader: CBORReader, path: string[]): ScriptRef {
+      const tag = reader.readTaggedTag(path);
+      if (tag != 24) {
+        throw new Error("Expected a CBOR encoded item when deserializing ScriptRef (at " + path.join('/') + ")");
+      }
+      let bytes = reader.readBytes(path);
+      let new_reader = new CBORReader(bytes);
+
+      return ScriptRef.deserializeInner(new_reader, path)      
+    }
+
+    serialize(writer: CBORWriter): void {
+      writer.writeTaggedTag(24);
+
+      let bytes_writer = new CBORWriter();
+      this.serializeInner(bytes_writer);
+      let bytes = bytes_writer.getBytes();
+
+      writer.writeBytes(bytes);
+    }
   variants:
     - name: native_script
       tag: 0
