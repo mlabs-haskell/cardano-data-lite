@@ -1,11 +1,10 @@
 {
-  "ignore_classes": [
+  "api_ignore_classes": [
     "GenesisKeyDelegation",
     "MoveInstantaneousReward",
     "MoveInstantaneousRewardsCert",
     "MIRToStakeCredentials",
     "FixedBlock",
-    "FixedTransaction",
     "FixedTransactionBodies",
     "FixedTransactionBody",
     "FixedTxWitnessesSet",
@@ -31,7 +30,7 @@
     "InvalidBefore",
     "InvalidHereafter"
   ],
-  "ignore_methods": {
+  "api_ignore_methods": {
     "Certificate": [
       "new_reg_cert",
       "new_unreg_cert",
@@ -49,5 +48,37 @@
       "from_hex_with_version",
       "language_version"
     ]
-  }
+  },
+  "serialization_bad_variants": [
+    "StakeRegistration",
+    "StakeDeregistration",
+    "StakeDelegation",
+    "PoolRegistration",
+    "PoolRetirement",
+    "RegCert",
+    "UnregCert",
+    "VoteDelegation",
+    "StakeAndVoteDelegation",
+    "StakeRegistrationAndDelegation",
+    "VoteRegistrationAndDelegation",
+    "StakeVoteRegistrationAndDelegation",
+    "CommitteeHotAuth",
+    "CommitteeColdResign",
+    "DRepRegistration",
+    "DRepDeregistration",
+    "DRepUpdate"
+  ],
+  "extraction_unsupported_fields": [
+    "plutus_scripts_v1",
+    "plutus_scripts_v2",
+    "plutus_scripts_v3",
+    "script_pubkey",
+    "inner_plutus_data"
+  ],
+  "extraction_unsupported_types": [
+    "MoveInstantaneousRewards",
+    "GenesisKeyDelegation",
+    "boolean",
+    "bignum" 
+  ]
 }
