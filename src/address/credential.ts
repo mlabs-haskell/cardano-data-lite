@@ -64,7 +64,7 @@ export class Credential {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(1);
+    writer.writeArrayTag(2);
     if (this.variant.kind === CredKind.Key) {
       writer.writeInt(0n);
       writer.writeBytes(this.variant.value.to_bytes());
