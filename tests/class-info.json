@@ -67,7 +67,14 @@
     "CommitteeColdResign",
     "DRepRegistration",
     "DRepDeregistration",
-    "DRepUpdate"
+    "DRepUpdate",
+    "ParameterChangeAction",
+    "HardForkInitiationAction",
+    "TreasuryWithdrawalsAction",
+    "NoConfidenceAction",
+    "UpdateCommitteeAction",
+    "NewConstitutionAction",
+    "InfoAction"
   ],
   "extraction_unsupported_fields": [
     "plutus_scripts_v1",
