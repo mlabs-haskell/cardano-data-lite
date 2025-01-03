@@ -6190,8 +6190,8 @@ export class GovernanceAction {
         break;
 
       case 4:
-        if (len != null && len - 1 != 3) {
-          throw new Error("Expected 3 items to decode UpdateCommitteeAction");
+        if (len != null && len - 1 != 4) {
+          throw new Error("Expected 4 items to decode UpdateCommitteeAction");
         }
         variant = {
           kind: 4,
@@ -6268,7 +6268,7 @@ export class GovernanceAction {
         this.variant.value.serialize(writer);
         break;
       case 4:
-        writer.writeArrayTag(4);
+        writer.writeArrayTag(5);
         writer.writeInt(BigInt(4));
         this.variant.value.serialize(writer);
         break;
