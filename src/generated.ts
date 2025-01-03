@@ -2063,7 +2063,11 @@ export class BootstrapWitnesses {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -2956,7 +2960,11 @@ export class Certificates {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -3944,7 +3952,11 @@ export class Credentials {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -5421,7 +5433,11 @@ export class Ed25519KeyHashes {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -10381,7 +10397,11 @@ export class PlutusScripts {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -10484,7 +10504,11 @@ export class PlutusSet {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -16768,7 +16792,11 @@ export class TransactionInputs {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -19267,7 +19295,11 @@ export class Vkeywitnesses {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -20304,7 +20336,11 @@ export class VotingProposals {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -20502,7 +20538,11 @@ export class certificates {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op

@@ -99,7 +99,7 @@ export class GenSet extends CodeGeneratorBase {
       if (this.nonEmptyTag) {
         ${writer}.writeTaggedTag(258);
       }
-      ${writer}.writeArray(this.items, (writer, x) => ${this.typeUtils.writeType("writer", "x", this.item)});
+      ${writer}.writeArray(this.items, (writer, x) => ${this.typeUtils.writeType("writer", "x", this.item)}, this.definiteEncoding);
     `;
   }
 }
