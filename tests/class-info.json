@@ -81,7 +81,8 @@
     "plutus_scripts_v2",
     "plutus_scripts_v3",
     "script_pubkey",
-    "inner_plutus_data"
+    "inner_plutus_data",
+    "ttl"
   ],
   "extraction_unsupported_types": [
     "MoveInstantaneousRewards",
