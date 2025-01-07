@@ -1205,20 +1205,43 @@ export class AuxiliaryDataShelleyMa {
     reader: CBORReader,
     path: string[],
   ): AuxiliaryDataShelleyMa {
-    let transaction_metadata = GeneralTransactionMetadata.deserialize(reader, [
-      ...path,
-      "transaction_metadata",
-    ]);
+    let len = reader.readArrayTag(path);
 
-    let auxiliary_scripts = NativeScripts.deserialize(reader, [
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected at least 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
+      );
+    }
+
+    const transaction_metadata_path = [
       ...path,
-      "auxiliary_scripts",
-    ]);
+      "GeneralTransactionMetadata(transaction_metadata)",
+    ];
+    let transaction_metadata = GeneralTransactionMetadata.deserialize(
+      reader,
+      transaction_metadata_path,
+    );
+
+    const auxiliary_scripts_path = [
+      ...path,
+      "NativeScripts(auxiliary_scripts)",
+    ];
+    let auxiliary_scripts = NativeScripts.deserialize(
+      reader,
+      auxiliary_scripts_path,
+    );
 
     return new AuxiliaryDataShelleyMa(transaction_metadata, auxiliary_scripts);
   }
 
   serialize(writer: CBORWriter): void {
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
+
     this._transaction_metadata.serialize(writer);
     this._auxiliary_scripts.serialize(writer);
   }
