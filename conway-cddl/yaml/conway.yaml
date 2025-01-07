@@ -2436,12 +2436,8 @@ PlutusList:
 PlutusMap:
   type: map
   key: PlutusData
-  value: PlutusMapValues
+  value: PlutusData
   keys_method_type: PlutusList
-
-PlutusMapValues:
-  type: array
-  item: PlutusData
 
 TreasuryWithdrawals:
   type: map
