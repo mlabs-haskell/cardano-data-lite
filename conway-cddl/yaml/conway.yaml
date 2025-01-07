@@ -1713,13 +1713,13 @@ TransactionWitnessSet:
       name: inner_plutus_data
       type: PlutusSet
       optional: true
-    - id: 5
-      name: redeemers
-      type: Redeemers
-      optional: true
     - id: 6
       name: plutus_scripts_v2
       type: PlutusScripts
+      optional: true
+    - id: 5
+      name: redeemers
+      type: Redeemers
       optional: true
     - id: 7
       name: plutus_scripts_v3

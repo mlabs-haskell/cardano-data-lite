@@ -17527,8 +17527,8 @@ export class TransactionWitnessSet {
   private _bootstraps: BootstrapWitnesses | undefined;
   private _plutus_scripts_v1: PlutusScripts | undefined;
   private _inner_plutus_data: PlutusSet | undefined;
-  private _redeemers: Redeemers | undefined;
   private _plutus_scripts_v2: PlutusScripts | undefined;
+  private _redeemers: Redeemers | undefined;
   private _plutus_scripts_v3: PlutusScripts | undefined;
 
   constructor(
@@ -17537,8 +17537,8 @@ export class TransactionWitnessSet {
     bootstraps: BootstrapWitnesses | undefined,
     plutus_scripts_v1: PlutusScripts | undefined,
     inner_plutus_data: PlutusSet | undefined,
-    redeemers: Redeemers | undefined,
     plutus_scripts_v2: PlutusScripts | undefined,
+    redeemers: Redeemers | undefined,
     plutus_scripts_v3: PlutusScripts | undefined,
   ) {
     this._vkeys = vkeys;
@@ -17546,8 +17546,8 @@ export class TransactionWitnessSet {
     this._bootstraps = bootstraps;
     this._plutus_scripts_v1 = plutus_scripts_v1;
     this._inner_plutus_data = inner_plutus_data;
-    this._redeemers = redeemers;
     this._plutus_scripts_v2 = plutus_scripts_v2;
+    this._redeemers = redeemers;
     this._plutus_scripts_v3 = plutus_scripts_v3;
   }
 
@@ -17591,20 +17591,20 @@ export class TransactionWitnessSet {
     this._inner_plutus_data = inner_plutus_data;
   }
 
-  redeemers(): Redeemers | undefined {
-    return this._redeemers;
-  }
-
-  set_redeemers(redeemers: Redeemers | undefined): void {
-    this._redeemers = redeemers;
-  }
-
   plutus_scripts_v2(): PlutusScripts | undefined {
     return this._plutus_scripts_v2;
   }
 
   set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts | undefined): void {
     this._plutus_scripts_v2 = plutus_scripts_v2;
+  }
+
+  redeemers(): Redeemers | undefined {
+    return this._redeemers;
+  }
+
+  set_redeemers(redeemers: Redeemers | undefined): void {
+    this._redeemers = redeemers;
   }
 
   plutus_scripts_v3(): PlutusScripts | undefined {
@@ -17653,15 +17653,15 @@ export class TransactionWitnessSet {
           break;
         }
 
-        case 5: {
-          const new_path = [...path, "Redeemers(redeemers)"];
-          fields.redeemers = Redeemers.deserialize(r, new_path);
-          break;
-        }
-
         case 6: {
           const new_path = [...path, "PlutusScripts(plutus_scripts_v2)"];
           fields.plutus_scripts_v2 = PlutusScripts.deserialize(r, new_path);
+          break;
+        }
+
+        case 5: {
+          const new_path = [...path, "Redeemers(redeemers)"];
+          fields.redeemers = Redeemers.deserialize(r, new_path);
           break;
         }
 
@@ -17683,9 +17683,9 @@ export class TransactionWitnessSet {
 
     let inner_plutus_data = fields.inner_plutus_data;
 
-    let redeemers = fields.redeemers;
-
     let plutus_scripts_v2 = fields.plutus_scripts_v2;
+
+    let redeemers = fields.redeemers;
 
     let plutus_scripts_v3 = fields.plutus_scripts_v3;
 
@@ -17695,8 +17695,8 @@ export class TransactionWitnessSet {
       bootstraps,
       plutus_scripts_v1,
       inner_plutus_data,
-      redeemers,
       plutus_scripts_v2,
+      redeemers,
       plutus_scripts_v3,
     );
   }
@@ -17708,8 +17708,8 @@ export class TransactionWitnessSet {
     if (this._bootstraps === undefined) len -= 1;
     if (this._plutus_scripts_v1 === undefined) len -= 1;
     if (this._inner_plutus_data === undefined) len -= 1;
-    if (this._redeemers === undefined) len -= 1;
     if (this._plutus_scripts_v2 === undefined) len -= 1;
+    if (this._redeemers === undefined) len -= 1;
     if (this._plutus_scripts_v3 === undefined) len -= 1;
     writer.writeMapTag(len);
     if (this._vkeys !== undefined) {
@@ -17732,13 +17732,13 @@ export class TransactionWitnessSet {
       writer.writeInt(4n);
       this._inner_plutus_data.serialize(writer);
     }
-    if (this._redeemers !== undefined) {
-      writer.writeInt(5n);
-      this._redeemers.serialize(writer);
-    }
     if (this._plutus_scripts_v2 !== undefined) {
       writer.writeInt(6n);
       this._plutus_scripts_v2.serialize(writer);
+    }
+    if (this._redeemers !== undefined) {
+      writer.writeInt(5n);
+      this._redeemers.serialize(writer);
     }
     if (this._plutus_scripts_v3 !== undefined) {
       writer.writeInt(7n);
