@@ -2438,6 +2438,33 @@ PlutusMap:
   key: PlutusData
   value: PlutusData
   keys_method_type: PlutusList
+  methods:
+    get: getInner
+    insert: insertInner
+  extra_methods: |
+    get(key: PlutusData): PlutusMapValues | undefined {
+      let v: PlutusData | undefined = this.getInner(key);
+      if(v) {
+        let vs = new PlutusMapValues([v]);
+        return vs;
+      } else {
+        return undefined;
+      }
+    }
+
+    insert(key: PlutusData, values: PlutusMapValues): PlutusMapValues | undefined {
+      let v: PlutusData = values.get(values.len() - 1);
+      let ret: PlutusData | undefined = this.insertInner(key, v);
+      if (ret) {
+        return new PlutusMapValues([ret]);
+      } else {
+        return undefined;
+      }
+    }
+
+PlutusMapValues:
+  type: array
+  item: PlutusData
 
 TreasuryWithdrawals:
   type: map

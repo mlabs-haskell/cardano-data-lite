@@ -10128,7 +10128,7 @@ export class PlutusMap {
     return this._items.length;
   }
 
-  insert(key: PlutusData, value: PlutusData): PlutusData | undefined {
+  insertInner(key: PlutusData, value: PlutusData): PlutusData | undefined {
     let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
@@ -10141,7 +10141,7 @@ export class PlutusMap {
     return undefined;
   }
 
-  get(key: PlutusData): PlutusData | undefined {
+  getInner(key: PlutusData): PlutusData | undefined {
     let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
@@ -10165,7 +10165,7 @@ export class PlutusMap {
     let ret = new PlutusMap([]);
     reader.readMap(
       (reader, idx) =>
-        ret.insert(
+        ret.insertInner(
           PlutusData.deserialize(reader, [...path, "PlutusData#" + idx]),
           PlutusData.deserialize(reader, [...path, "PlutusData#" + idx]),
         ),
@@ -10208,6 +10208,104 @@ export class PlutusMap {
 
   clone(path: string[]): PlutusMap {
     return PlutusMap.from_bytes(this.to_bytes(), path);
+  }
+
+  get(key: PlutusData): PlutusMapValues | undefined {
+    let v: PlutusData | undefined = this.getInner(key);
+    if (v) {
+      let vs = new PlutusMapValues([v]);
+      return vs;
+    } else {
+      return undefined;
+    }
+  }
+
+  insert(
+    key: PlutusData,
+    values: PlutusMapValues,
+  ): PlutusMapValues | undefined {
+    let v: PlutusData = values.get(values.len() - 1);
+    let ret: PlutusData | undefined = this.insertInner(key, v);
+    if (ret) {
+      return new PlutusMapValues([ret]);
+    } else {
+      return undefined;
+    }
+  }
+}
+
+export class PlutusMapValues {
+  private items: PlutusData[];
+  private definiteEncoding: boolean;
+
+  constructor(items: PlutusData[], definiteEncoding: boolean = true) {
+    this.items = items;
+    this.definiteEncoding = definiteEncoding;
+  }
+
+  static new(): PlutusMapValues {
+    return new PlutusMapValues([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): PlutusData {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: PlutusData): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): PlutusMapValues {
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => PlutusData.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
+    );
+    return new PlutusMapValues(items, definiteEncoding);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PlutusMapValues"],
+  ): PlutusMapValues {
+    let reader = new CBORReader(data);
+    return PlutusMapValues.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PlutusMapValues"],
+  ): PlutusMapValues {
+    return PlutusMapValues.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): PlutusMapValues {
+    return PlutusMapValues.from_bytes(this.to_bytes(), path);
   }
 }
 
