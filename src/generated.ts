@@ -14,6 +14,8 @@ if (typeof globalThis.crypto === "undefined") {
   // @ts-expect-error: Assigning Node.js webcrypto to globalThis.crypto
   globalThis.crypto = webcrypto;
 }
+import { RandomGenerator } from "pure-rand";
+import prand from "pure-rand";
 
 function $$UN(id: string, ...args: any): any {
   throw "Undefined function: " + id;
@@ -82,6 +84,10 @@ export class Anchor {
 
     this._url.serialize(writer);
     this._anchor_data_hash.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): Anchor {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -178,6 +184,10 @@ export class AnchorDataHash {
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
+
+  static arbitrary(prng: RandomGenerator): AnchorDataHash {
+    throw new Error("Not Implemented");
+  }
 }
 
 export class AssetName {
@@ -203,6 +213,10 @@ export class AssetName {
 
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
+  }
+
+  static arbitrary(prng: RandomGenerator): AssetName {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -275,6 +289,17 @@ export class AssetNames {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): AssetNames {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new AssetNames([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(AssetName.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -376,6 +401,10 @@ export class Assets {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
+  }
+
+  static arbitrary(prng: RandomGenerator): Assets {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -578,6 +607,10 @@ export class AuxiliaryData {
         this.variant.value.serialize(writer);
         break;
     }
+  }
+
+  static arbitrary(prng: RandomGenerator): AuxiliaryData {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -865,6 +898,10 @@ export class AuxiliaryDataHash {
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
+
+  static arbitrary(prng: RandomGenerator): AuxiliaryDataHash {
+    throw new Error("Not Implemented");
+  }
 }
 
 export class AuxiliaryDataPostAlonzo {
@@ -1053,6 +1090,10 @@ export class AuxiliaryDataPostAlonzo {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): AuxiliaryDataPostAlonzo {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -1142,6 +1183,10 @@ export class AuxiliaryDataSet {
       writer.writeInt(BigInt(x[0]));
       x[1].serialize(writer);
     });
+  }
+
+  static arbitrary(prng: RandomGenerator): AuxiliaryDataSet {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -1267,6 +1312,10 @@ export class AuxiliaryDataShelleyMa {
 
     this._transaction_metadata.serialize(writer);
     this._auxiliary_scripts.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): AuxiliaryDataShelleyMa {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -1477,6 +1526,10 @@ export class Bip32PrivateKey {
     writer.writeBytes(this.inner);
   }
 
+  static arbitrary(prng: RandomGenerator): Bip32PrivateKey {
+    throw new Error("Not Implemented");
+  }
+
   static _LEN = 96;
   static _BECH32_HRP = "xprv";
 
@@ -1623,6 +1676,10 @@ export class Bip32PublicKey {
 
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
+  }
+
+  static arbitrary(prng: RandomGenerator): Bip32PublicKey {
+    throw new Error("Not Implemented");
   }
 
   static _LEN = 64;
@@ -1807,6 +1864,10 @@ export class Block {
     this._inner_invalid_transactions.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): Block {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -1927,6 +1988,10 @@ export class BlockHash {
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
+
+  static arbitrary(prng: RandomGenerator): BlockHash {
+    throw new Error("Not Implemented");
+  }
 }
 
 export class BootstrapWitness {
@@ -2024,6 +2089,10 @@ export class BootstrapWitness {
     this._signature.serialize(writer);
     writer.writeBytes(this._chain_code);
     writer.writeBytes(this._attributes);
+  }
+
+  static arbitrary(prng: RandomGenerator): BootstrapWitness {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -2136,6 +2205,10 @@ export class BootstrapWitnesses {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): BootstrapWitnesses {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -2182,6 +2255,10 @@ export class CSLBigInt {
 
   toJsValue(): bigint {
     return this.inner;
+  }
+
+  static arbitrary(prng: RandomGenerator): CSLBigInt {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -2926,6 +3003,10 @@ export class Certificate {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): Certificate {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -3031,6 +3112,10 @@ export class Certificates {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): Certificates {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -3153,6 +3238,10 @@ export class ChangeConfig {
     } else {
       this._script_ref.serialize(writer);
     }
+  }
+
+  static arbitrary(prng: RandomGenerator): ChangeConfig {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -3287,6 +3376,10 @@ export class CommitteeColdResign {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): CommitteeColdResign {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -3392,6 +3485,10 @@ export class CommitteeEpochs {
     });
   }
 
+  static arbitrary(prng: RandomGenerator): CommitteeEpochs {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -3483,6 +3580,10 @@ export class CommitteeHotAuth {
   serialize(writer: CBORWriter): void {
     this._committee_cold_credential.serialize(writer);
     this._committee_hot_credential.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): CommitteeHotAuth {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -3579,6 +3680,10 @@ export class Constitution {
     } else {
       this._script_hash.serialize(writer);
     }
+  }
+
+  static arbitrary(prng: RandomGenerator): Constitution {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -3684,6 +3789,10 @@ export class ConstrPlutusData {
 
     this._alternative.serialize(writer);
     this._data.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): ConstrPlutusData {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -3794,6 +3903,17 @@ export class CostModel {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): CostModel {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new CostModel([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(Int.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -3911,6 +4031,10 @@ export class Costmdls {
     });
   }
 
+  static arbitrary(prng: RandomGenerator): Costmdls {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -4025,6 +4149,10 @@ export class Credentials {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): Credentials {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -4083,6 +4211,10 @@ export class DNSRecordAorAAAA {
     writer.writeString(this.inner);
   }
 
+  static arbitrary(prng: RandomGenerator): DNSRecordAorAAAA {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -4139,6 +4271,10 @@ export class DNSRecordSRV {
 
   serialize(writer: CBORWriter): void {
     writer.writeString(this.inner);
+  }
+
+  static arbitrary(prng: RandomGenerator): DNSRecordSRV {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -4309,6 +4445,10 @@ export class DRep {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): DRep {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -4379,6 +4519,10 @@ export class DRepDeregistration {
   serialize(writer: CBORWriter): void {
     this._drep_credential.serialize(writer);
     this._coin.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): DRepDeregistration {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -4480,6 +4624,10 @@ export class DRepRegistration {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): DRepRegistration {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -4571,6 +4719,10 @@ export class DRepUpdate {
     } else {
       this._anchor.serialize(writer);
     }
+  }
+
+  static arbitrary(prng: RandomGenerator): DRepUpdate {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -4879,6 +5031,10 @@ export class DRepVotingThresholds {
     this._treasury_withdrawal.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): DRepVotingThresholds {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -4952,6 +5108,10 @@ export class Data {
     writer.writeBytes(this.inner);
   }
 
+  static arbitrary(prng: RandomGenerator): Data {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -5022,6 +5182,10 @@ export class DataCost {
     writer.writeArrayTag(arrayLen);
 
     this._coins_per_byte.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): DataCost {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -5117,6 +5281,10 @@ export class DataHash {
 
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
+  }
+
+  static arbitrary(prng: RandomGenerator): DataHash {
+    throw new Error("Not Implemented");
   }
 }
 
@@ -5214,6 +5382,10 @@ export class DataOption {
         this.variant.value.serialize(writer);
         break;
     }
+  }
+
+  static arbitrary(prng: RandomGenerator): DataOption {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -5348,6 +5520,10 @@ export class DatumSource {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): DatumSource {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -5452,6 +5628,10 @@ export class Ed25519KeyHash {
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
+
+  static arbitrary(prng: RandomGenerator): Ed25519KeyHash {
+    throw new Error("Not Implemented");
+  }
 }
 
 export class Ed25519KeyHashes {
@@ -5528,6 +5708,10 @@ export class Ed25519KeyHashes {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): Ed25519KeyHashes {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -5602,6 +5786,10 @@ export class Ed25519Signature {
 
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
+  }
+
+  static arbitrary(prng: RandomGenerator): Ed25519Signature {
+    throw new Error("Not Implemented");
   }
 
   static _BECH32_HRP = "ed25519_sig";
@@ -5684,6 +5872,10 @@ export class ExUnitPrices {
 
     this._mem_price.serialize(writer);
     this._step_price.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): ExUnitPrices {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -5776,6 +5968,10 @@ export class ExUnits {
 
     this._mem.serialize(writer);
     this._steps.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): ExUnits {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -5882,6 +6078,10 @@ export class GeneralTransactionMetadata {
     });
   }
 
+  static arbitrary(prng: RandomGenerator): GeneralTransactionMetadata {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -5982,6 +6182,10 @@ export class GenesisDelegateHash {
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
+
+  static arbitrary(prng: RandomGenerator): GenesisDelegateHash {
+    throw new Error("Not Implemented");
+  }
 }
 
 export class GenesisHash {
@@ -6051,6 +6255,10 @@ export class GenesisHash {
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
+
+  static arbitrary(prng: RandomGenerator): GenesisHash {
+    throw new Error("Not Implemented");
+  }
 }
 
 export class GenesisHashes {
@@ -6094,6 +6302,17 @@ export class GenesisHashes {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): GenesisHashes {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new GenesisHashes([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(GenesisHash.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -6395,6 +6614,10 @@ export class GovernanceAction {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): GovernanceAction {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -6490,6 +6713,10 @@ export class GovernanceActionId {
     writer.writeInt(BigInt(this._index));
   }
 
+  static arbitrary(prng: RandomGenerator): GovernanceActionId {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -6564,6 +6791,17 @@ export class GovernanceActionIds {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): GovernanceActionIds {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new GovernanceActionIds([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(GovernanceActionId.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -6676,6 +6914,10 @@ export class GovernanceActions {
     });
   }
 
+  static arbitrary(prng: RandomGenerator): GovernanceActions {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -6769,6 +7011,10 @@ export class HardForkInitiationAction {
       this._gov_action_id.serialize(writer);
     }
     this._protocol_version.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): HardForkInitiationAction {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -6865,6 +7111,10 @@ export class Header {
 
     this._header_body.serialize(writer);
     this._body_signature.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): Header {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -7129,6 +7379,10 @@ export class HeaderBody {
     this._protocol_version.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): HeaderBody {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -7205,6 +7459,10 @@ export class InfoAction {
 
   serialize(writer: CBORWriter): void {}
 
+  static arbitrary(prng: RandomGenerator): InfoAction {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -7255,6 +7513,10 @@ export class Int {
 
   serialize(writer: CBORWriter): void {
     writer.writeInt(this.inner);
+  }
+
+  static arbitrary(prng: RandomGenerator): Int {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -7375,6 +7637,10 @@ export class InvalidTransactions {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): InvalidTransactions {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -7437,6 +7703,10 @@ export class Ipv4 {
     writer.writeBytes(this.inner);
   }
 
+  static arbitrary(prng: RandomGenerator): Ipv4 {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -7489,6 +7759,10 @@ export class Ipv6 {
     writer.writeBytes(this.inner);
   }
 
+  static arbitrary(prng: RandomGenerator): Ipv6 {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -7539,6 +7813,10 @@ export class KESSignature {
 
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
+  }
+
+  static arbitrary(prng: RandomGenerator): KESSignature {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -7641,6 +7919,10 @@ export class KESVKey {
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
+
+  static arbitrary(prng: RandomGenerator): KESVKey {
+    throw new Error("Not Implemented");
+  }
 }
 
 export enum LanguageKind {
@@ -7689,6 +7971,10 @@ export class Language {
 
   serialize(writer: CBORWriter): void {
     writer.writeInt(BigInt(this.kind_));
+  }
+
+  static arbitrary(prng: RandomGenerator): Language {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -7758,6 +8044,17 @@ export class Languages {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): Languages {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new Languages([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(Language.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -7839,6 +8136,17 @@ export class MetadataList {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): MetadataList {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new MetadataList([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(TransactionMetadatum.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -7949,6 +8257,10 @@ export class MetadataMap {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
+  }
+
+  static arbitrary(prng: RandomGenerator): MetadataMap {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -8078,6 +8390,10 @@ export class Mint {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
+  }
+
+  static arbitrary(prng: RandomGenerator): Mint {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -8231,6 +8547,10 @@ export class MintAssets {
     });
   }
 
+  static arbitrary(prng: RandomGenerator): MintAssets {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -8304,6 +8624,17 @@ export class MintsAssets {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): MintsAssets {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new MintsAssets([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(MintAssets.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -8405,6 +8736,10 @@ export class MultiAsset {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
+  }
+
+  static arbitrary(prng: RandomGenerator): MultiAsset {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -8555,6 +8890,10 @@ export class MultiHostName {
 
   serialize(writer: CBORWriter): void {
     this._dns_name.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): MultiHostName {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -8793,6 +9132,10 @@ export class NativeScript {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): NativeScript {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -8914,6 +9257,10 @@ export class NativeScriptRefInput {
     this._script_hash.serialize(writer);
     this._input.serialize(writer);
     writer.writeInt(BigInt(this._script_size));
+  }
+
+  static arbitrary(prng: RandomGenerator): NativeScriptRefInput {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -9048,6 +9395,10 @@ export class NativeScriptSource {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): NativeScriptSource {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -9175,6 +9526,10 @@ export class NativeScripts {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): NativeScripts {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -9248,6 +9603,10 @@ export class NetworkId {
 
   serialize(writer: CBORWriter): void {
     writer.writeInt(BigInt(this.kind_));
+  }
+
+  static arbitrary(prng: RandomGenerator): NetworkId {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -9342,6 +9701,10 @@ export class NewConstitutionAction {
     this._constitution.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): NewConstitutionAction {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -9414,6 +9777,10 @@ export class NoConfidenceAction {
     } else {
       this._gov_action_id.serialize(writer);
     }
+  }
+
+  static arbitrary(prng: RandomGenerator): NoConfidenceAction {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -9501,6 +9868,10 @@ export class Nonce {
     } else {
       writer.writeBytes(this._hash);
     }
+  }
+
+  static arbitrary(prng: RandomGenerator): Nonce {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -9637,6 +10008,10 @@ export class OperationalCert {
     this._sigma.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): OperationalCert {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -9766,6 +10141,10 @@ export class OutputDatum {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): OutputDatum {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -9892,6 +10271,10 @@ export class ParameterChangeAction {
     } else {
       this._policy_hash.serialize(writer);
     }
+  }
+
+  static arbitrary(prng: RandomGenerator): ParameterChangeAction {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -10131,6 +10514,10 @@ export class PlutusData {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): PlutusData {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -10227,6 +10614,17 @@ export class PlutusList {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): PlutusList {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new PlutusList([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(PlutusData.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -10338,6 +10736,10 @@ export class PlutusMap {
     });
   }
 
+  static arbitrary(prng: RandomGenerator): PlutusMap {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -10433,6 +10835,17 @@ export class PlutusMapValues {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): PlutusMapValues {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new PlutusMapValues([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(PlutusData.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
+  }
+
   // no-op
   free(): void {}
 
@@ -10487,6 +10900,10 @@ export class PlutusScript {
 
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
+  }
+
+  static arbitrary(prng: RandomGenerator): PlutusScript {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -10604,6 +11021,10 @@ export class PlutusScripts {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): PlutusScripts {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -10711,6 +11132,10 @@ export class PlutusSet {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): PlutusSet {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -10808,6 +11233,10 @@ export class PoolMetadata {
 
     this._url.serialize(writer);
     this._pool_metadata_hash.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): PoolMetadata {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -10909,6 +11338,10 @@ export class PoolMetadataHash {
 
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
+  }
+
+  static arbitrary(prng: RandomGenerator): PoolMetadataHash {
+    throw new Error("Not Implemented");
   }
 }
 
@@ -11099,6 +11532,10 @@ export class PoolParams {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): PoolParams {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -11158,6 +11595,10 @@ export class PoolRegistration {
 
   serialize(writer: CBORWriter): void {
     this._pool_params.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): PoolRegistration {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -11236,6 +11677,10 @@ export class PoolRetirement {
   serialize(writer: CBORWriter): void {
     this._pool_keyhash.serialize(writer);
     writer.writeInt(BigInt(this._epoch));
+  }
+
+  static arbitrary(prng: RandomGenerator): PoolRetirement {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -11425,6 +11870,10 @@ export class PoolVotingThresholds {
     this._security_relevant_threshold.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): PoolVotingThresholds {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -11601,6 +12050,10 @@ export class PostAlonzoTransactionOutput {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): PostAlonzoTransactionOutput {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -11727,6 +12180,10 @@ export class PreBabbageTransactionOutput {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): PreBabbageTransactionOutput {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -11787,6 +12244,10 @@ export class PrivateKey {
 
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
+  }
+
+  static arbitrary(prng: RandomGenerator): PrivateKey {
+    throw new Error("Not Implemented");
   }
 
   static _KEY_LEN = 32;
@@ -11963,6 +12424,10 @@ export class ProposedProtocolParameterUpdates {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
+  }
+
+  static arbitrary(prng: RandomGenerator): ProposedProtocolParameterUpdates {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -12808,6 +13273,10 @@ export class ProtocolParamUpdate {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): ProtocolParamUpdate {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -12935,6 +13404,10 @@ export class ProtocolVersion {
     writer.writeInt(BigInt(this._minor));
   }
 
+  static arbitrary(prng: RandomGenerator): ProtocolVersion {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -13011,6 +13484,10 @@ export class PublicKey {
     writer.writeBytes(this.inner);
   }
 
+  static arbitrary(prng: RandomGenerator): PublicKey {
+    throw new Error("Not Implemented");
+  }
+
   static _BECH32_HRP = "ed25519_pk";
 
   hash(): Ed25519KeyHash {
@@ -13060,6 +13537,10 @@ export class Redeemer {
 
   serialize(writer: CBORWriter): void {
     this.inner.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): Redeemer {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -13162,6 +13643,10 @@ export class RedeemerTag {
 
   serialize(writer: CBORWriter): void {
     writer.writeInt(BigInt(this.kind_));
+  }
+
+  static arbitrary(prng: RandomGenerator): RedeemerTag {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -13283,6 +13768,10 @@ export class Redeemers {
         this.variant.value.serialize(writer);
         break;
     }
+  }
+
+  static arbitrary(prng: RandomGenerator): Redeemers {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -13430,6 +13919,17 @@ export class RedeemersArray {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): RedeemersArray {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new RedeemersArray([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(RedeemersArrayItem.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
+  }
+
   // no-op
   free(): void {}
 
@@ -13560,6 +14060,10 @@ export class RedeemersArrayItem {
     this._ex_units.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): RedeemersArrayItem {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -13652,6 +14156,10 @@ export class RedeemersKey {
     this._index.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): RedeemersKey {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -13726,6 +14234,17 @@ export class RedeemersKeys {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): RedeemersKeys {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new RedeemersKeys([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(RedeemersKey.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -13832,6 +14351,10 @@ export class RedeemersMap {
     });
   }
 
+  static arbitrary(prng: RandomGenerator): RedeemersMap {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -13924,6 +14447,10 @@ export class RedeemersValue {
     this._ex_units.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): RedeemersValue {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -14000,6 +14527,10 @@ export class RegCert {
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
     this._coin.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): RegCert {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -14153,6 +14684,10 @@ export class Relay {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): Relay {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -14220,6 +14755,17 @@ export class Relays {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): Relays {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new Relays([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(Relay.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -14292,6 +14838,17 @@ export class RewardAddresses {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): RewardAddresses {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new RewardAddresses([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(RewardAddress.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
+  }
+
   // no-op
   free(): void {}
 
@@ -14357,6 +14914,10 @@ export class ScriptAll {
     this._native_scripts.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): ScriptAll {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -14417,6 +14978,10 @@ export class ScriptAny {
 
   serialize(writer: CBORWriter): void {
     this._native_scripts.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): ScriptAny {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -14516,6 +15081,10 @@ export class ScriptDataHash {
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
+
+  static arbitrary(prng: RandomGenerator): ScriptDataHash {
+    throw new Error("Not Implemented");
+  }
 }
 
 export class ScriptHash {
@@ -14585,6 +15154,10 @@ export class ScriptHash {
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
+
+  static arbitrary(prng: RandomGenerator): ScriptHash {
+    throw new Error("Not Implemented");
+  }
 }
 
 export class ScriptHashes {
@@ -14627,6 +15200,17 @@ export class ScriptHashes {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): ScriptHashes {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new ScriptHashes([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(ScriptHash.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -14707,6 +15291,10 @@ export class ScriptNOfK {
     this._native_scripts.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): ScriptNOfK {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -14761,6 +15349,10 @@ export class ScriptPubkey {
 
   serialize(writer: CBORWriter): void {
     this.inner.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): ScriptPubkey {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -14826,6 +15418,10 @@ export class ScriptPubname {
 
   serialize(writer: CBORWriter): void {
     this._addr_keyhash.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): ScriptPubname {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -15009,6 +15605,10 @@ export class ScriptRef {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): ScriptRef {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -15149,6 +15749,10 @@ export class SingleHostAddr {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): SingleHostAddr {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -15228,6 +15832,10 @@ export class SingleHostName {
       writer.writeInt(BigInt(this._port));
     }
     this._dns_name.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): SingleHostName {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -15335,6 +15943,10 @@ export class StakeAndVoteDelegation {
     this._drep.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): StakeAndVoteDelegation {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -15416,6 +16028,10 @@ export class StakeDelegation {
     this._pool_keyhash.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): StakeDelegation {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -15481,6 +16097,10 @@ export class StakeDeregistration {
     this._stake_credential.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): StakeDeregistration {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -15544,6 +16164,10 @@ export class StakeRegistration {
 
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): StakeRegistration {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -15657,6 +16281,10 @@ export class StakeRegistrationAndDelegation {
     this._stake_credential.serialize(writer);
     this._pool_keyhash.serialize(writer);
     this._coin.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): StakeRegistrationAndDelegation {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -15789,6 +16417,10 @@ export class StakeVoteRegistrationAndDelegation {
     this._coin.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): StakeVoteRegistrationAndDelegation {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -15852,6 +16484,10 @@ export class TimelockExpiry {
 
   serialize(writer: CBORWriter): void {
     this._slot.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): TimelockExpiry {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -15922,6 +16558,10 @@ export class TimelockStart {
 
   serialize(writer: CBORWriter): void {
     this._slot.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): TimelockStart {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -16064,6 +16704,10 @@ export class Transaction {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): Transaction {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -16150,6 +16794,17 @@ export class TransactionBodies {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): TransactionBodies {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new TransactionBodies([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(TransactionBody.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -16721,6 +17376,10 @@ export class TransactionBody {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): TransactionBody {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -16879,6 +17538,10 @@ export class TransactionHash {
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
+
+  static arbitrary(prng: RandomGenerator): TransactionHash {
+    throw new Error("Not Implemented");
+  }
 }
 
 export class TransactionInput {
@@ -16941,6 +17604,10 @@ export class TransactionInput {
 
     this._transaction_id.serialize(writer);
     writer.writeInt(BigInt(this._index));
+  }
+
+  static arbitrary(prng: RandomGenerator): TransactionInput {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -17051,6 +17718,10 @@ export class TransactionInputs {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): TransactionInputs {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -17238,6 +17909,10 @@ export class TransactionMetadatum {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): TransactionMetadatum {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -17314,6 +17989,17 @@ export class TransactionMetadatumLabels {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): TransactionMetadatumLabels {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new TransactionMetadatumLabels([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(BigNum.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -17445,6 +18131,10 @@ export class TransactionOutput {
         this.variant.value.serialize(writer);
         break;
     }
+  }
+
+  static arbitrary(prng: RandomGenerator): TransactionOutput {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -17643,6 +18333,17 @@ export class TransactionOutputs {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): TransactionOutputs {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new TransactionOutputs([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(TransactionOutput.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
+  }
+
   // no-op
   free(): void {}
 
@@ -17738,6 +18439,10 @@ export class TransactionUnspentOutput {
     this._output.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): TransactionUnspentOutput {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -17818,6 +18523,17 @@ export class TransactionUnspentOutputs {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): TransactionUnspentOutputs {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new TransactionUnspentOutputs([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(TransactionUnspentOutput.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -18078,6 +18794,10 @@ export class TransactionWitnessSet {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): TransactionWitnessSet {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -18181,6 +18901,17 @@ export class TransactionWitnessSets {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): TransactionWitnessSets {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new TransactionWitnessSets([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(TransactionWitnessSet.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
+  }
+
   // no-op
   free(): void {}
 
@@ -18282,6 +19013,10 @@ export class TreasuryWithdrawals {
     });
   }
 
+  static arbitrary(prng: RandomGenerator): TreasuryWithdrawals {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -18377,6 +19112,10 @@ export class TreasuryWithdrawalsAction {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): TreasuryWithdrawalsAction {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -18438,6 +19177,10 @@ export class URL {
 
   serialize(writer: CBORWriter): void {
     writer.writeString(this.inner);
+  }
+
+  static arbitrary(prng: RandomGenerator): URL {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -18546,6 +19289,10 @@ export class UnitInterval {
     this._denominator.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): UnitInterval {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -18622,6 +19369,10 @@ export class UnregCert {
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
     this._coin.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): UnregCert {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -18730,6 +19481,10 @@ export class Update {
     writer.writeInt(BigInt(this._epoch));
   }
 
+  static arbitrary(prng: RandomGenerator): Update {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -18806,6 +19561,10 @@ export class UpdateCommitteeAction {
 
   set_members_to_remove(members_to_remove: Credentials): void {
     this._members_to_remove = members_to_remove;
+  }
+
+  static arbitrary(prng: RandomGenerator): UpdateCommitteeAction {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -18944,6 +19703,10 @@ export class VRFCert {
     writer.writeBytes(this._proof);
   }
 
+  static arbitrary(prng: RandomGenerator): VRFCert {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -19038,6 +19801,10 @@ export class VRFKeyHash {
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
+
+  static arbitrary(prng: RandomGenerator): VRFKeyHash {
+    throw new Error("Not Implemented");
+  }
 }
 
 export class VRFVKey {
@@ -19107,6 +19874,10 @@ export class VRFVKey {
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
   }
+
+  static arbitrary(prng: RandomGenerator): VRFVKey {
+    throw new Error("Not Implemented");
+  }
 }
 
 export class Value {
@@ -19174,6 +19945,10 @@ export class Value {
     } else {
       this._multiasset.serialize(writer);
     }
+  }
+
+  static arbitrary(prng: RandomGenerator): Value {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -19306,6 +20081,10 @@ export class Vkey {
     this._public_key = public_key;
   }
 
+  static arbitrary(prng: RandomGenerator): Vkey {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -19383,6 +20162,17 @@ export class Vkeys {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): Vkeys {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new Vkeys([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(Vkey.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
   }
 
   // no-op
@@ -19469,6 +20259,10 @@ export class Vkeywitness {
 
     this._vkey.serialize(writer);
     this._signature.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): Vkeywitness {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -19578,6 +20372,10 @@ export class Vkeywitnesses {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): Vkeywitnesses {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -19654,6 +20452,10 @@ export class VoteDelegation {
   serialize(writer: CBORWriter): void {
     this._stake_credential.serialize(writer);
     this._drep.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): VoteDelegation {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -19776,6 +20578,10 @@ export class VoteRegistrationAndDelegation {
     this._stake_credential.serialize(writer);
     this._drep.serialize(writer);
     this._coin.serialize(writer);
+  }
+
+  static arbitrary(prng: RandomGenerator): VoteRegistrationAndDelegation {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -20003,6 +20809,10 @@ export class Voter {
     }
   }
 
+  static arbitrary(prng: RandomGenerator): Voter {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -20134,6 +20944,17 @@ export class Voters {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): Voters {
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let ret = new Voters([], isDefinite > 0);
+    for (let _i = 0; _i < len; _i++) {
+      ret.add(Voter.arbitrary(prng_mut));
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return ret;
+  }
+
   // no-op
   free(): void {}
 
@@ -20224,6 +21045,10 @@ export class VotingProcedure {
     } else {
       this._anchor.serialize(writer);
     }
+  }
+
+  static arbitrary(prng: RandomGenerator): VotingProcedure {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -20332,6 +21157,10 @@ export class VotingProcedures {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
+  }
+
+  static arbitrary(prng: RandomGenerator): VotingProcedures {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -20498,6 +21327,10 @@ export class VotingProposal {
     this._anchor.serialize(writer);
   }
 
+  static arbitrary(prng: RandomGenerator): VotingProposal {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -20619,6 +21452,10 @@ export class VotingProposals {
     );
   }
 
+  static arbitrary(prng: RandomGenerator): VotingProposals {
+    throw new Error("Not Implemented");
+  }
+
   // no-op
   free(): void {}
 
@@ -20718,6 +21555,10 @@ export class Withdrawals {
       x[0].serialize(writer);
       x[1].serialize(writer);
     });
+  }
+
+  static arbitrary(prng: RandomGenerator): Withdrawals {
+    throw new Error("Not Implemented");
   }
 
   // no-op
@@ -20825,6 +21666,10 @@ export class certificates {
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
+  }
+
+  static arbitrary(prng: RandomGenerator): certificates {
+    throw new Error("Not Implemented");
   }
 
   // no-op
