@@ -1418,6 +1418,15 @@ export class BigNum {
     return this.toJsValue() < rhs_value.toJsValue();
   }
 
+  static arbitrary(prng: RandomGenerator): BigNum {
+    const n: bigint = prand.uniformBigIntDistribution(
+      0n,
+      BigNum._maxU64(),
+      prng,
+    )[0];
+    return new BigNum(n);
+  }
+
   static max_value(): BigNum {
     return new BigNum(BigNum._maxU64());
   }

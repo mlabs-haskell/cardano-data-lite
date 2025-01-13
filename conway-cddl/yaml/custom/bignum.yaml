@@ -6,6 +6,8 @@ BigNum:
     value:
       min: 0n
       max: BigNum._maxU64()
+  methods:
+    arbitrary: null
   extra_methods: |
     // Lifted from: https://doc.rust-lang.org/std/primitive.u64.html#associatedconstant.MAX
     static _maxU64(): bigint {
@@ -69,6 +71,11 @@ BigNum:
 
     less_than(rhs_value: BigNum): boolean {
       return this.toJsValue() < rhs_value.toJsValue();
+    }
+
+    static arbitrary(prng: RandomGenerator): BigNum {
+      const n: bigint = prand.uniformBigIntDistribution(0n, BigNum._maxU64(), prng)[0]
+      return new BigNum(n);
     }
 
     static max_value(): BigNum {
