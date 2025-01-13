@@ -105,19 +105,24 @@ export class GenArray extends CodeGeneratorBase {
   }
 
   generateArbitrary(prng: string): string {
-    if (this.item) {
       return `
         let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
         let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
-        let ret = new ${this.name}([], isDefinite > 0);
-        for (let _i = 0; _i < len; _i++) {
-          ret.add(${this.itemJsType()}.arbitrary(prng_mut));
+        ${this.item ?
+            `let ret = new ${this.name}([], isDefinite > 0);` :
+            `let items = new Uint32Array(len);`
+        }
+        for (let i = 0; i < len; i++) {
+          ${this.item ?
+              `ret.add(${this.itemJsType()}.arbitrary(prng_mut));` :
+              `items[i] = prand.unsafeUniformIntDistribution(0, 4294967295, prng_mut);`
+            }
           prand.unsafeSkipN(prng_mut, 1);
         }
-        return ret;
+        ${this.item ?
+          `return ret;` :
+          `return new ${this.name}(items, isDefinite > 0);`
+        }
       `;
-    } else {
-      return `throw new Error("Not Implemented")`;
-    }
   }
 }

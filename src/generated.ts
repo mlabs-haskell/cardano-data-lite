@@ -295,7 +295,7 @@ export class AssetNames {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new AssetNames([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(AssetName.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -3909,7 +3909,7 @@ export class CostModel {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new CostModel([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(Int.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -6308,7 +6308,7 @@ export class GenesisHashes {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new GenesisHashes([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(GenesisHash.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -6797,7 +6797,7 @@ export class GovernanceActionIds {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new GovernanceActionIds([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(GovernanceActionId.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -7638,7 +7638,14 @@ export class InvalidTransactions {
   }
 
   static arbitrary(prng: RandomGenerator): InvalidTransactions {
-    throw new Error("Not Implemented");
+    let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+    let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+    let items = new Uint32Array(len);
+    for (let i = 0; i < len; i++) {
+      items[i] = prand.unsafeUniformIntDistribution(0, 4294967295, prng_mut);
+      prand.unsafeSkipN(prng_mut, 1);
+    }
+    return new InvalidTransactions(items, isDefinite > 0);
   }
 
   // no-op
@@ -8050,7 +8057,7 @@ export class Languages {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new Languages([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(Language.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -8142,7 +8149,7 @@ export class MetadataList {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new MetadataList([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(TransactionMetadatum.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -8630,7 +8637,7 @@ export class MintsAssets {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new MintsAssets([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(MintAssets.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -10620,7 +10627,7 @@ export class PlutusList {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new PlutusList([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(PlutusData.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -10839,7 +10846,7 @@ export class PlutusMapValues {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new PlutusMapValues([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(PlutusData.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -13923,7 +13930,7 @@ export class RedeemersArray {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new RedeemersArray([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(RedeemersArrayItem.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -14240,7 +14247,7 @@ export class RedeemersKeys {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new RedeemersKeys([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(RedeemersKey.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -14761,7 +14768,7 @@ export class Relays {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new Relays([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(Relay.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -14842,7 +14849,7 @@ export class RewardAddresses {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new RewardAddresses([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(RewardAddress.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -15206,7 +15213,7 @@ export class ScriptHashes {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new ScriptHashes([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(ScriptHash.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -16800,7 +16807,7 @@ export class TransactionBodies {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new TransactionBodies([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(TransactionBody.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -17995,7 +18002,7 @@ export class TransactionMetadatumLabels {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new TransactionMetadatumLabels([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(BigNum.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -18337,7 +18344,7 @@ export class TransactionOutputs {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new TransactionOutputs([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(TransactionOutput.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -18529,7 +18536,7 @@ export class TransactionUnspentOutputs {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new TransactionUnspentOutputs([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(TransactionUnspentOutput.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -18905,7 +18912,7 @@ export class TransactionWitnessSets {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new TransactionWitnessSets([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(TransactionWitnessSet.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -20168,7 +20175,7 @@ export class Vkeys {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new Vkeys([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(Vkey.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
@@ -20948,7 +20955,7 @@ export class Voters {
     let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
     let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
     let ret = new Voters([], isDefinite > 0);
-    for (let _i = 0; _i < len; _i++) {
+    for (let i = 0; i < len; i++) {
       ret.add(Voter.arbitrary(prng_mut));
       prand.unsafeSkipN(prng_mut, 1);
     }
