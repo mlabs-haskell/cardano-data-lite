@@ -1,0 +1,42 @@
+# [ transaction_metadata: metadata ; Shelley-ma
+#   , auxiliary_scripts: [ * native_script ]
+# ]
+AuxiliaryDataShelleyMa:
+  type: record_fragment
+  fields:
+    - name: transaction_metadata 
+      type: GeneralTransactionMetadata
+    - name: auxiliary_scripts
+      type: NativeScripts
+
+# #6.259({ ? 0 => metadata         ; Alonzo and beyond
+#       , ? 1 => [ * native_script ]
+#       , ? 2 => [ * plutus_v1_script ]
+#       , ? 3 => [ * plutus_v2_script ]
+#       , ? 4 => [ * plutus_v3_script ]
+#       })
+AuxiliaryDataPostAlonzo:
+  type: struct
+  fields:
+    - id: 0
+      name: metadata
+      type: GeneralTransactionMetadata
+      optional: true
+    - id: 1
+      name: native_scripts
+      type: NativeScripts
+      optional: true
+    - id: 2
+      name: plutus_scripts_v1
+      type: PlutusScripts
+      optional: true
+    - id: 3
+      name: plutus_scripts_v2
+      type: PlutusScripts
+      optional: true
+    - id: 4
+      name: plutus_scripts_v3
+      type: PlutusScripts
+      optional: true
+  tagged:
+    tag: 259

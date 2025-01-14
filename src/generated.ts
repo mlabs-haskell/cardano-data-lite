@@ -48,7 +48,7 @@ export class Anchor {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -68,7 +68,9 @@ export class Anchor {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._url.serialize(writer);
     this._anchor_data_hash.serialize(writer);
@@ -216,9 +218,11 @@ export class AssetName {
 
 export class AssetNames {
   private items: AssetName[];
+  private definiteEncoding: boolean;
 
-  constructor(items: AssetName[]) {
+  constructor(items: AssetName[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): AssetNames {
@@ -239,17 +243,19 @@ export class AssetNames {
   }
 
   static deserialize(reader: CBORReader, path: string[]): AssetNames {
-    return new AssetNames(
-      reader.readArray(
-        (reader, idx) =>
-          AssetName.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => AssetName.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new AssetNames(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -436,166 +442,123 @@ export class Assets {
   }
 }
 
+export enum AuxiliaryDataKind {
+  GeneralTransactionMetadata = 0,
+  AuxiliaryDataShelleyMa = 1,
+  AuxiliaryDataPostAlonzo = 2,
+}
+
+export type AuxiliaryDataVariant =
+  | { kind: 0; value: GeneralTransactionMetadata }
+  | { kind: 1; value: AuxiliaryDataShelleyMa }
+  | { kind: 2; value: AuxiliaryDataPostAlonzo };
+
 export class AuxiliaryData {
-  private _metadata: GeneralTransactionMetadata;
-  private _native_scripts: NativeScripts;
-  private _plutus_scripts_v1: PlutusScripts;
-  private _plutus_scripts_v2: PlutusScripts;
-  private _plutus_scripts_v3: PlutusScripts;
+  private variant: AuxiliaryDataVariant;
 
-  constructor(
-    metadata: GeneralTransactionMetadata,
-    native_scripts: NativeScripts,
-    plutus_scripts_v1: PlutusScripts,
-    plutus_scripts_v2: PlutusScripts,
-    plutus_scripts_v3: PlutusScripts,
-  ) {
-    this._metadata = metadata;
-    this._native_scripts = native_scripts;
-    this._plutus_scripts_v1 = plutus_scripts_v1;
-    this._plutus_scripts_v2 = plutus_scripts_v2;
-    this._plutus_scripts_v3 = plutus_scripts_v3;
+  constructor(variant: AuxiliaryDataVariant) {
+    this.variant = variant;
   }
 
-  metadata(): GeneralTransactionMetadata {
-    return this._metadata;
+  static new_shelley_metadata(
+    shelley_metadata: GeneralTransactionMetadata,
+  ): AuxiliaryData {
+    return new AuxiliaryData({ kind: 0, value: shelley_metadata });
   }
 
-  set_metadata(metadata: GeneralTransactionMetadata): void {
-    this._metadata = metadata;
+  static new_shelley_metadata_ma(
+    shelley_metadata_ma: AuxiliaryDataShelleyMa,
+  ): AuxiliaryData {
+    return new AuxiliaryData({ kind: 1, value: shelley_metadata_ma });
   }
 
-  native_scripts(): NativeScripts {
-    return this._native_scripts;
+  static new_postalonzo_metadata(
+    postalonzo_metadata: AuxiliaryDataPostAlonzo,
+  ): AuxiliaryData {
+    return new AuxiliaryData({ kind: 2, value: postalonzo_metadata });
   }
 
-  set_native_scripts(native_scripts: NativeScripts): void {
-    this._native_scripts = native_scripts;
+  as_shelley_metadata(): GeneralTransactionMetadata {
+    if (this.variant.kind == 0) return this.variant.value;
+    throw new Error("Incorrect cast");
   }
 
-  plutus_scripts_v1(): PlutusScripts {
-    return this._plutus_scripts_v1;
+  as_shelley_metadata_ma(): AuxiliaryDataShelleyMa {
+    if (this.variant.kind == 1) return this.variant.value;
+    throw new Error("Incorrect cast");
   }
 
-  set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts): void {
-    this._plutus_scripts_v1 = plutus_scripts_v1;
+  as_postalonzo_metadata(): AuxiliaryDataPostAlonzo {
+    if (this.variant.kind == 2) return this.variant.value;
+    throw new Error("Incorrect cast");
   }
 
-  plutus_scripts_v2(): PlutusScripts {
-    return this._plutus_scripts_v2;
-  }
-
-  set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts): void {
-    this._plutus_scripts_v2 = plutus_scripts_v2;
-  }
-
-  plutus_scripts_v3(): PlutusScripts {
-    return this._plutus_scripts_v3;
-  }
-
-  set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts): void {
-    this._plutus_scripts_v3 = plutus_scripts_v3;
+  kind(): AuxiliaryDataKind {
+    return this.variant.kind;
   }
 
   static deserialize(reader: CBORReader, path: string[]): AuxiliaryData {
-    let fields: any = {};
-    reader.readMap((r) => {
-      let key = Number(r.readUint(path));
-      switch (key) {
-        case 0: {
-          const new_path = [...path, "GeneralTransactionMetadata(metadata)"];
-          fields.metadata = GeneralTransactionMetadata.deserialize(r, new_path);
-          break;
-        }
+    let tag = reader.peekType(path);
+    let variant: AuxiliaryDataVariant;
 
-        case 1: {
-          const new_path = [...path, "NativeScripts(native_scripts)"];
-          fields.native_scripts = NativeScripts.deserialize(r, new_path);
-          break;
-        }
+    switch (tag) {
+      case "map":
+        variant = {
+          kind: AuxiliaryDataKind.GeneralTransactionMetadata,
+          value: GeneralTransactionMetadata.deserialize(reader, [
+            ...path,
+            "GeneralTransactionMetadata(shelley_metadata)",
+          ]),
+        };
+        break;
 
-        case 2: {
-          const new_path = [...path, "PlutusScripts(plutus_scripts_v1)"];
-          fields.plutus_scripts_v1 = PlutusScripts.deserialize(r, new_path);
-          break;
-        }
+      case "array":
+        variant = {
+          kind: AuxiliaryDataKind.AuxiliaryDataShelleyMa,
+          value: AuxiliaryDataShelleyMa.deserialize(reader, [
+            ...path,
+            "AuxiliaryDataShelleyMa(shelley_metadata_ma)",
+          ]),
+        };
+        break;
 
-        case 3: {
-          const new_path = [...path, "PlutusScripts(plutus_scripts_v2)"];
-          fields.plutus_scripts_v2 = PlutusScripts.deserialize(r, new_path);
-          break;
-        }
+      case "tagged":
+        variant = {
+          kind: AuxiliaryDataKind.AuxiliaryDataPostAlonzo,
+          value: AuxiliaryDataPostAlonzo.deserialize(reader, [
+            ...path,
+            "AuxiliaryDataPostAlonzo(postalonzo_metadata)",
+          ]),
+        };
+        break;
 
-        case 4: {
-          const new_path = [...path, "PlutusScripts(plutus_scripts_v3)"];
-          fields.plutus_scripts_v3 = PlutusScripts.deserialize(r, new_path);
-          break;
-        }
-      }
-    }, path);
+      default:
+        throw new Error(
+          "Unexpected subtype for AuxiliaryData: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
+    }
 
-    if (fields.metadata === undefined)
-      throw new Error(
-        "Value not provided for field 0 (metadata) (at " + path.join("/") + ")",
-      );
-    let metadata = fields.metadata;
-    if (fields.native_scripts === undefined)
-      throw new Error(
-        "Value not provided for field 1 (native_scripts) (at " +
-          path.join("/") +
-          ")",
-      );
-    let native_scripts = fields.native_scripts;
-    if (fields.plutus_scripts_v1 === undefined)
-      throw new Error(
-        "Value not provided for field 2 (plutus_scripts_v1) (at " +
-          path.join("/") +
-          ")",
-      );
-    let plutus_scripts_v1 = fields.plutus_scripts_v1;
-    if (fields.plutus_scripts_v2 === undefined)
-      throw new Error(
-        "Value not provided for field 3 (plutus_scripts_v2) (at " +
-          path.join("/") +
-          ")",
-      );
-    let plutus_scripts_v2 = fields.plutus_scripts_v2;
-    if (fields.plutus_scripts_v3 === undefined)
-      throw new Error(
-        "Value not provided for field 4 (plutus_scripts_v3) (at " +
-          path.join("/") +
-          ")",
-      );
-    let plutus_scripts_v3 = fields.plutus_scripts_v3;
-
-    return new AuxiliaryData(
-      metadata,
-      native_scripts,
-      plutus_scripts_v1,
-      plutus_scripts_v2,
-      plutus_scripts_v3,
-    );
+    return new AuxiliaryData(variant);
   }
 
   serialize(writer: CBORWriter): void {
-    let len = 5;
+    switch (this.variant.kind) {
+      case 0:
+        this.variant.value.serialize(writer);
+        break;
 
-    writer.writeMapTag(len);
+      case 1:
+        this.variant.value.serialize(writer);
+        break;
 
-    writer.writeInt(0n);
-    this._metadata.serialize(writer);
-
-    writer.writeInt(1n);
-    this._native_scripts.serialize(writer);
-
-    writer.writeInt(2n);
-    this._plutus_scripts_v1.serialize(writer);
-
-    writer.writeInt(3n);
-    this._plutus_scripts_v2.serialize(writer);
-
-    writer.writeInt(4n);
-    this._plutus_scripts_v3.serialize(writer);
+      case 2:
+        this.variant.value.serialize(writer);
+        break;
+    }
   }
 
   // no-op
@@ -631,13 +594,14 @@ export class AuxiliaryData {
   }
 
   static new(): AuxiliaryData {
-    return new AuxiliaryData(
+    const post_alonzo_auxiliary_data = new AuxiliaryDataPostAlonzo(
       GeneralTransactionMetadata.new(),
       NativeScripts.new(),
       PlutusScripts.new(),
       PlutusScripts.new(),
       PlutusScripts.new(),
     );
+    return new AuxiliaryData({ kind: 2, value: post_alonzo_auxiliary_data });
   }
 }
 
@@ -696,6 +660,225 @@ export class AuxiliaryDataHash {
 
   serialize(writer: CBORWriter): void {
     writer.writeBytes(this.inner);
+  }
+}
+
+export class AuxiliaryDataPostAlonzo {
+  private _metadata: GeneralTransactionMetadata | undefined;
+  private _native_scripts: NativeScripts | undefined;
+  private _plutus_scripts_v1: PlutusScripts | undefined;
+  private _plutus_scripts_v2: PlutusScripts | undefined;
+  private _plutus_scripts_v3: PlutusScripts | undefined;
+
+  constructor(
+    metadata: GeneralTransactionMetadata | undefined,
+    native_scripts: NativeScripts | undefined,
+    plutus_scripts_v1: PlutusScripts | undefined,
+    plutus_scripts_v2: PlutusScripts | undefined,
+    plutus_scripts_v3: PlutusScripts | undefined,
+  ) {
+    this._metadata = metadata;
+    this._native_scripts = native_scripts;
+    this._plutus_scripts_v1 = plutus_scripts_v1;
+    this._plutus_scripts_v2 = plutus_scripts_v2;
+    this._plutus_scripts_v3 = plutus_scripts_v3;
+  }
+
+  static new(
+    metadata: GeneralTransactionMetadata | undefined,
+    native_scripts: NativeScripts | undefined,
+    plutus_scripts_v1: PlutusScripts | undefined,
+    plutus_scripts_v2: PlutusScripts | undefined,
+    plutus_scripts_v3: PlutusScripts | undefined,
+  ) {
+    return new AuxiliaryDataPostAlonzo(
+      metadata,
+      native_scripts,
+      plutus_scripts_v1,
+      plutus_scripts_v2,
+      plutus_scripts_v3,
+    );
+  }
+
+  metadata(): GeneralTransactionMetadata | undefined {
+    return this._metadata;
+  }
+
+  set_metadata(metadata: GeneralTransactionMetadata | undefined): void {
+    this._metadata = metadata;
+  }
+
+  native_scripts(): NativeScripts | undefined {
+    return this._native_scripts;
+  }
+
+  set_native_scripts(native_scripts: NativeScripts | undefined): void {
+    this._native_scripts = native_scripts;
+  }
+
+  plutus_scripts_v1(): PlutusScripts | undefined {
+    return this._plutus_scripts_v1;
+  }
+
+  set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts | undefined): void {
+    this._plutus_scripts_v1 = plutus_scripts_v1;
+  }
+
+  plutus_scripts_v2(): PlutusScripts | undefined {
+    return this._plutus_scripts_v2;
+  }
+
+  set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts | undefined): void {
+    this._plutus_scripts_v2 = plutus_scripts_v2;
+  }
+
+  plutus_scripts_v3(): PlutusScripts | undefined {
+    return this._plutus_scripts_v3;
+  }
+
+  set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts | undefined): void {
+    this._plutus_scripts_v3 = plutus_scripts_v3;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    path: string[] = ["AuxiliaryDataPostAlonzo"],
+  ): AuxiliaryDataPostAlonzo {
+    let taggedTag = reader.readTaggedTag(path);
+    if (taggedTag != 259) {
+      throw new Error(
+        "Expected tag 259, got " + taggedTag + " (at " + path + ")",
+      );
+    }
+
+    return AuxiliaryDataPostAlonzo.deserializeInner(reader, path);
+  }
+
+  static deserializeInner(
+    reader: CBORReader,
+    path: string[],
+  ): AuxiliaryDataPostAlonzo {
+    let fields: any = {};
+    reader.readMap((r) => {
+      let key = Number(r.readUint(path));
+      switch (key) {
+        case 0: {
+          const new_path = [...path, "GeneralTransactionMetadata(metadata)"];
+          fields.metadata = GeneralTransactionMetadata.deserialize(r, new_path);
+          break;
+        }
+
+        case 1: {
+          const new_path = [...path, "NativeScripts(native_scripts)"];
+          fields.native_scripts = NativeScripts.deserialize(r, new_path);
+          break;
+        }
+
+        case 2: {
+          const new_path = [...path, "PlutusScripts(plutus_scripts_v1)"];
+          fields.plutus_scripts_v1 = PlutusScripts.deserialize(r, new_path);
+          break;
+        }
+
+        case 3: {
+          const new_path = [...path, "PlutusScripts(plutus_scripts_v2)"];
+          fields.plutus_scripts_v2 = PlutusScripts.deserialize(r, new_path);
+          break;
+        }
+
+        case 4: {
+          const new_path = [...path, "PlutusScripts(plutus_scripts_v3)"];
+          fields.plutus_scripts_v3 = PlutusScripts.deserialize(r, new_path);
+          break;
+        }
+      }
+    }, path);
+
+    let metadata = fields.metadata;
+
+    let native_scripts = fields.native_scripts;
+
+    let plutus_scripts_v1 = fields.plutus_scripts_v1;
+
+    let plutus_scripts_v2 = fields.plutus_scripts_v2;
+
+    let plutus_scripts_v3 = fields.plutus_scripts_v3;
+
+    return new AuxiliaryDataPostAlonzo(
+      metadata,
+      native_scripts,
+      plutus_scripts_v1,
+      plutus_scripts_v2,
+      plutus_scripts_v3,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeTaggedTag(259);
+
+    this.serializeInner(writer);
+  }
+
+  serializeInner(writer: CBORWriter): void {
+    let len = 5;
+    if (this._metadata === undefined) len -= 1;
+    if (this._native_scripts === undefined) len -= 1;
+    if (this._plutus_scripts_v1 === undefined) len -= 1;
+    if (this._plutus_scripts_v2 === undefined) len -= 1;
+    if (this._plutus_scripts_v3 === undefined) len -= 1;
+    writer.writeMapTag(len);
+    if (this._metadata !== undefined) {
+      writer.writeInt(0n);
+      this._metadata.serialize(writer);
+    }
+    if (this._native_scripts !== undefined) {
+      writer.writeInt(1n);
+      this._native_scripts.serialize(writer);
+    }
+    if (this._plutus_scripts_v1 !== undefined) {
+      writer.writeInt(2n);
+      this._plutus_scripts_v1.serialize(writer);
+    }
+    if (this._plutus_scripts_v2 !== undefined) {
+      writer.writeInt(3n);
+      this._plutus_scripts_v2.serialize(writer);
+    }
+    if (this._plutus_scripts_v3 !== undefined) {
+      writer.writeInt(4n);
+      this._plutus_scripts_v3.serialize(writer);
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["AuxiliaryDataPostAlonzo"],
+  ): AuxiliaryDataPostAlonzo {
+    let reader = new CBORReader(data);
+    return AuxiliaryDataPostAlonzo.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["AuxiliaryDataPostAlonzo"],
+  ): AuxiliaryDataPostAlonzo {
+    return AuxiliaryDataPostAlonzo.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): AuxiliaryDataPostAlonzo {
+    return AuxiliaryDataPostAlonzo.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -797,6 +980,98 @@ export class AuxiliaryDataSet {
       indices[i] = key;
     }
     return indices;
+  }
+}
+
+export class AuxiliaryDataShelleyMa {
+  private _transaction_metadata: GeneralTransactionMetadata;
+  private _auxiliary_scripts: NativeScripts;
+
+  constructor(
+    transaction_metadata: GeneralTransactionMetadata,
+    auxiliary_scripts: NativeScripts,
+  ) {
+    this._transaction_metadata = transaction_metadata;
+    this._auxiliary_scripts = auxiliary_scripts;
+  }
+
+  static new(
+    transaction_metadata: GeneralTransactionMetadata,
+    auxiliary_scripts: NativeScripts,
+  ) {
+    return new AuxiliaryDataShelleyMa(transaction_metadata, auxiliary_scripts);
+  }
+
+  transaction_metadata(): GeneralTransactionMetadata {
+    return this._transaction_metadata;
+  }
+
+  set_transaction_metadata(
+    transaction_metadata: GeneralTransactionMetadata,
+  ): void {
+    this._transaction_metadata = transaction_metadata;
+  }
+
+  auxiliary_scripts(): NativeScripts {
+    return this._auxiliary_scripts;
+  }
+
+  set_auxiliary_scripts(auxiliary_scripts: NativeScripts): void {
+    this._auxiliary_scripts = auxiliary_scripts;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): AuxiliaryDataShelleyMa {
+    let transaction_metadata = GeneralTransactionMetadata.deserialize(reader, [
+      ...path,
+      "transaction_metadata",
+    ]);
+
+    let auxiliary_scripts = NativeScripts.deserialize(reader, [
+      ...path,
+      "auxiliary_scripts",
+    ]);
+
+    return new AuxiliaryDataShelleyMa(transaction_metadata, auxiliary_scripts);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this._transaction_metadata.serialize(writer);
+    this._auxiliary_scripts.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["AuxiliaryDataShelleyMa"],
+  ): AuxiliaryDataShelleyMa {
+    let reader = new CBORReader(data);
+    return AuxiliaryDataShelleyMa.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["AuxiliaryDataShelleyMa"],
+  ): AuxiliaryDataShelleyMa {
+    return AuxiliaryDataShelleyMa.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): AuxiliaryDataShelleyMa {
+    return AuxiliaryDataShelleyMa.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -1156,36 +1431,20 @@ export class Block {
   private _transaction_bodies: TransactionBodies;
   private _transaction_witness_sets: TransactionWitnessSets;
   private _auxiliary_data_set: AuxiliaryDataSet;
-  private _invalid_transactions: Uint32Array;
+  private _inner_invalid_transactions: InvalidTransactions;
 
   constructor(
     header: Header,
     transaction_bodies: TransactionBodies,
     transaction_witness_sets: TransactionWitnessSets,
     auxiliary_data_set: AuxiliaryDataSet,
-    invalid_transactions: Uint32Array,
+    inner_invalid_transactions: InvalidTransactions,
   ) {
     this._header = header;
     this._transaction_bodies = transaction_bodies;
     this._transaction_witness_sets = transaction_witness_sets;
     this._auxiliary_data_set = auxiliary_data_set;
-    this._invalid_transactions = invalid_transactions;
-  }
-
-  static new(
-    header: Header,
-    transaction_bodies: TransactionBodies,
-    transaction_witness_sets: TransactionWitnessSets,
-    auxiliary_data_set: AuxiliaryDataSet,
-    invalid_transactions: Uint32Array,
-  ) {
-    return new Block(
-      header,
-      transaction_bodies,
-      transaction_witness_sets,
-      auxiliary_data_set,
-      invalid_transactions,
-    );
+    this._inner_invalid_transactions = inner_invalid_transactions;
   }
 
   header(): Header {
@@ -1222,12 +1481,14 @@ export class Block {
     this._auxiliary_data_set = auxiliary_data_set;
   }
 
-  invalid_transactions(): Uint32Array {
-    return this._invalid_transactions;
+  inner_invalid_transactions(): InvalidTransactions {
+    return this._inner_invalid_transactions;
   }
 
-  set_invalid_transactions(invalid_transactions: Uint32Array): void {
-    this._invalid_transactions = invalid_transactions;
+  set_inner_invalid_transactions(
+    inner_invalid_transactions: InvalidTransactions,
+  ): void {
+    this._inner_invalid_transactions = inner_invalid_transactions;
   }
 
   static deserialize(reader: CBORReader, path: string[]): Block {
@@ -1235,7 +1496,7 @@ export class Block {
 
     if (len != null && len < 5) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 5. Received " +
+        "Insufficient number of fields in record. Expected at least 5. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -1272,15 +1533,13 @@ export class Block {
       auxiliary_data_set_path,
     );
 
-    const invalid_transactions_path = [
+    const inner_invalid_transactions_path = [
       ...path,
-      "arrayToUint32Array(invalid_transactions)",
+      "InvalidTransactions(inner_invalid_transactions)",
     ];
-    let invalid_transactions = new Uint32Array(
-      reader.readArray(
-        (reader) => Number(reader.readUint(invalid_transactions_path)),
-        invalid_transactions_path,
-      ),
+    let inner_invalid_transactions = InvalidTransactions.deserialize(
+      reader,
+      inner_invalid_transactions_path,
     );
 
     return new Block(
@@ -1288,20 +1547,20 @@ export class Block {
       transaction_bodies,
       transaction_witness_sets,
       auxiliary_data_set,
-      invalid_transactions,
+      inner_invalid_transactions,
     );
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(5);
+    let arrayLen = 5;
+
+    writer.writeArrayTag(arrayLen);
 
     this._header.serialize(writer);
     this._transaction_bodies.serialize(writer);
     this._transaction_witness_sets.serialize(writer);
     this._auxiliary_data_set.serialize(writer);
-    writer.writeArray(this._invalid_transactions, (writer, x) =>
-      writer.writeInt(BigInt(x)),
-    );
+    this._inner_invalid_transactions.serialize(writer);
   }
 
   // no-op
@@ -1328,6 +1587,32 @@ export class Block {
 
   clone(path: string[]): Block {
     return Block.from_bytes(this.to_bytes(), path);
+  }
+
+  static new(
+    header: Header,
+    transaction_bodies: TransactionBodies,
+    transaction_witness_sets: TransactionWitnessSets,
+    auxiliary_data_set: AuxiliaryDataSet,
+    invalid_transactions: Uint32Array,
+  ): Block {
+    return new Block(
+      header,
+      transaction_bodies,
+      transaction_witness_sets,
+      auxiliary_data_set,
+      new InvalidTransactions(invalid_transactions),
+    );
+  }
+
+  invalid_transactions(): Uint32Array {
+    return this.inner_invalid_transactions().as_uint32Array();
+  }
+
+  set_invalid_transactions(invalid_transactions: Uint32Array) {
+    this._inner_invalid_transactions = new InvalidTransactions(
+      invalid_transactions,
+    );
   }
 }
 
@@ -1453,7 +1738,7 @@ export class BootstrapWitness {
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " +
+        "Insufficient number of fields in record. Expected at least 4. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -1476,7 +1761,9 @@ export class BootstrapWitness {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(4);
+    let arrayLen = 4;
+
+    writer.writeArrayTag(arrayLen);
 
     this._vkey.serialize(writer);
     this._signature.serialize(writer);
@@ -1519,13 +1806,21 @@ export class BootstrapWitness {
 
 export class BootstrapWitnesses {
   private items: BootstrapWitness[];
+  private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
 
-  constructor(items: BootstrapWitness[]) {
+  private setItems(items: BootstrapWitness[]) {
     this.items = items;
   }
 
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
+    this.items = [];
+    this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
+  }
+
   static new(): BootstrapWitnesses {
-    return new BootstrapWitnesses([]);
+    return new BootstrapWitnesses();
   }
 
   len(): number {
@@ -1537,21 +1832,48 @@ export class BootstrapWitnesses {
     return this.items[index];
   }
 
-  add(elem: BootstrapWitness): void {
+  add(elem: BootstrapWitness): boolean {
+    if (this.contains(elem)) return true;
     this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: BootstrapWitness): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static deserialize(reader: CBORReader, path: string[]): BootstrapWitnesses {
-    return new BootstrapWitnesses(
-      reader.readArray(
-        (reader, idx) =>
-          BootstrapWitness.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    let nonEmptyTag = false;
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
+    }
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        BootstrapWitness.deserialize(reader, [
+          ...path,
+          "BootstrapWitness#" + idx,
+        ]),
+      path,
     );
+    let ret = new BootstrapWitnesses(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
+    return ret;
   }
 
   serialize(writer: CBORWriter): void {
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -2237,15 +2559,22 @@ export class Certificate {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for Certificate: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for Certificate: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new Certificate(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -2373,9 +2702,17 @@ export class Certificate {
 
 export class Certificates {
   private items: Certificate[];
+  private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: Certificate[]) {
+    this.items = items;
+  }
+
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
+    this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): Certificates {
@@ -2407,23 +2744,29 @@ export class Certificates {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Certificates {
-    let ret = new Certificates();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(
-          Certificate.deserialize(reader, [...path, "Certificate#" + idx]),
-        ),
+        Certificate.deserialize(reader, [...path, "Certificate#" + idx]),
       path,
     );
+    let ret = new Certificates(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -2504,7 +2847,7 @@ export class ChangeConfig {
 
     if (len != null && len < 3) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " +
+        "Insufficient number of fields in record. Expected at least 3. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -2532,7 +2875,9 @@ export class ChangeConfig {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(3);
+    let arrayLen = 3;
+
+    writer.writeArrayTag(arrayLen);
 
     this._address.serialize(writer);
     if (this._plutus_data == null) {
@@ -2934,7 +3279,7 @@ export class Constitution {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -2955,7 +3300,9 @@ export class Constitution {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._anchor.serialize(writer);
     if (this._scripthash == null) {
@@ -3011,7 +3358,7 @@ export class ConstrPlutusData {
     this._data = data;
   }
 
-  static new(alternative: BigNum, data: PlutusList) {
+  static uncheckedNew(alternative: BigNum, data: PlutusList) {
     return new ConstrPlutusData(alternative, data);
   }
 
@@ -3031,12 +3378,15 @@ export class ConstrPlutusData {
     this._data = data;
   }
 
-  static deserialize(reader: CBORReader, path: string[]): ConstrPlutusData {
+  static deserializeWithSeparateIdx(
+    reader: CBORReader,
+    path: string[],
+  ): ConstrPlutusData {
     let len = reader.readArrayTag(path);
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -3052,8 +3402,10 @@ export class ConstrPlutusData {
     return new ConstrPlutusData(alternative, data);
   }
 
-  serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+  serializeWithSeparateIdx(writer: CBORWriter): void {
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._alternative.serialize(writer);
     this._data.serialize(writer);
@@ -3090,13 +3442,56 @@ export class ConstrPlutusData {
   clone(path: string[]): ConstrPlutusData {
     return ConstrPlutusData.from_bytes(this.to_bytes(), path);
   }
+
+  static deserialize(reader: CBORReader, path: string[]): ConstrPlutusData {
+    const alternative = reader.readTaggedTagAsBigInt(path);
+    if (Number(alternative) >= 121 && Number(alternative) <= 127) {
+      return ConstrPlutusData.new(
+        BigNum.new(alternative),
+        PlutusList.deserialize(reader, [...path, "PlutusList(data)"]),
+      );
+    } else if (Number(alternative) == 102) {
+      return ConstrPlutusData.deserializeWithSeparateIdx(reader, path);
+    } else {
+      throw new Error(
+        "Unexpected alternative for ConstrPlutusData: " +
+          alternative +
+          "(at " +
+          path.join("/") +
+          ")",
+      );
+    }
+  }
+
+  serialize(writer: CBORWriter): void {
+    const alternative = this.alternative().toJsValue();
+    writer.writeTaggedTag(Number(alternative));
+    if (alternative == 102n) {
+      this.serializeWithSeparateIdx(writer);
+    } else {
+      this.data().serialize(writer);
+    }
+  }
+
+  static new(alternative: BigNum, data: PlutusList): ConstrPlutusData {
+    const alt = Number(alternative.toJsValue());
+    if (alt != 102 && (alt < 121 || alt > 127)) {
+      throw new Error(
+        "Unexpected alternative for ConstrPlutusData: " + alternative,
+      );
+    } else {
+      return ConstrPlutusData.uncheckedNew(alternative, data);
+    }
+  }
 }
 
 export class CostModel {
   private items: Int[];
+  private definiteEncoding: boolean;
 
-  constructor(items: Int[]) {
+  constructor(items: Int[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): CostModel {
@@ -3117,16 +3512,19 @@ export class CostModel {
   }
 
   static deserialize(reader: CBORReader, path: string[]): CostModel {
-    return new CostModel(
-      reader.readArray(
-        (reader, idx) => Int.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => Int.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new CostModel(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -3286,9 +3684,17 @@ export class Costmdls {
 
 export class Credentials {
   private items: Credential[];
+  private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: Credential[]) {
+    this.items = items;
+  }
+
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
+    this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): Credentials {
@@ -3320,21 +3726,29 @@ export class Credentials {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Credentials {
-    let ret = new Credentials();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(Credential.deserialize(reader, [...path, "Credential#" + idx])),
+        Credential.deserialize(reader, [...path, "Credential#" + idx]),
       path,
     );
+    let ret = new Credentials(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -3585,15 +3999,18 @@ export class DRep {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for DRep: " + tag + "(at " + path.join("/") + ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for DRep: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new DRep(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -4060,7 +4477,7 @@ export class DRepVotingThresholds {
 
     if (len != null && len < 10) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 10. Received " +
+        "Insufficient number of fields in record. Expected at least 10. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -4163,7 +4580,9 @@ export class DRepVotingThresholds {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(10);
+    let arrayLen = 10;
+
+    writer.writeArrayTag(arrayLen);
 
     this._motion_no_confidence.serialize(writer);
     this._committee_normal.serialize(writer);
@@ -4210,6 +4629,73 @@ export class DRepVotingThresholds {
   }
 }
 
+export class Data {
+  private inner: Uint8Array;
+
+  constructor(inner: Uint8Array) {
+    this.inner = inner;
+  }
+
+  static new(inner: Uint8Array): Data {
+    return new Data(inner);
+  }
+
+  encoded_plutus_data(): Uint8Array {
+    return this.inner;
+  }
+
+  static deserialize(reader: CBORReader, path: string[] = ["Data"]): Data {
+    let taggedTag = reader.readTaggedTag(path);
+    if (taggedTag != 24) {
+      throw new Error(
+        "Expected tag 24, got " + taggedTag + " (at " + path + ")",
+      );
+    }
+
+    return Data.deserializeInner(reader, path);
+  }
+
+  static deserializeInner(reader: CBORReader, path: string[]): Data {
+    return new Data(reader.readBytes(path));
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeTaggedTag(24);
+
+    this.serializeInner(writer);
+  }
+
+  serializeInner(writer: CBORWriter): void {
+    writer.writeBytes(this.inner);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(data: Uint8Array, path: string[] = ["Data"]): Data {
+    let reader = new CBORReader(data);
+    return Data.deserialize(reader, path);
+  }
+
+  static from_hex(hex_str: string, path: string[] = ["Data"]): Data {
+    return Data.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): Data {
+    return Data.from_bytes(this.to_bytes(), path);
+  }
+}
+
 export class DataCost {
   private _coins_per_byte: BigNum;
 
@@ -4234,7 +4720,7 @@ export class DataCost {
 
     if (len != null && len < 1) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " +
+        "Insufficient number of fields in record. Expected at least 1. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -4248,7 +4734,9 @@ export class DataCost {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(1);
+    let arrayLen = 1;
+
+    writer.writeArrayTag(arrayLen);
 
     this._coins_per_byte.serialize(writer);
   }
@@ -4340,12 +4828,12 @@ export class DataHash {
 
 export enum DataOptionKind {
   DataHash = 0,
-  PlutusData = 1,
+  Data = 1,
 }
 
 export type DataOptionVariant =
   | { kind: 0; value: DataHash }
-  | { kind: 1; value: PlutusData };
+  | { kind: 1; value: Data };
 
 export class DataOption {
   private variant: DataOptionVariant;
@@ -4358,7 +4846,7 @@ export class DataOption {
     return new DataOption({ kind: 0, value: hash });
   }
 
-  static new_data(data: PlutusData): DataOption {
+  static new_data(data: Data): DataOption {
     return new DataOption({ kind: 1, value: data });
   }
 
@@ -4366,7 +4854,7 @@ export class DataOption {
     if (this.variant.kind == 0) return this.variant.value;
   }
 
-  as_data(): PlutusData | undefined {
+  as_data(): Data | undefined {
     if (this.variant.kind == 1) return this.variant.value;
   }
 
@@ -4393,23 +4881,30 @@ export class DataOption {
 
       case 1:
         if (len != null && len - 1 != 1) {
-          throw new Error("Expected 1 items to decode PlutusData");
+          throw new Error("Expected 1 items to decode Data");
         }
         variant = {
           kind: 1,
-          value: PlutusData.deserialize(reader, [...path, "PlutusData"]),
+          value: Data.deserialize(reader, [...path, "Data"]),
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for DataOption: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for DataOption: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new DataOption(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -4526,15 +5021,22 @@ export class DatumSource {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for DatumSource: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for DatumSource: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new DatumSource(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -4649,9 +5151,17 @@ export class Ed25519KeyHash {
 
 export class Ed25519KeyHashes {
   private items: Ed25519KeyHash[];
+  private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: Ed25519KeyHash[]) {
+    this.items = items;
+  }
+
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
+    this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): Ed25519KeyHashes {
@@ -4683,26 +5193,29 @@ export class Ed25519KeyHashes {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Ed25519KeyHashes {
-    let ret = new Ed25519KeyHashes();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(
-          Ed25519KeyHash.deserialize(reader, [
-            ...path,
-            "Ed25519KeyHash#" + idx,
-          ]),
-        ),
+        Ed25519KeyHash.deserialize(reader, [...path, "Ed25519KeyHash#" + idx]),
       path,
     );
+    let ret = new Ed25519KeyHashes(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -4835,7 +5348,7 @@ export class ExUnitPrices {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -4852,7 +5365,9 @@ export class ExUnitPrices {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._mem_price.serialize(writer);
     this._step_price.serialize(writer);
@@ -4925,7 +5440,7 @@ export class ExUnits {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -4942,7 +5457,9 @@ export class ExUnits {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._mem.serialize(writer);
     this._steps.serialize(writer);
@@ -5203,9 +5720,11 @@ export class GenesisHash {
 
 export class GenesisHashes {
   private items: GenesisHash[];
+  private definiteEncoding: boolean;
 
-  constructor(items: GenesisHash[]) {
+  constructor(items: GenesisHash[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): GenesisHashes {
@@ -5226,17 +5745,20 @@ export class GenesisHashes {
   }
 
   static deserialize(reader: CBORReader, path: string[]): GenesisHashes {
-    return new GenesisHashes(
-      reader.readArray(
-        (reader, idx) =>
-          GenesisHash.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        GenesisHash.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new GenesisHashes(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -5480,19 +6002,22 @@ export class GovernanceAction {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for GovernanceAction: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for GovernanceAction: " +
-        tag +
-        "(at " +
-        path.join("/") +
-        ")",
-    );
+    return new GovernanceAction(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -5602,7 +6127,7 @@ export class GovernanceActionId {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -5622,7 +6147,9 @@ export class GovernanceActionId {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._transaction_id.serialize(writer);
     writer.writeInt(BigInt(this._index));
@@ -5663,9 +6190,11 @@ export class GovernanceActionId {
 
 export class GovernanceActionIds {
   private items: GovernanceActionId[];
+  private definiteEncoding: boolean;
 
-  constructor(items: GovernanceActionId[]) {
+  constructor(items: GovernanceActionId[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): GovernanceActionIds {
@@ -5686,17 +6215,20 @@ export class GovernanceActionIds {
   }
 
   static deserialize(reader: CBORReader, path: string[]): GovernanceActionIds {
-    return new GovernanceActionIds(
-      reader.readArray(
-        (reader, idx) =>
-          GovernanceActionId.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        GovernanceActionId.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new GovernanceActionIds(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -5975,7 +6507,7 @@ export class Header {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -5992,7 +6524,9 @@ export class Header {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._header_body.serialize(writer);
     this._body_signature.serialize(writer);
@@ -6172,7 +6706,7 @@ export class HeaderBody {
 
     if (len != null && len < 10) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 10. Received " +
+        "Insufficient number of fields in record. Expected at least 10. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -6240,7 +6774,9 @@ export class HeaderBody {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(10);
+    let arrayLen = 10;
+
+    writer.writeArrayTag(arrayLen);
 
     writer.writeInt(BigInt(this._block_number));
     this._slot.serialize(writer);
@@ -6467,6 +7003,77 @@ export class Int {
     let x = this.as_i32_or_nothing();
     if (x == null) throw new Error("Int out of i32 bounds");
     return x;
+  }
+}
+
+export class InvalidTransactions {
+  private items: Uint32Array;
+  private definiteEncoding: boolean;
+
+  constructor(items: Uint32Array, definiteEncoding: boolean = true) {
+    this.items = items;
+    this.definiteEncoding = definiteEncoding;
+  }
+
+  static new(): InvalidTransactions {
+    return new InvalidTransactions(new Uint32Array([]));
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): InvalidTransactions {
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => Number(reader.readUint([...path, "Byte#" + idx])),
+      path,
+    );
+
+    return new InvalidTransactions(new Uint32Array(items), definiteEncoding);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(
+      this.items,
+      (writer, x) => writer.writeInt(BigInt(x)),
+      this.definiteEncoding,
+    );
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["InvalidTransactions"],
+  ): InvalidTransactions {
+    let reader = new CBORReader(data);
+    return InvalidTransactions.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["InvalidTransactions"],
+  ): InvalidTransactions {
+    return InvalidTransactions.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): InvalidTransactions {
+    return InvalidTransactions.from_bytes(this.to_bytes(), path);
+  }
+
+  as_uint32Array(): Uint32Array {
+    return this.items;
   }
 }
 
@@ -6767,9 +7374,11 @@ export class Language {
 
 export class Languages {
   private items: Language[];
+  private definiteEncoding: boolean;
 
-  constructor(items: Language[]) {
+  constructor(items: Language[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): Languages {
@@ -6790,16 +7399,19 @@ export class Languages {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Languages {
-    return new Languages(
-      reader.readArray(
-        (reader, idx) => Language.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => Language.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new Languages(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -6842,9 +7454,11 @@ export class Languages {
 
 export class MetadataList {
   private items: TransactionMetadatum[];
+  private definiteEncoding: boolean;
 
-  constructor(items: TransactionMetadatum[]) {
+  constructor(items: TransactionMetadatum[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): MetadataList {
@@ -6865,17 +7479,20 @@ export class MetadataList {
   }
 
   static deserialize(reader: CBORReader, path: string[]): MetadataList {
-    return new MetadataList(
-      reader.readArray(
-        (reader, idx) =>
-          TransactionMetadatum.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        TransactionMetadatum.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new MetadataList(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -7303,9 +7920,11 @@ export class MintAssets {
 
 export class MintsAssets {
   private items: MintAssets[];
+  private definiteEncoding: boolean;
 
-  constructor(items: MintAssets[]) {
+  constructor(items: MintAssets[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): MintsAssets {
@@ -7326,17 +7945,19 @@ export class MintsAssets {
   }
 
   static deserialize(reader: CBORReader, path: string[]): MintsAssets {
-    return new MintsAssets(
-      reader.readArray(
-        (reader, idx) =>
-          MintAssets.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => MintAssets.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new MintsAssets(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -7773,15 +8394,22 @@ export class NativeScript {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for NativeScript: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for NativeScript: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new NativeScript(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -7904,7 +8532,7 @@ export class NativeScriptRefInput {
 
     if (len != null && len < 3) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 3. Received " +
+        "Insufficient number of fields in record. Expected at least 3. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -7924,7 +8552,9 @@ export class NativeScriptRefInput {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(3);
+    let arrayLen = 3;
+
+    writer.writeArrayTag(arrayLen);
 
     this._script_hash.serialize(writer);
     this._input.serialize(writer);
@@ -8030,19 +8660,22 @@ export class NativeScriptSource {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for NativeScriptSource: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for NativeScriptSource: " +
-        tag +
-        "(at " +
-        path.join("/") +
-        ")",
-    );
+    return new NativeScriptSource(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -8115,13 +8748,21 @@ export class NativeScriptSource {
 
 export class NativeScripts {
   private items: NativeScript[];
+  private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
 
-  constructor(items: NativeScript[]) {
+  private setItems(items: NativeScript[]) {
     this.items = items;
   }
 
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
+    this.items = [];
+    this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
+  }
+
   static new(): NativeScripts {
-    return new NativeScripts([]);
+    return new NativeScripts();
   }
 
   len(): number {
@@ -8133,21 +8774,45 @@ export class NativeScripts {
     return this.items[index];
   }
 
-  add(elem: NativeScript): void {
+  add(elem: NativeScript): boolean {
+    if (this.contains(elem)) return true;
     this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: NativeScript): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static deserialize(reader: CBORReader, path: string[]): NativeScripts {
-    return new NativeScripts(
-      reader.readArray(
-        (reader, idx) =>
-          NativeScript.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    let nonEmptyTag = false;
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
+    }
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        NativeScript.deserialize(reader, [...path, "NativeScript#" + idx]),
+      path,
     );
+    let ret = new NativeScripts(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
+    return ret;
   }
 
   serialize(writer: CBORWriter): void {
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -8453,7 +9118,7 @@ export class Nonce {
 
     if (len != null && len < 1) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " +
+        "Insufficient number of fields in record. Expected at least 1. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -8468,7 +9133,9 @@ export class Nonce {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(1);
+    let arrayLen = 1;
+
+    writer.writeArrayTag(arrayLen);
 
     if (this._hash == null) {
       writer.writeNull();
@@ -8578,7 +9245,7 @@ export class OperationalCert {
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " +
+        "Insufficient number of fields in record. Expected at least 4. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -8601,7 +9268,9 @@ export class OperationalCert {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(4);
+    let arrayLen = 4;
+
+    writer.writeArrayTag(arrayLen);
 
     this._hot_vkey.serialize(writer);
     writer.writeInt(BigInt(this._sequence_number));
@@ -8705,15 +9374,22 @@ export class OutputDatum {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for OutputDatum: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for OutputDatum: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new OutputDatum(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -9135,13 +9811,15 @@ export class PlutusData {
 
 export class PlutusList {
   private items: PlutusData[];
+  private definiteEncoding: boolean;
 
-  constructor() {
-    this.items = [];
+  constructor(items: PlutusData[], definiteEncoding: boolean = true) {
+    this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): PlutusList {
-    return new PlutusList();
+    return new PlutusList([]);
   }
 
   len(): number {
@@ -9153,38 +9831,24 @@ export class PlutusList {
     return this.items[index];
   }
 
-  add(elem: PlutusData): boolean {
-    if (this.contains(elem)) return true;
+  add(elem: PlutusData): void {
     this.items.push(elem);
-    return false;
-  }
-
-  contains(elem: PlutusData): boolean {
-    for (let item of this.items) {
-      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
-        return true;
-      }
-    }
-    return false;
   }
 
   static deserialize(reader: CBORReader, path: string[]): PlutusList {
-    let ret = new PlutusList();
-    if (reader.peekType(path) == "tagged") {
-      let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
-    }
-    reader.readArray(
-      (reader, idx) =>
-        ret.add(PlutusData.deserialize(reader, [...path, "PlutusData#" + idx])),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => PlutusData.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    return ret;
+    return new PlutusList(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -9217,6 +9881,14 @@ export class PlutusList {
 
   clone(path: string[]): PlutusList {
     return PlutusList.from_bytes(this.to_bytes(), path);
+  }
+
+  as_set(): PlutusSet {
+    let set = new PlutusSet(this.definiteEncoding);
+    for (let i = 0; i < this.len(); i++) {
+      set.add(this.items[i]);
+    }
+    return set;
   }
 }
 
@@ -9323,9 +9995,11 @@ export class PlutusMap {
 
 export class PlutusMapValues {
   private items: PlutusData[];
+  private definiteEncoding: boolean;
 
-  constructor(items: PlutusData[]) {
+  constructor(items: PlutusData[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): PlutusMapValues {
@@ -9346,17 +10020,19 @@ export class PlutusMapValues {
   }
 
   static deserialize(reader: CBORReader, path: string[]): PlutusMapValues {
-    return new PlutusMapValues(
-      reader.readArray(
-        (reader, idx) =>
-          PlutusData.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => PlutusData.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new PlutusMapValues(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -9458,13 +10134,21 @@ export class PlutusScript {
 
 export class PlutusScripts {
   private items: PlutusScript[];
+  private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
 
-  constructor(items: PlutusScript[]) {
+  private setItems(items: PlutusScript[]) {
     this.items = items;
   }
 
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
+    this.items = [];
+    this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
+  }
+
   static new(): PlutusScripts {
-    return new PlutusScripts([]);
+    return new PlutusScripts();
   }
 
   len(): number {
@@ -9476,21 +10160,45 @@ export class PlutusScripts {
     return this.items[index];
   }
 
-  add(elem: PlutusScript): void {
+  add(elem: PlutusScript): boolean {
+    if (this.contains(elem)) return true;
     this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: PlutusScript): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static deserialize(reader: CBORReader, path: string[]): PlutusScripts {
-    return new PlutusScripts(
-      reader.readArray(
-        (reader, idx) =>
-          PlutusScript.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    let nonEmptyTag = false;
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
+    }
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        PlutusScript.deserialize(reader, [...path, "PlutusScript#" + idx]),
+      path,
     );
+    let ret = new PlutusScripts(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
+    return ret;
   }
 
   serialize(writer: CBORWriter): void {
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -9524,6 +10232,110 @@ export class PlutusScripts {
 
   clone(path: string[]): PlutusScripts {
     return PlutusScripts.from_bytes(this.to_bytes(), path);
+  }
+}
+
+export class PlutusSet {
+  private items: PlutusData[];
+  private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
+
+  private setItems(items: PlutusData[]) {
+    this.items = items;
+  }
+
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
+    this.items = [];
+    this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
+  }
+
+  static new(): PlutusSet {
+    return new PlutusSet();
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): PlutusData {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: PlutusData): boolean {
+    if (this.contains(elem)) return true;
+    this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: PlutusData): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): PlutusSet {
+    let nonEmptyTag = false;
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
+    }
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        PlutusData.deserialize(reader, [...path, "PlutusData#" + idx]),
+      path,
+    );
+    let ret = new PlutusSet(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
+    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PlutusSet"],
+  ): PlutusSet {
+    let reader = new CBORReader(data);
+    return PlutusSet.deserialize(reader, path);
+  }
+
+  static from_hex(hex_str: string, path: string[] = ["PlutusSet"]): PlutusSet {
+    return PlutusSet.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): PlutusSet {
+    return PlutusSet.from_bytes(this.to_bytes(), path);
+  }
+
+  as_list(): PlutusList {
+    return new PlutusList(this.items, this.definiteEncoding);
   }
 }
 
@@ -9561,7 +10373,7 @@ export class PoolMetadata {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -9584,7 +10396,9 @@ export class PoolMetadata {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._url.serialize(writer);
     this._pool_metadata_hash.serialize(writer);
@@ -10124,7 +10938,7 @@ export class PoolVotingThresholds {
 
     if (len != null && len < 5) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 5. Received " +
+        "Insufficient number of fields in record. Expected at least 5. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -10183,7 +10997,9 @@ export class PoolVotingThresholds {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(5);
+    let arrayLen = 5;
+
+    writer.writeArrayTag(arrayLen);
 
     this._motion_no_confidence.serialize(writer);
     this._committee_normal.serialize(writer);
@@ -10222,6 +11038,308 @@ export class PoolVotingThresholds {
 
   clone(path: string[]): PoolVotingThresholds {
     return PoolVotingThresholds.from_bytes(this.to_bytes(), path);
+  }
+}
+
+export class PostAlonzoTransactionOutput {
+  private _address: Address;
+  private _amount: Value;
+  private _datum_option: DataOption | undefined;
+  private _script_ref: ScriptRef | undefined;
+
+  constructor(
+    address: Address,
+    amount: Value,
+    datum_option: DataOption | undefined,
+    script_ref: ScriptRef | undefined,
+  ) {
+    this._address = address;
+    this._amount = amount;
+    this._datum_option = datum_option;
+    this._script_ref = script_ref;
+  }
+
+  static new(
+    address: Address,
+    amount: Value,
+    datum_option: DataOption | undefined,
+    script_ref: ScriptRef | undefined,
+  ) {
+    return new PostAlonzoTransactionOutput(
+      address,
+      amount,
+      datum_option,
+      script_ref,
+    );
+  }
+
+  address(): Address {
+    return this._address;
+  }
+
+  set_address(address: Address): void {
+    this._address = address;
+  }
+
+  amount(): Value {
+    return this._amount;
+  }
+
+  set_amount(amount: Value): void {
+    this._amount = amount;
+  }
+
+  datum_option(): DataOption | undefined {
+    return this._datum_option;
+  }
+
+  set_datum_option(datum_option: DataOption | undefined): void {
+    this._datum_option = datum_option;
+  }
+
+  script_ref(): ScriptRef | undefined {
+    return this._script_ref;
+  }
+
+  set_script_ref(script_ref: ScriptRef | undefined): void {
+    this._script_ref = script_ref;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): PostAlonzoTransactionOutput {
+    let fields: any = {};
+    reader.readMap((r) => {
+      let key = Number(r.readUint(path));
+      switch (key) {
+        case 0: {
+          const new_path = [...path, "Address(address)"];
+          fields.address = Address.deserialize(r, new_path);
+          break;
+        }
+
+        case 1: {
+          const new_path = [...path, "Value(amount)"];
+          fields.amount = Value.deserialize(r, new_path);
+          break;
+        }
+
+        case 2: {
+          const new_path = [...path, "DataOption(datum_option)"];
+          fields.datum_option = DataOption.deserialize(r, new_path);
+          break;
+        }
+
+        case 3: {
+          const new_path = [...path, "ScriptRef(script_ref)"];
+          fields.script_ref = ScriptRef.deserialize(r, new_path);
+          break;
+        }
+      }
+    }, path);
+
+    if (fields.address === undefined)
+      throw new Error(
+        "Value not provided for field 0 (address) (at " + path.join("/") + ")",
+      );
+    let address = fields.address;
+    if (fields.amount === undefined)
+      throw new Error(
+        "Value not provided for field 1 (amount) (at " + path.join("/") + ")",
+      );
+    let amount = fields.amount;
+
+    let datum_option = fields.datum_option;
+
+    let script_ref = fields.script_ref;
+
+    return new PostAlonzoTransactionOutput(
+      address,
+      amount,
+      datum_option,
+      script_ref,
+    );
+  }
+
+  serialize(writer: CBORWriter): void {
+    let len = 4;
+    if (this._datum_option === undefined) len -= 1;
+    if (this._script_ref === undefined) len -= 1;
+    writer.writeMapTag(len);
+
+    writer.writeInt(0n);
+    this._address.serialize(writer);
+
+    writer.writeInt(1n);
+    this._amount.serialize(writer);
+
+    if (this._datum_option !== undefined) {
+      writer.writeInt(2n);
+      this._datum_option.serialize(writer);
+    }
+    if (this._script_ref !== undefined) {
+      writer.writeInt(3n);
+      this._script_ref.serialize(writer);
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PostAlonzoTransactionOutput"],
+  ): PostAlonzoTransactionOutput {
+    let reader = new CBORReader(data);
+    return PostAlonzoTransactionOutput.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PostAlonzoTransactionOutput"],
+  ): PostAlonzoTransactionOutput {
+    return PostAlonzoTransactionOutput.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): PostAlonzoTransactionOutput {
+    return PostAlonzoTransactionOutput.from_bytes(this.to_bytes(), path);
+  }
+}
+
+export class PreBabbageTransactionOutput {
+  private _address: Address;
+  private _amount: Value;
+  private _datum_hash: DataHash | undefined;
+
+  constructor(
+    address: Address,
+    amount: Value,
+    datum_hash: DataHash | undefined,
+  ) {
+    this._address = address;
+    this._amount = amount;
+    this._datum_hash = datum_hash;
+  }
+
+  static new(
+    address: Address,
+    amount: Value,
+    datum_hash: DataHash | undefined,
+  ) {
+    return new PreBabbageTransactionOutput(address, amount, datum_hash);
+  }
+
+  address(): Address {
+    return this._address;
+  }
+
+  set_address(address: Address): void {
+    this._address = address;
+  }
+
+  amount(): Value {
+    return this._amount;
+  }
+
+  set_amount(amount: Value): void {
+    this._amount = amount;
+  }
+
+  datum_hash(): DataHash | undefined {
+    return this._datum_hash;
+  }
+
+  set_datum_hash(datum_hash: DataHash | undefined): void {
+    this._datum_hash = datum_hash;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): PreBabbageTransactionOutput {
+    let len = reader.readArrayTag(path);
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected at least 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
+      );
+    }
+
+    const address_path = [...path, "Address(address)"];
+    let address = Address.deserialize(reader, address_path);
+
+    const amount_path = [...path, "Value(amount)"];
+    let amount = Value.deserialize(reader, amount_path);
+
+    const datum_hash_path = [...path, "DataHash(datum_hash)"];
+    let datum_hash =
+      len != null && len > 2
+        ? DataHash.deserialize(reader, datum_hash_path)
+        : undefined;
+
+    return new PreBabbageTransactionOutput(address, amount, datum_hash);
+  }
+
+  serialize(writer: CBORWriter): void {
+    let arrayLen = 2;
+
+    if (this._datum_hash) {
+      arrayLen++;
+    }
+
+    writer.writeArrayTag(arrayLen);
+
+    this._address.serialize(writer);
+    this._amount.serialize(writer);
+    if (this._datum_hash) {
+      this._datum_hash.serialize(writer);
+    }
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["PreBabbageTransactionOutput"],
+  ): PreBabbageTransactionOutput {
+    let reader = new CBORReader(data);
+    return PreBabbageTransactionOutput.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["PreBabbageTransactionOutput"],
+  ): PreBabbageTransactionOutput {
+    return PreBabbageTransactionOutput.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): PreBabbageTransactionOutput {
+    return PreBabbageTransactionOutput.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11362,7 +12480,7 @@ export class ProtocolVersion {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -11379,7 +12497,9 @@ export class ProtocolVersion {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     writer.writeInt(BigInt(this._major));
     writer.writeInt(BigInt(this._minor));
@@ -11490,98 +12610,22 @@ export class PublicKey {
 }
 
 export class Redeemer {
-  private _tag: RedeemerTag;
-  private _index: BigNum;
-  private _data: PlutusData;
-  private _ex_units: ExUnits;
+  private inner: RedeemersArrayItem;
 
-  constructor(
-    tag: RedeemerTag,
-    index: BigNum,
-    data: PlutusData,
-    ex_units: ExUnits,
-  ) {
-    this._tag = tag;
-    this._index = index;
-    this._data = data;
-    this._ex_units = ex_units;
+  constructor(inner: RedeemersArrayItem) {
+    this.inner = inner;
   }
 
-  static new(
-    tag: RedeemerTag,
-    index: BigNum,
-    data: PlutusData,
-    ex_units: ExUnits,
-  ) {
-    return new Redeemer(tag, index, data, ex_units);
-  }
-
-  tag(): RedeemerTag {
-    return this._tag;
-  }
-
-  set_tag(tag: RedeemerTag): void {
-    this._tag = tag;
-  }
-
-  index(): BigNum {
-    return this._index;
-  }
-
-  set_index(index: BigNum): void {
-    this._index = index;
-  }
-
-  data(): PlutusData {
-    return this._data;
-  }
-
-  set_data(data: PlutusData): void {
-    this._data = data;
-  }
-
-  ex_units(): ExUnits {
-    return this._ex_units;
-  }
-
-  set_ex_units(ex_units: ExUnits): void {
-    this._ex_units = ex_units;
+  redeemerArrayItem(): RedeemersArrayItem {
+    return this.inner;
   }
 
   static deserialize(reader: CBORReader, path: string[]): Redeemer {
-    let len = reader.readArrayTag(path);
-
-    if (len != null && len < 4) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " +
-          len +
-          "(at " +
-          path.join("/"),
-      );
-    }
-
-    const tag_path = [...path, "RedeemerTag(tag)"];
-    let tag = RedeemerTag.deserialize(reader, tag_path);
-
-    const index_path = [...path, "BigNum(index)"];
-    let index = BigNum.deserialize(reader, index_path);
-
-    const data_path = [...path, "PlutusData(data)"];
-    let data = PlutusData.deserialize(reader, data_path);
-
-    const ex_units_path = [...path, "ExUnits(ex_units)"];
-    let ex_units = ExUnits.deserialize(reader, ex_units_path);
-
-    return new Redeemer(tag, index, data, ex_units);
+    return new Redeemer(RedeemersArrayItem.deserialize(reader, path));
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(4);
-
-    this._tag.serialize(writer);
-    this._index.serialize(writer);
-    this._data.serialize(writer);
-    this._ex_units.serialize(writer);
+    this.inner.serialize(writer);
   }
 
   // no-op
@@ -11608,6 +12652,15 @@ export class Redeemer {
 
   clone(path: string[]): Redeemer {
     return Redeemer.from_bytes(this.to_bytes(), path);
+  }
+
+  static new(
+    tag: RedeemerTag,
+    index: BigNum,
+    data: PlutusData,
+    ex_units: ExUnits,
+  ) {
+    return new Redeemer(new RedeemersArrayItem(tag, index, data, ex_units));
   }
 }
 
@@ -11710,28 +12763,92 @@ export class RedeemerTag {
   }
 }
 
+export enum RedeemersKind {
+  RedeemersArray = 0,
+  RedeemersMap = 1,
+}
+
+export type RedeemersVariant =
+  | { kind: 0; value: RedeemersArray }
+  | { kind: 1; value: RedeemersMap };
+
 export class Redeemers {
-  private items: Redeemer[];
+  private variant: RedeemersVariant;
 
-  constructor(items: Redeemer[]) {
-    this.items = items;
+  constructor(variant: RedeemersVariant) {
+    this.variant = variant;
   }
 
-  static new(): Redeemers {
-    return new Redeemers([]);
+  static new_redeemers_array(redeemers_array: RedeemersArray): Redeemers {
+    return new Redeemers({ kind: 0, value: redeemers_array });
   }
 
-  len(): number {
-    return this.items.length;
+  static new_redeemers_map(redeemers_map: RedeemersMap): Redeemers {
+    return new Redeemers({ kind: 1, value: redeemers_map });
   }
 
-  get(index: number): Redeemer {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+  as_redeemers_array(): RedeemersArray {
+    if (this.variant.kind == 0) return this.variant.value;
+    throw new Error("Incorrect cast");
   }
 
-  add(elem: Redeemer): void {
-    this.items.push(elem);
+  as_redeemers_map(): RedeemersMap {
+    if (this.variant.kind == 1) return this.variant.value;
+    throw new Error("Incorrect cast");
+  }
+
+  kind(): RedeemersKind {
+    return this.variant.kind;
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): Redeemers {
+    let tag = reader.peekType(path);
+    let variant: RedeemersVariant;
+
+    switch (tag) {
+      case "array":
+        variant = {
+          kind: RedeemersKind.RedeemersArray,
+          value: RedeemersArray.deserialize(reader, [
+            ...path,
+            "RedeemersArray(redeemers_array)",
+          ]),
+        };
+        break;
+
+      case "map":
+        variant = {
+          kind: RedeemersKind.RedeemersMap,
+          value: RedeemersMap.deserialize(reader, [
+            ...path,
+            "RedeemersMap(redeemers_map)",
+          ]),
+        };
+        break;
+
+      default:
+        throw new Error(
+          "Unexpected subtype for Redeemers: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
+    }
+
+    return new Redeemers(variant);
+  }
+
+  serialize(writer: CBORWriter): void {
+    switch (this.variant.kind) {
+      case 0:
+        this.variant.value.serialize(writer);
+        break;
+
+      case 1:
+        this.variant.value.serialize(writer);
+        break;
+    }
   }
 
   // no-op
@@ -11766,63 +12883,149 @@ export class Redeemers {
   total_ex_units(): ExUnits {
     let mems = BigNum.zero(),
       steps = BigNum.zero();
-    for (let item of this.items) {
-      mems = mems.checked_add(item.ex_units().mem());
-      steps = steps.checked_add(item.ex_units().steps());
+    switch (this.variant.kind) {
+      case 0: {
+        for (let i = 0; i < this.variant.value.len(); i++) {
+          const item = this.variant.value.get(i);
+          mems = mems.checked_add(item.ex_units().mem());
+          steps = steps.checked_add(item.ex_units().steps());
+        }
+        break;
+      }
+      case 1: {
+        const keys = this.variant.value.keys();
+        for (let i = 0; i < keys.len(); i++) {
+          const item = this.variant.value.get(keys.get(i)) as RedeemersValue;
+          mems = mems.checked_add(item.ex_units().mem());
+          steps = steps.checked_add(item.ex_units().steps());
+        }
+        break;
+      }
     }
     return ExUnits.new(mems, steps);
   }
 
-  static deserialize(reader: CBORReader, path: string[]): Redeemers {
-    if (reader.peekType(path) == "array") {
-      return Redeemers.deserializeArray(reader, path);
-    } else if (reader.peekType(path) == "map") {
-      return Redeemers.deserializeMap(reader, path);
+  static new(): Redeemers {
+    return Redeemers.new_redeemers_map(RedeemersMap.new());
+  }
+
+  len(): number {
+    return this.variant.value.len();
+  }
+
+  add(elem: Redeemer): void {
+    switch (this.variant.kind) {
+      case 0:
+        this.variant.value.add(elem.redeemerArrayItem());
+        break;
+      case 1: {
+        const r = elem.redeemerArrayItem();
+        this.variant.value.insert(
+          RedeemersKey.new(r.tag(), r.index()),
+          RedeemersValue.new(r.data(), r.ex_units()),
+        );
+        break;
+      }
     }
-    throw new Error(
-      "Expected either an array or a map (at " + path.join("/") + ")",
+  }
+
+  get(index: number): Redeemer {
+    switch (this.variant.kind) {
+      case 0:
+        return new Redeemer(this.variant.value.get(index));
+      case 1: {
+        const key = this.variant.value.keys().get(index);
+        const r = this.variant.value.get(key);
+        if (r === undefined) {
+          throw "Unexpected undefined key in Redeemers";
+        } else {
+          return new Redeemer(
+            RedeemersArrayItem.new(
+              key.tag(),
+              key.index(),
+              r.data(),
+              r.ex_units(),
+            ),
+          );
+        }
+      }
+    }
+  }
+}
+
+export class RedeemersArray {
+  private items: RedeemersArrayItem[];
+  private definiteEncoding: boolean;
+
+  constructor(items: RedeemersArrayItem[], definiteEncoding: boolean = true) {
+    this.items = items;
+    this.definiteEncoding = definiteEncoding;
+  }
+
+  static new(): RedeemersArray {
+    return new RedeemersArray([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): RedeemersArrayItem {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: RedeemersArrayItem): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): RedeemersArray {
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        RedeemersArrayItem.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
-  }
-
-  static deserializeArray(reader: CBORReader, path: string[]): Redeemers {
-    let redeemers = Redeemers.new();
-    reader.readArray((reader, idx) => {
-      let item = RedeemersArrayItem.deserialize(reader, [
-        ...path,
-        "RedeemersArrayItem#" + idx,
-      ]);
-      redeemers.add(
-        Redeemer.new(item.tag(), item.index(), item.data(), item.ex_units()),
-      );
-    }, path);
-    return redeemers;
-  }
-
-  static deserializeMap(reader: CBORReader, path: string[]): Redeemers {
-    let redeemers = Redeemers.new();
-    reader.readMap((reader, idx) => {
-      let key = RedeemersKey.deserialize(reader, [
-        ...path,
-        `RedeemersKey#${idx}`,
-      ]);
-      let value = RedeemersValue.deserialize(reader, [
-        ...path,
-        `RedeemersValue#${idx}`,
-      ]);
-      redeemers.add(
-        Redeemer.new(key.tag(), key.index(), value.data(), value.ex_units()),
-      );
-    }, path);
-    return redeemers;
+    return new RedeemersArray(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeMap(this.items, (writer, redeemer) => {
-      let key = RedeemersKey.new(redeemer.tag(), redeemer.index());
-      let value = RedeemersValue.new(redeemer.data(), redeemer.ex_units());
-      key.serialize(writer);
-      value.serialize(writer);
-    });
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["RedeemersArray"],
+  ): RedeemersArray {
+    let reader = new CBORReader(data);
+    return RedeemersArray.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["RedeemersArray"],
+  ): RedeemersArray {
+    return RedeemersArray.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): RedeemersArray {
+    return RedeemersArray.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -11890,7 +13093,7 @@ export class RedeemersArrayItem {
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " +
+        "Insufficient number of fields in record. Expected at least 4. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -11913,7 +13116,9 @@ export class RedeemersArrayItem {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(4);
+    let arrayLen = 4;
+
+    writer.writeArrayTag(arrayLen);
 
     this._tag.serialize(writer);
     this._index.serialize(writer);
@@ -11988,7 +13193,7 @@ export class RedeemersKey {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -12005,7 +13210,9 @@ export class RedeemersKey {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._tag.serialize(writer);
     this._index.serialize(writer);
@@ -12044,6 +13251,186 @@ export class RedeemersKey {
   }
 }
 
+export class RedeemersKeys {
+  private items: RedeemersKey[];
+  private definiteEncoding: boolean;
+
+  constructor(items: RedeemersKey[], definiteEncoding: boolean = true) {
+    this.items = items;
+    this.definiteEncoding = definiteEncoding;
+  }
+
+  static new(): RedeemersKeys {
+    return new RedeemersKeys([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): RedeemersKey {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: RedeemersKey): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): RedeemersKeys {
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        RedeemersKey.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
+    );
+    return new RedeemersKeys(items, definiteEncoding);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["RedeemersKeys"],
+  ): RedeemersKeys {
+    let reader = new CBORReader(data);
+    return RedeemersKeys.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["RedeemersKeys"],
+  ): RedeemersKeys {
+    return RedeemersKeys.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): RedeemersKeys {
+    return RedeemersKeys.from_bytes(this.to_bytes(), path);
+  }
+}
+
+export class RedeemersMap {
+  _items: [RedeemersKey, RedeemersValue][];
+
+  constructor(items: [RedeemersKey, RedeemersValue][]) {
+    this._items = items;
+  }
+
+  static new(): RedeemersMap {
+    return new RedeemersMap([]);
+  }
+
+  len(): number {
+    return this._items.length;
+  }
+
+  insert(key: RedeemersKey, value: RedeemersValue): RedeemersValue | undefined {
+    let entry = this._items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry != null) {
+      let ret = entry[1];
+      entry[1] = value;
+      return ret;
+    }
+    this._items.push([key, value]);
+    return undefined;
+  }
+
+  get(key: RedeemersKey): RedeemersValue | undefined {
+    let entry = this._items.find((x) =>
+      arrayEq(key.to_bytes(), x[0].to_bytes()),
+    );
+    if (entry == null) return undefined;
+    return entry[1];
+  }
+
+  _remove_many(keys: RedeemersKey[]): void {
+    this._items = this._items.filter(([k, _v]) =>
+      keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
+    );
+  }
+
+  keys(): RedeemersKeys {
+    let keys = RedeemersKeys.new();
+    for (let [key, _] of this._items) keys.add(key);
+    return keys;
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): RedeemersMap {
+    let ret = new RedeemersMap([]);
+    reader.readMap(
+      (reader, idx) =>
+        ret.insert(
+          RedeemersKey.deserialize(reader, [...path, "RedeemersKey#" + idx]),
+          RedeemersValue.deserialize(reader, [
+            ...path,
+            "RedeemersValue#" + idx,
+          ]),
+        ),
+      path,
+    );
+    return ret;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeMap(this._items, (writer, x) => {
+      x[0].serialize(writer);
+      x[1].serialize(writer);
+    });
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["RedeemersMap"],
+  ): RedeemersMap {
+    let reader = new CBORReader(data);
+    return RedeemersMap.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["RedeemersMap"],
+  ): RedeemersMap {
+    return RedeemersMap.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): RedeemersMap {
+    return RedeemersMap.from_bytes(this.to_bytes(), path);
+  }
+}
+
 export class RedeemersValue {
   private _data: PlutusData;
   private _ex_units: ExUnits;
@@ -12078,7 +13465,7 @@ export class RedeemersValue {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -12095,7 +13482,9 @@ export class RedeemersValue {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._data.serialize(writer);
     this._ex_units.serialize(writer);
@@ -12296,15 +13685,18 @@ export class Relay {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for Relay: " + tag + "(at " + path.join("/") + ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for Relay: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new Relay(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -12356,9 +13748,11 @@ export class Relay {
 
 export class Relays {
   private items: Relay[];
+  private definiteEncoding: boolean;
 
-  constructor(items: Relay[]) {
+  constructor(items: Relay[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): Relays {
@@ -12379,16 +13773,19 @@ export class Relays {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Relays {
-    return new Relays(
-      reader.readArray(
-        (reader, idx) => Relay.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => Relay.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new Relays(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -12420,9 +13817,11 @@ export class Relays {
 
 export class RewardAddresses {
   private items: RewardAddress[];
+  private definiteEncoding: boolean;
 
-  constructor(items: RewardAddress[]) {
+  constructor(items: RewardAddress[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): RewardAddresses {
@@ -12443,17 +13842,20 @@ export class RewardAddresses {
   }
 
   static deserialize(reader: CBORReader, path: string[]): RewardAddresses {
-    return new RewardAddresses(
-      reader.readArray(
-        (reader, idx) =>
-          RewardAddress.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        RewardAddress.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new RewardAddresses(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -12731,9 +14133,11 @@ export class ScriptHash {
 
 export class ScriptHashes {
   private items: ScriptHash[];
+  private definiteEncoding: boolean;
 
-  constructor(items: ScriptHash[]) {
+  constructor(items: ScriptHash[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): ScriptHashes {
@@ -12754,17 +14158,19 @@ export class ScriptHashes {
   }
 
   static deserialize(reader: CBORReader, path: string[]): ScriptHashes {
-    return new ScriptHashes(
-      reader.readArray(
-        (reader, idx) =>
-          ScriptHash.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => ScriptHash.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new ScriptHashes(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -13104,15 +14510,22 @@ export class ScriptRef {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for ScriptRef: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for ScriptRef: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new ScriptRef(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -14126,7 +15539,7 @@ export class Transaction {
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " +
+        "Insufficient number of fields in record. Expected at least 4. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -14156,7 +15569,9 @@ export class Transaction {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(4);
+    let arrayLen = 4;
+
+    writer.writeArrayTag(arrayLen);
 
     this._body.serialize(writer);
     this._witness_set.serialize(writer);
@@ -14211,9 +15626,11 @@ export class Transaction {
 
 export class TransactionBodies {
   private items: TransactionBody[];
+  private definiteEncoding: boolean;
 
-  constructor(items: TransactionBody[]) {
+  constructor(items: TransactionBody[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): TransactionBodies {
@@ -14234,17 +15651,20 @@ export class TransactionBodies {
   }
 
   static deserialize(reader: CBORReader, path: string[]): TransactionBodies {
-    return new TransactionBodies(
-      reader.readArray(
-        (reader, idx) =>
-          TransactionBody.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        TransactionBody.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new TransactionBodies(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -14999,7 +16419,7 @@ export class TransactionInput {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -15019,7 +16439,9 @@ export class TransactionInput {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._transaction_id.serialize(writer);
     writer.writeInt(BigInt(this._index));
@@ -15060,9 +16482,17 @@ export class TransactionInput {
 
 export class TransactionInputs {
   private items: TransactionInput[];
+  private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: TransactionInput[]) {
+    this.items = items;
+  }
+
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
+    this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): TransactionInputs {
@@ -15094,26 +16524,32 @@ export class TransactionInputs {
   }
 
   static deserialize(reader: CBORReader, path: string[]): TransactionInputs {
-    let ret = new TransactionInputs();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(
-          TransactionInput.deserialize(reader, [
-            ...path,
-            "TransactionInput#" + idx,
-          ]),
-        ),
+        TransactionInput.deserialize(reader, [
+          ...path,
+          "TransactionInput#" + idx,
+        ]),
       path,
     );
+    let ret = new TransactionInputs(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -15337,9 +16773,11 @@ export class TransactionMetadatum {
 
 export class TransactionMetadatumLabels {
   private items: BigNum[];
+  private definiteEncoding: boolean;
 
-  constructor(items: BigNum[]) {
+  constructor(items: BigNum[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): TransactionMetadatumLabels {
@@ -15363,16 +16801,19 @@ export class TransactionMetadatumLabels {
     reader: CBORReader,
     path: string[],
   ): TransactionMetadatumLabels {
-    return new TransactionMetadatumLabels(
-      reader.readArray(
-        (reader, idx) => BigNum.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => BigNum.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new TransactionMetadatumLabels(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -15408,124 +16849,101 @@ export class TransactionMetadatumLabels {
   }
 }
 
+export enum TransactionOutputKind {
+  PreBabbageTransactionOutput = 0,
+  PostAlonzoTransactionOutput = 1,
+}
+
+export type TransactionOutputVariant =
+  | { kind: 0; value: PreBabbageTransactionOutput }
+  | { kind: 1; value: PostAlonzoTransactionOutput };
+
 export class TransactionOutput {
-  private _address: Address;
-  private _amount: Value;
-  private _plutus_data: PlutusData | undefined;
-  private _script_ref: ScriptRef | undefined;
+  private variant: TransactionOutputVariant;
 
-  constructor(
-    address: Address,
-    amount: Value,
-    plutus_data: PlutusData | undefined,
-    script_ref: ScriptRef | undefined,
-  ) {
-    this._address = address;
-    this._amount = amount;
-    this._plutus_data = plutus_data;
-    this._script_ref = script_ref;
+  constructor(variant: TransactionOutputVariant) {
+    this.variant = variant;
   }
 
-  address(): Address {
-    return this._address;
+  static new_pre_babbage_transaction_output(
+    pre_babbage_transaction_output: PreBabbageTransactionOutput,
+  ): TransactionOutput {
+    return new TransactionOutput({
+      kind: 0,
+      value: pre_babbage_transaction_output,
+    });
   }
 
-  set_address(address: Address): void {
-    this._address = address;
+  static new_post_alonzo_transaction_output(
+    post_alonzo_transaction_output: PostAlonzoTransactionOutput,
+  ): TransactionOutput {
+    return new TransactionOutput({
+      kind: 1,
+      value: post_alonzo_transaction_output,
+    });
   }
 
-  amount(): Value {
-    return this._amount;
+  as_pre_babbage_transaction_output(): PreBabbageTransactionOutput {
+    if (this.variant.kind == 0) return this.variant.value;
+    throw new Error("Incorrect cast");
   }
 
-  set_amount(amount: Value): void {
-    this._amount = amount;
+  as_post_alonzo_transaction_output(): PostAlonzoTransactionOutput {
+    if (this.variant.kind == 1) return this.variant.value;
+    throw new Error("Incorrect cast");
   }
 
-  plutus_data(): PlutusData | undefined {
-    return this._plutus_data;
-  }
-
-  set_plutus_data(plutus_data: PlutusData | undefined): void {
-    this._plutus_data = plutus_data;
-  }
-
-  script_ref(): ScriptRef | undefined {
-    return this._script_ref;
-  }
-
-  set_script_ref(script_ref: ScriptRef | undefined): void {
-    this._script_ref = script_ref;
+  kind(): TransactionOutputKind {
+    return this.variant.kind;
   }
 
   static deserialize(reader: CBORReader, path: string[]): TransactionOutput {
-    let fields: any = {};
-    reader.readMap((r) => {
-      let key = Number(r.readUint(path));
-      switch (key) {
-        case 0: {
-          const new_path = [...path, "Address(address)"];
-          fields.address = Address.deserialize(r, new_path);
-          break;
-        }
+    let tag = reader.peekType(path);
+    let variant: TransactionOutputVariant;
 
-        case 1: {
-          const new_path = [...path, "Value(amount)"];
-          fields.amount = Value.deserialize(r, new_path);
-          break;
-        }
+    switch (tag) {
+      case "array":
+        variant = {
+          kind: TransactionOutputKind.PreBabbageTransactionOutput,
+          value: PreBabbageTransactionOutput.deserialize(reader, [
+            ...path,
+            "PreBabbageTransactionOutput(pre_babbage_transaction_output)",
+          ]),
+        };
+        break;
 
-        case 2: {
-          const new_path = [...path, "PlutusData(plutus_data)"];
-          fields.plutus_data = PlutusData.deserialize(r, new_path);
-          break;
-        }
+      case "map":
+        variant = {
+          kind: TransactionOutputKind.PostAlonzoTransactionOutput,
+          value: PostAlonzoTransactionOutput.deserialize(reader, [
+            ...path,
+            "PostAlonzoTransactionOutput(post_alonzo_transaction_output)",
+          ]),
+        };
+        break;
 
-        case 3: {
-          const new_path = [...path, "ScriptRef(script_ref)"];
-          fields.script_ref = ScriptRef.deserialize(r, new_path);
-          break;
-        }
-      }
-    }, path);
+      default:
+        throw new Error(
+          "Unexpected subtype for TransactionOutput: " +
+            tag +
+            "(at " +
+            path.join("/") +
+            ")",
+        );
+    }
 
-    if (fields.address === undefined)
-      throw new Error(
-        "Value not provided for field 0 (address) (at " + path.join("/") + ")",
-      );
-    let address = fields.address;
-    if (fields.amount === undefined)
-      throw new Error(
-        "Value not provided for field 1 (amount) (at " + path.join("/") + ")",
-      );
-    let amount = fields.amount;
-
-    let plutus_data = fields.plutus_data;
-
-    let script_ref = fields.script_ref;
-
-    return new TransactionOutput(address, amount, plutus_data, script_ref);
+    return new TransactionOutput(variant);
   }
 
   serialize(writer: CBORWriter): void {
-    let len = 4;
-    if (this._plutus_data === undefined) len -= 1;
-    if (this._script_ref === undefined) len -= 1;
-    writer.writeMapTag(len);
+    switch (this.variant.kind) {
+      case 0:
+        this.variant.value.serialize(writer);
+        break;
 
-    writer.writeInt(0n);
-    this._address.serialize(writer);
-
-    writer.writeInt(1n);
-    this._amount.serialize(writer);
-
-    if (this._plutus_data !== undefined) {
-      writer.writeInt(2n);
-      this._plutus_data.serialize(writer);
-    }
-    if (this._script_ref !== undefined) {
-      writer.writeInt(3n);
-      this._script_ref.serialize(writer);
+      case 1:
+        this.variant.value.serialize(writer);
+        break;
     }
   }
 
@@ -15562,15 +16980,26 @@ export class TransactionOutput {
   }
 
   static new(address: Address, amount: Value): TransactionOutput {
-    return new TransactionOutput(address, amount, undefined, undefined);
+    const post_alonzo_transaction_output = new PostAlonzoTransactionOutput(
+      address,
+      amount,
+      undefined,
+      undefined,
+    );
+    return new TransactionOutput({
+      kind: 1,
+      value: post_alonzo_transaction_output,
+    });
   }
 }
 
 export class TransactionOutputs {
   private items: TransactionOutput[];
+  private definiteEncoding: boolean;
 
-  constructor(items: TransactionOutput[]) {
+  constructor(items: TransactionOutput[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): TransactionOutputs {
@@ -15591,17 +17020,20 @@ export class TransactionOutputs {
   }
 
   static deserialize(reader: CBORReader, path: string[]): TransactionOutputs {
-    return new TransactionOutputs(
-      reader.readArray(
-        (reader, idx) =>
-          TransactionOutput.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        TransactionOutput.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new TransactionOutputs(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -15642,7 +17074,7 @@ export class TransactionWitnessSet {
   private _native_scripts: NativeScripts | undefined;
   private _bootstraps: BootstrapWitnesses | undefined;
   private _plutus_scripts_v1: PlutusScripts | undefined;
-  private _plutus_data: PlutusList | undefined;
+  private _inner_plutus_data: PlutusSet | undefined;
   private _redeemers: Redeemers | undefined;
   private _plutus_scripts_v2: PlutusScripts | undefined;
   private _plutus_scripts_v3: PlutusScripts | undefined;
@@ -15652,7 +17084,7 @@ export class TransactionWitnessSet {
     native_scripts: NativeScripts | undefined,
     bootstraps: BootstrapWitnesses | undefined,
     plutus_scripts_v1: PlutusScripts | undefined,
-    plutus_data: PlutusList | undefined,
+    inner_plutus_data: PlutusSet | undefined,
     redeemers: Redeemers | undefined,
     plutus_scripts_v2: PlutusScripts | undefined,
     plutus_scripts_v3: PlutusScripts | undefined,
@@ -15661,7 +17093,7 @@ export class TransactionWitnessSet {
     this._native_scripts = native_scripts;
     this._bootstraps = bootstraps;
     this._plutus_scripts_v1 = plutus_scripts_v1;
-    this._plutus_data = plutus_data;
+    this._inner_plutus_data = inner_plutus_data;
     this._redeemers = redeemers;
     this._plutus_scripts_v2 = plutus_scripts_v2;
     this._plutus_scripts_v3 = plutus_scripts_v3;
@@ -15699,12 +17131,12 @@ export class TransactionWitnessSet {
     this._plutus_scripts_v1 = plutus_scripts_v1;
   }
 
-  plutus_data(): PlutusList | undefined {
-    return this._plutus_data;
+  inner_plutus_data(): PlutusSet | undefined {
+    return this._inner_plutus_data;
   }
 
-  set_plutus_data(plutus_data: PlutusList | undefined): void {
-    this._plutus_data = plutus_data;
+  set_inner_plutus_data(inner_plutus_data: PlutusSet | undefined): void {
+    this._inner_plutus_data = inner_plutus_data;
   }
 
   redeemers(): Redeemers | undefined {
@@ -15764,8 +17196,8 @@ export class TransactionWitnessSet {
         }
 
         case 4: {
-          const new_path = [...path, "PlutusList(plutus_data)"];
-          fields.plutus_data = PlutusList.deserialize(r, new_path);
+          const new_path = [...path, "PlutusSet(inner_plutus_data)"];
+          fields.inner_plutus_data = PlutusSet.deserialize(r, new_path);
           break;
         }
 
@@ -15797,7 +17229,7 @@ export class TransactionWitnessSet {
 
     let plutus_scripts_v1 = fields.plutus_scripts_v1;
 
-    let plutus_data = fields.plutus_data;
+    let inner_plutus_data = fields.inner_plutus_data;
 
     let redeemers = fields.redeemers;
 
@@ -15810,7 +17242,7 @@ export class TransactionWitnessSet {
       native_scripts,
       bootstraps,
       plutus_scripts_v1,
-      plutus_data,
+      inner_plutus_data,
       redeemers,
       plutus_scripts_v2,
       plutus_scripts_v3,
@@ -15823,7 +17255,7 @@ export class TransactionWitnessSet {
     if (this._native_scripts === undefined) len -= 1;
     if (this._bootstraps === undefined) len -= 1;
     if (this._plutus_scripts_v1 === undefined) len -= 1;
-    if (this._plutus_data === undefined) len -= 1;
+    if (this._inner_plutus_data === undefined) len -= 1;
     if (this._redeemers === undefined) len -= 1;
     if (this._plutus_scripts_v2 === undefined) len -= 1;
     if (this._plutus_scripts_v3 === undefined) len -= 1;
@@ -15844,9 +17276,9 @@ export class TransactionWitnessSet {
       writer.writeInt(3n);
       this._plutus_scripts_v1.serialize(writer);
     }
-    if (this._plutus_data !== undefined) {
+    if (this._inner_plutus_data !== undefined) {
       writer.writeInt(4n);
-      this._plutus_data.serialize(writer);
+      this._inner_plutus_data.serialize(writer);
     }
     if (this._redeemers !== undefined) {
       writer.writeInt(5n);
@@ -15906,13 +17338,26 @@ export class TransactionWitnessSet {
       undefined,
     );
   }
+
+  plutus_data(): PlutusList | undefined {
+    return this.inner_plutus_data()?.as_list();
+  }
+
+  set_plutus_data(plutus_data: PlutusList): void {
+    this._inner_plutus_data = plutus_data.as_set();
+  }
 }
 
 export class TransactionWitnessSets {
   private items: TransactionWitnessSet[];
+  private definiteEncoding: boolean;
 
-  constructor(items: TransactionWitnessSet[]) {
+  constructor(
+    items: TransactionWitnessSet[],
+    definiteEncoding: boolean = true,
+  ) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): TransactionWitnessSets {
@@ -15936,17 +17381,20 @@ export class TransactionWitnessSets {
     reader: CBORReader,
     path: string[],
   ): TransactionWitnessSets {
-    return new TransactionWitnessSets(
-      reader.readArray(
-        (reader, idx) =>
-          TransactionWitnessSet.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        TransactionWitnessSet.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new TransactionWitnessSets(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -16283,7 +17731,7 @@ export class UnitInterval {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -16306,7 +17754,9 @@ export class UnitInterval {
   }
 
   serializeInner(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._numerator.serialize(writer);
     this._denominator.serialize(writer);
@@ -16464,7 +17914,7 @@ export class Update {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -16488,7 +17938,9 @@ export class Update {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._proposed_protocol_parameter_updates.serialize(writer);
     writer.writeInt(BigInt(this._epoch));
@@ -16683,7 +18135,7 @@ export class VRFCert {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -16700,7 +18152,9 @@ export class VRFCert {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     writer.writeBytes(this._output);
     writer.writeBytes(this._proof);
@@ -16883,7 +18337,7 @@ export class Value {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -16904,7 +18358,9 @@ export class Value {
   }
 
   serializeRecord(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._coin.serialize(writer);
     if (this._multiasset == null) {
@@ -17044,30 +18500,6 @@ export class Vkey {
     this._public_key = public_key;
   }
 
-  static deserialize(reader: CBORReader, path: string[]): Vkey {
-    let len = reader.readArrayTag(path);
-
-    if (len != null && len < 1) {
-      throw new Error(
-        "Insufficient number of fields in record. Expected 1. Received " +
-          len +
-          "(at " +
-          path.join("/"),
-      );
-    }
-
-    const public_key_path = [...path, "PublicKey(public_key)"];
-    let public_key = PublicKey.deserialize(reader, public_key_path);
-
-    return new Vkey(public_key);
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(1);
-
-    this._public_key.serialize(writer);
-  }
-
   // no-op
   free(): void {}
 
@@ -17093,13 +18525,25 @@ export class Vkey {
   clone(path: string[]): Vkey {
     return Vkey.from_bytes(this.to_bytes(), path);
   }
+
+  static deserialize(reader: CBORReader, path: string[]): Vkey {
+    const public_key_path = [...path, "PublicKey(public_key)"];
+    let public_key = PublicKey.deserialize(reader, public_key_path);
+    return new Vkey(public_key);
+  }
+
+  serialize(writer: CBORWriter): void {
+    this._public_key.serialize(writer);
+  }
 }
 
 export class Vkeys {
   private items: Vkey[];
+  private definiteEncoding: boolean;
 
-  constructor(items: Vkey[]) {
+  constructor(items: Vkey[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): Vkeys {
@@ -17120,16 +18564,19 @@ export class Vkeys {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Vkeys {
-    return new Vkeys(
-      reader.readArray(
-        (reader, idx) => Vkey.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => Vkey.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new Vkeys(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -17193,7 +18640,7 @@ export class Vkeywitness {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -17210,7 +18657,9 @@ export class Vkeywitness {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     this._vkey.serialize(writer);
     this._signature.serialize(writer);
@@ -17251,9 +18700,17 @@ export class Vkeywitness {
 
 export class Vkeywitnesses {
   private items: Vkeywitness[];
+  private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: Vkeywitness[]) {
+    this.items = items;
+  }
+
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
+    this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): Vkeywitnesses {
@@ -17285,23 +18742,29 @@ export class Vkeywitnesses {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Vkeywitnesses {
-    let ret = new Vkeywitnesses();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(
-          Vkeywitness.deserialize(reader, [...path, "Vkeywitness#" + idx]),
-        ),
+        Vkeywitness.deserialize(reader, [...path, "Vkeywitness#" + idx]),
       path,
     );
+    let ret = new Vkeywitnesses(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -17686,15 +19149,18 @@ export class Voter {
         };
 
         break;
+
+      default:
+        throw new Error(
+          "Unexpected tag for Voter: " + tag + "(at " + path.join("/") + ")",
+        );
     }
 
     if (len == null) {
       reader.readBreak();
     }
 
-    throw new Error(
-      "Unexpected tag for Voter: " + tag + "(at " + path.join("/") + ")",
-    );
+    return new Voter(variant);
   }
 
   serialize(writer: CBORWriter): void {
@@ -17818,9 +19284,11 @@ export class Voter {
 
 export class Voters {
   private items: Voter[];
+  private definiteEncoding: boolean;
 
-  constructor(items: Voter[]) {
+  constructor(items: Voter[], definiteEncoding: boolean = true) {
     this.items = items;
+    this.definiteEncoding = definiteEncoding;
   }
 
   static new(): Voters {
@@ -17841,16 +19309,19 @@ export class Voters {
   }
 
   static deserialize(reader: CBORReader, path: string[]): Voters {
-    return new Voters(
-      reader.readArray(
-        (reader, idx) => Voter.deserialize(reader, [...path, "Elem#" + idx]),
-        path,
-      ),
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) => Voter.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
     );
+    return new Voters(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -17914,7 +19385,7 @@ export class VotingProcedure {
 
     if (len != null && len < 2) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 2. Received " +
+        "Insufficient number of fields in record. Expected at least 2. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -17933,7 +19404,9 @@ export class VotingProcedure {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(2);
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
 
     serializeVoteKind(writer, this._vote);
     if (this._anchor == null) {
@@ -18171,7 +19644,7 @@ export class VotingProposal {
 
     if (len != null && len < 4) {
       throw new Error(
-        "Insufficient number of fields in record. Expected 4. Received " +
+        "Insufficient number of fields in record. Expected at least 4. Received " +
           len +
           "(at " +
           path.join("/"),
@@ -18205,7 +19678,9 @@ export class VotingProposal {
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeArrayTag(4);
+    let arrayLen = 4;
+
+    writer.writeArrayTag(arrayLen);
 
     this._deposit.serialize(writer);
     this._reward_account.serialize(writer);
@@ -18262,9 +19737,17 @@ export class VotingProposal {
 
 export class VotingProposals {
   private items: VotingProposal[];
+  private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: VotingProposal[]) {
+    this.items = items;
+  }
+
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
+    this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): VotingProposals {
@@ -18296,26 +19779,29 @@ export class VotingProposals {
   }
 
   static deserialize(reader: CBORReader, path: string[]): VotingProposals {
-    let ret = new VotingProposals();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(
-          VotingProposal.deserialize(reader, [
-            ...path,
-            "VotingProposal#" + idx,
-          ]),
-        ),
+        VotingProposal.deserialize(reader, [...path, "VotingProposal#" + idx]),
       path,
     );
+    let ret = new VotingProposals(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 
@@ -18449,9 +19935,17 @@ export class Withdrawals {
 
 export class certificates {
   private items: Certificate[];
+  private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
 
-  constructor() {
+  private setItems(items: Certificate[]) {
+    this.items = items;
+  }
+
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
     this.items = [];
+    this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): certificates {
@@ -18483,23 +19977,29 @@ export class certificates {
   }
 
   static deserialize(reader: CBORReader, path: string[]): certificates {
-    let ret = new certificates();
+    let nonEmptyTag = false;
     if (reader.peekType(path) == "tagged") {
       let tag = reader.readTaggedTag(path);
-      if (tag != 258) throw new Error("Expected tag 258. Got " + tag);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
     }
-    reader.readArray(
+    const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
-        ret.add(
-          Certificate.deserialize(reader, [...path, "Certificate#" + idx]),
-        ),
+        Certificate.deserialize(reader, [...path, "Certificate#" + idx]),
       path,
     );
+    let ret = new certificates(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
     return ret;
   }
 
   serialize(writer: CBORWriter): void {
-    writer.writeTaggedTag(258);
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(this.items, (writer, x) => x.serialize(writer));
   }
 

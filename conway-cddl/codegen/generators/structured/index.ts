@@ -38,6 +38,10 @@ export class GenStructuredBase<
     return this.options.fields;
   }
 
+  getMinFields(): number {
+    return this.options.fields.filter((v) => !v.optional).length
+  }
+
   generateMembers(): string {
     return this.options.fields
       .map((x) => `private _${x.name}: ${this.fieldType(x)};`)

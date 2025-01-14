@@ -6,6 +6,7 @@ import { test } from "@jest/globals";
 import * as Out from "../../src/generated.ts"
 import { exit } from "node:process";
 import { buildTestTable, retrieveTxsFromDir, roundtrip, writeChildErrorReport, writeExceptionReport, writeRoundtripErrorReport } from "./serialization_utils.ts";
+import { bytesToHex } from "../../src/lib/hex.ts";
 
 // Locations for retrieved transactions
 const stagingPath = "tests/serialization/staging";
@@ -126,7 +127,7 @@ describe("roundtrip", () => {
         addToRegressionSuite(params);
       }
       // Now we run the actual jest tests
-      expect(roundtrip(Out[class_key], params.component.cbor)).toEqual(params.component.cbor);
+      expect(bytesToHex(roundtrip(Out[class_key], params.component.cbor))).toEqual(bytesToHex(params.component.cbor));
     });
   })
 
@@ -151,7 +152,7 @@ describe("roundtrip", () => {
         params.component.failed = true;
         writeExceptionReport(reportFile, params, err);
       }
-      expect(roundtrip(Out[class_key], params.component.cbor)).toEqual(params.component.cbor);
+      expect(bytesToHex(roundtrip(Out[class_key], params.component.cbor))).toEqual(bytesToHex(params.component.cbor));
     });
   })
 

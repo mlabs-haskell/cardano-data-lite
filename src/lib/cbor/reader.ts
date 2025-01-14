@@ -1,3 +1,5 @@
+import { bytesToHex } from "../hex";
+
 type CBORType =
   | "uint"
   | "nint"
@@ -77,7 +79,7 @@ export class CBORReader {
     if (this.peekType(path) == "uint") {
       return this.readBigInt(path);
     } else if (this.peekType(path) == "nint") {
-      return 1n - this.readBigInt(path);
+      return -1n - this.readBigInt(path);
     } else {
       throw new Error(`Unreachable (at ${path.join("/")})`);
     }
@@ -90,7 +92,7 @@ export class CBORReader {
   }
 
   readString(path: string[]): string {
-    this.assertType(["bytes"], path);
+    this.assertType(["string"], path);
     let bytes = this.readByteString(path);
     return new TextDecoder().decode(bytes);
   }
@@ -127,12 +129,13 @@ export class CBORReader {
     else this.readN(n, fn);
   }
 
-  readArray<T>(readItem: (reader: CBORReader, idx: number) => T, path: string[]): T[] {
+  readArray<T>(readItem: (reader: CBORReader, idx: number) => T, path: string[]): { items: T[], definiteEncoding: boolean} {
     let ret: T[] = [];
-    this.readMultiple(this.readArrayTag(path), (reader, idx) =>
+    const len: number | null = this.readArrayTag(path);
+    this.readMultiple(len, (reader, idx) =>
       ret.push(readItem(reader, idx)),
     );
-    return ret;
+    return { items: ret, definiteEncoding: typeof(len) === "number"};
   }
 
   readMap<T>(readItem: (reader: CBORReader, idx: number) => T, path: string[]): T[] {
@@ -194,8 +197,12 @@ export class CBORReader {
 
   // read cbor tag and return the tag value as number
   readTaggedTag(path: string[]): number {
+    return Number(this.readTaggedTagAsBigInt(path));
+  }
+
+  readTaggedTagAsBigInt(path: string[]): bigint {
     this.assertType(["tagged"], path);
-    return Number(this.readBigInt(path));
+    return this.readBigInt(path);
   }
 
   assertType(expectedTypes: CBORType[], path: string[]) {
@@ -210,8 +217,12 @@ export class CBORReader {
   private readLength(path: string[]): number | null {
     let tag = this.buffer[0];
     let len = tag & 0b11111;
-    if (len == 0x1f) return null;
-    return Number(this.readBigInt(path));
+    if (len == 0x1f) {
+      this.buffer = this.buffer.slice(1);
+      return null;
+    } else {
+      return Number(this.readBigInt(path));
+    }
   }
 
   private readBigInt(path: string[]): bigint {
@@ -255,6 +266,7 @@ export class CBORReader {
 
     this.buffer = this.buffer.slice(1);
 
+    // indefinite length
     if (len == 0x1f) {
       let chunks: Uint8Array[] = [];
       let chunk: Uint8Array;
@@ -264,15 +276,24 @@ export class CBORReader {
         (chunk = this.readByteString(path)), chunks.push(chunk);
       }
       return concatUint8Array(chunks);
+    // definite length
     } else {
-      let n = Number(this.readBigInt(path));
-
+      let n: number;
+      // length follows in the next 1, 2, 4 or 8 bytes
+      if (len >= 0x18 && len <= 0x1b) {
+        const len_bytes: number = 1 << (len - 0x18);
+        n = Number(bigintFromBytes(len_bytes, this.buffer));
+        this.buffer = this.buffer.slice(len_bytes);
+      // length is specified in the tag itself
+      } else {
+        n = len;
+      }
       let chunk = this.buffer.slice(0, n);
       this.buffer = this.buffer.slice(n);
 
       return chunk;
+      }
     }
-  }
 }
 
 export function bigintFromBytes(nBytes: number, stream: Uint8Array): bigint {

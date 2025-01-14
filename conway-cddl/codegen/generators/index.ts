@@ -267,8 +267,6 @@ export class TypeUtils {
         return yamlType;
       case "bytes":
         return "Uint8Array";
-      case "arrayToUint32Array":
-        return "Uint32Array";
       default:
         console.error("Unknown type: " + yamlType);
         return "unknown";
@@ -292,8 +290,6 @@ export class TypeUtils {
         return `${reader}.readBoolean(${path})`;
       case "bytes":
         return `${reader}.readBytes(${path})`;
-      case "arrayToUint32Array":
-        return `new Uint32Array(${reader}.readArray((reader) => Number(reader.readUint(${path})), ${path}));`;
       default:
         console.error("Can't decode: " + type);
         return `$$CANT_READ("${type}")`;
@@ -317,8 +313,6 @@ export class TypeUtils {
         return `${writer}.writeBoolean(${value})`;
       case "bytes":
         return `${writer}.writeBytes(${value})`;
-      case "arrayToUint32Array":
-        return `${writer}.writeArray(${value}, (writer, x) => writer.writeInt(BigInt(x)))`;
       default:
         console.error("Can't encode: " + type);
         return `$$CANT_WRITE("${type}")`;
@@ -338,8 +332,6 @@ export class TypeUtils {
       case "boolean":
         return `${var1} === ${var2}`;
       case "bytes":
-      case "arrayToUint32Array":
-        return `arrayEq(${var1}, ${var2})`;
       default:
         console.error("Can't compare: " + type);
         return `$$CANT_EQ("${type}")`;

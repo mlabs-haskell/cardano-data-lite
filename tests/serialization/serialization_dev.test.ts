@@ -3,6 +3,7 @@ import { RoundtripTestParameters, TransactionInfo } from "../test_types";
 import { test } from "@jest/globals";
 import * as Out from "../../src/generated.ts"
 import { buildTestTable, retrieveTxsFromDir, roundtrip} from "./serialization_utils.ts";
+import { bytesToHex } from "@noble/hashes/utils";
 
 // Locations for retrieved transactions
 const devPath = "tests/reports/dev.txt";
@@ -58,7 +59,7 @@ describe("roundtrip", () => {
         params.component.failed = true;
       }
       // Now we run the actual jest tests
-      expect(roundtrip(Out[class_key], params.component.cbor)).toEqual(params.component.cbor);
+      expect(bytesToHex(roundtrip(Out[class_key], params.component.cbor))).toEqual(bytesToHex(params.component.cbor));
     });
   })
 });

@@ -7,7 +7,7 @@ import { Schema } from "../../conway-cddl/codegen/types";
 import { exit } from "node:process";
 
 // Whether to log extraction messages or not
-const traceExtraction = false;
+const traceExtraction = true;
 const extractLog = traceExtraction ? (...args : any) => console.log(...args) : () => { ; };
 
 // Types we are not interested in (or that are not supported)
@@ -24,6 +24,8 @@ const fieldsBlacklist = new Set<string>([
   "plutus_scripts_v1",
   "plutus_scripts_v2",
   "plutus_scripts_v3",
+  "script_pubkey",
+  "inner_plutus_data"
 ])
 
 export function retrieveTxsFromDir(path: string): Array<TransactionInfo> {
@@ -155,7 +157,7 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
       break;
     case "tagged_record": {
       // sum types
-      let tag: number  = value.kind().valueOf();
+      let tag: number = value.kind().valueOf();
       let variant = schema.variants.find((v) => v.tag == tag)
       extractLog("variant", variant);
       if (variant && variant.value && schemata[variant.value]) {
@@ -199,16 +201,25 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
       }
       break;
     case "array":
-      for (let index = 0; index < value.len(); index++) {
-        const {sub: elemValue, subPath: newComponentPath } = getElem(value, index, `${key}[${index}]`, schema.item, componentPath);
-        if (elemValue && schemata[schema.item]) {
-          extractLog(`Elem index: ${index}\nElem type: ${schema.item}\nPath: ${newComponentPath}`);
-          let grandchildren = [];
-          explodeValue(`${key}[${index}]`, elemValue, schemata[schema.item], schemata, grandchildren, newComponentPath)
-          children.push({ type: schema.item, key: key, path: newComponentPath, children: grandchildren, cbor: elemValue.to_bytes(), failed: false});
+      if (schema.item) {
+        for (let index = 0; index < value.len(); index++) {
+          const {sub: elemValue, subPath: newComponentPath } = getElem(value, index, `${key}[${index}]`, schema.item, componentPath);
+          if (elemValue && schemata[schema.item]) {
+            extractLog(`Elem index: ${index}\nElem type: ${schema.item}\nPath: ${newComponentPath}`);
+            let grandchildren = [];
+            explodeValue(`${key}[${index}]`, elemValue, schemata[schema.item], schemata, grandchildren, newComponentPath)
+            children.push({ type: schema.item, key: key, path: newComponentPath, children: grandchildren, cbor: elemValue.to_bytes(), failed: false});
+          }
         }
       }
       break;
+    case "union": {
+      // for unions we don't extract the children
+      // NOTE: The reason we don't do it is that there doesn't seem to be a
+      // common interface in CSL for interacting with a union's variants
+      extractLog("Found a union while extracting, ignoring...");
+      break;
+    }
     case "enum":
       extractLog("Found an enum while extracting. Ignoring...")
       break; // enums don't have subcomponents

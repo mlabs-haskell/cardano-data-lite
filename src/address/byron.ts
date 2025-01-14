@@ -65,16 +65,15 @@ export class ByronAddress {
     if (crc32 != calculatedCrc32)
       throw new Error(`Invalid CRC32 (at ${path.join("/")})`);
 
-    let bytes = new CBORReader(wrappedBytes).readBytes([...path, "0", "0"]);
-    return ByronAddress.deserializeInner(new CBORReader(bytes), [
+    return ByronAddress.deserializeInner(new CBORReader(wrappedBytes), [
       ...path,
       "0",
       "0",
     ]);
   }
 
-  static from_bytes(bytes: Uint8Array): ByronAddress {
-    return ByronAddress.deserialize(new CBORReader(bytes), []);
+  static from_bytes(bytes: Uint8Array, path: string[] = ["ByronAddress"]): ByronAddress {
+    return ByronAddress.deserialize(new CBORReader(bytes), path);
   }
 
   to_bytes(): Uint8Array {

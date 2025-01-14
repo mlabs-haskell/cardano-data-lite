@@ -2,11 +2,11 @@ import { CodeGeneratorBase, CodeGeneratorBaseOptions } from ".";
 import { SchemaTable } from "..";
 
 export type GenArrayOptions = {
-  item: string;
+  item: string | undefined;
 } & CodeGeneratorBaseOptions;
 
 export class GenArray extends CodeGeneratorBase {
-  item: string;
+  item: string | undefined;
 
   constructor(
     name: string,
@@ -18,60 +18,89 @@ export class GenArray extends CodeGeneratorBase {
   }
 
   private itemJsType() {
-    return this.typeUtils.jsType(this.item);
+    return this.item ? `${this.typeUtils.jsType(this.item)}` : undefined;
   }
 
   generateMembers(): string {
-    return `private items: ${this.itemJsType()}[];`;
+    const jsType = this.itemJsType();
+    return `
+      private items: ${jsType ? `${jsType}[]` : `Uint32Array`};
+      private definiteEncoding: boolean;
+    `;
   }
 
   generateConstructor(): string {
+    const jsType = this.itemJsType();
     return `
-        constructor(items: ${this.itemJsType()}[]) {
+        constructor(items: ${jsType ? `${jsType}[]` : `Uint32Array`}, definiteEncoding: boolean = true) {
           this.items = items;
+          this.definiteEncoding = definiteEncoding;
         }
     `;
   }
 
   generateExtraMethods(): string {
-    let itemJsType = this.typeUtils.jsType(this.item);
+    let jsType = this.itemJsType();
     return `
         static new(): ${this.name} {
-          return new ${this.name}([]);
+          return new ${this.name}(${jsType ? "[]" : "new Uint32Array([])"});
         }
 
         len(): number {
           return this.items.length;
         }
 
-        get(index: number): ${itemJsType} {
-          if(index >= this.items.length) throw new Error("Array out of bounds");
-          return this.items[index];
-        }
+        ${jsType ?
+          `
+          get(index: number): ${jsType} {
+            if(index >= this.items.length) throw new Error("Array out of bounds");
+            return this.items[index];
+          }
 
-        add(elem: ${itemJsType}): void {
-          this.items.push(elem);
+          add(elem: ${jsType}): void {
+            this.items.push(elem);
+          }
+          ` : ''
         }
     `;
   }
 
   generateDeserialize(reader: string, path: string): string {
-    return `
-      return new ${this.name}(
-        ${reader}.readArray(
-          (reader, idx) => ${this.typeUtils.readType("reader", this.item, `[...${path}, "Elem#" + idx]`)}
-          , ${path}
-        )
-      );
-    `;
+    if (this.item) {
+      return `
+        const { items, definiteEncoding } = 
+          ${reader}.readArray(
+            (reader, idx) => ${this.typeUtils.readType("reader", this.item, `[...${path}, "Elem#" + idx]`)}
+            , ${path}
+          )
+        return new ${this.name}(items, definiteEncoding);
+      `;
+    } else {
+      return `
+        const { items, definiteEncoding } = 
+          ${reader}.readArray(
+            (reader, idx) => Number(reader.readUint([...${path}, "Byte#" + idx]))
+            , ${path}
+          )
+
+        return new ${this.name}(new Uint32Array(items), definiteEncoding);
+      `;
+    }
   }
 
   generateSerialize(writer: string): string {
-    return `
-      ${writer}.writeArray(
-        this.items,
-        (writer, x) => ${this.typeUtils.writeType("writer", "x", this.item)}
-      );
-    `;
+    if (this.item) {
+      return `
+        ${writer}.writeArray(
+          this.items,
+          (writer, x) => ${this.typeUtils.writeType("writer", "x", this.item)},
+          this.definiteEncoding
+        );
+      `;
+    } else {
+      return `
+        ${writer}.writeArray(this.items, (writer, x) => writer.writeInt(BigInt(x)), this.definiteEncoding)
+      `
+    }
   }
 }

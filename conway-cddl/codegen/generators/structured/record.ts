@@ -5,6 +5,7 @@ export type Field = {
   name: string;
   type: string;
   nullable?: boolean;
+  optional?: boolean;
 };
 
 export type GenRecordOptions = {
@@ -24,21 +25,23 @@ export class GenRecord extends GenStructuredBase<Field> {
     return `
       let len = ${reader}.readArrayTag(${path});
       
-      if(len != null && len < ${this.getFields().length}) {
-        throw new Error("Insufficient number of fields in record. Expected ${this.getFields().length}. Received " + len + "(at " + path.join("/"));
+      if(len != null && len < ${this.getMinFields()}) {
+        throw new Error("Insufficient number of fields in record. Expected at least ${this.getMinFields()}. Received " + len + "(at " + path.join("/"));
       }
 
-      ${this.getFields()
-        .map(
-          (x) => `
-          const ${x.name}_path = [...${path}, '${x.type}(${x.name})'];
-          let ${x.name} = ${
-            x.nullable
-              ? `${reader}.readNullable(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)}, ${path})?? undefined`
-              : this.typeUtils.readType(reader, x.type, `${x.name}_path`)
-          };`,
-        )
-        .join("\n")}
+      ${this.getFields().reduce((acc, x, idx) => {
+         acc.push(`
+           const ${x.name}_path = [...${path}, '${x.type}(${x.name})'];
+           let ${x.name} = ${
+             x.optional ?
+               `len != null && len > ${idx} ? ${this.typeUtils.readType(reader, x.type, `${x.name}_path`)} : undefined` :
+             x.nullable ?
+               `${reader}.readNullable(r => ${this.typeUtils.readType("r", x.type, `${x.name}_path`)}, ${path})?? undefined` :
+             this.typeUtils.readType(reader, x.type, `${x.name}_path`)
+           }
+         `);
+         return acc;
+      }, [] as string[]).join("\n")}
 
       return new ${this.name}(${this.getFields()
         .map((x) => x.name)
@@ -48,17 +51,30 @@ export class GenRecord extends GenStructuredBase<Field> {
 
   generateSerialize(writer: string): string {
     return `
-      ${writer}.writeArrayTag(${this.getFields().length});
+      let arrayLen = ${this.getMinFields()};
+      ${this.getFields().
+        map((x) => x.optional
+          ? `if(this._${x.name}) {
+              arrayLen++;            
+          }` :
+          "")
+          .join("\n")}
+
+      ${writer}.writeArrayTag(arrayLen);
 
       ${this.getFields()
         .map((x) =>
+          x.optional
+            ? `if(this._${x.name}) {
+                 ${this.typeUtils.writeType(writer, `this._${x.name}`, x.type)};   
+              }` :
           x.nullable
             ? `if(this._${x.name} == null) { 
                   ${writer}.writeNull();
               } else { 
                   ${this.typeUtils.writeType(writer, `this._${x.name}`, x.type)};
-              }`
-            : `${this.typeUtils.writeType(writer, `this._${x.name}`, x.type)};`,
+              }` :
+          `${this.typeUtils.writeType(writer, `this._${x.name}`, x.type)};`,
         )
         .join("\n")}
     `;

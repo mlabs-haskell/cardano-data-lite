@@ -11,6 +11,32 @@
 #    ;    length of transaction_bodies
 Block:
   type: record
+  methods:
+    new: null
+  extra_methods: |
+    static new(
+      header: Header,
+      transaction_bodies: TransactionBodies,
+      transaction_witness_sets: TransactionWitnessSets,
+      auxiliary_data_set: AuxiliaryDataSet,
+      invalid_transactions: Uint32Array
+    ): Block {
+      return new Block(
+        header,
+        transaction_bodies,
+        transaction_witness_sets,
+        auxiliary_data_set,
+        new InvalidTransactions(invalid_transactions) 
+      );
+    }
+    
+    invalid_transactions(): Uint32Array {
+      return this.inner_invalid_transactions().as_uint32Array();
+    }
+
+    set_invalid_transactions(invalid_transactions: Uint32Array) {
+      this._inner_invalid_transactions = new InvalidTransactions(invalid_transactions);
+    }
   fields:
     - name: header
       type: Header
@@ -20,8 +46,8 @@ Block:
       type: TransactionWitnessSets
     - name: auxiliary_data_set
       type: AuxiliaryDataSet
-    - name: invalid_transactions
-      type: arrayToUint32Array
+    - name: inner_invalid_transactions
+      type: InvalidTransactions
 
 TransactionBodies:
   type: array
@@ -44,6 +70,14 @@ AuxiliaryDataSet:
         indices[i] = key;
       }
       return indices;
+    }
+
+# no item type means that it is encoded as a Uint32Array
+InvalidTransactions:
+  type: array
+  extra_methods: |
+    as_uint32Array(): Uint32Array {
+      return this.items;
     }
 
 # transaction =
@@ -674,20 +708,32 @@ TransactionInput:
 # ; Both of the Alonzo and Babbage style TxOut formats are equally valid
 # ; and can be used interchangeably
 # transaction_output = pre_babbage_transaction_output / post_alonzo_transaction_output
-#
-# pre_babbage_transaction_output =
-#   [ address
-#   , amount : value
-#   , ? datum_hash : $hash32
-#   ]
-#
+TransactionOutput:
+  type: union
+  variants:
+    - tag: 0
+      peek_type: array
+      name: pre_babbage_transaction_output
+      type: PreBabbageTransactionOutput
+    - tag: 1
+      peek_type: map
+      name: post_alonzo_transaction_output
+      type: PostAlonzoTransactionOutput
+  methods:
+    new: null
+  extra_methods: |
+    static new(address: Address, amount: Value): TransactionOutput {
+      const post_alonzo_transaction_output = new PostAlonzoTransactionOutput(address, amount, undefined, undefined);
+      return new TransactionOutput({kind: 1, value: post_alonzo_transaction_output});
+    }
+
 # post_alonzo_transaction_output =
 #   { 0 : address
 #   , 1 : value
 #   , ? 2 : datum_option ; datum option
 #   , ? 3 : script_ref   ; script reference
 #   }
-TransactionOutput:
+PostAlonzoTransactionOutput:
   type: struct
   fields:
     - id: 0
@@ -697,19 +743,31 @@ TransactionOutput:
       name: amount
       type: Value
     - id: 2
-      name: plutus_data
-      type: PlutusData
+      name: datum_option
+      type: DataOption
       optional: true
     - id: 3
       name: script_ref
       type: ScriptRef
       optional: true
-  methods:
-    new: null
-  extra_methods: |
-    static new(address: Address, amount: Value): TransactionOutput {
-      return new TransactionOutput(address, amount, undefined, undefined);
-    }
+
+# pre_babbage_transaction_output =
+#   [ address
+#   , amount : value
+#   , ? datum_hash : $hash32
+#   ]
+#
+PreBabbageTransactionOutput:
+  type: record
+  fields:
+    - name: address
+      type: Address
+    - name: amount
+      type: Value
+    - name: datum_hash
+      type: DataHash
+      optional: true
+
 
 # script_data_hash = $hash32
 # ; This is a hash of data which may affect evaluation of a script.
@@ -1549,8 +1607,8 @@ TransactionWitnessSet:
       type: PlutusScripts
       optional: true
     - id: 4
-      name: plutus_data
-      type: PlutusList
+      name: inner_plutus_data
+      type: PlutusSet
       optional: true
     - id: 5
       name: redeemers
@@ -1580,20 +1638,28 @@ TransactionWitnessSet:
       );
     }
 
+    plutus_data(): PlutusList | undefined {
+      return this.inner_plutus_data()?.as_list();
+    }
+
+    set_plutus_data(plutus_data: PlutusList): void {
+      this._inner_plutus_data = plutus_data.as_set();
+    }
+
 Vkeywitnesses:
   type: set
   item: Vkeywitness
 
 NativeScripts:
-  type: array
+  type: set
   item: NativeScript
 
 BootstrapWitnesses:
-  type: array
+  type: set
   item: BootstrapWitness
 
 PlutusScripts:
-  type: array
+  type: set
   item: PlutusScript
 
 PlutusScript:
@@ -1609,9 +1675,13 @@ PlutusScript:
       return new ScriptHash(hash_bytes);
     }
 
-PlutusList:
+PlutusSet:
   type: set
   item: PlutusData
+  extra_methods: |
+    as_list(): PlutusList {
+      return new PlutusList(this.items, this.definiteEncoding);
+    }
 
 # ; The real type of  plutus_v1_script, plutus_v2_script and plutus_v3_script is bytes.
 # ; However, because we enforce uniqueness when many scripts are supplied,
@@ -1764,34 +1834,32 @@ TransactionMetadatumLabels:
 #       , ? 4 => [ * plutus_v3_script ]
 #       })
 AuxiliaryData:
-  type: struct
-  fields:
-    - id: 0
-      name: metadata
+  type: union
+  variants:
+    - tag: 0
+      peek_type: map
+      name: shelley_metadata
       type: GeneralTransactionMetadata
-    - id: 1
-      name: native_scripts
-      type: NativeScripts
-    - id: 2
-      name: plutus_scripts_v1
-      type: PlutusScripts
-    - id: 3
-      name: plutus_scripts_v2
-      type: PlutusScripts
-    - id: 4
-      name: plutus_scripts_v3
-      type: PlutusScripts
+    - tag: 1
+      peek_type: array
+      name: shelley_metadata_ma
+      type: AuxiliaryDataShelleyMa
+    - tag: 2
+      peek_type: tagged
+      name: postalonzo_metadata
+      type: AuxiliaryDataPostAlonzo
   methods:
     new: null
   extra_methods: |
     static new(): AuxiliaryData {
-      return new AuxiliaryData(
+      const post_alonzo_auxiliary_data = new AuxiliaryDataPostAlonzo(
         GeneralTransactionMetadata.new(),
         NativeScripts.new(),
         PlutusScripts.new(),
         PlutusScripts.new(),
         PlutusScripts.new(),
-      )
+      );
+      return new AuxiliaryData({kind: 2, value: post_alonzo_auxiliary_data})
     }
 
 # vkeywitness = [ $vkey, $signature ]
@@ -1988,6 +2056,12 @@ NetworkId:
 # datum_hash = $hash32
 
 # data = #6.24(bytes .cbor plutus_data)
+Data:
+  type: newtype
+  item: bytes
+  accessor: encoded_plutus_data
+  tagged:
+    tag: 24
 
 # datum_option = [ 0, $hash32 // 1, data ]
 DataOption:
@@ -1998,7 +2072,7 @@ DataOption:
       value: DataHash
     - name: data
       tag: 1
-      value: PlutusData
+      value: Data
 
 # script_ref = #6.24(bytes .cbor script)
 
@@ -2045,6 +2119,18 @@ ProposedProtocolParameterUpdates:
   key: GenesisHash
   value: ProtocolParamUpdate
   keys_method_type: GenesisHashes
+
+PlutusList:
+  type: array
+  item: PlutusData
+  extra_methods: |
+    as_set(): PlutusSet {
+      let set = new PlutusSet(this.definiteEncoding); 
+      for (let i = 0; i < this.len(); i++) {
+        set.add(this.items[i]);
+      }
+      return set;
+    }
 
 PlutusMap:
   type: map
@@ -2095,6 +2181,20 @@ Vkey:
   fields:
     - name: public_key
       type: PublicKey
+  methods:
+    deserialize: null
+    serialize: null
+  extra_methods: |
+    static deserialize(reader: CBORReader, path: string[]): Vkey {
+      const public_key_path = [...path, "PublicKey(public_key)"];
+      let public_key = PublicKey.deserialize(reader, public_key_path);
+      return new Vkey(public_key);
+    }
+
+    serialize(writer: CBORWriter): void {
+      this._public_key.serialize(writer);
+    }
+   
 Vkeys:
   type: array
   item: Vkey
