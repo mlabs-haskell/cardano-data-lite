@@ -7,6 +7,7 @@
     "FixedBlock",
     "FixedTransactionBodies",
     "FixedTransactionBody",
+    "FixedTransaction",
     "FixedTxWitnessesSet",
     "FixedVersionedBlock",
     "Pointer",
@@ -79,6 +80,6 @@
     "MoveInstantaneousRewards",
     "GenesisKeyDelegation",
     "boolean",
-    "bignum" 
+    "bignum"
   ]
 }
