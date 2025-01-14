@@ -1754,7 +1754,7 @@ Vkeywitnesses:
   item: Vkeywitness
 
 NativeScripts:
-  type: array
+  type: set
   item: NativeScript
 
 BootstrapWitnesses:

@@ -8997,14 +8997,20 @@ export class NativeScriptSource {
 export class NativeScripts {
   private items: NativeScript[];
   private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
 
-  constructor(items: NativeScript[], definiteEncoding: boolean = true) {
+  private setItems(items: NativeScript[]) {
     this.items = items;
+  }
+
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
+    this.items = [];
     this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): NativeScripts {
-    return new NativeScripts([]);
+    return new NativeScripts();
   }
 
   len(): number {
@@ -9016,20 +9022,45 @@ export class NativeScripts {
     return this.items[index];
   }
 
-  add(elem: NativeScript): void {
+  add(elem: NativeScript): boolean {
+    if (this.contains(elem)) return true;
     this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: NativeScript): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static deserialize(reader: CBORReader, path: string[]): NativeScripts {
+    let nonEmptyTag = false;
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
+    }
     const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
-        NativeScript.deserialize(reader, [...path, "Elem#" + idx]),
+        NativeScript.deserialize(reader, [...path, "NativeScript#" + idx]),
       path,
     );
-    return new NativeScripts(items, definiteEncoding);
+    let ret = new NativeScripts(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
+    return ret;
   }
 
   serialize(writer: CBORWriter): void {
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
