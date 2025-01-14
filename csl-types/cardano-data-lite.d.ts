@@ -3304,6 +3304,41 @@ export declare class TransactionOutputs {
     to_hex(): string;
     clone(path: string[]): TransactionOutputs;
 }
+export declare class TransactionUnspentOutput {
+    private _input;
+    private _output;
+    constructor(input: TransactionInput, output: TransactionOutput);
+    static new(input: TransactionInput, output: TransactionOutput): TransactionUnspentOutput;
+    input(): TransactionInput;
+    set_input(input: TransactionInput): void;
+    output(): TransactionOutput;
+    set_output(output: TransactionOutput): void;
+    static deserialize(reader: CBORReader, path: string[]): TransactionUnspentOutput;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array, path?: string[]): TransactionUnspentOutput;
+    static from_hex(hex_str: string, path?: string[]): TransactionUnspentOutput;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(path: string[]): TransactionUnspentOutput;
+}
+export declare class TransactionUnspentOutputs {
+    private items;
+    private definiteEncoding;
+    constructor(items: TransactionUnspentOutput[], definiteEncoding?: boolean);
+    static new(): TransactionUnspentOutputs;
+    len(): number;
+    get(index: number): TransactionUnspentOutput;
+    add(elem: TransactionUnspentOutput): void;
+    static deserialize(reader: CBORReader, path: string[]): TransactionUnspentOutputs;
+    serialize(writer: CBORWriter): void;
+    free(): void;
+    static from_bytes(data: Uint8Array, path?: string[]): TransactionUnspentOutputs;
+    static from_hex(hex_str: string, path?: string[]): TransactionUnspentOutputs;
+    to_bytes(): Uint8Array;
+    to_hex(): string;
+    clone(path: string[]): TransactionUnspentOutputs;
+}
 export declare class TransactionWitnessSet {
     private _vkeys;
     private _native_scripts;

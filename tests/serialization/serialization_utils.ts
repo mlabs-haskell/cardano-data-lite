@@ -2,31 +2,20 @@ import fs from "node:fs";
 import * as csl from "@emurgo/cardano-serialization-lib-nodejs-gc";
 import * as yaml from "yaml";
 import { Value } from "@sinclair/typebox/value";
-import { AccessSubComponent, Component, RoundtripTestParameters, TransactionInfo } from "../test_types";
+import { AccessSubComponent, ClassInfoFile, Component, RoundtripTestParameters, TransactionInfo } from "../test_types";
 import { Schema } from "../../conway-cddl/codegen/types";
 import { exit } from "node:process";
 
 // Whether to log extraction messages or not
-const traceExtraction = true;
+const traceExtraction = false;
 const extractLog = traceExtraction ? (...args : any) => console.log(...args) : () => { ; };
 
-// Types we are not interested in (or that are not supported)
-const typeBlacklist = new Set<string>([
-  // Deprecated
-  "MoveInstantaneousRewards",
-  "GenesisKeyDelegation",
-  // Uninteresting
-  "boolean",
-  "bignum" 
-]);
-// Unsupported fields during extraction
-const fieldsBlacklist = new Set<string>([
-  "plutus_scripts_v1",
-  "plutus_scripts_v2",
-  "plutus_scripts_v3",
-  "script_pubkey",
-  "inner_plutus_data"
-])
+// Load ignored types and field names
+const classInfo: ClassInfoFile = JSON.parse(fs.readFileSync("tests/class-info.json", "utf-8"));
+const unsupportedTypes  = new Set(classInfo.extraction_unsupported_types);
+const unsupportedFields = new Set(classInfo.extraction_unsupported_fields);
+// Load list of bad variants we don't want to test for serialization
+const unsupportedVariants = new Set(classInfo.serialization_bad_variants);
 
 export function retrieveTxsFromDir(path: string): Array<TransactionInfo> {
   let files: Array<string> = fs.readdirSync(path);
@@ -36,13 +25,13 @@ export function retrieveTxsFromDir(path: string): Array<TransactionInfo> {
 
   let tinfos: Array<TransactionInfo> = [];
   for (const file of files) {
-    const fileRegex = /(?<idx>[0-9]{3})-(?<hash>[0123456789abcdef]+)\.cbor/;
+    const fileRegex = /(?<idx>[0-9]{3})-(?<hash>\w+)\.cbor/;
     const match = file.match(fileRegex);
     if (!match || !match.groups || !match.groups["hash"]) {
       console.log(`(retrieveTxsFromDir) Failed to parse filename: ${file}`);
       exit(-1);
     } else {
-      const cbor = fs.readFileSync(`${path}/${file}`, { encoding: "utf-8"});
+      const cbor = fs.readFileSync(`${path}/${file}`, { encoding: "utf-8"}).trim();
       tinfos.push({"hash": match.groups["hash"], "cbor": cbor})
     }
   }
@@ -106,6 +95,7 @@ function explodeTx(tx: csl.Transaction): Component {
   let schema: Schema = Value.Parse(Schema, value);
   let children: Array<Component> = [];
   explodeValue(key, tx, schema, schemata, children, "tx")
+  
   return { type: key, key: "tx", path: "tx", cbor: tx.to_bytes(), children: children, failed: false };
 }
 
@@ -166,7 +156,10 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
           extractLog(`Variant name: ${variant.name}\nVariant type: ${variant.value}`);
           let grandchildren = [];
           explodeValue(variant.name, taggedValue, schemata[variant.value], schemata, grandchildren, newComponentPath)
-          children.push({ type: variant.value, key: key, path: newComponentPath, children: grandchildren, cbor: taggedValue.to_bytes(), failed: false })
+          // if the variant contains a to_bytes method AND we are not explicitly ignoring it in our configuration...
+          if (taggedValue.to_bytes && !unsupportedVariants.has(variant.value)) {
+            children.push({ type: variant.value, key: key, path: newComponentPath, children: grandchildren, cbor: taggedValue.to_bytes(), failed: false })
+          }
         }
       }
       break;
@@ -233,7 +226,7 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
 function getField(value: any, fieldName: string, fieldType: string, optional: boolean | undefined, path: string): AccessSubComponent {
   extractLog("getField: ", fieldName);
   const subPath = optional ? `${path}/${fieldName}?` : `${path}/${fieldName}`
-  if (typeBlacklist.has(fieldType) || fieldsBlacklist.has(fieldName)) {
+  if (unsupportedTypes.has(fieldType) || unsupportedFields.has(fieldName)) {
     return { sub: undefined, subPath: subPath };
   }
   return {sub: value[fieldName](), subPath: subPath };
@@ -243,7 +236,7 @@ function getField(value: any, fieldName: string, fieldType: string, optional: bo
 function getWrapped(value: any, wrappedName: string, wrappedType: string, path: string): AccessSubComponent {
   extractLog("getWrapped: ", wrappedName)  ;
   const subPath = `${path}/${wrappedName}]`
-  if (typeBlacklist.has(wrappedType)) {
+  if (unsupportedTypes.has(wrappedType)) {
     return { sub: undefined, subPath: subPath };
   }
   return { sub: value[wrappedName](), subPath: subPath };
@@ -253,7 +246,7 @@ function getWrapped(value: any, wrappedName: string, wrappedType: string, path: 
 function getEntry(value: any, mapKey: any, entryName: string, entryType: string, mapKeyIndex: number, path: string): AccessSubComponent {
   extractLog("getEntry: ", entryName);
   const subPath = `${path}/Key#${mapKeyIndex}`;
-  if (typeBlacklist.has(entryType)) {
+  if (unsupportedTypes.has(entryType)) {
     return { sub: undefined, subPath: subPath };
   }
   return { sub: value.get(mapKey), subPath: subPath };
@@ -263,7 +256,7 @@ function getEntry(value: any, mapKey: any, entryName: string, entryType: string,
 function getElem(value: any, index: number, elemName: string, elemType: string, path: string): AccessSubComponent {
   extractLog("getElem: ", elemName);
   const subPath = `${path}/Elem#${index}`;
-  if (typeBlacklist.has(elemType)) {
+  if (unsupportedTypes.has(elemType)) {
     return { sub: undefined, subPath: subPath };
   }
   return {sub: value.get(index), subPath: subPath };
@@ -274,7 +267,7 @@ function getTagged(value: any, variantName: string, variantType: string, path: s
   extractLog("getTagged: ", variantName);
   const accessor = `as_${variantName}`;
   const subPath = `${path}/${accessor}`
-  if (typeBlacklist.has(variantType) || fieldsBlacklist.has(variantName)) {
+  if (unsupportedTypes.has(variantType) || unsupportedFields.has(variantName)) {
     return { sub: undefined, subPath: subPath };
   }
   return {sub: value[accessor](), subPath: subPath };

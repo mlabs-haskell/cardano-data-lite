@@ -35,7 +35,7 @@ async function main() {
 
   let yamlDir = path.join(curDir, "..", "yaml");
 
-  let files = [path.join(yamlDir, "conway.yaml")];
+  let files = [path.join(yamlDir, "conway.yaml"), path.join(yamlDir, "utils.yaml")];
 
   let customDir = path.join(yamlDir, "custom");
 
@@ -77,6 +77,13 @@ async function main() {
     import {bech32} from "bech32";
     import * as cdlCrypto from "./lib/bip32-ed25519";
     import {Address, Credential, CredKind, RewardAddress} from "./address";
+    import {webcrypto} from "crypto";
+
+    // Polyfill the global "crypto" object if it doesn't exist
+    if (typeof globalThis.crypto === 'undefined') {
+        // @ts-expect-error: Assigning Node.js webcrypto to globalThis.crypto
+        globalThis.crypto = webcrypto;
+    }
 
     function $$UN(id: string, ...args: any): any {
       throw ("Undefined function: " + id);

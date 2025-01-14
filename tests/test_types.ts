@@ -66,3 +66,12 @@ export type Component = {
 export type RoundtripTestParameters = { txCount: number, txHash: string, txHashAbbrev: string, componentIndex: number, component: Component }
 // Result type for retrieving fields/elements/entries inside the different components
 export type AccessSubComponent = { sub: any | undefined, subPath: string }
+
+// class-info.json
+export type ClassInfoFile = {
+  "api_ignore_classes": Array<string>,
+  "api_ignore_methods": { [cls: string]: Array<string> }
+  "serialization_bad_variants": Array<string>,
+  "extraction_unsupported_fields": Array<string>,
+  "extraction_unsupported_types": Array<string>,
+}

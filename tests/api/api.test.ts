@@ -1,7 +1,7 @@
 // This module tests that the classes generated in out.ts match the CSL API
 // at the method level
 import fs from "node:fs";
-import { ClassInfo, ClassRename, MethodComparisonResult, MethodInfo, ParamInfo, SomeType, TypeComparisonResult } from "../test_types";
+import { ClassInfo, ClassInfoFile, ClassRename, MethodComparisonResult, MethodInfo, ParamInfo, SomeType, TypeComparisonResult } from "../test_types";
 import grammar, { TypeDefsSemantics } from "./grammar.ohm-bundle"
 import { describe, test } from "@jest/globals";
 
@@ -211,24 +211,20 @@ for(const rename of classRenames) {
 // We filter out the ignored classes and methods from clsClassesMap based on the classInfo file.
 // We don't want to fail when checking methods if cdlClassesMap does not contain these classes/methods.
 // We also don't want to count them as missing methods or classes.
-type ClassInfoFile = {
-  "ignore_classes": Array<string>,
-  "ignore_methods": { [cls: string]: Array<string> }
-}
 const classInfo: ClassInfoFile = JSON.parse(fs.readFileSync("tests/class-info.json", "utf-8"));
-for (const cls of classInfo.ignore_classes) {
+for (const cls of classInfo.api_ignore_classes) {
   cslClassesMap.delete(cls);
   cdlClassesMap.delete(cls);
 }
-for (const cls in classInfo.ignore_methods) {
+for (const cls in classInfo.api_ignore_methods) {
   let cdlMethodInfos = cdlClassesMap.get(cls);
   if (cdlMethodInfos) {
-    let filteredMethodInfos = cdlMethodInfos.filter((info) => !classInfo.ignore_methods[cls].includes(info.name))
+    let filteredMethodInfos = cdlMethodInfos.filter((info) => !classInfo.api_ignore_methods[cls].includes(info.name))
     cdlClassesMap.set(cls, filteredMethodInfos);
   }
   let cslMethodInfos = cslClassesMap.get(cls);
   if (cslMethodInfos) {
-    let filteredMethodInfos = cslMethodInfos.filter((info) => !classInfo.ignore_methods[cls].includes(info.name))
+    let filteredMethodInfos = cslMethodInfos.filter((info) => !classInfo.api_ignore_methods[cls].includes(info.name))
     cslClassesMap.set(cls, filteredMethodInfos);
   }
 }

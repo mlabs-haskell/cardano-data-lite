@@ -21,6 +21,14 @@ export class ByronAddress {
     this._address_type = address_type;
   }
 
+  static new(
+    address: Uint8Array,
+    attributes: ByronAttributes,
+    address_type: ByronAddressType,
+  ) {
+    return new ByronAddress(address, attributes, address_type);
+  }
+
   serializeInner(writer: CBORWriter): void {
     writer.writeArrayTag(3);
     writer.writeBytes(this._address);

@@ -54,7 +54,7 @@ export class GenHash extends CodeGeneratorBase {
         "from_bech32",
         (from_bech32) => `
         static ${from_bech32}(bech_str: string): ${this.name} {
-          let decoded = bech32.decode(bech_str);
+          let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
           let words = decoded.words;
           let bytesArray = bech32.fromWords(words);
           let bytes = new Uint8Array(bytesArray);
@@ -68,7 +68,7 @@ export class GenHash extends CodeGeneratorBase {
         ${to_bech32}(prefix: string): string {
           let bytes = this.to_bytes();
           let words = bech32.toWords(bytes);
-          return bech32.encode(prefix, words);
+          return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
         }`,
       )}
 

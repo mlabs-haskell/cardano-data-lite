@@ -1,25 +1,32 @@
 {
-  "name": "cardano-data-lite",
+  "name": "@mlabs-haskell/cardano-data-lite",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
     "test": "npm run test-serialization ; npm run test-api",
     "test-serialization": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization.test.ts",
     "test-serialization-dev": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization_dev.test.ts",
     "test-api": "npm run generate-cdl-definitions ; NODE_OPTIONS=--experimental-vm-modules jest tests/api/api.test.ts",
+    "test-implementation": "NODE_OPTIONS=--experimental-vm-modules jest fees hash min_output_ada",
     "codegen": "tsx conway-cddl/codegen/main.ts",
     "generate-grammar-bundle": "npx ohm generateBundles -e -t tests/api/grammar.ohm",
     "generate-cdl-definitions": "make typedefs",
     "get-transactions": "tsx tests/serialization/get_transactions.ts",
-    "cleanup-compilation-artifacts": "make clean; npm run generate-grammar-bundle"
+    "cleanup-compilation-artifacts": "make clean; npm run generate-grammar-bundle",
+    "build": "npm run codegen && npx tsc && node fix-imports.js",
+    "prepare": "npm run build"
   },
   "author": "",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
     "@blockfrost/blockfrost-js": "^5.5.0",
-    "@emurgo/cardano-serialization-lib-nodejs-gc": "^13.0",
+    "@emurgo/cardano-serialization-lib-nodejs-gc": "^13.2",
     "@jest/globals": "^29.5.13",
     "@ohm-js/cli": "^2.0.0",
     "@prettier/sync": "^0.5.2",
@@ -27,7 +34,6 @@
     "@tsconfig/recommended": "^1.0.7",
     "@types/jest": "^29.5.13",
     "@types/node": "^20.12.7",
-    "base58-js": "^2.0.0",
     "change-case": "^5.4.4",
     "esbuild": "^0.20.2",
     "esbuild-jest": "^0.5.0",
@@ -46,6 +52,7 @@
     "@noble/ed25519": "^2.1.0",
     "@noble/hashes": "^1.5.0",
     "bech32": "^2.0.0",
+    "base58-js": "^2.0.0",
     "tweetnacl": "^1.0.3"
   }
 }

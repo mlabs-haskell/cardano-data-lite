@@ -6,6 +6,13 @@ import { arrayEq } from "./lib/eq";
 import { bech32 } from "bech32";
 import * as cdlCrypto from "./lib/bip32-ed25519";
 import { Address, Credential, CredKind, RewardAddress } from "./address";
+import { webcrypto } from "crypto";
+
+// Polyfill the global "crypto" object if it doesn't exist
+if (typeof globalThis.crypto === "undefined") {
+  // @ts-expect-error: Assigning Node.js webcrypto to globalThis.crypto
+  globalThis.crypto = webcrypto;
+}
 
 function $$UN(id: string, ...args: any): any {
   throw "Undefined function: " + id;
@@ -116,7 +123,7 @@ export class AnchorDataHash {
   }
 
   static from_bech32(bech_str: string): AnchorDataHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -126,7 +133,7 @@ export class AnchorDataHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -603,6 +610,180 @@ export class AuxiliaryData {
     );
     return new AuxiliaryData({ kind: 2, value: post_alonzo_auxiliary_data });
   }
+
+  metadata(): GeneralTransactionMetadata | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return this.variant.value;
+      case 1:
+        return this.variant.value.transaction_metadata();
+      case 2:
+        return this.variant.value.metadata();
+    }
+  }
+
+  set_metadata(metadata: GeneralTransactionMetadata): void {
+    switch (this.variant.kind) {
+      case 0:
+        this.variant = { kind: 0, value: metadata };
+        break;
+      case 1:
+        this.variant.value.set_transaction_metadata(metadata);
+        break;
+      case 2:
+        this.variant.value.set_metadata(metadata);
+        break;
+    }
+  }
+
+  native_scripts(): NativeScripts | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return undefined;
+      case 1:
+        return this.variant.value.auxiliary_scripts();
+      case 2:
+        return this.variant.value.native_scripts();
+    }
+  }
+
+  set_native_scripts(native_scripts: NativeScripts): void {
+    switch (this.variant.kind) {
+      case 0:
+        let v = AuxiliaryDataPostAlonzo.new(
+          this.variant.value,
+          native_scripts,
+          undefined,
+          undefined,
+          undefined,
+        );
+        this.variant = { kind: 2, value: v };
+        break;
+      case 1:
+        this.variant.value.set_auxiliary_scripts(native_scripts);
+        break;
+      case 2:
+        this.variant.value.set_native_scripts(native_scripts);
+        break;
+    }
+  }
+
+  plutus_scripts_v1(): PlutusScripts | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return undefined;
+      case 1:
+        return undefined;
+      case 2:
+        return this.variant.value.plutus_scripts_v1();
+    }
+  }
+
+  set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts): void {
+    switch (this.variant.kind) {
+      case 0:
+        let v1 = AuxiliaryDataPostAlonzo.new(
+          this.variant.value,
+          undefined,
+          plutus_scripts_v1,
+          undefined,
+          undefined,
+        );
+        this.variant = { kind: 2, value: v1 };
+        break;
+      case 1:
+        let v2 = AuxiliaryDataPostAlonzo.new(
+          this.variant.value.transaction_metadata(),
+          this.variant.value.auxiliary_scripts(),
+          plutus_scripts_v1,
+          undefined,
+          undefined,
+        );
+        this.variant = { kind: 2, value: v2 };
+        break;
+      case 2:
+        this.variant.value.set_plutus_scripts_v1(plutus_scripts_v1);
+        break;
+    }
+  }
+
+  plutus_scripts_v2(): PlutusScripts | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return undefined;
+      case 1:
+        return undefined;
+      case 2:
+        return this.variant.value.plutus_scripts_v2();
+    }
+  }
+
+  set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts): void {
+    switch (this.variant.kind) {
+      case 0:
+        let v1 = AuxiliaryDataPostAlonzo.new(
+          this.variant.value,
+          undefined,
+          undefined,
+          plutus_scripts_v2,
+          undefined,
+        );
+        this.variant = { kind: 2, value: v1 };
+        break;
+      case 1:
+        let v2 = AuxiliaryDataPostAlonzo.new(
+          this.variant.value.transaction_metadata(),
+          this.variant.value.auxiliary_scripts(),
+          undefined,
+          plutus_scripts_v2,
+          undefined,
+        );
+        this.variant = { kind: 2, value: v2 };
+        break;
+      case 2:
+        this.variant.value.set_plutus_scripts_v2(plutus_scripts_v2);
+        break;
+    }
+  }
+
+  plutus_scripts_v3(): PlutusScripts | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return undefined;
+      case 1:
+        return undefined;
+      case 2:
+        return this.variant.value.plutus_scripts_v3();
+    }
+  }
+
+  set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts): void {
+    switch (this.variant.kind) {
+      case 0:
+        let v3 = AuxiliaryDataPostAlonzo.new(
+          this.variant.value,
+          undefined,
+          undefined,
+          undefined,
+          plutus_scripts_v3,
+        );
+        this.variant = { kind: 2, value: v3 };
+        break;
+      case 1:
+        let v2 = AuxiliaryDataPostAlonzo.new(
+          this.variant.value.transaction_metadata(),
+          this.variant.value.auxiliary_scripts(),
+          undefined,
+          undefined,
+          plutus_scripts_v3,
+        );
+        this.variant = { kind: 2, value: v2 };
+        break;
+      case 2:
+        this.variant.value.set_plutus_scripts_v3(plutus_scripts_v3);
+        break;
+    }
+  }
 }
 
 export class AuxiliaryDataHash {
@@ -618,7 +799,7 @@ export class AuxiliaryDataHash {
   }
 
   static from_bech32(bech_str: string): AuxiliaryDataHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -628,7 +809,7 @@ export class AuxiliaryDataHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -1249,7 +1430,7 @@ export class Bip32PrivateKey {
   }
 
   static from_bech32(bech_str: string): Bip32PrivateKey {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -1262,7 +1443,11 @@ export class Bip32PrivateKey {
 
   to_bech32(): string {
     let prefix = Bip32PrivateKey._BECH32_HRP;
-    return bech32.encode(prefix, this.inner);
+    return bech32.encode(
+      prefix,
+      bech32.toWords(this.inner),
+      Number.MAX_SAFE_INTEGER,
+    );
   }
 
   to_raw_key(): PrivateKey {
@@ -1393,7 +1578,7 @@ export class Bip32PublicKey {
   }
 
   static from_bech32(bech_str: string): Bip32PublicKey {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -1406,7 +1591,11 @@ export class Bip32PublicKey {
 
   to_bech32(): string {
     let prefix = Bip32PublicKey._BECH32_HRP;
-    return bech32.encode(prefix, this.inner);
+    return bech32.encode(
+      prefix,
+      bech32.toWords(this.inner),
+      Number.MAX_SAFE_INTEGER,
+    );
   }
 
   to_raw_key(): PublicKey {
@@ -1629,7 +1818,7 @@ export class BlockHash {
   }
 
   static from_bech32(bech_str: string): BlockHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -1639,7 +1828,7 @@ export class BlockHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -3059,6 +3248,12 @@ export class CommitteeColdResign {
   static new(committee_cold_credential: Credential): CommitteeColdResign {
     return new CommitteeColdResign(committee_cold_credential, undefined);
   }
+  static new_with_anchor(
+    committee_cold_credential: Credential,
+    anchor: Anchor,
+  ) {
+    return new CommitteeColdResign(committee_cold_credential, anchor);
+  }
 }
 
 export class CommitteeEpochs {
@@ -3251,11 +3446,11 @@ export class CommitteeHotAuth {
 
 export class Constitution {
   private _anchor: Anchor;
-  private _scripthash: ScriptHash | undefined;
+  private _script_hash: ScriptHash | undefined;
 
-  constructor(anchor: Anchor, scripthash: ScriptHash | undefined) {
+  constructor(anchor: Anchor, script_hash: ScriptHash | undefined) {
     this._anchor = anchor;
-    this._scripthash = scripthash;
+    this._script_hash = script_hash;
   }
 
   anchor(): Anchor {
@@ -3266,12 +3461,12 @@ export class Constitution {
     this._anchor = anchor;
   }
 
-  scripthash(): ScriptHash | undefined {
-    return this._scripthash;
+  script_hash(): ScriptHash | undefined {
+    return this._script_hash;
   }
 
-  set_scripthash(scripthash: ScriptHash | undefined): void {
-    this._scripthash = scripthash;
+  set_script_hash(script_hash: ScriptHash | undefined): void {
+    this._script_hash = script_hash;
   }
 
   static deserialize(reader: CBORReader, path: string[]): Constitution {
@@ -3289,14 +3484,14 @@ export class Constitution {
     const anchor_path = [...path, "Anchor(anchor)"];
     let anchor = Anchor.deserialize(reader, anchor_path);
 
-    const scripthash_path = [...path, "ScriptHash(scripthash)"];
-    let scripthash =
+    const script_hash_path = [...path, "ScriptHash(script_hash)"];
+    let script_hash =
       reader.readNullable(
-        (r) => ScriptHash.deserialize(r, scripthash_path),
+        (r) => ScriptHash.deserialize(r, script_hash_path),
         path,
       ) ?? undefined;
 
-    return new Constitution(anchor, scripthash);
+    return new Constitution(anchor, script_hash);
   }
 
   serialize(writer: CBORWriter): void {
@@ -3305,10 +3500,10 @@ export class Constitution {
     writer.writeArrayTag(arrayLen);
 
     this._anchor.serialize(writer);
-    if (this._scripthash == null) {
+    if (this._script_hash == null) {
       writer.writeNull();
     } else {
-      this._scripthash.serialize(writer);
+      this._script_hash.serialize(writer);
     }
   }
 
@@ -3346,6 +3541,12 @@ export class Constitution {
 
   static new(anchor: Anchor): Constitution {
     return new Constitution(anchor, undefined);
+  }
+  static new_with_script_hash(
+    anchor: Anchor,
+    scripthash: ScriptHash | undefined,
+  ) {
+    return new Constitution(anchor, scripthash);
   }
 }
 
@@ -3444,18 +3645,18 @@ export class ConstrPlutusData {
   }
 
   static deserialize(reader: CBORReader, path: string[]): ConstrPlutusData {
-    const alternative = reader.readTaggedTagAsBigInt(path);
-    if (Number(alternative) >= 121 && Number(alternative) <= 127) {
+    const tag = reader.readTaggedTagAsBigInt(path);
+    if (Number(tag) >= 121 && Number(tag) <= 127) {
       return ConstrPlutusData.new(
-        BigNum.new(alternative),
+        BigNum.new(tag).checked_sub(BigNum.from_str("121")),
         PlutusList.deserialize(reader, [...path, "PlutusList(data)"]),
       );
-    } else if (Number(alternative) == 102) {
+    } else if (Number(tag) == 102) {
       return ConstrPlutusData.deserializeWithSeparateIdx(reader, path);
     } else {
       throw new Error(
-        "Unexpected alternative for ConstrPlutusData: " +
-          alternative +
+        "Unexpected tagfor ConstrPlutusData: " +
+          tag +
           "(at " +
           path.join("/") +
           ")",
@@ -3465,23 +3666,17 @@ export class ConstrPlutusData {
 
   serialize(writer: CBORWriter): void {
     const alternative = this.alternative().toJsValue();
-    writer.writeTaggedTag(Number(alternative));
-    if (alternative == 102n) {
+    if (alternative > 6) {
+      writer.writeTaggedTag(102);
       this.serializeWithSeparateIdx(writer);
     } else {
+      writer.writeTaggedTag(Number(alternative) + 121);
       this.data().serialize(writer);
     }
   }
 
   static new(alternative: BigNum, data: PlutusList): ConstrPlutusData {
-    const alt = Number(alternative.toJsValue());
-    if (alt != 102 && (alt < 121 || alt > 127)) {
-      throw new Error(
-        "Unexpected alternative for ConstrPlutusData: " + alternative,
-      );
-    } else {
-      return ConstrPlutusData.uncheckedNew(alternative, data);
-    }
+    return ConstrPlutusData.uncheckedNew(alternative, data);
   }
 }
 
@@ -4242,6 +4437,13 @@ export class DRepRegistration {
   static new(voting_credential: Credential, coin: BigNum): DRepRegistration {
     return new DRepRegistration(voting_credential, coin, undefined);
   }
+  static new_with_anchor(
+    voting_credential: Credential,
+    coin: BigNum,
+    anchor: Anchor,
+  ) {
+    return new DRepRegistration(voting_credential, coin, anchor);
+  }
 }
 
 export class DRepUpdate {
@@ -4327,6 +4529,9 @@ export class DRepUpdate {
 
   static new(drep_credential: Credential): DRepUpdate {
     return new DRepUpdate(drep_credential, undefined);
+  }
+  static new_with_anchor(drep_credential: Credential, anchor: Anchor) {
+    return new DRepUpdate(drep_credential, anchor);
   }
 }
 
@@ -4781,7 +4986,7 @@ export class DataHash {
   }
 
   static from_bech32(bech_str: string): DataHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -4791,7 +4996,7 @@ export class DataHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -5104,7 +5309,7 @@ export class Ed25519KeyHash {
   }
 
   static from_bech32(bech_str: string): Ed25519KeyHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -5114,7 +5319,7 @@ export class Ed25519KeyHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -5295,9 +5500,9 @@ export class Ed25519Signature {
     writer.writeBytes(this.inner);
   }
 
-  static _BECH32_HRP = "ed25519_sk";
+  static _BECH32_HRP = "ed25519_sig";
   static from_bech32(bech_str: string): Ed25519Signature {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -5310,7 +5515,11 @@ export class Ed25519Signature {
 
   to_bech32() {
     let prefix = Ed25519Signature._BECH32_HRP;
-    bech32.encode(prefix, this.inner);
+    return bech32.encode(
+      prefix,
+      bech32.toWords(this.inner),
+      Number.MAX_SAFE_INTEGER,
+    );
   }
 }
 
@@ -5615,7 +5824,7 @@ export class GenesisDelegateHash {
   }
 
   static from_bech32(bech_str: string): GenesisDelegateHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -5625,7 +5834,7 @@ export class GenesisDelegateHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -5673,7 +5882,7 @@ export class GenesisHash {
   }
 
   static from_bech32(bech_str: string): GenesisHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -5683,7 +5892,7 @@ export class GenesisHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -7252,7 +7461,7 @@ export class KESVKey {
   }
 
   static from_bech32(bech_str: string): KESVKey {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -7262,7 +7471,7 @@ export class KESVKey {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -8749,20 +8958,14 @@ export class NativeScriptSource {
 export class NativeScripts {
   private items: NativeScript[];
   private definiteEncoding: boolean;
-  private nonEmptyTag: boolean;
 
-  private setItems(items: NativeScript[]) {
+  constructor(items: NativeScript[], definiteEncoding: boolean = true) {
     this.items = items;
-  }
-
-  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
-    this.items = [];
     this.definiteEncoding = definiteEncoding;
-    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): NativeScripts {
-    return new NativeScripts();
+    return new NativeScripts([]);
   }
 
   len(): number {
@@ -8774,46 +8977,25 @@ export class NativeScripts {
     return this.items[index];
   }
 
-  add(elem: NativeScript): boolean {
-    if (this.contains(elem)) return true;
+  add(elem: NativeScript): void {
     this.items.push(elem);
-    return false;
-  }
-
-  contains(elem: NativeScript): boolean {
-    for (let item of this.items) {
-      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
-        return true;
-      }
-    }
-    return false;
   }
 
   static deserialize(reader: CBORReader, path: string[]): NativeScripts {
-    let nonEmptyTag = false;
-    if (reader.peekType(path) == "tagged") {
-      let tag = reader.readTaggedTag(path);
-      if (tag != 258) {
-        throw new Error("Expected tag 258. Got " + tag);
-      } else {
-        nonEmptyTag = true;
-      }
-    }
     const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
-        NativeScript.deserialize(reader, [...path, "NativeScript#" + idx]),
+        NativeScript.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    let ret = new NativeScripts(definiteEncoding, nonEmptyTag);
-    ret.setItems(items);
-    return ret;
+    return new NativeScripts(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    if (this.nonEmptyTag) {
-      writer.writeTaggedTag(258);
-    }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -8850,8 +9032,8 @@ export class NativeScripts {
 }
 
 export enum NetworkIdKind {
-  mainnet = 0,
-  testnet = 1,
+  mainnet = 1,
+  testnet = 0,
 }
 
 export class NetworkId {
@@ -8862,11 +9044,11 @@ export class NetworkId {
   }
 
   static new_mainnet(): NetworkId {
-    return new NetworkId(0);
+    return new NetworkId(1);
   }
 
   static new_testnet(): NetworkId {
-    return new NetworkId(1);
+    return new NetworkId(0);
   }
   kind(): NetworkIdKind {
     return this.kind_;
@@ -8874,8 +9056,8 @@ export class NetworkId {
 
   static deserialize(reader: CBORReader, path: string[]): NetworkId {
     let kind = Number(reader.readInt(path));
-    if (kind == 0) return new NetworkId(0);
     if (kind == 1) return new NetworkId(1);
+    if (kind == 0) return new NetworkId(0);
     throw (
       "Unrecognized enum value: " +
       kind +
@@ -10450,7 +10632,7 @@ export class PoolMetadataHash {
   }
 
   static from_bech32(bech_str: string): PoolMetadataHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -10460,7 +10642,7 @@ export class PoolMetadataHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -11399,11 +11581,15 @@ export class PrivateKey {
     let prefix = this.options?.isExtended
       ? PrivateKey._EXT_BECH32_HRP
       : PrivateKey._BECH32_HRP;
-    bech32.encode(prefix, this.inner);
+    return bech32.encode(
+      prefix,
+      bech32.toWords(this.inner),
+      Number.MAX_SAFE_INTEGER,
+    );
   }
 
   static from_bech32(bech_str: string): PrivateKey {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -11589,7 +11775,7 @@ export class ProtocolParamUpdate {
   private _treasury_growth_rate: UnitInterval | undefined;
   private _min_pool_cost: BigNum | undefined;
   private _ada_per_utxo_byte: BigNum | undefined;
-  private _costmdls: Costmdls | undefined;
+  private _cost_models: Costmdls | undefined;
   private _execution_costs: ExUnitPrices | undefined;
   private _max_tx_ex_units: ExUnits | undefined;
   private _max_block_ex_units: ExUnits | undefined;
@@ -11604,7 +11790,7 @@ export class ProtocolParamUpdate {
   private _governance_action_deposit: BigNum | undefined;
   private _drep_deposit: BigNum | undefined;
   private _drep_inactivity_period: number | undefined;
-  private _script_cost_per_byte: UnitInterval | undefined;
+  private _ref_script_coins_per_byte: UnitInterval | undefined;
 
   constructor(
     minfee_a: BigNum | undefined,
@@ -11621,7 +11807,7 @@ export class ProtocolParamUpdate {
     treasury_growth_rate: UnitInterval | undefined,
     min_pool_cost: BigNum | undefined,
     ada_per_utxo_byte: BigNum | undefined,
-    costmdls: Costmdls | undefined,
+    cost_models: Costmdls | undefined,
     execution_costs: ExUnitPrices | undefined,
     max_tx_ex_units: ExUnits | undefined,
     max_block_ex_units: ExUnits | undefined,
@@ -11636,7 +11822,7 @@ export class ProtocolParamUpdate {
     governance_action_deposit: BigNum | undefined,
     drep_deposit: BigNum | undefined,
     drep_inactivity_period: number | undefined,
-    script_cost_per_byte: UnitInterval | undefined,
+    ref_script_coins_per_byte: UnitInterval | undefined,
   ) {
     this._minfee_a = minfee_a;
     this._minfee_b = minfee_b;
@@ -11652,7 +11838,7 @@ export class ProtocolParamUpdate {
     this._treasury_growth_rate = treasury_growth_rate;
     this._min_pool_cost = min_pool_cost;
     this._ada_per_utxo_byte = ada_per_utxo_byte;
-    this._costmdls = costmdls;
+    this._cost_models = cost_models;
     this._execution_costs = execution_costs;
     this._max_tx_ex_units = max_tx_ex_units;
     this._max_block_ex_units = max_block_ex_units;
@@ -11667,7 +11853,7 @@ export class ProtocolParamUpdate {
     this._governance_action_deposit = governance_action_deposit;
     this._drep_deposit = drep_deposit;
     this._drep_inactivity_period = drep_inactivity_period;
-    this._script_cost_per_byte = script_cost_per_byte;
+    this._ref_script_coins_per_byte = ref_script_coins_per_byte;
   }
 
   minfee_a(): BigNum | undefined {
@@ -11786,12 +11972,12 @@ export class ProtocolParamUpdate {
     this._ada_per_utxo_byte = ada_per_utxo_byte;
   }
 
-  costmdls(): Costmdls | undefined {
-    return this._costmdls;
+  cost_models(): Costmdls | undefined {
+    return this._cost_models;
   }
 
-  set_costmdls(costmdls: Costmdls | undefined): void {
-    this._costmdls = costmdls;
+  set_cost_models(cost_models: Costmdls | undefined): void {
+    this._cost_models = cost_models;
   }
 
   execution_costs(): ExUnitPrices | undefined {
@@ -11914,14 +12100,14 @@ export class ProtocolParamUpdate {
     this._drep_inactivity_period = drep_inactivity_period;
   }
 
-  script_cost_per_byte(): UnitInterval | undefined {
-    return this._script_cost_per_byte;
+  ref_script_coins_per_byte(): UnitInterval | undefined {
+    return this._ref_script_coins_per_byte;
   }
 
-  set_script_cost_per_byte(
-    script_cost_per_byte: UnitInterval | undefined,
+  set_ref_script_coins_per_byte(
+    ref_script_coins_per_byte: UnitInterval | undefined,
   ): void {
-    this._script_cost_per_byte = script_cost_per_byte;
+    this._ref_script_coins_per_byte = ref_script_coins_per_byte;
   }
 
   static deserialize(reader: CBORReader, path: string[]): ProtocolParamUpdate {
@@ -12014,8 +12200,8 @@ export class ProtocolParamUpdate {
         }
 
         case 18: {
-          const new_path = [...path, "Costmdls(costmdls)"];
-          fields.costmdls = Costmdls.deserialize(r, new_path);
+          const new_path = [...path, "Costmdls(cost_models)"];
+          fields.cost_models = Costmdls.deserialize(r, new_path);
           break;
         }
 
@@ -12121,8 +12307,11 @@ export class ProtocolParamUpdate {
         }
 
         case 33: {
-          const new_path = [...path, "UnitInterval(script_cost_per_byte)"];
-          fields.script_cost_per_byte = UnitInterval.deserialize(r, new_path);
+          const new_path = [...path, "UnitInterval(ref_script_coins_per_byte)"];
+          fields.ref_script_coins_per_byte = UnitInterval.deserialize(
+            r,
+            new_path,
+          );
           break;
         }
       }
@@ -12156,7 +12345,7 @@ export class ProtocolParamUpdate {
 
     let ada_per_utxo_byte = fields.ada_per_utxo_byte;
 
-    let costmdls = fields.costmdls;
+    let cost_models = fields.cost_models;
 
     let execution_costs = fields.execution_costs;
 
@@ -12187,7 +12376,7 @@ export class ProtocolParamUpdate {
 
     let drep_inactivity_period = fields.drep_inactivity_period;
 
-    let script_cost_per_byte = fields.script_cost_per_byte;
+    let ref_script_coins_per_byte = fields.ref_script_coins_per_byte;
 
     return new ProtocolParamUpdate(
       minfee_a,
@@ -12204,7 +12393,7 @@ export class ProtocolParamUpdate {
       treasury_growth_rate,
       min_pool_cost,
       ada_per_utxo_byte,
-      costmdls,
+      cost_models,
       execution_costs,
       max_tx_ex_units,
       max_block_ex_units,
@@ -12219,7 +12408,7 @@ export class ProtocolParamUpdate {
       governance_action_deposit,
       drep_deposit,
       drep_inactivity_period,
-      script_cost_per_byte,
+      ref_script_coins_per_byte,
     );
   }
 
@@ -12239,7 +12428,7 @@ export class ProtocolParamUpdate {
     if (this._treasury_growth_rate === undefined) len -= 1;
     if (this._min_pool_cost === undefined) len -= 1;
     if (this._ada_per_utxo_byte === undefined) len -= 1;
-    if (this._costmdls === undefined) len -= 1;
+    if (this._cost_models === undefined) len -= 1;
     if (this._execution_costs === undefined) len -= 1;
     if (this._max_tx_ex_units === undefined) len -= 1;
     if (this._max_block_ex_units === undefined) len -= 1;
@@ -12254,7 +12443,7 @@ export class ProtocolParamUpdate {
     if (this._governance_action_deposit === undefined) len -= 1;
     if (this._drep_deposit === undefined) len -= 1;
     if (this._drep_inactivity_period === undefined) len -= 1;
-    if (this._script_cost_per_byte === undefined) len -= 1;
+    if (this._ref_script_coins_per_byte === undefined) len -= 1;
     writer.writeMapTag(len);
     if (this._minfee_a !== undefined) {
       writer.writeInt(0n);
@@ -12312,9 +12501,9 @@ export class ProtocolParamUpdate {
       writer.writeInt(17n);
       this._ada_per_utxo_byte.serialize(writer);
     }
-    if (this._costmdls !== undefined) {
+    if (this._cost_models !== undefined) {
       writer.writeInt(18n);
-      this._costmdls.serialize(writer);
+      this._cost_models.serialize(writer);
     }
     if (this._execution_costs !== undefined) {
       writer.writeInt(19n);
@@ -12372,9 +12561,9 @@ export class ProtocolParamUpdate {
       writer.writeInt(32n);
       writer.writeInt(BigInt(this._drep_inactivity_period));
     }
-    if (this._script_cost_per_byte !== undefined) {
+    if (this._ref_script_coins_per_byte !== undefined) {
       writer.writeInt(33n);
-      this._script_cost_per_byte.serialize(writer);
+      this._ref_script_coins_per_byte.serialize(writer);
     }
   }
 
@@ -12592,7 +12781,7 @@ export class PublicKey {
   }
 
   static from_bech32(bech_str: string): PublicKey {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -12605,7 +12794,11 @@ export class PublicKey {
 
   to_bech32() {
     let prefix = PublicKey._BECH32_HRP;
-    bech32.encode(prefix, this.inner);
+    return bech32.encode(
+      prefix,
+      bech32.toWords(this.inner),
+      Number.MAX_SAFE_INTEGER,
+    );
   }
 }
 
@@ -14028,7 +14221,7 @@ export class ScriptDataHash {
   }
 
   static from_bech32(bech_str: string): ScriptDataHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -14038,7 +14231,7 @@ export class ScriptDataHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -14086,7 +14279,7 @@ export class ScriptHash {
   }
 
   static from_bech32(bech_str: string): ScriptHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -14096,7 +14289,7 @@ export class ScriptHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -14461,7 +14654,7 @@ export class ScriptRef {
     return this.variant.kind;
   }
 
-  static deserialize(reader: CBORReader, path: string[]): ScriptRef {
+  static deserializeInner(reader: CBORReader, path: string[]): ScriptRef {
     let len = reader.readArrayTag(path);
     let tag = Number(reader.readUint(path));
     let variant: ScriptRefVariant;
@@ -14528,7 +14721,7 @@ export class ScriptRef {
     return new ScriptRef(variant);
   }
 
-  serialize(writer: CBORWriter): void {
+  serializeInner(writer: CBORWriter): void {
     switch (this.variant.kind) {
       case 0:
         writer.writeArrayTag(2);
@@ -14580,6 +14773,31 @@ export class ScriptRef {
 
   clone(path: string[]): ScriptRef {
     return ScriptRef.from_bytes(this.to_bytes(), path);
+  }
+
+  static deserialize(reader: CBORReader, path: string[]): ScriptRef {
+    const tag = reader.readTaggedTag(path);
+    if (tag != 24) {
+      throw new Error(
+        "Expected a CBOR encoded item when deserializing ScriptRef (at " +
+          path.join("/") +
+          ")",
+      );
+    }
+    let bytes = reader.readBytes(path);
+    let new_reader = new CBORReader(bytes);
+
+    return ScriptRef.deserializeInner(new_reader, path);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeTaggedTag(24);
+
+    let bytes_writer = new CBORWriter();
+    this.serializeInner(bytes_writer);
+    let bytes = bytes_writer.getBytes();
+
+    writer.writeBytes(bytes);
   }
 }
 
@@ -16340,7 +16558,7 @@ export class TransactionHash {
   }
 
   static from_bech32(bech_str: string): TransactionHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -16350,7 +16568,7 @@ export class TransactionHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -16991,6 +17209,113 @@ export class TransactionOutput {
       value: post_alonzo_transaction_output,
     });
   }
+
+  address(): Address {
+    return this.variant.value.address();
+  }
+
+  set_address(address: Address): void {
+    return this.variant.value.set_address(address);
+  }
+
+  amount(): Value {
+    return this.variant.value.amount();
+  }
+
+  set_amount(amount: Value): void {
+    this.variant.value.set_amount(amount);
+  }
+
+  data_hash(): DataHash | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return this.as_pre_babbage_transaction_output().datum_hash();
+      case 1:
+        const opt = this.as_post_alonzo_transaction_output().datum_option();
+        return opt?.as_hash();
+    }
+  }
+
+  set_data_hash(data_hash: DataHash | undefined): void {
+    switch (this.variant.kind) {
+      case 0:
+        let bto = this.as_pre_babbage_transaction_output();
+        bto.set_datum_hash(data_hash);
+        this.variant = { kind: 0, value: bto };
+        break;
+      case 1:
+        let ato = this.as_post_alonzo_transaction_output();
+        if (data_hash) {
+          ato.set_datum_option(DataOption.new_hash(data_hash));
+        } else {
+          ato.set_datum_option(undefined);
+        }
+        this.variant = { kind: 1, value: ato };
+        break;
+    }
+  }
+
+  datum_option(): DataOption | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return undefined;
+      case 1:
+        return this.as_post_alonzo_transaction_output().datum_option();
+    }
+  }
+
+  set_datum_option(datum_option: DataOption | undefined): void {
+    switch (this.variant.kind) {
+      case 0:
+        if (datum_option) {
+          const pbt = this.as_pre_babbage_transaction_output();
+          this.variant = {
+            kind: 1,
+            value: PostAlonzoTransactionOutput.new(
+              pbt.address(),
+              pbt.amount(),
+              datum_option,
+              undefined,
+            ),
+          };
+        }
+      case 1:
+        let pat = this.as_post_alonzo_transaction_output();
+        pat.set_datum_option(datum_option);
+        this.variant = { kind: 1, value: pat };
+    }
+  }
+
+  script_ref(): ScriptRef | undefined {
+    switch (this.variant.kind) {
+      case 0:
+        return undefined;
+      case 1:
+        return this.as_post_alonzo_transaction_output().script_ref();
+    }
+  }
+
+  set_script_ref(script_ref: ScriptRef | undefined): void {
+    switch (this.variant.kind) {
+      case 0:
+        if (ScriptRef) {
+          const pbt = this.as_pre_babbage_transaction_output();
+          this.variant = {
+            kind: 1,
+            value: PostAlonzoTransactionOutput.new(
+              pbt.address(),
+              pbt.amount(),
+              undefined,
+              script_ref,
+            ),
+          };
+        }
+      case 1:
+        let pat = this.as_post_alonzo_transaction_output();
+        pat.set_script_ref(script_ref);
+        this.variant = { kind: 1, value: pat };
+    }
+  }
 }
 
 export class TransactionOutputs {
@@ -17066,6 +17391,183 @@ export class TransactionOutputs {
 
   clone(path: string[]): TransactionOutputs {
     return TransactionOutputs.from_bytes(this.to_bytes(), path);
+  }
+}
+
+export class TransactionUnspentOutput {
+  private _input: TransactionInput;
+  private _output: TransactionOutput;
+
+  constructor(input: TransactionInput, output: TransactionOutput) {
+    this._input = input;
+    this._output = output;
+  }
+
+  static new(input: TransactionInput, output: TransactionOutput) {
+    return new TransactionUnspentOutput(input, output);
+  }
+
+  input(): TransactionInput {
+    return this._input;
+  }
+
+  set_input(input: TransactionInput): void {
+    this._input = input;
+  }
+
+  output(): TransactionOutput {
+    return this._output;
+  }
+
+  set_output(output: TransactionOutput): void {
+    this._output = output;
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): TransactionUnspentOutput {
+    let len = reader.readArrayTag(path);
+
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected at least 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
+      );
+    }
+
+    const input_path = [...path, "TransactionInput(input)"];
+    let input = TransactionInput.deserialize(reader, input_path);
+
+    const output_path = [...path, "TransactionOutput(output)"];
+    let output = TransactionOutput.deserialize(reader, output_path);
+
+    return new TransactionUnspentOutput(input, output);
+  }
+
+  serialize(writer: CBORWriter): void {
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
+
+    this._input.serialize(writer);
+    this._output.serialize(writer);
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionUnspentOutput"],
+  ): TransactionUnspentOutput {
+    let reader = new CBORReader(data);
+    return TransactionUnspentOutput.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionUnspentOutput"],
+  ): TransactionUnspentOutput {
+    return TransactionUnspentOutput.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): TransactionUnspentOutput {
+    return TransactionUnspentOutput.from_bytes(this.to_bytes(), path);
+  }
+}
+
+export class TransactionUnspentOutputs {
+  private items: TransactionUnspentOutput[];
+  private definiteEncoding: boolean;
+
+  constructor(
+    items: TransactionUnspentOutput[],
+    definiteEncoding: boolean = true,
+  ) {
+    this.items = items;
+    this.definiteEncoding = definiteEncoding;
+  }
+
+  static new(): TransactionUnspentOutputs {
+    return new TransactionUnspentOutputs([]);
+  }
+
+  len(): number {
+    return this.items.length;
+  }
+
+  get(index: number): TransactionUnspentOutput {
+    if (index >= this.items.length) throw new Error("Array out of bounds");
+    return this.items[index];
+  }
+
+  add(elem: TransactionUnspentOutput): void {
+    this.items.push(elem);
+  }
+
+  static deserialize(
+    reader: CBORReader,
+    path: string[],
+  ): TransactionUnspentOutputs {
+    const { items, definiteEncoding } = reader.readArray(
+      (reader, idx) =>
+        TransactionUnspentOutput.deserialize(reader, [...path, "Elem#" + idx]),
+      path,
+    );
+    return new TransactionUnspentOutputs(items, definiteEncoding);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
+  }
+
+  // no-op
+  free(): void {}
+
+  static from_bytes(
+    data: Uint8Array,
+    path: string[] = ["TransactionUnspentOutputs"],
+  ): TransactionUnspentOutputs {
+    let reader = new CBORReader(data);
+    return TransactionUnspentOutputs.deserialize(reader, path);
+  }
+
+  static from_hex(
+    hex_str: string,
+    path: string[] = ["TransactionUnspentOutputs"],
+  ): TransactionUnspentOutputs {
+    return TransactionUnspentOutputs.from_bytes(hexToBytes(hex_str), path);
+  }
+
+  to_bytes(): Uint8Array {
+    let writer = new CBORWriter();
+    this.serialize(writer);
+    return writer.getBytes();
+  }
+
+  to_hex(): string {
+    return bytesToHex(this.to_bytes());
+  }
+
+  clone(path: string[]): TransactionUnspentOutputs {
+    return TransactionUnspentOutputs.from_bytes(this.to_bytes(), path);
   }
 }
 
@@ -18200,7 +18702,7 @@ export class VRFKeyHash {
   }
 
   static from_bech32(bech_str: string): VRFKeyHash {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -18210,7 +18712,7 @@ export class VRFKeyHash {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op
@@ -18258,7 +18760,7 @@ export class VRFVKey {
   }
 
   static from_bech32(bech_str: string): VRFVKey {
-    let decoded = bech32.decode(bech_str);
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
     let words = decoded.words;
     let bytesArray = bech32.fromWords(words);
     let bytes = new Uint8Array(bytesArray);
@@ -18268,7 +18770,7 @@ export class VRFVKey {
   to_bech32(prefix: string): string {
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
-    return bech32.encode(prefix, words);
+    return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
   }
 
   // no-op

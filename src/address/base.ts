@@ -13,6 +13,10 @@ export class BaseAddress {
     this._stake = stake;
   }
 
+  static new(network: number, payment: Credential, stake: Credential) {
+    return new BaseAddress(network, payment, stake);
+  }
+
   payment_cred(): Credential {
     return this._payment;
   }

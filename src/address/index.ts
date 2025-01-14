@@ -6,6 +6,7 @@ import { Credential } from "./credential";
 import { RewardAddress } from "./reward";
 import { CBORWriter } from "../lib/cbor/writer";
 import { CBORReader } from "../lib/cbor/reader";
+import { bech32 } from "bech32";
 
 export * from "./byron";
 export * from "./malformed";
@@ -25,25 +26,25 @@ export enum AddressKind {
 
 export type AddressVariant =
   | {
-      kind: AddressKind.Base;
-      value: BaseAddress;
-    }
+    kind: AddressKind.Base;
+    value: BaseAddress;
+  }
   | {
-      kind: AddressKind.Enterprise;
-      value: EnterpriseAddress;
-    }
+    kind: AddressKind.Enterprise;
+    value: EnterpriseAddress;
+  }
   | {
-      kind: AddressKind.Reward;
-      value: RewardAddress;
-    }
+    kind: AddressKind.Reward;
+    value: RewardAddress;
+  }
   | {
-      kind: AddressKind.Byron;
-      value: ByronAddress;
-    }
+    kind: AddressKind.Byron;
+    value: ByronAddress;
+  }
   | {
-      kind: AddressKind.Malformed;
-      value: MalformedAddress;
-    };
+    kind: AddressKind.Malformed;
+    value: MalformedAddress;
+  };
 
 export class Address {
   _variant: AddressVariant;
@@ -52,7 +53,7 @@ export class Address {
     this._variant = variant;
   }
 
-  free(): void {}
+  free(): void { }
 
   kind(): AddressKind {
     return this._variant.kind;
@@ -120,7 +121,7 @@ export class Address {
       case 0b0000:
       case 0b0001:
       case 0b0010:
-      case 0b0011: 
+      case 0b0011:
         return new Address({
           kind: AddressKind.Base,
           value: BaseAddress.from_bytes(bytes)
@@ -148,6 +149,39 @@ export class Address {
           value: new MalformedAddress(bytes),
         });
     }
+  }
+
+  to_bech32(prefix_str: string | undefined): string {
+    let prefix = "";
+    if (prefix_str) {
+      prefix = prefix_str;
+    } else {
+      let prefix_header = "addr";
+      if (this._variant.kind == AddressKind.Reward) {
+        prefix_header = "stake";
+      }
+      let prefix_tail = ""
+      if (this._variant.kind == AddressKind.Malformed) {
+        prefix_tail = "_malformed";
+      } else if (this.network_id() != 0) {
+        prefix_tail = "_test";
+      }
+      prefix = prefix_header + prefix_tail;
+    }
+
+    return bech32.encode(
+      prefix,
+      bech32.toWords(this.to_bytes()),
+      Number.MAX_SAFE_INTEGER,
+    );
+  }
+
+  static from_bech32(bech_str: string): Address {
+    let decoded = bech32.decode(bech_str, Number.MAX_SAFE_INTEGER);
+    let words = decoded.words;
+    let bytesArray = bech32.fromWords(words);
+    let bytes = new Uint8Array(bytesArray);
+    return Address.from_bytes(bytes, []);
   }
 
   serialize(writer: CBORWriter): void {
