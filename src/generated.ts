@@ -8958,20 +8958,14 @@ export class NativeScriptSource {
 export class NativeScripts {
   private items: NativeScript[];
   private definiteEncoding: boolean;
-  private nonEmptyTag: boolean;
 
-  private setItems(items: NativeScript[]) {
+  constructor(items: NativeScript[], definiteEncoding: boolean = true) {
     this.items = items;
-  }
-
-  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
-    this.items = [];
     this.definiteEncoding = definiteEncoding;
-    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): NativeScripts {
-    return new NativeScripts();
+    return new NativeScripts([]);
   }
 
   len(): number {
@@ -8983,46 +8977,25 @@ export class NativeScripts {
     return this.items[index];
   }
 
-  add(elem: NativeScript): boolean {
-    if (this.contains(elem)) return true;
+  add(elem: NativeScript): void {
     this.items.push(elem);
-    return false;
-  }
-
-  contains(elem: NativeScript): boolean {
-    for (let item of this.items) {
-      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
-        return true;
-      }
-    }
-    return false;
   }
 
   static deserialize(reader: CBORReader, path: string[]): NativeScripts {
-    let nonEmptyTag = false;
-    if (reader.peekType(path) == "tagged") {
-      let tag = reader.readTaggedTag(path);
-      if (tag != 258) {
-        throw new Error("Expected tag 258. Got " + tag);
-      } else {
-        nonEmptyTag = true;
-      }
-    }
     const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
-        NativeScript.deserialize(reader, [...path, "NativeScript#" + idx]),
+        NativeScript.deserialize(reader, [...path, "Elem#" + idx]),
       path,
     );
-    let ret = new NativeScripts(definiteEncoding, nonEmptyTag);
-    ret.setItems(items);
-    return ret;
+    return new NativeScripts(items, definiteEncoding);
   }
 
   serialize(writer: CBORWriter): void {
-    if (this.nonEmptyTag) {
-      writer.writeTaggedTag(258);
-    }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
