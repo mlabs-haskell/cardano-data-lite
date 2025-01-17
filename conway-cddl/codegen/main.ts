@@ -87,6 +87,7 @@ async function main() {
     }
     import { RandomGenerator } from 'pure-rand';
     import prand from 'pure-rand';
+    import { repeatRand } from './lib/prand_utils';
 
     function $$UN(id: string, ...args: any): any {
       throw ("Undefined function: " + id);
