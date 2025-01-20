@@ -6,4 +6,3 @@ shell.nix
 blockfrost-mainnet.txt
 tests/reports/
 tests/serialization/staging
-dist/
