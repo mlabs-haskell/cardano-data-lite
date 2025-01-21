@@ -8726,6 +8726,15 @@ export class NativeScript {
   clone(path: string[]): NativeScript {
     return NativeScript.from_bytes(this.to_bytes(), path);
   }
+
+  hash(): ScriptHash {
+    const thisBytes = this.to_bytes();
+    let bytes = new Uint8Array(thisBytes.length + 1);
+    bytes[0] = 0;
+    bytes.set(thisBytes, 1);
+    let hash_bytes = cdlCrypto.blake2b224(bytes);
+    return new ScriptHash(hash_bytes);
+  }
 }
 
 export class NativeScriptRefInput {
