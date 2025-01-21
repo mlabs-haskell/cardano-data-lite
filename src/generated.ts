@@ -10398,7 +10398,7 @@ export class PlutusScript {
   hash(language_version: number): ScriptHash {
     let bytes = new Uint8Array(this.bytes().length + 1);
     bytes[0] = language_version;
-    bytes.set(bytes, 1);
+    bytes.set(this.bytes(), 1);
     let hash_bytes = cdlCrypto.blake2b224(bytes);
     return new ScriptHash(hash_bytes);
   }
