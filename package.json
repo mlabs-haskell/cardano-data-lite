@@ -1,7 +1,7 @@
 {
   "name": "@mlabs-haskell/cardano-data-lite",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.1.0-prerelease4",
+  "description": "Lightweight implementation of Cardano domain type serialization, compatible with cardano-serialization-lib",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "test": "npm run test-serialization ; npm run test-api",
-    "test-serialization": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization.test.ts --coverage --collectCoverageFrom=\"src/**/*.ts\"",
+    "test-serialization": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization.test.ts",
     "test-serialization-dev": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization_dev.test.ts",
     "test-api": "npm run generate-cdl-definitions ; NODE_OPTIONS=--experimental-vm-modules jest tests/api/api.test.ts",
     "test-implementation": "NODE_OPTIONS=--experimental-vm-modules jest fees hash min_output_ada private_key bip32-ed25519",
@@ -21,7 +21,7 @@
     "build": "npm run codegen && npx tsc && node fix-imports.js",
     "prepare": "npm run build"
   },
-  "author": "",
+  "author": "Farseen <farseen@mlabs.city>",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
