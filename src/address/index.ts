@@ -3,6 +3,7 @@ import { MalformedAddress } from "./malformed";
 import { EnterpriseAddress } from "./enterprise";
 import { BaseAddress } from "./base";
 import { Credential } from "./credential";
+import { NetworkInfo } from "./network_info";
 import { RewardAddress } from "./reward";
 import { CBORWriter } from "../lib/cbor/writer";
 import { CBORReader } from "../lib/cbor/reader";
@@ -163,7 +164,8 @@ export class Address {
       let prefix_tail = ""
       if (this._variant.kind == AddressKind.Malformed) {
         prefix_tail = "_malformed";
-      } else if (this.network_id() != 0) {
+      } else if (this.network_id() == NetworkInfo.testnet_preprod().network_id()
+        || this.network_id() == NetworkInfo.testnet_preview().network_id()) {
         prefix_tail = "_test";
       }
       prefix = prefix_header + prefix_tail;
