@@ -7,6 +7,7 @@ import { bech32 } from "bech32";
 import * as cdlCrypto from "./lib/bip32-ed25519";
 import { Address, Credential, CredKind, RewardAddress } from "./address";
 import { webcrypto } from "crypto";
+import { blake2b } from "@noble/hashes/blake2b";
 
 // Polyfill the global "crypto" object if it doesn't exist
 if (typeof globalThis.crypto === "undefined") {
@@ -16067,6 +16068,10 @@ export class Transaction {
     auxiliary_data: AuxiliaryData,
   ): Transaction {
     return new Transaction(body, witness_set, true, auxiliary_data);
+  }
+
+  transaction_hash(): TransactionHash {
+    return TransactionHash.new(blake2b(this.to_bytes(), { dkLen: 32 }));
   }
 }
 

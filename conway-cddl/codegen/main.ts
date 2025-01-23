@@ -78,6 +78,7 @@ async function main() {
     import * as cdlCrypto from "./lib/bip32-ed25519";
     import {Address, Credential, CredKind, RewardAddress} from "./address";
     import {webcrypto} from "crypto";
+    import { blake2b } from "@noble/hashes/blake2b";
 
     // Polyfill the global "crypto" object if it doesn't exist
     if (typeof globalThis.crypto === 'undefined') {

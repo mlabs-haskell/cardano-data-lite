@@ -114,6 +114,10 @@ Transaction:
       );
     }
 
+    transaction_hash(): TransactionHash {
+      return TransactionHash.new(blake2b(this.to_bytes(), { dkLen: 32 }));
+    }
+
 # transaction_index = uint .size 2
 
 # header =
@@ -2377,7 +2381,7 @@ ScriptRef:
       let bytes = reader.readBytes(path);
       let new_reader = new CBORReader(bytes);
 
-      return ScriptRef.deserializeInner(new_reader, path)      
+      return ScriptRef.deserializeInner(new_reader, path)
     }
 
     serialize(writer: CBORWriter): void {
