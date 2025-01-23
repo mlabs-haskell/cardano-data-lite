@@ -66,6 +66,15 @@ export class GenHash extends CodeGeneratorBase {
         "to_bech32",
         (to_bech32) => `
         ${to_bech32}(prefix: string): string {
+          if (!prefix) {
+            throw new Error("bech32 HRP (prefix) cannot be empty.");
+          }
+          if (prefix !== prefix.toLowerCase()) {
+            throw new Error("bech32 HRP (prefix) must be all lowercase.");
+          }
+          if (prefix.length > 83) {
+            throw new Error("bech32 HRP (prefix) length must not exceed 83 characters.");
+          }
           let bytes = this.to_bytes();
           let words = bech32.toWords(bytes);
           return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);

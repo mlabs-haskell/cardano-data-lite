@@ -131,6 +131,17 @@ export class AnchorDataHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -807,6 +818,17 @@ export class AuxiliaryDataHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -1849,6 +1871,17 @@ export class BlockHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -5029,6 +5062,17 @@ export class DataHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -5352,6 +5396,17 @@ export class Ed25519KeyHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -5871,6 +5926,17 @@ export class GenesisDelegateHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -5929,6 +5995,17 @@ export class GenesisHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -7508,6 +7585,17 @@ export class KESVKey {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -10747,6 +10835,17 @@ export class PoolMetadataHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -14336,6 +14435,17 @@ export class ScriptDataHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -14394,6 +14504,17 @@ export class ScriptHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -16673,6 +16794,17 @@ export class TransactionHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -18821,6 +18953,17 @@ export class VRFKeyHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -18879,6 +19022,17 @@ export class VRFVKey {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
