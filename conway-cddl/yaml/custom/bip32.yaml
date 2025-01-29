@@ -74,9 +74,9 @@ PrivateKey:
     to_public(): PublicKey {
       let pubkeyBytes: Uint8Array;
       if(this.options?.isExtended) {
-        pubkeyBytes = cdlCrypto.secretToPubkey(this.inner);
-      } else {
         pubkeyBytes = cdlCrypto.extendedToPubkey(this.inner);
+      } else {
+        pubkeyBytes = cdlCrypto.secretToPubkey(this.inner);
       }
       return new PublicKey(pubkeyBytes);
     }
