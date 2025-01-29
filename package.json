@@ -12,7 +12,7 @@
     "test-serialization": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization.test.ts",
     "test-serialization-dev": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization_dev.test.ts",
     "test-api": "npm run generate-cdl-definitions ; NODE_OPTIONS=--experimental-vm-modules jest tests/api/api.test.ts",
-    "test-implementation": "NODE_OPTIONS=--experimental-vm-modules jest fees hash min_output_ada",
+    "test-implementation": "NODE_OPTIONS=--experimental-vm-modules jest fees hash min_output_ada private_key bip32-ed25519",
     "codegen": "tsx conway-cddl/codegen/main.ts",
     "generate-grammar-bundle": "npx ohm generateBundles -e -t tests/api/grammar.ohm",
     "generate-cdl-definitions": "make typedefs",

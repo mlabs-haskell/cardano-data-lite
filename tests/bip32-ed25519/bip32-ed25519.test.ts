@@ -1,9 +1,9 @@
 import { describe, test, expect } from "@jest/globals";
-import * as thisLib from "./index";
-import * as naclExt from "./nacl-extended";
-import nacl from "tweetnacl";
 import * as CSL from "@emurgo/cardano-serialization-lib-nodejs-gc";
-import * as derive from "./derive";
+import * as thisLib from "../../src/lib/bip32-ed25519/index";
+import * as naclExt from "../../src/lib/bip32-ed25519/nacl-extended";
+import nacl from "tweetnacl";
+import * as derive from "../../src/lib/bip32-ed25519/derive";
 
 describe("extendedToPubkey", () => {
   for (let i = 0; i < 10; i++) {
