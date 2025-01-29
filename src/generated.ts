@@ -20660,6 +20660,12 @@ export class Withdrawals {
     );
   }
 
+  keys(): RewardAddresses {
+    let keys = RewardAddresses.new();
+    for (let [key, _] of this._items) keys.add(key);
+    return keys;
+  }
+
   static deserialize(reader: CBORReader, path: string[]): Withdrawals {
     let ret = new Withdrawals([]);
     reader.readMap(

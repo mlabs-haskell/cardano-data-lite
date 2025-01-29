@@ -1432,6 +1432,7 @@ Withdrawals:
   type: map
   key: RewardAddress
   value: BigNum
+  keys_method_type: RewardAddresses
 
 # protocol_param_update =
 #   { ? 0:  coin                   ; minfee A
