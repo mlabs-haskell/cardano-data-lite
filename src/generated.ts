@@ -11609,6 +11609,12 @@ export class PrivateKey {
 
   static generate_ed25519extended(): PrivateKey {
     let bytes = cdlCrypto.getRandomBytes(PrivateKey._EXT_KEY_LEN);
+
+    // See XPrv::normalize_bytes_force3rd
+    bytes[0] &= 0b1111_1000;
+    bytes[31] &= 0b0001_1111;
+    bytes[31] |= 0b0100_0000;
+
     return PrivateKey.from_extended_bytes(bytes);
   }
 
@@ -11625,9 +11631,9 @@ export class PrivateKey {
   to_public(): PublicKey {
     let pubkeyBytes: Uint8Array;
     if (this.options?.isExtended) {
-      pubkeyBytes = cdlCrypto.secretToPubkey(this.inner);
-    } else {
       pubkeyBytes = cdlCrypto.extendedToPubkey(this.inner);
+    } else {
+      pubkeyBytes = cdlCrypto.secretToPubkey(this.inner);
     }
     return new PublicKey(pubkeyBytes);
   }
