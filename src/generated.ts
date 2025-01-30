@@ -7,6 +7,7 @@ import { bech32 } from "bech32";
 import * as cdlCrypto from "./lib/bip32-ed25519";
 import { Address, Credential, CredKind, RewardAddress } from "./address";
 import { webcrypto } from "crypto";
+import { blake2b } from "@noble/hashes/blake2b";
 
 // Polyfill the global "crypto" object if it doesn't exist
 if (typeof globalThis.crypto === "undefined") {
@@ -131,6 +132,17 @@ export class AnchorDataHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -807,6 +819,17 @@ export class AuxiliaryDataHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -1205,20 +1228,43 @@ export class AuxiliaryDataShelleyMa {
     reader: CBORReader,
     path: string[],
   ): AuxiliaryDataShelleyMa {
-    let transaction_metadata = GeneralTransactionMetadata.deserialize(reader, [
-      ...path,
-      "transaction_metadata",
-    ]);
+    let len = reader.readArrayTag(path);
 
-    let auxiliary_scripts = NativeScripts.deserialize(reader, [
+    if (len != null && len < 2) {
+      throw new Error(
+        "Insufficient number of fields in record. Expected at least 2. Received " +
+          len +
+          "(at " +
+          path.join("/"),
+      );
+    }
+
+    const transaction_metadata_path = [
       ...path,
-      "auxiliary_scripts",
-    ]);
+      "GeneralTransactionMetadata(transaction_metadata)",
+    ];
+    let transaction_metadata = GeneralTransactionMetadata.deserialize(
+      reader,
+      transaction_metadata_path,
+    );
+
+    const auxiliary_scripts_path = [
+      ...path,
+      "NativeScripts(auxiliary_scripts)",
+    ];
+    let auxiliary_scripts = NativeScripts.deserialize(
+      reader,
+      auxiliary_scripts_path,
+    );
 
     return new AuxiliaryDataShelleyMa(transaction_metadata, auxiliary_scripts);
   }
 
   serialize(writer: CBORWriter): void {
+    let arrayLen = 2;
+
+    writer.writeArrayTag(arrayLen);
+
     this._transaction_metadata.serialize(writer);
     this._auxiliary_scripts.serialize(writer);
   }
@@ -1826,6 +1872,17 @@ export class BlockHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -2063,7 +2120,11 @@ export class BootstrapWitnesses {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -2956,7 +3017,11 @@ export class Certificates {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -3944,7 +4009,11 @@ export class Credentials {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -4994,6 +5063,17 @@ export class DataHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -5317,6 +5397,17 @@ export class Ed25519KeyHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -5421,7 +5512,11 @@ export class Ed25519KeyHashes {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -5832,6 +5927,17 @@ export class GenesisDelegateHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -5890,6 +5996,17 @@ export class GenesisHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -6174,8 +6291,8 @@ export class GovernanceAction {
         break;
 
       case 4:
-        if (len != null && len - 1 != 3) {
-          throw new Error("Expected 3 items to decode UpdateCommitteeAction");
+        if (len != null && len - 1 != 4) {
+          throw new Error("Expected 4 items to decode UpdateCommitteeAction");
         }
         variant = {
           kind: 4,
@@ -6252,7 +6369,7 @@ export class GovernanceAction {
         this.variant.value.serialize(writer);
         break;
       case 4:
-        writer.writeArrayTag(4);
+        writer.writeArrayTag(5);
         writer.writeInt(BigInt(4));
         this.variant.value.serialize(writer);
         break;
@@ -7469,6 +7586,17 @@ export class KESVKey {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -8687,6 +8815,15 @@ export class NativeScript {
   clone(path: string[]): NativeScript {
     return NativeScript.from_bytes(this.to_bytes(), path);
   }
+
+  hash(): ScriptHash {
+    const thisBytes = this.to_bytes();
+    let bytes = new Uint8Array(thisBytes.length + 1);
+    bytes[0] = 0;
+    bytes.set(thisBytes, 1);
+    let hash_bytes = cdlCrypto.blake2b224(bytes);
+    return new ScriptHash(hash_bytes);
+  }
 }
 
 export class NativeScriptRefInput {
@@ -8958,14 +9095,20 @@ export class NativeScriptSource {
 export class NativeScripts {
   private items: NativeScript[];
   private definiteEncoding: boolean;
+  private nonEmptyTag: boolean;
 
-  constructor(items: NativeScript[], definiteEncoding: boolean = true) {
+  private setItems(items: NativeScript[]) {
     this.items = items;
+  }
+
+  constructor(definiteEncoding: boolean = true, nonEmptyTag: boolean = true) {
+    this.items = [];
     this.definiteEncoding = definiteEncoding;
+    this.nonEmptyTag = nonEmptyTag;
   }
 
   static new(): NativeScripts {
-    return new NativeScripts([]);
+    return new NativeScripts();
   }
 
   len(): number {
@@ -8977,20 +9120,45 @@ export class NativeScripts {
     return this.items[index];
   }
 
-  add(elem: NativeScript): void {
+  add(elem: NativeScript): boolean {
+    if (this.contains(elem)) return true;
     this.items.push(elem);
+    return false;
+  }
+
+  contains(elem: NativeScript): boolean {
+    for (let item of this.items) {
+      if (arrayEq(item.to_bytes(), elem.to_bytes())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static deserialize(reader: CBORReader, path: string[]): NativeScripts {
+    let nonEmptyTag = false;
+    if (reader.peekType(path) == "tagged") {
+      let tag = reader.readTaggedTag(path);
+      if (tag != 258) {
+        throw new Error("Expected tag 258. Got " + tag);
+      } else {
+        nonEmptyTag = true;
+      }
+    }
     const { items, definiteEncoding } = reader.readArray(
       (reader, idx) =>
-        NativeScript.deserialize(reader, [...path, "Elem#" + idx]),
+        NativeScript.deserialize(reader, [...path, "NativeScript#" + idx]),
       path,
     );
-    return new NativeScripts(items, definiteEncoding);
+    let ret = new NativeScripts(definiteEncoding, nonEmptyTag);
+    ret.setItems(items);
+    return ret;
   }
 
   serialize(writer: CBORWriter): void {
+    if (this.nonEmptyTag) {
+      writer.writeTaggedTag(258);
+    }
     writer.writeArray(
       this.items,
       (writer, x) => x.serialize(writer),
@@ -10075,9 +10243,9 @@ export class PlutusList {
 }
 
 export class PlutusMap {
-  _items: [PlutusData, PlutusMapValues][];
+  _items: [PlutusData, PlutusData][];
 
-  constructor(items: [PlutusData, PlutusMapValues][]) {
+  constructor(items: [PlutusData, PlutusData][]) {
     this._items = items;
   }
 
@@ -10089,7 +10257,7 @@ export class PlutusMap {
     return this._items.length;
   }
 
-  insert(key: PlutusData, value: PlutusMapValues): PlutusMapValues | undefined {
+  insertInner(key: PlutusData, value: PlutusData): PlutusData | undefined {
     let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
@@ -10102,7 +10270,7 @@ export class PlutusMap {
     return undefined;
   }
 
-  get(key: PlutusData): PlutusMapValues | undefined {
+  getInner(key: PlutusData): PlutusData | undefined {
     let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
@@ -10126,12 +10294,9 @@ export class PlutusMap {
     let ret = new PlutusMap([]);
     reader.readMap(
       (reader, idx) =>
-        ret.insert(
+        ret.insertInner(
           PlutusData.deserialize(reader, [...path, "PlutusData#" + idx]),
-          PlutusMapValues.deserialize(reader, [
-            ...path,
-            "PlutusMapValues#" + idx,
-          ]),
+          PlutusData.deserialize(reader, [...path, "PlutusData#" + idx]),
         ),
       path,
     );
@@ -10172,6 +10337,29 @@ export class PlutusMap {
 
   clone(path: string[]): PlutusMap {
     return PlutusMap.from_bytes(this.to_bytes(), path);
+  }
+
+  get(key: PlutusData): PlutusMapValues | undefined {
+    let v: PlutusData | undefined = this.getInner(key);
+    if (v) {
+      let vs = new PlutusMapValues([v]);
+      return vs;
+    } else {
+      return undefined;
+    }
+  }
+
+  insert(
+    key: PlutusData,
+    values: PlutusMapValues,
+  ): PlutusMapValues | undefined {
+    let v: PlutusData = values.get(values.len() - 1);
+    let ret: PlutusData | undefined = this.insertInner(key, v);
+    if (ret) {
+      return new PlutusMapValues([ret]);
+    } else {
+      return undefined;
+    }
   }
 }
 
@@ -10308,7 +10496,7 @@ export class PlutusScript {
   hash(language_version: number): ScriptHash {
     let bytes = new Uint8Array(this.bytes().length + 1);
     bytes[0] = language_version;
-    bytes.set(bytes, 1);
+    bytes.set(this.bytes(), 1);
     let hash_bytes = cdlCrypto.blake2b224(bytes);
     return new ScriptHash(hash_bytes);
   }
@@ -10381,7 +10569,11 @@ export class PlutusScripts {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -10484,7 +10676,11 @@ export class PlutusSet {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -10640,6 +10836,17 @@ export class PoolMetadataHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -14235,6 +14442,17 @@ export class ScriptDataHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -14293,6 +14511,17 @@ export class ScriptHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -15846,6 +16075,10 @@ export class Transaction {
   ): Transaction {
     return new Transaction(body, witness_set, true, auxiliary_data);
   }
+
+  transaction_hash(): TransactionHash {
+    return TransactionHash.new(blake2b(this.to_bytes(), { dkLen: 32 }));
+  }
 }
 
 export class TransactionBodies {
@@ -16572,6 +16805,17 @@ export class TransactionHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -16774,7 +17018,11 @@ export class TransactionInputs {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -17583,8 +17831,8 @@ export class TransactionWitnessSet {
   private _bootstraps: BootstrapWitnesses | undefined;
   private _plutus_scripts_v1: PlutusScripts | undefined;
   private _inner_plutus_data: PlutusSet | undefined;
-  private _redeemers: Redeemers | undefined;
   private _plutus_scripts_v2: PlutusScripts | undefined;
+  private _redeemers: Redeemers | undefined;
   private _plutus_scripts_v3: PlutusScripts | undefined;
 
   constructor(
@@ -17593,8 +17841,8 @@ export class TransactionWitnessSet {
     bootstraps: BootstrapWitnesses | undefined,
     plutus_scripts_v1: PlutusScripts | undefined,
     inner_plutus_data: PlutusSet | undefined,
-    redeemers: Redeemers | undefined,
     plutus_scripts_v2: PlutusScripts | undefined,
+    redeemers: Redeemers | undefined,
     plutus_scripts_v3: PlutusScripts | undefined,
   ) {
     this._vkeys = vkeys;
@@ -17602,8 +17850,8 @@ export class TransactionWitnessSet {
     this._bootstraps = bootstraps;
     this._plutus_scripts_v1 = plutus_scripts_v1;
     this._inner_plutus_data = inner_plutus_data;
-    this._redeemers = redeemers;
     this._plutus_scripts_v2 = plutus_scripts_v2;
+    this._redeemers = redeemers;
     this._plutus_scripts_v3 = plutus_scripts_v3;
   }
 
@@ -17647,20 +17895,20 @@ export class TransactionWitnessSet {
     this._inner_plutus_data = inner_plutus_data;
   }
 
-  redeemers(): Redeemers | undefined {
-    return this._redeemers;
-  }
-
-  set_redeemers(redeemers: Redeemers | undefined): void {
-    this._redeemers = redeemers;
-  }
-
   plutus_scripts_v2(): PlutusScripts | undefined {
     return this._plutus_scripts_v2;
   }
 
   set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts | undefined): void {
     this._plutus_scripts_v2 = plutus_scripts_v2;
+  }
+
+  redeemers(): Redeemers | undefined {
+    return this._redeemers;
+  }
+
+  set_redeemers(redeemers: Redeemers | undefined): void {
+    this._redeemers = redeemers;
   }
 
   plutus_scripts_v3(): PlutusScripts | undefined {
@@ -17709,15 +17957,15 @@ export class TransactionWitnessSet {
           break;
         }
 
-        case 5: {
-          const new_path = [...path, "Redeemers(redeemers)"];
-          fields.redeemers = Redeemers.deserialize(r, new_path);
-          break;
-        }
-
         case 6: {
           const new_path = [...path, "PlutusScripts(plutus_scripts_v2)"];
           fields.plutus_scripts_v2 = PlutusScripts.deserialize(r, new_path);
+          break;
+        }
+
+        case 5: {
+          const new_path = [...path, "Redeemers(redeemers)"];
+          fields.redeemers = Redeemers.deserialize(r, new_path);
           break;
         }
 
@@ -17739,9 +17987,9 @@ export class TransactionWitnessSet {
 
     let inner_plutus_data = fields.inner_plutus_data;
 
-    let redeemers = fields.redeemers;
-
     let plutus_scripts_v2 = fields.plutus_scripts_v2;
+
+    let redeemers = fields.redeemers;
 
     let plutus_scripts_v3 = fields.plutus_scripts_v3;
 
@@ -17751,8 +17999,8 @@ export class TransactionWitnessSet {
       bootstraps,
       plutus_scripts_v1,
       inner_plutus_data,
-      redeemers,
       plutus_scripts_v2,
+      redeemers,
       plutus_scripts_v3,
     );
   }
@@ -17764,8 +18012,8 @@ export class TransactionWitnessSet {
     if (this._bootstraps === undefined) len -= 1;
     if (this._plutus_scripts_v1 === undefined) len -= 1;
     if (this._inner_plutus_data === undefined) len -= 1;
-    if (this._redeemers === undefined) len -= 1;
     if (this._plutus_scripts_v2 === undefined) len -= 1;
+    if (this._redeemers === undefined) len -= 1;
     if (this._plutus_scripts_v3 === undefined) len -= 1;
     writer.writeMapTag(len);
     if (this._vkeys !== undefined) {
@@ -17788,13 +18036,13 @@ export class TransactionWitnessSet {
       writer.writeInt(4n);
       this._inner_plutus_data.serialize(writer);
     }
-    if (this._redeemers !== undefined) {
-      writer.writeInt(5n);
-      this._redeemers.serialize(writer);
-    }
     if (this._plutus_scripts_v2 !== undefined) {
       writer.writeInt(6n);
       this._plutus_scripts_v2.serialize(writer);
+    }
+    if (this._redeemers !== undefined) {
+      writer.writeInt(5n);
+      this._redeemers.serialize(writer);
     }
     if (this._plutus_scripts_v3 !== undefined) {
       writer.writeInt(7n);
@@ -18716,6 +18964,17 @@ export class VRFKeyHash {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -18774,6 +19033,17 @@ export class VRFVKey {
   }
 
   to_bech32(prefix: string): string {
+    if (!prefix) {
+      throw new Error("bech32 HRP (prefix) cannot be empty.");
+    }
+    if (prefix !== prefix.toLowerCase()) {
+      throw new Error("bech32 HRP (prefix) must be all lowercase.");
+    }
+    if (prefix.length > 83) {
+      throw new Error(
+        "bech32 HRP (prefix) length must not exceed 83 characters.",
+      );
+    }
     let bytes = this.to_bytes();
     let words = bech32.toWords(bytes);
     return bech32.encode(prefix, words, Number.MAX_SAFE_INTEGER);
@@ -19273,7 +19543,11 @@ export class Vkeywitnesses {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -20310,7 +20584,11 @@ export class VotingProposals {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op
@@ -20386,6 +20664,12 @@ export class Withdrawals {
     this._items = this._items.filter(([k, _v]) =>
       keys.every((key) => !arrayEq(key.to_bytes(), k.to_bytes())),
     );
+  }
+
+  keys(): RewardAddresses {
+    let keys = RewardAddresses.new();
+    for (let [key, _] of this._items) keys.add(key);
+    return keys;
   }
 
   static deserialize(reader: CBORReader, path: string[]): Withdrawals {
@@ -20508,7 +20792,11 @@ export class certificates {
     if (this.nonEmptyTag) {
       writer.writeTaggedTag(258);
     }
-    writer.writeArray(this.items, (writer, x) => x.serialize(writer));
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      this.definiteEncoding,
+    );
   }
 
   // no-op

@@ -2,7 +2,7 @@
 #   , auxiliary_scripts: [ * native_script ]
 # ]
 AuxiliaryDataShelleyMa:
-  type: record_fragment
+  type: record
   fields:
     - name: transaction_metadata 
       type: GeneralTransactionMetadata

@@ -39,15 +39,7 @@
       "as_unreg_cert"
     ],
     "PlutusScript": [
-      "hash",
-      "new_v2",
-      "new_v3",
-      "new_with_version",
-      "from_bytes_v2",
-      "from_bytes_v3",
-      "from_bytes_with_version",
-      "from_hex_with_version",
-      "language_version"
+      "hash"
     ]
   },
   "serialization_bad_variants": [
@@ -67,14 +59,26 @@
     "CommitteeColdResign",
     "DRepRegistration",
     "DRepDeregistration",
-    "DRepUpdate"
+    "DRepUpdate",
+    "ParameterChangeAction",
+    "HardForkInitiationAction",
+    "TreasuryWithdrawalsAction",
+    "NoConfidenceAction",
+    "UpdateCommitteeAction",
+    "NewConstitutionAction",
+    "InfoAction",
+    "ScriptAll",
+    "ScriptAny",
+    "ScriptNOfK",
+    "ScriptPubKey"
   ],
   "extraction_unsupported_fields": [
     "plutus_scripts_v1",
     "plutus_scripts_v2",
     "plutus_scripts_v3",
     "script_pubkey",
-    "inner_plutus_data"
+    "inner_plutus_data",
+    "ttl"
   ],
   "extraction_unsupported_types": [
     "MoveInstantaneousRewards",

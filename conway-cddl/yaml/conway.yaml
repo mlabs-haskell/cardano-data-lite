@@ -114,6 +114,10 @@ Transaction:
       );
     }
 
+    transaction_hash(): TransactionHash {
+      return TransactionHash.new(blake2b(this.to_bytes(), { dkLen: 32 }));
+    }
+
 # transaction_index = uint .size 2
 
 # header =
@@ -1428,6 +1432,7 @@ Withdrawals:
   type: map
   key: RewardAddress
   value: BigNum
+  keys_method_type: RewardAddresses
 
 # protocol_param_update =
 #   { ? 0:  coin                   ; minfee A
@@ -1713,13 +1718,13 @@ TransactionWitnessSet:
       name: inner_plutus_data
       type: PlutusSet
       optional: true
-    - id: 5
-      name: redeemers
-      type: Redeemers
-      optional: true
     - id: 6
       name: plutus_scripts_v2
       type: PlutusScripts
+      optional: true
+    - id: 5
+      name: redeemers
+      type: Redeemers
       optional: true
     - id: 7
       name: plutus_scripts_v3
@@ -1754,7 +1759,7 @@ Vkeywitnesses:
   item: Vkeywitness
 
 NativeScripts:
-  type: array
+  type: set
   item: NativeScript
 
 BootstrapWitnesses:
@@ -1773,7 +1778,7 @@ PlutusScript:
     hash(language_version: number): ScriptHash {
       let bytes = new Uint8Array(this.bytes().length + 1);
       bytes[0] = language_version;
-      bytes.set(bytes, 1);
+      bytes.set(this.bytes(), 1);
       let hash_bytes = cdlCrypto.blake2b224(bytes);
       return new ScriptHash(hash_bytes);
     }
@@ -2205,6 +2210,15 @@ NativeScript:
     - name: timelock_expiry
       tag: 5
       value: TimelockExpiry
+  extra_methods: |
+    hash(): ScriptHash {
+      const thisBytes = this.to_bytes();
+      let bytes = new Uint8Array(thisBytes.length + 1);
+      bytes[0] = 0;
+      bytes.set(thisBytes, 1);
+      let hash_bytes = cdlCrypto.blake2b224(bytes);
+      return new ScriptHash(hash_bytes);
+    }
 
 ScriptPubkey:
   type: newtype
@@ -2368,7 +2382,7 @@ ScriptRef:
       let bytes = reader.readBytes(path);
       let new_reader = new CBORReader(bytes);
 
-      return ScriptRef.deserializeInner(new_reader, path)      
+      return ScriptRef.deserializeInner(new_reader, path)
     }
 
     serialize(writer: CBORWriter): void {
@@ -2436,8 +2450,31 @@ PlutusList:
 PlutusMap:
   type: map
   key: PlutusData
-  value: PlutusMapValues
+  value: PlutusData
   keys_method_type: PlutusList
+  methods:
+    get: getInner
+    insert: insertInner
+  extra_methods: |
+    get(key: PlutusData): PlutusMapValues | undefined {
+      let v: PlutusData | undefined = this.getInner(key);
+      if(v) {
+        let vs = new PlutusMapValues([v]);
+        return vs;
+      } else {
+        return undefined;
+      }
+    }
+
+    insert(key: PlutusData, values: PlutusMapValues): PlutusMapValues | undefined {
+      let v: PlutusData = values.get(values.len() - 1);
+      let ret: PlutusData | undefined = this.insertInner(key, v);
+      if (ret) {
+        return new PlutusMapValues([ret]);
+      } else {
+        return undefined;
+      }
+    }
 
 PlutusMapValues:
   type: array

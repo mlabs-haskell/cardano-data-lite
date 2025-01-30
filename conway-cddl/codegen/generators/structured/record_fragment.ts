@@ -22,7 +22,7 @@ export class GenRecordFragment extends GenStructuredBase<Field> {
     options: GenRecordFragmentOptions,
   ) {
     super(name, customTypes, { genCSL: true, ...options });
-    this.fragmentEncodeLen = this.fragmentEncodeLen;
+    this.fragmentEncodeLen = options.fragment_encode_len;
   }
 
   generateDeserialize(reader: string, path: string): string {

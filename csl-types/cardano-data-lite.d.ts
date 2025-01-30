@@ -619,12 +619,12 @@ export declare class CommitteeHotAuth {
 }
 export declare class Constitution {
     private _anchor;
-    private _scripthash;
-    constructor(anchor: Anchor, scripthash: ScriptHash | undefined);
+    private _script_hash;
+    constructor(anchor: Anchor, script_hash: ScriptHash | undefined);
     anchor(): Anchor;
     set_anchor(anchor: Anchor): void;
-    scripthash(): ScriptHash | undefined;
-    set_scripthash(scripthash: ScriptHash | undefined): void;
+    script_hash(): ScriptHash | undefined;
+    set_script_hash(script_hash: ScriptHash | undefined): void;
     static deserialize(reader: CBORReader, path: string[]): Constitution;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -1951,12 +1951,12 @@ export declare class PlutusList {
     as_set(): PlutusSet;
 }
 export declare class PlutusMap {
-    _items: [PlutusData, PlutusMapValues][];
-    constructor(items: [PlutusData, PlutusMapValues][]);
+    _items: [PlutusData, PlutusData][];
+    constructor(items: [PlutusData, PlutusData][]);
     static new(): PlutusMap;
     len(): number;
-    insert(key: PlutusData, value: PlutusMapValues): PlutusMapValues | undefined;
-    get(key: PlutusData): PlutusMapValues | undefined;
+    insertInner(key: PlutusData, value: PlutusData): PlutusData | undefined;
+    getInner(key: PlutusData): PlutusData | undefined;
     _remove_many(keys: PlutusData[]): void;
     keys(): PlutusList;
     static deserialize(reader: CBORReader, path: string[]): PlutusMap;
@@ -1967,6 +1967,8 @@ export declare class PlutusMap {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): PlutusMap;
+    get(key: PlutusData): PlutusMapValues | undefined;
+    insert(key: PlutusData, values: PlutusMapValues): PlutusMapValues | undefined;
 }
 export declare class PlutusMapValues {
     private items;
@@ -2278,7 +2280,7 @@ export declare class ProtocolParamUpdate {
     private _treasury_growth_rate;
     private _min_pool_cost;
     private _ada_per_utxo_byte;
-    private _costmdls;
+    private _cost_models;
     private _execution_costs;
     private _max_tx_ex_units;
     private _max_block_ex_units;
@@ -2293,8 +2295,8 @@ export declare class ProtocolParamUpdate {
     private _governance_action_deposit;
     private _drep_deposit;
     private _drep_inactivity_period;
-    private _script_cost_per_byte;
-    constructor(minfee_a: BigNum | undefined, minfee_b: BigNum | undefined, max_block_body_size: number | undefined, max_tx_size: number | undefined, max_block_header_size: number | undefined, key_deposit: BigNum | undefined, pool_deposit: BigNum | undefined, max_epoch: number | undefined, n_opt: number | undefined, pool_pledge_influence: UnitInterval | undefined, expansion_rate: UnitInterval | undefined, treasury_growth_rate: UnitInterval | undefined, min_pool_cost: BigNum | undefined, ada_per_utxo_byte: BigNum | undefined, costmdls: Costmdls | undefined, execution_costs: ExUnitPrices | undefined, max_tx_ex_units: ExUnits | undefined, max_block_ex_units: ExUnits | undefined, max_value_size: number | undefined, collateral_percentage: number | undefined, max_collateral_inputs: number | undefined, pool_voting_thresholds: PoolVotingThresholds | undefined, drep_voting_thresholds: DRepVotingThresholds | undefined, min_committee_size: number | undefined, committee_term_limit: number | undefined, governance_action_validity_period: number | undefined, governance_action_deposit: BigNum | undefined, drep_deposit: BigNum | undefined, drep_inactivity_period: number | undefined, script_cost_per_byte: UnitInterval | undefined);
+    private _ref_script_coins_per_byte;
+    constructor(minfee_a: BigNum | undefined, minfee_b: BigNum | undefined, max_block_body_size: number | undefined, max_tx_size: number | undefined, max_block_header_size: number | undefined, key_deposit: BigNum | undefined, pool_deposit: BigNum | undefined, max_epoch: number | undefined, n_opt: number | undefined, pool_pledge_influence: UnitInterval | undefined, expansion_rate: UnitInterval | undefined, treasury_growth_rate: UnitInterval | undefined, min_pool_cost: BigNum | undefined, ada_per_utxo_byte: BigNum | undefined, cost_models: Costmdls | undefined, execution_costs: ExUnitPrices | undefined, max_tx_ex_units: ExUnits | undefined, max_block_ex_units: ExUnits | undefined, max_value_size: number | undefined, collateral_percentage: number | undefined, max_collateral_inputs: number | undefined, pool_voting_thresholds: PoolVotingThresholds | undefined, drep_voting_thresholds: DRepVotingThresholds | undefined, min_committee_size: number | undefined, committee_term_limit: number | undefined, governance_action_validity_period: number | undefined, governance_action_deposit: BigNum | undefined, drep_deposit: BigNum | undefined, drep_inactivity_period: number | undefined, ref_script_coins_per_byte: UnitInterval | undefined);
     minfee_a(): BigNum | undefined;
     set_minfee_a(minfee_a: BigNum | undefined): void;
     minfee_b(): BigNum | undefined;
@@ -2323,8 +2325,8 @@ export declare class ProtocolParamUpdate {
     set_min_pool_cost(min_pool_cost: BigNum | undefined): void;
     ada_per_utxo_byte(): BigNum | undefined;
     set_ada_per_utxo_byte(ada_per_utxo_byte: BigNum | undefined): void;
-    costmdls(): Costmdls | undefined;
-    set_costmdls(costmdls: Costmdls | undefined): void;
+    cost_models(): Costmdls | undefined;
+    set_cost_models(cost_models: Costmdls | undefined): void;
     execution_costs(): ExUnitPrices | undefined;
     set_execution_costs(execution_costs: ExUnitPrices | undefined): void;
     max_tx_ex_units(): ExUnits | undefined;
@@ -2353,8 +2355,8 @@ export declare class ProtocolParamUpdate {
     set_drep_deposit(drep_deposit: BigNum | undefined): void;
     drep_inactivity_period(): number | undefined;
     set_drep_inactivity_period(drep_inactivity_period: number | undefined): void;
-    script_cost_per_byte(): UnitInterval | undefined;
-    set_script_cost_per_byte(script_cost_per_byte: UnitInterval | undefined): void;
+    ref_script_coins_per_byte(): UnitInterval | undefined;
+    set_ref_script_coins_per_byte(ref_script_coins_per_byte: UnitInterval | undefined): void;
     static deserialize(reader: CBORReader, path: string[]): ProtocolParamUpdate;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -2828,14 +2830,16 @@ export declare class ScriptRef {
     as_plutus_script_v2(): PlutusScript | undefined;
     as_plutus_script_v3(): PlutusScript | undefined;
     kind(): ScriptRefKind;
-    static deserialize(reader: CBORReader, path: string[]): ScriptRef;
-    serialize(writer: CBORWriter): void;
+    static deserializeInner(reader: CBORReader, path: string[]): ScriptRef;
+    serializeInner(writer: CBORWriter): void;
     free(): void;
     static from_bytes(data: Uint8Array, path?: string[]): ScriptRef;
     static from_hex(hex_str: string, path?: string[]): ScriptRef;
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): ScriptRef;
+    static deserialize(reader: CBORReader, path: string[]): ScriptRef;
+    serialize(writer: CBORWriter): void;
 }
 export declare class SingleHostAddr {
     private _port;
@@ -3345,10 +3349,10 @@ export declare class TransactionWitnessSet {
     private _bootstraps;
     private _plutus_scripts_v1;
     private _inner_plutus_data;
-    private _redeemers;
     private _plutus_scripts_v2;
+    private _redeemers;
     private _plutus_scripts_v3;
-    constructor(vkeys: Vkeywitnesses | undefined, native_scripts: NativeScripts | undefined, bootstraps: BootstrapWitnesses | undefined, plutus_scripts_v1: PlutusScripts | undefined, inner_plutus_data: PlutusSet | undefined, redeemers: Redeemers | undefined, plutus_scripts_v2: PlutusScripts | undefined, plutus_scripts_v3: PlutusScripts | undefined);
+    constructor(vkeys: Vkeywitnesses | undefined, native_scripts: NativeScripts | undefined, bootstraps: BootstrapWitnesses | undefined, plutus_scripts_v1: PlutusScripts | undefined, inner_plutus_data: PlutusSet | undefined, plutus_scripts_v2: PlutusScripts | undefined, redeemers: Redeemers | undefined, plutus_scripts_v3: PlutusScripts | undefined);
     vkeys(): Vkeywitnesses | undefined;
     set_vkeys(vkeys: Vkeywitnesses | undefined): void;
     native_scripts(): NativeScripts | undefined;
@@ -3359,10 +3363,10 @@ export declare class TransactionWitnessSet {
     set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts | undefined): void;
     inner_plutus_data(): PlutusSet | undefined;
     set_inner_plutus_data(inner_plutus_data: PlutusSet | undefined): void;
-    redeemers(): Redeemers | undefined;
-    set_redeemers(redeemers: Redeemers | undefined): void;
     plutus_scripts_v2(): PlutusScripts | undefined;
     set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts | undefined): void;
+    redeemers(): Redeemers | undefined;
+    set_redeemers(redeemers: Redeemers | undefined): void;
     plutus_scripts_v3(): PlutusScripts | undefined;
     set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts | undefined): void;
     static deserialize(reader: CBORReader, path: string[]): TransactionWitnessSet;
