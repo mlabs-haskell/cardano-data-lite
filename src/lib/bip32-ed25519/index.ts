@@ -13,7 +13,9 @@ export function getRandomBytes(len: number): Uint8Array {
 }
 
 export function sign(msg: Uint8Array, secretKey: Uint8Array) {
-  return nacl.sign.detached(msg, secretKey);
+  // Generate the 64-byte keypair from the 32-byte key:
+  const keyPair = nacl.sign.keyPair.fromSeed(secretKey);
+  return nacl.sign.detached(msg, keyPair.secretKey);
 }
 
 export function verify(
