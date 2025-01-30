@@ -68,7 +68,7 @@ function multiply_unit_interval_by_bignum(
 export function calculate_exunits_ceil_cost(
   exUnits: ExUnits,
   exUnitPrices: ExUnitPrices,
-): BigInt {
+): BigNum {
   const memPrice: UnitInterval = exUnitPrices.mem_price();
   const stepsPrice: UnitInterval = exUnitPrices.step_price();
 
@@ -79,19 +79,19 @@ export function calculate_exunits_ceil_cost(
   );
   const totalCostFraction = add_fractions(memRatio, stepsRatio);
 
-  return ceil_division(totalCostFraction);
+  return BigNum.from_str(ceil_division(totalCostFraction).to_str());
 }
 
 export function min_script_fee(
   tx: Transaction,
   exUnitPrices: ExUnitPrices,
-): BigInt {
+): BigNum {
   const redeemers = tx.witness_set().redeemers();
   if (redeemers) {
     const totalExUnits = redeemers.total_ex_units();
     return calculate_exunits_ceil_cost(totalExUnits, exUnitPrices);
   }
-  return BigInt.zero();
+  return BigNum.zero();
 }
 
 
@@ -100,7 +100,7 @@ function tier_ref_script_fee(
   sizeIncrement: number,
   baseFee: Fraction,
   totalSize: number,
-): BigInt {
+): BigNum {
 
   if (is_fraction_negative_or_zero(multiplier) || sizeIncrement === 0) {
     throw new Error("Size increment  and multiplier must be positive");
@@ -145,13 +145,13 @@ function tier_ref_script_fee(
     acc = add_fractions(acc, partialTierFee);
   }
 
-  return toBigIntFloor(acc);
+  return BigNum.from_str(toBigIntFloor(acc).to_str());
 }
 
 export function min_ref_script_fee(
   totalRefScriptsSize: number,
   refScriptBigNumsPerByte: UnitInterval,
-): BigInt {
+): BigNum {
   const multiplier: Fraction = {
     numerator: new BigInt(12n),
     denominator: new BigInt(10n),
