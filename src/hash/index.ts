@@ -4,6 +4,8 @@ import {
   AuxiliaryDataHash,
   DataHash,
   PlutusData,
+  TransactionBody,
+  TransactionHash,
 } from "../generated";
 
 export function hash_plutus_data(plutus_data: PlutusData): DataHash {
@@ -16,4 +18,11 @@ export function hash_auxiliary_data(
 ): AuxiliaryDataHash {
   const bytes = auxiliary_data.to_bytes();
   return AuxiliaryDataHash.new(blake2b(bytes, { dkLen: 32 }));
+}
+
+export function hash_transaction(
+  tx_body: TransactionBody,
+): TransactionHash {
+  const bytes = tx_body.to_bytes();
+  return TransactionHash.new(blake2b(bytes, { dkLen: 32 }));
 }
