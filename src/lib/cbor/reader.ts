@@ -58,6 +58,33 @@ export class CBORReader {
     throw err
   }
 
+  peekTagNumber(path: string[]): number {
+    let tag = this.buffer[0];
+
+    let len = tag & 0b11111;
+
+    // the value of the length field must be between 0x00 and 0x1b
+    if (!(len >= 0x00 && len <= 0x1b)) {
+      let err = new CBORInvalidTag(tag);
+      err.message += ` (at ${path.join("/")})`;
+      throw err;
+    }
+
+    let slicedBuffer = this.buffer.slice(1);
+
+    // if the length field is less than 0x18, then that itself is the value
+    // (optimization for small values)
+    if (len < 0x18) {
+      return Number(BigInt(len));
+    }
+
+    // Else the length is 2^(length - 0x18)
+    let nBytes = Math.pow(2, len - 0x18);
+
+    let x = Number(bigintFromBytes(nBytes, slicedBuffer));
+    return x;
+  }
+
   isBreak(): boolean {
     return this.buffer[0] == 0xff;
   }

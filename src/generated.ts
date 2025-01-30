@@ -10026,16 +10026,6 @@ export class PlutusData {
     let variant: PlutusDataVariant;
 
     switch (tag) {
-      case "tagged":
-        variant = {
-          kind: PlutusDataKind.ConstrPlutusData,
-          value: ConstrPlutusData.deserialize(reader, [
-            ...path,
-            "ConstrPlutusData(constr_plutus_data)",
-          ]),
-        };
-        break;
-
       case "map":
         variant = {
           kind: PlutusDataKind.PlutusMap,
@@ -10052,7 +10042,6 @@ export class PlutusData {
 
       case "uint":
       case "nint":
-      case "tagged":
         variant = {
           kind: PlutusDataKind.CSLBigInt,
           value: CSLBigInt.deserialize(reader, [...path, "CSLBigInt(integer)"]),
@@ -10065,6 +10054,36 @@ export class PlutusData {
           value: reader.readBytes([...path, "bytes(bytes)"]),
         };
         break;
+
+      case "tagged":
+        const tagNumber = reader.peekTagNumber(path);
+        if ([102, 121, 122, 123, 124, 125, 126, 127].includes(tagNumber)) {
+          variant = {
+            kind: PlutusDataKind.ConstrPlutusData,
+            value: ConstrPlutusData.deserialize(reader, [
+              ...path,
+              "ConstrPlutusData(constr_plutus_data)",
+            ]),
+          };
+          break;
+        } else if ([2, 3].includes(tagNumber)) {
+          variant = {
+            kind: PlutusDataKind.CSLBigInt,
+            value: CSLBigInt.deserialize(reader, [
+              ...path,
+              "CSLBigInt(integer)",
+            ]),
+          };
+          break;
+        } else {
+          throw new Error(
+            "Unexpected tag number " +
+              tagNumber +
+              " (at " +
+              path.join("/") +
+              ")",
+          );
+        }
 
       default:
         throw new Error(
