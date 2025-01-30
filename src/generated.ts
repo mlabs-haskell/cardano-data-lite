@@ -5040,6 +5040,10 @@ export class DataCost {
   clone(path: string[]): DataCost {
     return DataCost.from_bytes(this.to_bytes(), path);
   }
+
+  static new_coins_per_byte(coins_per_byte: BigNum) {
+    return new DataCost(coins_per_byte);
+  }
 }
 
 export class DataHash {

@@ -2503,6 +2503,10 @@ DataCost:
   fields:
     - name: coins_per_byte
       type: BigNum
+  extra_methods: |
+    static new_coins_per_byte(coins_per_byte: BigNum) {
+      return new DataCost(coins_per_byte);
+    }
 
 OutputDatum:
   type: tagged_record
