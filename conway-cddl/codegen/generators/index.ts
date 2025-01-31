@@ -37,6 +37,10 @@ export class CodeGeneratorBase {
     return contents != null ? contents(newName) : newName;
   }
 
+  arbitrary(seed: string): string {
+    return `${this.name}.arbitrary(${seed})`;
+  }
+
   deserialize(reader: string, path: string): string {
     return `${this.name}.deserialize(${reader}, ${path})`;
   }
@@ -122,6 +126,10 @@ export class CodeGeneratorBase {
 
   generatePost(): string {
     return "";
+  }
+
+  generateArbitrary(_prng: string): string {
+    return `throw new Error("Not Implemented")`;
   }
 
   generateDeserialize(_reader: string, _path: string): string {
@@ -217,6 +225,16 @@ export class CodeGeneratorBase {
         `;
     }
 
+    let arbitrary: string = `
+      ${this.renameMethod(
+        "arbitrary",
+        (arbitrary) => `
+      static ${arbitrary}(prng: RandomGenerator): ${this.name} {
+        ${this.generateArbitrary("prng")}
+      }`
+      )}
+    `
+
     return `
       ${this.generatePre()}
 
@@ -228,6 +246,7 @@ export class CodeGeneratorBase {
 
         ${deserialize}
         ${serialize}
+        ${arbitrary}
 
         ${this.options.genCSL ? this.generateCSLHelpers() : ""}
 

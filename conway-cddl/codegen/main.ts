@@ -85,6 +85,9 @@ async function main() {
         // @ts-expect-error: Assigning Node.js webcrypto to globalThis.crypto
         globalThis.crypto = webcrypto;
     }
+    import { RandomGenerator } from 'pure-rand';
+    import prand from 'pure-rand';
+    import { repeatRand } from './lib/prand_utils';
 
     function $$UN(id: string, ...args: any): any {
       throw ("Undefined function: " + id);

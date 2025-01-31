@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "test": "npm run test-serialization ; npm run test-api",
-    "test-serialization": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization.test.ts",
+    "test-serialization": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization.test.ts --coverage --collectCoverageFrom=\"src/**/*.ts\"",
     "test-serialization-dev": "NODE_OPTIONS=--experimental-vm-modules jest tests/serialization/serialization_dev.test.ts",
     "test-api": "npm run generate-cdl-definitions ; NODE_OPTIONS=--experimental-vm-modules jest tests/api/api.test.ts",
     "test-implementation": "NODE_OPTIONS=--experimental-vm-modules jest fees hash min_output_ada private_key bip32-ed25519",
@@ -67,6 +67,7 @@
     "@noble/hashes": "^1.5.0",
     "bech32": "^2.0.0",
     "base58-js": "^2.0.0",
-    "tweetnacl": "^1.0.3"
+    "tweetnacl": "^1.0.3",
+    "pure-rand": "^6.1.0"
   }
 }

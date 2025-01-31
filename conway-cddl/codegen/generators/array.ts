@@ -103,4 +103,26 @@ export class GenArray extends CodeGeneratorBase {
       `
     }
   }
+
+  generateArbitrary(prng: string): string {
+      return `
+        let [isDefinite, prng1] = prand.uniformIntDistribution(0, 1, prng);
+        let [len, prng_mut] = prand.uniformIntDistribution(0, 3, prng1);
+        ${this.item ?
+            `let ret = new ${this.name}([], isDefinite > 0);` :
+            `let items = new Uint32Array(len);`
+        }
+        for (let i = 0; i < len; i++) {
+          ${this.item ?
+              `ret.add(${this.itemJsType()}.arbitrary(prng_mut));` :
+              `items[i] = prand.unsafeUniformIntDistribution(0, 4294967295, prng_mut);`
+            }
+          prand.unsafeSkipN(prng_mut, 1);
+        }
+        ${this.item ?
+          `return ret;` :
+          `return new ${this.name}(items, isDefinite > 0);`
+        }
+      `;
+  }
 }
