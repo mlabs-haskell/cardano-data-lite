@@ -1,6 +1,6 @@
 {
   "name": "@mlabs-haskell/cardano-data-lite",
-  "version": "0.1.0-prerelease4",
+  "version": "0.1.0-prerelease5",
   "description": "Lightweight implementation of Cardano domain type serialization, compatible with cardano-serialization-lib",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,8 +21,22 @@
     "build": "npm run codegen && npx tsc && node fix-imports.js",
     "prepare": "npm run build"
   },
-  "author": "Farseen <farseen@mlabs.city>",
-  "license": "ISC",
+  "contributors": [
+    {
+      "name": "Farseen CK",
+      "email": "farseen@mlabs.city"
+    },
+    {
+      "name": "Ramiro S. Garay",
+      "email": "ramiro@mlabs.city"
+      
+    },    
+    {
+      "name": "Marcus Fernandes Silva",
+      "email": "marcus@mlabs.city"
+    }
+  ],
+  "license": "MIT",
   "type": "module",
   "devDependencies": {
     "@blockfrost/blockfrost-js": "^5.5.0",
