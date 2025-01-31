@@ -2,9 +2,12 @@ import {
   BigNum,
   ConstrPlutusData,
   Costmdls,
+  Ed25519KeyHash,
+  NativeScript,
   PlutusData,
   PlutusList,
   Redeemers,
+  ScriptPubkey,
 } from "../../src/generated";
 import { hash_plutus_data, hash_script_data } from "../../src/hash";
 
@@ -98,4 +101,32 @@ describe("hash_script_data Tests", () => {
     expect(hash.to_hex()).toBe("fd53a28a846ae6ccf8b221d03d4af122b0b3c442089c05b87e3d86c6792b3ef0");
   });
 
+});
+
+describe("Native scripts hash Tests", () => {
+  test("Test 1", () => {
+
+    const keyhash = Ed25519KeyHash.from_bytes(new Uint8Array([
+      143, 180, 186, 93, 223, 42, 243, 7, 81, 98, 86, 125, 97, 69, 110, 52, 130, 243, 244, 98,
+      246, 13, 33, 212, 128, 168, 136, 40,
+    ]));
+
+    expect(keyhash.to_hex()).toBe("8fb4ba5ddf2af3075162567d61456e3482f3f462f60d21d480a88828");
+
+    const script = NativeScript.new_script_pubkey(ScriptPubkey.new(keyhash));
+
+    expect(script.hash().to_hex()).toBe("187b8d3ddcb24013097c003da0b8d8f7ddcf937119d8f59dccd05a0f");
+  });
+
+  test("Test 2", () => {
+    const script = NativeScript.from_hex("8202838200581c01efb5788e8713c844dfd32b2e91de1e309fefffd555f827cc9ee1648200581c02efb5788e8713c844dfd32b2e91de1e309fefffd555f827cc9ee1648200581c03efb5788e8713c844dfd32b2e91de1e309fefffd555f827cc9ee164")
+
+    expect(script.hash().to_hex()).toBe("64f4c8d2f8fb87aab8dadd5c850920e97b1dc23cb735095832df0259");
+  });
+
+  test("Test 3", () => {
+    const script = NativeScript.from_hex("82028383030182820418848200581c03efb5788e8713c844dfd32b2e91de1e309fefffd555f827cc9ee164820182820518848200581c01efb5788e8713c844dfd32b2e91de1e309fefffd555f827cc9ee1648202838200581c01efb5788e8713c844dfd32b2e91de1e309fefffd555f827cc9ee1648200581c02efb5788e8713c844dfd32b2e91de1e309fefffd555f827cc9ee1648200581c03efb5788e8713c844dfd32b2e91de1e309fefffd555f827cc9ee164")
+
+    expect(script.hash().to_hex()).toBe("44b044989c15957d565bb7242f7e3124c38b0cbaac1e53ef028c860f");
+  });
 });
