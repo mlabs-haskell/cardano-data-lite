@@ -3,6 +3,7 @@ PlutusData:
   variants:
     - tag: 0
       peek_type: "tagged"
+      valid_tags: [102, 121, 122, 123, 124, 125, 126, 127]
       name: constr_plutus_data
       type: ConstrPlutusData
     - tag: 1
@@ -15,6 +16,7 @@ PlutusData:
       type: PlutusList
     - tag: 3
       peek_type: ["uint", "nint", "tagged"]
+      valid_tags: [2, 3]
       name: integer
       type: CSLBigInt
     - tag: 4
