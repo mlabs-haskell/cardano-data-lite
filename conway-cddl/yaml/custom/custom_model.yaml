@@ -39,3 +39,68 @@ Costmdls:
       }
       return result;
     }
+
+    language_views_encoding(): Uint8Array {
+      // Compare two byte arrays lexicographically
+      function compareBytes(a: Uint8Array, b: Uint8Array): number {
+        const minLen = Math.min(a.length, b.length);
+        for (let i = 0; i < minLen; i++) {
+          if (a[i] < b[i]) return -1;
+          if (a[i] > b[i]) return 1;
+        }
+        return a.length - b.length;
+      }
+
+      function keyLen(lang: Language): number {
+        if (lang.kind() === LanguageKind.plutus_v1) {
+          const w = new CBORWriter();
+          w.writeBytes(lang.to_bytes());
+          return w.getBytes().length;
+        } else {
+          return lang.to_bytes().length;
+        }
+      }
+
+      const keys = this._items.map(([k, _]) => k);
+
+      // keys must be in canonical ordering first
+      keys.sort((lhs, rhs) => {
+        const lhsLen = keyLen(lhs);
+        const rhsLen = keyLen(rhs);
+        if (lhsLen !== rhsLen) {
+          return lhsLen - rhsLen;
+        }
+        return compareBytes(lhs.to_bytes(), rhs.to_bytes());
+      });
+
+      const writer = new CBORWriter();
+      writer.writeMapTag(keys.length);
+
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        const costModel = this.get(key);
+        if (!costModel) {
+          throw new Error(
+            "No cost model found for key in language_views_encoding.",
+          );
+        }
+
+        if (key.kind() === LanguageKind.plutus_v1) {
+          writer.writeBytes(key.to_bytes());
+
+          const subWriter = new CBORWriter();
+          subWriter.writeArray(
+            costModel["items"],
+            (sw, costInt) => costInt.serialize(sw),
+            false,
+          );
+
+          writer.writeBytes(subWriter.getBytes());
+        } else {
+          key.serialize(writer);
+          costModel.serialize(writer);
+        }
+      }
+
+      return writer.getBytes();
+    }
