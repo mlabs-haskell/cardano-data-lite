@@ -11,7 +11,7 @@ export class NetworkInfo {
     return this._network_id;
   }
 
-  protcol_magic(): number {
+  protocol_magic(): number {
     return this._protocol_magic;
   }
 

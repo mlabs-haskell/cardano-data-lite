@@ -90,7 +90,7 @@ export class ByronAddress {
 
   byron_protocol_magic(): number {
     return (
-      this._attributes._protocol_magic || NetworkInfo.mainnet().protcol_magic()
+      this._attributes._protocol_magic || NetworkInfo.mainnet().protocol_magic()
     );
   }
 
@@ -100,11 +100,9 @@ export class ByronAddress {
 
   network_id(): number {
     switch (this.byron_protocol_magic()) {
-      case NetworkInfo.testnet_preprod().protcol_magic():
+      case NetworkInfo.testnet_preprod().protocol_magic():
         return NetworkInfo.testnet_preprod().network_id();
-      case NetworkInfo.testnet_preview().protcol_magic():
-        return NetworkInfo.testnet_preview().network_id();
-      case NetworkInfo.mainnet().protcol_magic():
+      case NetworkInfo.mainnet().protocol_magic():
         return NetworkInfo.mainnet().network_id();
       default:
         throw new Error(
