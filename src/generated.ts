@@ -13156,6 +13156,18 @@ export class Redeemer {
   ) {
     return new Redeemer(new RedeemersArrayItem(tag, index, data, ex_units));
   }
+  tag(): RedeemerTag {
+    return this.inner.tag();
+  }
+  index(): BigNum {
+    return this.inner.index();
+  }
+  data(): PlutusData {
+    return this.inner.data();
+  }
+  ex_units(): ExUnits {
+    return this.inner.ex_units();
+  }
 }
 
 export enum RedeemerTagKind {
