@@ -2236,12 +2236,32 @@ ScriptAll:
   fields:
     - name: native_scripts
       type: NativeScripts
+  methods:
+    serialize: null
+  extra_methods: |
+    serialize(writer: CBORWriter): void {
+      let ns = new NativeScripts(true, false);
+      for (let i = 0; i < this._native_scripts.len(); i++) {
+        ns.add(this._native_scripts.get(i));
+      }
+      ns.serialize(writer);
+    }
 
 ScriptAny:
   type: record_fragment
   fields:
     - name: native_scripts
       type: NativeScripts
+  methods:
+    serialize: null
+  extra_methods: |
+    serialize(writer: CBORWriter): void {
+      let ns = new NativeScripts(true, false);
+      for (let i = 0; i < this._native_scripts.len(); i++) {
+        ns.add(this._native_scripts.get(i));
+      }
+      ns.serialize(writer);
+    }
 
 ScriptNOfK:
   type: record_fragment
@@ -2250,6 +2270,17 @@ ScriptNOfK:
       type: number
     - name: native_scripts
       type: NativeScripts
+  methods:
+    serialize: null
+  extra_methods: |
+    serialize(writer: CBORWriter): void {
+      writer.writeInt(BigInt(this._n));
+      let ns = new NativeScripts(true, false);
+      for (let i = 0; i < this._native_scripts.len(); i++) {
+        ns.add(this._native_scripts.get(i));
+      }
+      ns.serialize(writer);
+    }
 
 TimelockStart:
   type: record_fragment

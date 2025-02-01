@@ -14425,10 +14425,6 @@ export class ScriptAll {
     return new ScriptAll(native_scripts);
   }
 
-  serialize(writer: CBORWriter): void {
-    this._native_scripts.serialize(writer);
-  }
-
   // no-op
   free(): void {}
 
@@ -14456,6 +14452,14 @@ export class ScriptAll {
 
   clone(path: string[]): ScriptAll {
     return ScriptAll.from_bytes(this.to_bytes(), path);
+  }
+
+  serialize(writer: CBORWriter): void {
+    let ns = new NativeScripts(true, false);
+    for (let i = 0; i < this._native_scripts.len(); i++) {
+      ns.add(this._native_scripts.get(i));
+    }
+    ns.serialize(writer);
   }
 }
 
@@ -14487,10 +14491,6 @@ export class ScriptAny {
     return new ScriptAny(native_scripts);
   }
 
-  serialize(writer: CBORWriter): void {
-    this._native_scripts.serialize(writer);
-  }
-
   // no-op
   free(): void {}
 
@@ -14518,6 +14518,14 @@ export class ScriptAny {
 
   clone(path: string[]): ScriptAny {
     return ScriptAny.from_bytes(this.to_bytes(), path);
+  }
+
+  serialize(writer: CBORWriter): void {
+    let ns = new NativeScripts(true, false);
+    for (let i = 0; i < this._native_scripts.len(); i++) {
+      ns.add(this._native_scripts.get(i));
+    }
+    ns.serialize(writer);
   }
 }
 
@@ -14774,11 +14782,6 @@ export class ScriptNOfK {
     return new ScriptNOfK(n, native_scripts);
   }
 
-  serialize(writer: CBORWriter): void {
-    writer.writeInt(BigInt(this._n));
-    this._native_scripts.serialize(writer);
-  }
-
   // no-op
   free(): void {}
 
@@ -14809,6 +14812,15 @@ export class ScriptNOfK {
 
   clone(path: string[]): ScriptNOfK {
     return ScriptNOfK.from_bytes(this.to_bytes(), path);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeInt(BigInt(this._n));
+    let ns = new NativeScripts(true, false);
+    for (let i = 0; i < this._native_scripts.len(); i++) {
+      ns.add(this._native_scripts.get(i));
+    }
+    ns.serialize(writer);
   }
 }
 
