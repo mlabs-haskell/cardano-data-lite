@@ -20,6 +20,14 @@ BigNum:
       return this.toJsValue().toString();
     }
 
+    to_json(): String {
+      return "\"" + this.to_str() + "\"";
+    }
+
+    toJSON(): String {
+      return this.to_json();
+    }
+
     static zero(): BigNum {
       return new BigNum(0n);
     }

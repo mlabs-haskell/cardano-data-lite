@@ -1367,6 +1367,14 @@ export class BigNum {
     return this.toJsValue().toString();
   }
 
+  to_json(): String {
+    return '"' + this.to_str() + '"';
+  }
+
+  toJSON(): String {
+    return this.to_json();
+  }
+
   static zero(): BigNum {
     return new BigNum(0n);
   }
@@ -2210,6 +2218,14 @@ export class CSLBigInt {
 
   to_str(): string {
     return this.toJsValue().toString();
+  }
+
+  to_json(): String {
+    return '"' + this.to_str() + '"';
+  }
+
+  toJSON(): String {
+    return this.to_json();
   }
 
   static zero(): CSLBigInt {
