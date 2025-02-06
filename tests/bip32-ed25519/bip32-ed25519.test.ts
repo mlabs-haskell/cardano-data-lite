@@ -38,6 +38,29 @@ describe("signExtended", () => {
   });
 });
 
+
+describe("sign", () => {
+  let privateKey = CSL.PrivateKey.generate_ed25519();
+  let msg = new Uint8Array([1, 2, 3]);
+
+  test("signature must be same as CSL", () => {
+    expect(thisLib.sign(msg, privateKey.as_bytes())).toEqual(
+      privateKey.sign(msg).to_bytes(),
+    );
+  });
+
+  test("signature should verify", () => {
+    let signature = thisLib.sign(msg, privateKey.as_bytes());
+    expect(
+      nacl.sign.detached.verify(
+        msg,
+        signature,
+        privateKey.to_public().as_bytes(),
+      ),
+    ).toEqual(true);
+  });
+});
+
 describe("secretToExtended", () => {
   let regressionKeys = [
     "4428f1b59d357c10bca5ae134b767359d1f8f66fde851503b56f297cf599f456",
