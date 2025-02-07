@@ -1367,6 +1367,14 @@ export class BigNum {
     return this.toJsValue().toString();
   }
 
+  to_json(): String {
+    return '"' + this.to_str() + '"';
+  }
+
+  toJSON(): String {
+    return this.to_json();
+  }
+
   static zero(): BigNum {
     return new BigNum(0n);
   }
@@ -2210,6 +2218,14 @@ export class CSLBigInt {
 
   to_str(): string {
     return this.toJsValue().toString();
+  }
+
+  to_json(): String {
+    return '"' + this.to_str() + '"';
+  }
+
+  toJSON(): String {
+    return this.to_json();
   }
 
   static zero(): CSLBigInt {
@@ -3940,6 +3956,71 @@ export class Costmdls {
     }
     return result;
   }
+
+  language_views_encoding(): Uint8Array {
+    // Compare two byte arrays lexicographically
+    function compareBytes(a: Uint8Array, b: Uint8Array): number {
+      const minLen = Math.min(a.length, b.length);
+      for (let i = 0; i < minLen; i++) {
+        if (a[i] < b[i]) return -1;
+        if (a[i] > b[i]) return 1;
+      }
+      return a.length - b.length;
+    }
+
+    function keyLen(lang: Language): number {
+      if (lang.kind() === LanguageKind.plutus_v1) {
+        const w = new CBORWriter();
+        w.writeBytes(lang.to_bytes());
+        return w.getBytes().length;
+      } else {
+        return lang.to_bytes().length;
+      }
+    }
+
+    const keys = this._items.map(([k, _]) => k);
+
+    // keys must be in canonical ordering first
+    keys.sort((lhs, rhs) => {
+      const lhsLen = keyLen(lhs);
+      const rhsLen = keyLen(rhs);
+      if (lhsLen !== rhsLen) {
+        return lhsLen - rhsLen;
+      }
+      return compareBytes(lhs.to_bytes(), rhs.to_bytes());
+    });
+
+    const writer = new CBORWriter();
+    writer.writeMapTag(keys.length);
+
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      const costModel = this.get(key);
+      if (!costModel) {
+        throw new Error(
+          "No cost model found for key in language_views_encoding.",
+        );
+      }
+
+      if (key.kind() === LanguageKind.plutus_v1) {
+        writer.writeBytes(key.to_bytes());
+
+        const subWriter = new CBORWriter();
+        subWriter.writeArray(
+          costModel["items"],
+          (sw, costInt) => costInt.serialize(sw),
+          false,
+        );
+
+        writer.writeBytes(subWriter.getBytes());
+      } else {
+        key.serialize(writer);
+        costModel.serialize(writer);
+      }
+    }
+
+    return writer.getBytes();
+  }
 }
 
 export class Credentials {
@@ -5039,6 +5120,10 @@ export class DataCost {
 
   clone(path: string[]): DataCost {
     return DataCost.from_bytes(this.to_bytes(), path);
+  }
+
+  static new_coins_per_byte(coins_per_byte: BigNum) {
+    return new DataCost(coins_per_byte);
   }
 }
 
@@ -13087,6 +13172,18 @@ export class Redeemer {
   ) {
     return new Redeemer(new RedeemersArrayItem(tag, index, data, ex_units));
   }
+  tag(): RedeemerTag {
+    return this.inner.tag();
+  }
+  index(): BigNum {
+    return this.inner.index();
+  }
+  data(): PlutusData {
+    return this.inner.data();
+  }
+  ex_units(): ExUnits {
+    return this.inner.ex_units();
+  }
 }
 
 export enum RedeemerTagKind {
@@ -14344,10 +14441,6 @@ export class ScriptAll {
     return new ScriptAll(native_scripts);
   }
 
-  serialize(writer: CBORWriter): void {
-    this._native_scripts.serialize(writer);
-  }
-
   // no-op
   free(): void {}
 
@@ -14375,6 +14468,14 @@ export class ScriptAll {
 
   clone(path: string[]): ScriptAll {
     return ScriptAll.from_bytes(this.to_bytes(), path);
+  }
+
+  serialize(writer: CBORWriter): void {
+    let ns = new NativeScripts(true, false);
+    for (let i = 0; i < this._native_scripts.len(); i++) {
+      ns.add(this._native_scripts.get(i));
+    }
+    ns.serialize(writer);
   }
 }
 
@@ -14406,10 +14507,6 @@ export class ScriptAny {
     return new ScriptAny(native_scripts);
   }
 
-  serialize(writer: CBORWriter): void {
-    this._native_scripts.serialize(writer);
-  }
-
   // no-op
   free(): void {}
 
@@ -14437,6 +14534,14 @@ export class ScriptAny {
 
   clone(path: string[]): ScriptAny {
     return ScriptAny.from_bytes(this.to_bytes(), path);
+  }
+
+  serialize(writer: CBORWriter): void {
+    let ns = new NativeScripts(true, false);
+    for (let i = 0; i < this._native_scripts.len(); i++) {
+      ns.add(this._native_scripts.get(i));
+    }
+    ns.serialize(writer);
   }
 }
 
@@ -14693,11 +14798,6 @@ export class ScriptNOfK {
     return new ScriptNOfK(n, native_scripts);
   }
 
-  serialize(writer: CBORWriter): void {
-    writer.writeInt(BigInt(this._n));
-    this._native_scripts.serialize(writer);
-  }
-
   // no-op
   free(): void {}
 
@@ -14728,6 +14828,15 @@ export class ScriptNOfK {
 
   clone(path: string[]): ScriptNOfK {
     return ScriptNOfK.from_bytes(this.to_bytes(), path);
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeInt(BigInt(this._n));
+    let ns = new NativeScripts(true, false);
+    for (let i = 0; i < this._native_scripts.len(); i++) {
+      ns.add(this._native_scripts.get(i));
+    }
+    ns.serialize(writer);
   }
 }
 

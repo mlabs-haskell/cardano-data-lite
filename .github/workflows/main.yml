@@ -46,3 +46,6 @@ jobs:
 
       - name: Run API tests
         run: npm run test-api
+
+      - name: Run implementation tests
+        run: npm run test-implementation
