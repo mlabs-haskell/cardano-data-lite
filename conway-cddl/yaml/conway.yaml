@@ -77,7 +77,7 @@ InvalidTransactions:
   type: array
   extra_methods: |
     as_uint32Array(): Uint32Array {
-      return this.items;
+      return this._items;
     }
 
 # transaction =
@@ -2476,17 +2476,17 @@ PlutusList:
     as_set(): PlutusSet {
       let set = new PlutusSet(this.definiteEncoding);
       for (let i = 0; i < this.len(); i++) {
-        set.add(this.items[i]);
+        set.add(this._items[i]);
       }
       return set;
     }
 
     serialize(writer: CBORWriter): void {
       writer.writeArray(
-        this.items,
+        this._items,
         (writer, x) => x.serialize(writer),
         // if items is empty, use definite encoding. Else preserve the encoding.
-        this.items.length == 0 ? true : this.definiteEncoding,
+        this._items.length == 0 ? true : this.definiteEncoding,
       );
     }
 
