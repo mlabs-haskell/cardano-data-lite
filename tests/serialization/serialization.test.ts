@@ -1,7 +1,7 @@
 // This module tests that serialization-deserialization of all transaction
 // components in cardano-data-list match CSL at the byte level.
 import fs from "node:fs";
-import { RoundtripTestParameters, TransactionInfo } from "../test_types"; 
+import { RoundtripTestParameters, TransactionInfo } from "../test_types";
 import { test } from "@jest/globals";
 import * as Out from "../../src/generated.ts"
 import { exit } from "node:process";
@@ -10,7 +10,7 @@ import { bytesToHex } from "../../src/lib/hex.ts";
 
 // Locations for retrieved transactions
 const stagingPath = "tests/serialization/staging";
-const regressionPath  = "tests/serialization/regression";
+const regressionPath = "tests/serialization/regression";
 
 // The transaction information obtained from get_transactions
 let stagingTransactionInfos: Array<TransactionInfo> = [];
@@ -63,7 +63,7 @@ console.log("(serialization.test.ts) Tests tables prepared.")
 // directory if it doesn't exit.
 try {
   fs.mkdirSync("tests/reports")
-} catch(_err) {
+} catch (_err) {
   console.log("(serialization.test.ts) Failed to create reports directory");
   console.log("(serialization.test.ts) Skipping dir creation...")
 };
@@ -117,14 +117,14 @@ describe("roundtrip", () => {
 
       // We manually test things first to generate the reports.
       try {
-        const result: Uint8Array = roundtrip(Out[class_key], params.component.cbor);      
+        const result: Uint8Array = roundtrip(Out[class_key], params.component.cbor);
         // if it doesn't match the expected CBOR, we record it in the report file
         if (!(Buffer.compare(result, params.component.cbor) == 0)) {
           params.component.failed = true;
           writeRoundtripErrorReport(reportFile, params, result);
           addToRegressionSuite(params);
         }
-      } catch(err) {
+      } catch (err) {
         // if it throws, we record it in the report file
         params.component.failed = true;
         writeExceptionReport(reportFile, params, err);
@@ -147,12 +147,12 @@ describe("roundtrip", () => {
       }
 
       try {
-        const result: Uint8Array = roundtrip(Out[class_key], params.component.cbor);      
+        const result: Uint8Array = roundtrip(Out[class_key], params.component.cbor);
         if (!(Buffer.compare(result, params.component.cbor) == 0)) {
           params.component.failed = true;
           writeRoundtripErrorReport(reportFile, params, result);
         }
-      } catch(err) {
+      } catch (err) {
         params.component.failed = true;
         writeExceptionReport(reportFile, params, err);
       }
@@ -165,8 +165,8 @@ describe("roundtrip", () => {
 function addToRegressionSuite(params: RoundtripTestParameters): void {
   if (!regressionTransactionHashes.has(params.txHash)) {
     fs.writeFileSync(
-        `${regressionPath}/${regressionTransactionHashes.size.toString().padStart(3, "0")}-${params.txHash}.cbor`
-        , stagingTransactionInfos[params.txCount].cbor
+      `${regressionPath}/${regressionTransactionHashes.size.toString().padStart(3, "0")}-${params.txHash}.cbor`
+      , stagingTransactionInfos[params.txCount].cbor
     );
     regressionTransactionHashes.add(params.txHash);
   }
