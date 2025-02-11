@@ -27,7 +27,7 @@ export class GenArray extends CodeGeneratorBase {
   generateMembers(): string {
     const jsType = this.itemJsType();
     return `
-      private items: ${jsType ? `${jsType}[]` : `Uint32Array`};
+      _items: ${jsType ? `${jsType}[]` : `Uint32Array`};
       private definiteEncoding: boolean;
     `;
   }
@@ -39,7 +39,7 @@ export class GenArray extends CodeGeneratorBase {
           items: ${jsType ? `${jsType}[]` : `Uint32Array`}, 
           definiteEncoding: boolean = ${!this.defaultToIndefinite}
         ) {
-          this.items = items;
+          this._items = items;
           this.definiteEncoding = definiteEncoding;
         }
     `;
@@ -53,18 +53,18 @@ export class GenArray extends CodeGeneratorBase {
         }
 
         len(): number {
-          return this.items.length;
+          return this._items.length;
         }
 
         ${jsType ?
         `
           get(index: number): ${jsType} {
-            if(index >= this.items.length) throw new Error("Array out of bounds");
-            return this.items[index];
+            if(index >= this._items.length) throw new Error("Array out of bounds");
+            return this._items[index];
           }
 
           add(elem: ${jsType}): void {
-            this.items.push(elem);
+            this._items.push(elem);
           }
           ` : ''
       }
@@ -98,14 +98,17 @@ export class GenArray extends CodeGeneratorBase {
     if (this.item) {
       return `
         ${writer}.writeArray(
-          this.items,
+          this._items,
           (writer, x) => ${this.typeUtils.writeType("writer", "x", this.item)},
           this.definiteEncoding
         );
       `;
     } else {
       return `
-        ${writer}.writeArray(this.items, (writer, x) => writer.writeInt(BigInt(x)), this.definiteEncoding)
+        ${writer}.writeArray(this._items, 
+          (writer, x) => writer.writeInt(BigInt(x)), 
+          this.definiteEncoding,
+        )
       `
     }
   }

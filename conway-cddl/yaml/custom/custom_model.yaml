@@ -5,17 +5,17 @@ CostModel:
     add: null
   extra_methods: |
     set(operation: number, cost: Int): Int {
-      const len = this.items.length;
+      const len = this._items.length;
       const idx = operation;
 
       // Fill in-between indexes with zeroes if the operation index is greater than the current length
       if (idx >= len) {
         for (let i = 0; i < (idx - len + 1); i++) {
-          this.items.push(Int.new_i32(0));
+          this._items.push(Int.new_i32(0));
         }
       }
-      const old = this.items[idx];
-      this.items[idx] = cost;
+      const old = this._items[idx];
+      this._items[idx] = cost;
 
       // Return the old value - behaviour of CSL's Rust code.
       return old;
@@ -90,7 +90,7 @@ Costmdls:
 
           const subWriter = new CBORWriter();
           subWriter.writeArray(
-            costModel["items"],
+            costModel._items,
             (sw, costInt) => costInt.serialize(sw),
             false,
           );
