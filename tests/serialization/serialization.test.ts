@@ -100,6 +100,10 @@ describe("roundtrip", () => {
   // });
 
   describe("staging", () => {
+    if (stagingTestsTable.length == 0) {
+      // no transactions in staging
+      return;
+    }
     test.each(stagingTestsTable)("($componentIndex) TX $txCount ($txHashAbbrev)\n\tComponent $component.path ($component.type) ", (params) => {
       let class_key = params.component.type as keyof (typeof Out);
 
