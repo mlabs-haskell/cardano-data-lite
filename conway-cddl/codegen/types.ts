@@ -16,7 +16,11 @@ export const Schema = Type.Intersect([
     extra_methods: Type.Optional(Type.String()),
   }),
   Type.Union([
-    Type.Object({ type: Type.Literal("array"), item: Type.Optional(Type.String()) }),
+    Type.Object({
+      type: Type.Literal("array"),
+      default_to_indefinite: Type.Optional(Type.Boolean()),
+      item: Type.Optional(Type.String())
+    }),
     Type.Object({
       type: Type.Literal("enum"),
       values: Type.Array(

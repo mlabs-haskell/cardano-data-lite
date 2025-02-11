@@ -2469,6 +2469,9 @@ ProposedProtocolParameterUpdates:
 PlutusList:
   type: array
   item: PlutusData
+  default_to_indefinite: true
+  methods:
+    serialize: null
   extra_methods: |
     as_set(): PlutusSet {
       let set = new PlutusSet(this.definiteEncoding);
@@ -2476,6 +2479,15 @@ PlutusList:
         set.add(this.items[i]);
       }
       return set;
+    }
+
+    serialize(writer: CBORWriter): void {
+      writer.writeArray(
+        this.items,
+        (writer, x) => x.serialize(writer),
+        // if items is empty, use definite encoding. Else preserve the encoding.
+        this.items.length == 0 ? true : this.definiteEncoding,
+      );
     }
 
 PlutusMap:

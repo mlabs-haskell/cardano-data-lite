@@ -10279,7 +10279,7 @@ export class PlutusList {
   private items: PlutusData[];
   private definiteEncoding: boolean;
 
-  constructor(items: PlutusData[], definiteEncoding: boolean = true) {
+  constructor(items: PlutusData[], definiteEncoding: boolean = false) {
     this.items = items;
     this.definiteEncoding = definiteEncoding;
   }
@@ -10307,14 +10307,6 @@ export class PlutusList {
       path,
     );
     return new PlutusList(items, definiteEncoding);
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeArray(
-      this.items,
-      (writer, x) => x.serialize(writer),
-      this.definiteEncoding,
-    );
   }
 
   // no-op
@@ -10355,6 +10347,15 @@ export class PlutusList {
       set.add(this.items[i]);
     }
     return set;
+  }
+
+  serialize(writer: CBORWriter): void {
+    writer.writeArray(
+      this.items,
+      (writer, x) => x.serialize(writer),
+      // if items is empty, use definite encoding. Else preserve the encoding.
+      this.items.length == 0 ? true : this.definiteEncoding,
+    );
   }
 }
 
