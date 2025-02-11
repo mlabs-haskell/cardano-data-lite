@@ -11,10 +11,17 @@ ConstrPlutusData:
     new: uncheckedNew
   extra_methods: |
     static deserialize(reader: CBORReader, path: string[]): ConstrPlutusData {      
-      const tag = reader.readTaggedTagAsBigInt(path);
-      if (Number(tag) >= 121 && Number(tag) <= 127) {
+      let tag = Number(reader.readTaggedTagAsBigInt(path));
+      if (tag >= 121 && tag <= 127) {
+        tag = tag - 121;
         return ConstrPlutusData.new(
-          BigNum.new(tag).checked_sub(BigNum.from_str("121")),
+          BigNum.new(tag),
+          PlutusList.deserialize(reader, [...path, "PlutusList(data)"]),
+        );
+      } else if (tag >= 1280 && tag <= 1400) {
+        tag = tag - 1280 + 7; 
+        return ConstrPlutusData.new(
+          BigNum.new(tag),
           PlutusList.deserialize(reader, [...path, "PlutusList(data)"]),
         );
       } else if (Number(tag) == 102) {
@@ -31,13 +38,18 @@ ConstrPlutusData:
     }
 
     serialize(writer: CBORWriter): void {
-      const alternative = this.alternative().toJsValue();
-      if (alternative > 6) {
+      const alternative = Number(this.alternative().toJsValue());
+      if (alternative < 0) {
+        throw new Error("Alternative can't be negative");
+      } else if (alternative <= 6) {
+        writer.writeTaggedTag(alternative + 121);
+        this.data().serialize(writer);
+      } else if (alternative <= 127) {
+        writer.writeTaggedTag(alternative - 7 + 1280);
+        this.data().serialize(writer);
+      } else {
         writer.writeTaggedTag(102);
         this.serializeWithSeparateIdx(writer);
-      } else {
-        writer.writeTaggedTag(Number(alternative) + 121);
-        this.data().serialize(writer);
       }
     }
 
