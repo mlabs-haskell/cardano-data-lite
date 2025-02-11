@@ -2,11 +2,13 @@ import { CodeGeneratorBase, CodeGeneratorBaseOptions } from ".";
 import { SchemaTable } from "..";
 
 export type GenArrayOptions = {
-  item: string | undefined;
+  item?: string;
+  default_to_indefinite?: boolean;
 } & CodeGeneratorBaseOptions;
 
 export class GenArray extends CodeGeneratorBase {
-  item: string | undefined;
+  item?: string;
+  defaultToIndefinite?: boolean;
 
   constructor(
     name: string,
@@ -15,6 +17,7 @@ export class GenArray extends CodeGeneratorBase {
   ) {
     super(name, customTypes, { genCSL: true, ...options });
     this.item = options.item;
+    this.defaultToIndefinite = options.default_to_indefinite;
   }
 
   private itemJsType() {
@@ -32,7 +35,10 @@ export class GenArray extends CodeGeneratorBase {
   generateConstructor(): string {
     const jsType = this.itemJsType();
     return `
-        constructor(items: ${jsType ? `${jsType}[]` : `Uint32Array`}, definiteEncoding: boolean = true) {
+        constructor(
+          items: ${jsType ? `${jsType}[]` : `Uint32Array`}, 
+          definiteEncoding: boolean = ${!this.defaultToIndefinite}
+        ) {
           this.items = items;
           this.definiteEncoding = definiteEncoding;
         }
@@ -51,7 +57,7 @@ export class GenArray extends CodeGeneratorBase {
         }
 
         ${jsType ?
-          `
+        `
           get(index: number): ${jsType} {
             if(index >= this.items.length) throw new Error("Array out of bounds");
             return this.items[index];
@@ -61,7 +67,7 @@ export class GenArray extends CodeGeneratorBase {
             this.items.push(elem);
           }
           ` : ''
-        }
+      }
     `;
   }
 
