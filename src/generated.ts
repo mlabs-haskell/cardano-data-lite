@@ -236,11 +236,11 @@ export class AssetName {
 }
 
 export class AssetNames {
-  private items: AssetName[];
+  _items: AssetName[];
   private definiteEncoding: boolean;
 
   constructor(items: AssetName[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -249,16 +249,16 @@ export class AssetNames {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): AssetName {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: AssetName): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): AssetNames {
@@ -271,7 +271,7 @@ export class AssetNames {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -3730,16 +3730,16 @@ export class ConstrPlutusData {
     if (tag >= 121 && tag <= 127) {
       tag = tag - 121;
       return ConstrPlutusData.new(
-        BigNum.new(tag),
+        BigNum.new(BigInt(tag)),
         PlutusList.deserialize(reader, [...path, "PlutusList(data)"]),
       );
     } else if (tag >= 1280 && tag <= 1400) {
       tag = tag - 1280 + 7;
       return ConstrPlutusData.new(
-        BigNum.new(tag),
+        BigNum.new(BigInt(tag)),
         PlutusList.deserialize(reader, [...path, "PlutusList(data)"]),
       );
-    } else if (Number(tag) == 102) {
+    } else if (tag == 102) {
       return ConstrPlutusData.deserializeWithSeparateIdx(reader, path);
     } else {
       throw new Error(
@@ -3774,11 +3774,11 @@ export class ConstrPlutusData {
 }
 
 export class CostModel {
-  private items: Int[];
+  _items: Int[];
   private definiteEncoding: boolean;
 
   constructor(items: Int[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -3787,16 +3787,16 @@ export class CostModel {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): Int {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: Int): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): CostModel {
@@ -3809,7 +3809,7 @@ export class CostModel {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -3845,17 +3845,17 @@ export class CostModel {
   }
 
   set(operation: number, cost: Int): Int {
-    const len = this.items.length;
+    const len = this._items.length;
     const idx = operation;
 
     // Fill in-between indexes with zeroes if the operation index is greater than the current length
     if (idx >= len) {
       for (let i = 0; i < idx - len + 1; i++) {
-        this.items.push(Int.new_i32(0));
+        this._items.push(Int.new_i32(0));
       }
     }
-    const old = this.items[idx];
-    this.items[idx] = cost;
+    const old = this._items[idx];
+    this._items[idx] = cost;
 
     // Return the old value - behaviour of CSL's Rust code.
     return old;
@@ -4019,7 +4019,7 @@ export class Costmdls {
 
         const subWriter = new CBORWriter();
         subWriter.writeArray(
-          costModel["items"],
+          costModel._items,
           (sw, costInt) => costInt.serialize(sw),
           false,
         );
@@ -6142,11 +6142,11 @@ export class GenesisHash {
 }
 
 export class GenesisHashes {
-  private items: GenesisHash[];
+  _items: GenesisHash[];
   private definiteEncoding: boolean;
 
   constructor(items: GenesisHash[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -6155,16 +6155,16 @@ export class GenesisHashes {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): GenesisHash {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: GenesisHash): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): GenesisHashes {
@@ -6178,7 +6178,7 @@ export class GenesisHashes {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -6612,11 +6612,11 @@ export class GovernanceActionId {
 }
 
 export class GovernanceActionIds {
-  private items: GovernanceActionId[];
+  _items: GovernanceActionId[];
   private definiteEncoding: boolean;
 
   constructor(items: GovernanceActionId[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -6625,16 +6625,16 @@ export class GovernanceActionIds {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): GovernanceActionId {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: GovernanceActionId): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): GovernanceActionIds {
@@ -6648,7 +6648,7 @@ export class GovernanceActionIds {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -7430,11 +7430,11 @@ export class Int {
 }
 
 export class InvalidTransactions {
-  private items: Uint32Array;
+  _items: Uint32Array;
   private definiteEncoding: boolean;
 
   constructor(items: Uint32Array, definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -7443,7 +7443,7 @@ export class InvalidTransactions {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   static deserialize(reader: CBORReader, path: string[]): InvalidTransactions {
@@ -7457,7 +7457,7 @@ export class InvalidTransactions {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => writer.writeInt(BigInt(x)),
       this.definiteEncoding,
     );
@@ -7496,7 +7496,7 @@ export class InvalidTransactions {
   }
 
   as_uint32Array(): Uint32Array {
-    return this.items;
+    return this._items;
   }
 }
 
@@ -7807,11 +7807,11 @@ export class Language {
 }
 
 export class Languages {
-  private items: Language[];
+  _items: Language[];
   private definiteEncoding: boolean;
 
   constructor(items: Language[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -7820,16 +7820,16 @@ export class Languages {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): Language {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: Language): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): Languages {
@@ -7842,7 +7842,7 @@ export class Languages {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -7887,11 +7887,11 @@ export class Languages {
 }
 
 export class MetadataList {
-  private items: TransactionMetadatum[];
+  _items: TransactionMetadatum[];
   private definiteEncoding: boolean;
 
   constructor(items: TransactionMetadatum[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -7900,16 +7900,16 @@ export class MetadataList {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): TransactionMetadatum {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: TransactionMetadatum): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): MetadataList {
@@ -7923,7 +7923,7 @@ export class MetadataList {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -8353,11 +8353,11 @@ export class MintAssets {
 }
 
 export class MintsAssets {
-  private items: MintAssets[];
+  _items: MintAssets[];
   private definiteEncoding: boolean;
 
   constructor(items: MintAssets[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -8366,16 +8366,16 @@ export class MintsAssets {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): MintAssets {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: MintAssets): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): MintsAssets {
@@ -8388,7 +8388,7 @@ export class MintsAssets {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -10276,11 +10276,11 @@ export class PlutusData {
 }
 
 export class PlutusList {
-  private items: PlutusData[];
+  _items: PlutusData[];
   private definiteEncoding: boolean;
 
   constructor(items: PlutusData[], definiteEncoding: boolean = false) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -10289,16 +10289,16 @@ export class PlutusList {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): PlutusData {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: PlutusData): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): PlutusList {
@@ -10344,25 +10344,25 @@ export class PlutusList {
   as_set(): PlutusSet {
     let set = new PlutusSet(this.definiteEncoding);
     for (let i = 0; i < this.len(); i++) {
-      set.add(this.items[i]);
+      set.add(this._items[i]);
     }
     return set;
   }
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       // if items is empty, use definite encoding. Else preserve the encoding.
-      this.items.length == 0 ? true : this.definiteEncoding,
+      this._items.length == 0 ? true : this.definiteEncoding,
     );
   }
 }
 
 export class PlutusMap {
-  _items: [PlutusData, PlutusData][];
+  _items: [PlutusData, PlutusMapValues][];
 
-  constructor(items: [PlutusData, PlutusData][]) {
+  constructor(items: [PlutusData, PlutusMapValues][]) {
     this._items = items;
   }
 
@@ -10374,7 +10374,7 @@ export class PlutusMap {
     return this._items.length;
   }
 
-  insertInner(key: PlutusData, value: PlutusData): PlutusData | undefined {
+  insert(key: PlutusData, value: PlutusMapValues): PlutusMapValues | undefined {
     let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
@@ -10387,7 +10387,7 @@ export class PlutusMap {
     return undefined;
   }
 
-  getInner(key: PlutusData): PlutusData | undefined {
+  get(key: PlutusData): PlutusMapValues | undefined {
     let entry = this._items.find((x) =>
       arrayEq(key.to_bytes(), x[0].to_bytes()),
     );
@@ -10405,26 +10405,6 @@ export class PlutusMap {
     let keys = PlutusList.new();
     for (let [key, _] of this._items) keys.add(key);
     return keys;
-  }
-
-  static deserialize(reader: CBORReader, path: string[]): PlutusMap {
-    let ret = new PlutusMap([]);
-    reader.readMap(
-      (reader, idx) =>
-        ret.insertInner(
-          PlutusData.deserialize(reader, [...path, "PlutusData#" + idx]),
-          PlutusData.deserialize(reader, [...path, "PlutusData#" + idx]),
-        ),
-      path,
-    );
-    return ret;
-  }
-
-  serialize(writer: CBORWriter): void {
-    writer.writeMap(this._items, (writer, x) => {
-      x[0].serialize(writer);
-      x[1].serialize(writer);
-    });
   }
 
   // no-op
@@ -10456,36 +10436,45 @@ export class PlutusMap {
     return PlutusMap.from_bytes(this.to_bytes(), path);
   }
 
-  get(key: PlutusData): PlutusMapValues | undefined {
-    let v: PlutusData | undefined = this.getInner(key);
-    if (v) {
-      let vs = new PlutusMapValues([v]);
-      return vs;
-    } else {
-      return undefined;
+  serialize(writer: CBORWriter): void {
+    let items = [];
+    for (let [key, values] of this._items) {
+      for (let value of values._items) {
+        items.push([key, value]);
+      }
     }
+    writer.writeMap(items, (writer, x) => {
+      let [key, value] = x;
+      key.serialize(writer);
+      value.serialize(writer);
+    });
   }
 
-  insert(
-    key: PlutusData,
-    values: PlutusMapValues,
-  ): PlutusMapValues | undefined {
-    let v: PlutusData = values.get(values.len() - 1);
-    let ret: PlutusData | undefined = this.insertInner(key, v);
-    if (ret) {
-      return new PlutusMapValues([ret]);
-    } else {
-      return undefined;
-    }
+  static deserialize(reader: CBORReader, path: string[]): PlutusMap {
+    let ret = new PlutusMap([]);
+    reader.readMap((reader, idx) => {
+      let key = PlutusData.deserialize(reader, [...path, "PlutusData#" + idx]);
+      let val = PlutusData.deserialize(reader, [...path, "PlutusData#" + idx]);
+
+      let vals = ret.get(key);
+      if (vals == null) {
+        vals = PlutusMapValues.new();
+        vals.add(val);
+        ret.insert(key, vals);
+      } else {
+        vals.add(val);
+      }
+    }, path);
+    return ret;
   }
 }
 
 export class PlutusMapValues {
-  private items: PlutusData[];
+  _items: PlutusData[];
   private definiteEncoding: boolean;
 
   constructor(items: PlutusData[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -10494,16 +10483,16 @@ export class PlutusMapValues {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): PlutusData {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: PlutusData): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): PlutusMapValues {
@@ -10516,7 +10505,7 @@ export class PlutusMapValues {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -13489,11 +13478,11 @@ export class Redeemers {
 }
 
 export class RedeemersArray {
-  private items: RedeemersArrayItem[];
+  _items: RedeemersArrayItem[];
   private definiteEncoding: boolean;
 
   constructor(items: RedeemersArrayItem[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -13502,16 +13491,16 @@ export class RedeemersArray {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): RedeemersArrayItem {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: RedeemersArrayItem): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): RedeemersArray {
@@ -13525,7 +13514,7 @@ export class RedeemersArray {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -13787,11 +13776,11 @@ export class RedeemersKey {
 }
 
 export class RedeemersKeys {
-  private items: RedeemersKey[];
+  _items: RedeemersKey[];
   private definiteEncoding: boolean;
 
   constructor(items: RedeemersKey[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -13800,16 +13789,16 @@ export class RedeemersKeys {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): RedeemersKey {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: RedeemersKey): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): RedeemersKeys {
@@ -13823,7 +13812,7 @@ export class RedeemersKeys {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -14282,11 +14271,11 @@ export class Relay {
 }
 
 export class Relays {
-  private items: Relay[];
+  _items: Relay[];
   private definiteEncoding: boolean;
 
   constructor(items: Relay[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -14295,16 +14284,16 @@ export class Relays {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): Relay {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: Relay): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): Relays {
@@ -14317,7 +14306,7 @@ export class Relays {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -14351,11 +14340,11 @@ export class Relays {
 }
 
 export class RewardAddresses {
-  private items: RewardAddress[];
+  _items: RewardAddress[];
   private definiteEncoding: boolean;
 
   constructor(items: RewardAddress[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -14364,16 +14353,16 @@ export class RewardAddresses {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): RewardAddress {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: RewardAddress): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): RewardAddresses {
@@ -14387,7 +14376,7 @@ export class RewardAddresses {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -14697,11 +14686,11 @@ export class ScriptHash {
 }
 
 export class ScriptHashes {
-  private items: ScriptHash[];
+  _items: ScriptHash[];
   private definiteEncoding: boolean;
 
   constructor(items: ScriptHash[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -14710,16 +14699,16 @@ export class ScriptHashes {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): ScriptHash {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: ScriptHash): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): ScriptHashes {
@@ -14732,7 +14721,7 @@ export class ScriptHashes {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -16223,11 +16212,11 @@ export class Transaction {
 }
 
 export class TransactionBodies {
-  private items: TransactionBody[];
+  _items: TransactionBody[];
   private definiteEncoding: boolean;
 
   constructor(items: TransactionBody[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -16236,16 +16225,16 @@ export class TransactionBodies {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): TransactionBody {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: TransactionBody): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): TransactionBodies {
@@ -16259,7 +16248,7 @@ export class TransactionBodies {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -17385,11 +17374,11 @@ export class TransactionMetadatum {
 }
 
 export class TransactionMetadatumLabels {
-  private items: BigNum[];
+  _items: BigNum[];
   private definiteEncoding: boolean;
 
   constructor(items: BigNum[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -17398,16 +17387,16 @@ export class TransactionMetadatumLabels {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): BigNum {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: BigNum): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(
@@ -17423,7 +17412,7 @@ export class TransactionMetadatumLabels {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -17714,11 +17703,11 @@ export class TransactionOutput {
 }
 
 export class TransactionOutputs {
-  private items: TransactionOutput[];
+  _items: TransactionOutput[];
   private definiteEncoding: boolean;
 
   constructor(items: TransactionOutput[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -17727,16 +17716,16 @@ export class TransactionOutputs {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): TransactionOutput {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: TransactionOutput): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): TransactionOutputs {
@@ -17750,7 +17739,7 @@ export class TransactionOutputs {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -17885,14 +17874,14 @@ export class TransactionUnspentOutput {
 }
 
 export class TransactionUnspentOutputs {
-  private items: TransactionUnspentOutput[];
+  _items: TransactionUnspentOutput[];
   private definiteEncoding: boolean;
 
   constructor(
     items: TransactionUnspentOutput[],
     definiteEncoding: boolean = true,
   ) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -17901,16 +17890,16 @@ export class TransactionUnspentOutputs {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): TransactionUnspentOutput {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: TransactionUnspentOutput): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(
@@ -17927,7 +17916,7 @@ export class TransactionUnspentOutputs {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -18246,14 +18235,14 @@ export class TransactionWitnessSet {
 }
 
 export class TransactionWitnessSets {
-  private items: TransactionWitnessSet[];
+  _items: TransactionWitnessSet[];
   private definiteEncoding: boolean;
 
   constructor(
     items: TransactionWitnessSet[],
     definiteEncoding: boolean = true,
   ) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -18262,16 +18251,16 @@ export class TransactionWitnessSets {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): TransactionWitnessSet {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: TransactionWitnessSet): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(
@@ -18288,7 +18277,7 @@ export class TransactionWitnessSets {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -19457,11 +19446,11 @@ export class Vkey {
 }
 
 export class Vkeys {
-  private items: Vkey[];
+  _items: Vkey[];
   private definiteEncoding: boolean;
 
   constructor(items: Vkey[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -19470,16 +19459,16 @@ export class Vkeys {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): Vkey {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: Vkey): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): Vkeys {
@@ -19492,7 +19481,7 @@ export class Vkeys {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
@@ -20206,11 +20195,11 @@ export class Voter {
 }
 
 export class Voters {
-  private items: Voter[];
+  _items: Voter[];
   private definiteEncoding: boolean;
 
   constructor(items: Voter[], definiteEncoding: boolean = true) {
-    this.items = items;
+    this._items = items;
     this.definiteEncoding = definiteEncoding;
   }
 
@@ -20219,16 +20208,16 @@ export class Voters {
   }
 
   len(): number {
-    return this.items.length;
+    return this._items.length;
   }
 
   get(index: number): Voter {
-    if (index >= this.items.length) throw new Error("Array out of bounds");
-    return this.items[index];
+    if (index >= this._items.length) throw new Error("Array out of bounds");
+    return this._items[index];
   }
 
   add(elem: Voter): void {
-    this.items.push(elem);
+    this._items.push(elem);
   }
 
   static deserialize(reader: CBORReader, path: string[]): Voters {
@@ -20241,7 +20230,7 @@ export class Voters {
 
   serialize(writer: CBORWriter): void {
     writer.writeArray(
-      this.items,
+      this._items,
       (writer, x) => x.serialize(writer),
       this.definiteEncoding,
     );
