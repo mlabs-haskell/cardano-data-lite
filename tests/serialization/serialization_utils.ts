@@ -8,11 +8,11 @@ import { exit } from "node:process";
 
 // Whether to log extraction messages or not
 const traceExtraction = false;
-const extractLog = traceExtraction ? (...args : any) => console.log(...args) : () => { ; };
+const extractLog = traceExtraction ? (...args: any) => console.log(...args) : () => { ; };
 
 // Load ignored types and field names
 const classInfo: ClassInfoFile = JSON.parse(fs.readFileSync("tests/class-info.json", "utf-8"));
-const unsupportedTypes  = new Set(classInfo.extraction_unsupported_types);
+const unsupportedTypes = new Set(classInfo.extraction_unsupported_types);
 const unsupportedFields = new Set(classInfo.extraction_unsupported_fields);
 // Load list of bad variants we don't want to test for serialization
 const unsupportedVariants = new Set(classInfo.serialization_bad_variants);
@@ -31,8 +31,8 @@ export function retrieveTxsFromDir(path: string): Array<TransactionInfo> {
       console.log(`(retrieveTxsFromDir) Failed to parse filename: ${file}`);
       exit(-1);
     } else {
-      const cbor = fs.readFileSync(`${path}/${file}`, { encoding: "utf-8"}).trim();
-      tinfos.push({"hash": match.groups["hash"], "cbor": cbor})
+      const cbor = fs.readFileSync(`${path}/${file}`, { encoding: "utf-8" }).trim();
+      tinfos.push({ "hash": match.groups["hash"], "cbor": cbor })
     }
   }
   return tinfos;
@@ -75,8 +75,8 @@ export function writeChildErrorReport(reportFile: number, params: RoundtripTestP
 
 // might throw exceptions!
 export function roundtrip(someClass: any, cbor: Uint8Array): Uint8Array {
-    let deserialized = someClass.from_bytes(cbor);
-    return deserialized.to_bytes();
+  let deserialized = someClass.from_bytes(cbor);
+  return deserialized.to_bytes();
 }
 
 function depthFirstTraversal(c: Component, acc: Array<Component>): void {
@@ -95,7 +95,7 @@ function explodeTx(tx: csl.Transaction): Component {
   let schema: Schema = Value.Parse(Schema, value);
   let children: Array<Component> = [];
   explodeValue(key, tx, schema, schemata, children, "tx")
-  
+
   return { type: key, key: "tx", path: "tx", cbor: tx.to_bytes(), children: children, failed: false };
 }
 
@@ -106,7 +106,7 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
     case "record": // intended fall-through: this should work for records and record fragments
     case "record_fragment":
       for (const field of schema.fields) {
-        const {sub: fieldValue, subPath: newComponentPath } = getField(value, field.name, field.type, field.nullable, componentPath);
+        const { sub: fieldValue, subPath: newComponentPath } = getField(value, field.name, field.type, field.nullable, componentPath);
         if (fieldValue && schemata[field.type]) {
           extractLog(`Field name: ${field.name}\nField type: ${field.type}\nPath: ${newComponentPath}`);
           let grandchildren = [];
@@ -120,12 +120,12 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
     case "record_fragment_wrapper": {
       const wrappedName = schema.item.name;
       const wrappedType = schema.item.type;
-      const {sub: wrappedValue, subPath: newComponentPath } = getWrapped(value, wrappedName, wrappedType, componentPath);
+      const { sub: wrappedValue, subPath: newComponentPath } = getWrapped(value, wrappedName, wrappedType, componentPath);
       if (wrappedValue && schemata[wrappedType]) {
         extractLog(`Wrapped value (record fragment): ${wrappedName}\nWrapped type: ${wrappedType}`);
         let grandchildren = [];
         explodeValue(wrappedName, wrappedValue, schemata[wrappedType], schemata[wrappedType], grandchildren, newComponentPath)
-        children.push({ type: wrappedType, key: key, path: newComponentPath, children: grandchildren, cbor: wrappedValue.to_bytes(), failed: false});
+        children.push({ type: wrappedType, key: key, path: newComponentPath, children: grandchildren, cbor: wrappedValue.to_bytes(), failed: false });
       }
       break;
     }
@@ -141,7 +141,7 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
           extractLog(`Field name: ${field.name}\nField type: ${field.type}\nPath: ${newComponentPath}`);
           let grandchildren = [];
           explodeValue(field.name, fieldValue, schemata[field.type], schemata, grandchildren, newComponentPath)
-          children.push({ type: field.type, key: key, path: newComponentPath, children: grandchildren, cbor: fieldValue.to_bytes(), failed: false});
+          children.push({ type: field.type, key: key, path: newComponentPath, children: grandchildren, cbor: fieldValue.to_bytes(), failed: false });
         }
       }
       break;
@@ -151,7 +151,7 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
       let variant = schema.variants.find((v) => v.tag == tag)
       extractLog("variant", variant);
       if (variant && variant.value && schemata[variant.value]) {
-        const { sub: taggedValue, subPath: newComponentPath} = getTagged(value, variant.name, variant.value, componentPath);
+        const { sub: taggedValue, subPath: newComponentPath } = getTagged(value, variant.name, variant.value, componentPath);
         if (taggedValue) {
           extractLog(`Variant name: ${variant.name}\nVariant type: ${variant.value}`);
           let grandchildren = [];
@@ -163,45 +163,45 @@ function explodeValue(key: string, value: any, schema: Schema, schemata: any, ch
         }
       }
       break;
-      }
+    }
     case "map": // for maps we extract both the keys and the values
       for (let index = 0; index < value.keys().len(); index++) {
-        const {sub: keyValue, subPath: keyPath} = getElem(value.keys(), index, `${key}.keys().get(${index})`, schema.key, componentPath);
+        const { sub: keyValue, subPath: keyPath } = getElem(value.keys(), index, `${key}.keys().get(${index})`, schema.key, componentPath);
         if (keyValue && schemata[schema.key]) {
           extractLog(`Key index: ${index}\nKey type: ${schema.key}\nKey path: ${keyPath}`);
           let grandchildren = [];
           explodeValue(`${key}.keys().get(${index})`, keyValue, schemata[schema.key], schemata, grandchildren, keyPath)
-          children.push({ type: schema.key, key: key, path: keyPath, children: grandchildren, cbor: keyValue.to_bytes(), failed: false});
+          children.push({ type: schema.key, key: key, path: keyPath, children: grandchildren, cbor: keyValue.to_bytes(), failed: false });
         }
-        const {sub: entryValue, subPath: valuePath} = getEntry(value, keyValue, `${key}.get(Key#${index})`, schema.value, index, componentPath);
+        const { sub: entryValue, subPath: valuePath } = getEntry(value, keyValue, `${key}.get(Key#${index})`, schema.value, index, componentPath);
         if (entryValue && schemata[schema.value]) {
           extractLog(`Value type: ${schema.value}\nValue path: ${valuePath}`);
           let grandchildren = [];
           explodeValue(`${key}.get(Key#${index})`, entryValue, schemata[schema.value], schemata, grandchildren, valuePath)
-          children.push({ type: schema.value, key: key, path: valuePath, children: grandchildren, cbor: entryValue.to_bytes(), failed: false});
+          children.push({ type: schema.value, key: key, path: valuePath, children: grandchildren, cbor: entryValue.to_bytes(), failed: false });
         }
       }
       break;
     case "set":
       for (let index = 0; index < value.len(); index++) {
-        const {sub: elemValue, subPath: newComponentPath} = getElem(value, index, `${key}[${index}]`, schema.item, componentPath);        
+        const { sub: elemValue, subPath: newComponentPath } = getElem(value, index, `${key}[${index}]`, schema.item, componentPath);
         if (elemValue && schemata[schema.item]) {
           extractLog(`Elem index: ${index}\nElem type: ${schema.item}\nPath: ${newComponentPath}`);
           let grandchildren = [];
           explodeValue(`${key}[${index}]`, elemValue, schemata[schema.item], schemata, grandchildren, newComponentPath)
-          children.push({ type: schema.item, key: key, path: newComponentPath, children: grandchildren, cbor: elemValue.to_bytes(), failed: false});
+          children.push({ type: schema.item, key: key, path: newComponentPath, children: grandchildren, cbor: elemValue.to_bytes(), failed: false });
         }
       }
       break;
     case "array":
       if (schema.item) {
         for (let index = 0; index < value.len(); index++) {
-          const {sub: elemValue, subPath: newComponentPath } = getElem(value, index, `${key}[${index}]`, schema.item, componentPath);
+          const { sub: elemValue, subPath: newComponentPath } = getElem(value, index, `${key}[${index}]`, schema.item, componentPath);
           if (elemValue && schemata[schema.item]) {
             extractLog(`Elem index: ${index}\nElem type: ${schema.item}\nPath: ${newComponentPath}`);
             let grandchildren = [];
             explodeValue(`${key}[${index}]`, elemValue, schemata[schema.item], schemata, grandchildren, newComponentPath)
-            children.push({ type: schema.item, key: key, path: newComponentPath, children: grandchildren, cbor: elemValue.to_bytes(), failed: false});
+            children.push({ type: schema.item, key: key, path: newComponentPath, children: grandchildren, cbor: elemValue.to_bytes(), failed: false });
           }
         }
       }
@@ -229,12 +229,12 @@ function getField(value: any, fieldName: string, fieldType: string, optional: bo
   if (unsupportedTypes.has(fieldType) || unsupportedFields.has(fieldName)) {
     return { sub: undefined, subPath: subPath };
   }
-  return {sub: value[fieldName](), subPath: subPath };
+  return { sub: value[fieldName](), subPath: subPath };
 }
 
 // Get wrappped value out of record_fragment_wrapper
 function getWrapped(value: any, wrappedName: string, wrappedType: string, path: string): AccessSubComponent {
-  extractLog("getWrapped: ", wrappedName)  ;
+  extractLog("getWrapped: ", wrappedName);
   const subPath = `${path}/${wrappedName}]`
   if (unsupportedTypes.has(wrappedType)) {
     return { sub: undefined, subPath: subPath };
@@ -259,7 +259,7 @@ function getElem(value: any, index: number, elemName: string, elemType: string, 
   if (unsupportedTypes.has(elemType)) {
     return { sub: undefined, subPath: subPath };
   }
-  return {sub: value.get(index), subPath: subPath };
+  return { sub: value.get(index), subPath: subPath };
 }
 
 // Get value out of a tagged_record
@@ -270,5 +270,5 @@ function getTagged(value: any, variantName: string, variantType: string, path: s
   if (unsupportedTypes.has(variantType) || unsupportedFields.has(variantName)) {
     return { sub: undefined, subPath: subPath };
   }
-  return {sub: value[accessor](), subPath: subPath };
+  return { sub: value[accessor](), subPath: subPath };
 }
