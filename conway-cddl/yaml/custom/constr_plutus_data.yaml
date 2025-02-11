@@ -15,16 +15,16 @@ ConstrPlutusData:
       if (tag >= 121 && tag <= 127) {
         tag = tag - 121;
         return ConstrPlutusData.new(
-          BigNum.new(tag),
+          BigNum.new(BigInt(tag)),
           PlutusList.deserialize(reader, [...path, "PlutusList(data)"]),
         );
       } else if (tag >= 1280 && tag <= 1400) {
         tag = tag - 1280 + 7; 
         return ConstrPlutusData.new(
-          BigNum.new(tag),
+          BigNum.new(BigInt(tag)),
           PlutusList.deserialize(reader, [...path, "PlutusList(data)"]),
         );
-      } else if (Number(tag) == 102) {
+      } else if (tag == 102) {
         return ConstrPlutusData.deserializeWithSeparateIdx(reader, path);
       } else {
         throw new Error(
