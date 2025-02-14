@@ -46,7 +46,7 @@ export declare class AssetName {
     clone(path: string[]): AssetName;
 }
 export declare class AssetNames {
-    private items;
+    _items: AssetName[];
     private definiteEncoding;
     constructor(items: AssetName[], definiteEncoding?: boolean);
     static new(): AssetNames;
@@ -118,6 +118,16 @@ export declare class AuxiliaryData {
     to_hex(): string;
     clone(path: string[]): AuxiliaryData;
     static new(): AuxiliaryData;
+    metadata(): GeneralTransactionMetadata | undefined;
+    set_metadata(metadata: GeneralTransactionMetadata): void;
+    native_scripts(): NativeScripts | undefined;
+    set_native_scripts(native_scripts: NativeScripts): void;
+    plutus_scripts_v1(): PlutusScripts | undefined;
+    set_plutus_scripts_v1(plutus_scripts_v1: PlutusScripts): void;
+    plutus_scripts_v2(): PlutusScripts | undefined;
+    set_plutus_scripts_v2(plutus_scripts_v2: PlutusScripts): void;
+    plutus_scripts_v3(): PlutusScripts | undefined;
+    set_plutus_scripts_v3(plutus_scripts_v3: PlutusScripts): void;
 }
 export declare class AuxiliaryDataHash {
     private inner;
@@ -215,6 +225,8 @@ export declare class BigNum {
     static _maxU64(): bigint;
     static from_str(string: string): BigNum;
     to_str(): string;
+    to_json(): String;
+    toJSON(): String;
     static zero(): BigNum;
     static one(): BigNum;
     is_zero(): boolean;
@@ -374,6 +386,8 @@ export declare class CSLBigInt {
     clone(path: string[]): CSLBigInt;
     static from_str(string: string): CSLBigInt;
     to_str(): string;
+    to_json(): String;
+    toJSON(): String;
     static zero(): CSLBigInt;
     static one(): CSLBigInt;
     is_zero(): boolean;
@@ -581,6 +595,7 @@ export declare class CommitteeColdResign {
     to_hex(): string;
     clone(path: string[]): CommitteeColdResign;
     static new(committee_cold_credential: Credential): CommitteeColdResign;
+    static new_with_anchor(committee_cold_credential: Credential, anchor: Anchor): CommitteeColdResign;
 }
 export declare class CommitteeEpochs {
     _items: [Credential, number][];
@@ -634,6 +649,7 @@ export declare class Constitution {
     to_hex(): string;
     clone(path: string[]): Constitution;
     static new(anchor: Anchor): Constitution;
+    static new_with_script_hash(anchor: Anchor, scripthash: ScriptHash | undefined): Constitution;
 }
 export declare class ConstrPlutusData {
     private _alternative;
@@ -657,7 +673,7 @@ export declare class ConstrPlutusData {
     static new(alternative: BigNum, data: PlutusList): ConstrPlutusData;
 }
 export declare class CostModel {
-    private items;
+    _items: Int[];
     private definiteEncoding;
     constructor(items: Int[], definiteEncoding?: boolean);
     static new(): CostModel;
@@ -692,6 +708,7 @@ export declare class Costmdls {
     to_hex(): string;
     clone(path: string[]): Costmdls;
     retain_language_versions(languages: Languages): Costmdls;
+    language_views_encoding(): Uint8Array;
 }
 export declare class Credentials {
     private items;
@@ -815,6 +832,7 @@ export declare class DRepRegistration {
     to_hex(): string;
     clone(path: string[]): DRepRegistration;
     static new(voting_credential: Credential, coin: BigNum): DRepRegistration;
+    static new_with_anchor(voting_credential: Credential, coin: BigNum, anchor: Anchor): DRepRegistration;
 }
 export declare class DRepUpdate {
     private _drep_credential;
@@ -833,6 +851,7 @@ export declare class DRepUpdate {
     to_hex(): string;
     clone(path: string[]): DRepUpdate;
     static new(drep_credential: Credential): DRepUpdate;
+    static new_with_anchor(drep_credential: Credential, anchor: Anchor): DRepUpdate;
 }
 export declare class DRepVotingThresholds {
     private _motion_no_confidence;
@@ -906,6 +925,7 @@ export declare class DataCost {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): DataCost;
+    static new_coins_per_byte(coins_per_byte: BigNum): DataCost;
 }
 export declare class DataHash {
     private inner;
@@ -1028,7 +1048,7 @@ export declare class Ed25519Signature {
     serialize(writer: CBORWriter): void;
     static _BECH32_HRP: string;
     static from_bech32(bech_str: string): Ed25519Signature;
-    to_bech32(): void;
+    to_bech32(): string;
 }
 export declare class ExUnitPrices {
     private _mem_price;
@@ -1115,7 +1135,7 @@ export declare class GenesisHash {
     serialize(writer: CBORWriter): void;
 }
 export declare class GenesisHashes {
-    private items;
+    _items: GenesisHash[];
     private definiteEncoding;
     constructor(items: GenesisHash[], definiteEncoding?: boolean);
     static new(): GenesisHashes;
@@ -1208,7 +1228,7 @@ export declare class GovernanceActionId {
     clone(path: string[]): GovernanceActionId;
 }
 export declare class GovernanceActionIds {
-    private items;
+    _items: GovernanceActionId[];
     private definiteEncoding;
     constructor(items: GovernanceActionId[], definiteEncoding?: boolean);
     static new(): GovernanceActionIds;
@@ -1362,7 +1382,7 @@ export declare class Int {
     as_i32_or_fail(): number;
 }
 export declare class InvalidTransactions {
-    private items;
+    _items: Uint32Array;
     private definiteEncoding;
     constructor(items: Uint32Array, definiteEncoding?: boolean);
     static new(): InvalidTransactions;
@@ -1456,7 +1476,7 @@ export declare class Language {
     clone(path: string[]): Language;
 }
 export declare class Languages {
-    private items;
+    _items: Language[];
     private definiteEncoding;
     constructor(items: Language[], definiteEncoding?: boolean);
     static new(): Languages;
@@ -1474,7 +1494,7 @@ export declare class Languages {
     static list(): Languages;
 }
 export declare class MetadataList {
-    private items;
+    _items: TransactionMetadatum[];
     private definiteEncoding;
     constructor(items: TransactionMetadatum[], definiteEncoding?: boolean);
     static new(): MetadataList;
@@ -1554,7 +1574,7 @@ export declare class MintAssets {
     clone(path: string[]): MintAssets;
 }
 export declare class MintsAssets {
-    private items;
+    _items: MintAssets[];
     private definiteEncoding;
     constructor(items: MintAssets[], definiteEncoding?: boolean);
     static new(): MintsAssets;
@@ -1661,6 +1681,7 @@ export declare class NativeScript {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): NativeScript;
+    hash(): ScriptHash;
 }
 export declare class NativeScriptRefInput {
     private _script_hash;
@@ -1736,8 +1757,8 @@ export declare class NativeScripts {
     clone(path: string[]): NativeScripts;
 }
 export declare enum NetworkIdKind {
-    mainnet = 0,
-    testnet = 1
+    mainnet = 1,
+    testnet = 0
 }
 export declare class NetworkId {
     private kind_;
@@ -1933,7 +1954,7 @@ export declare class PlutusData {
     static from_address(address: Address): PlutusData;
 }
 export declare class PlutusList {
-    private items;
+    _items: PlutusData[];
     private definiteEncoding;
     constructor(items: PlutusData[], definiteEncoding?: boolean);
     static new(): PlutusList;
@@ -1941,7 +1962,6 @@ export declare class PlutusList {
     get(index: number): PlutusData;
     add(elem: PlutusData): void;
     static deserialize(reader: CBORReader, path: string[]): PlutusList;
-    serialize(writer: CBORWriter): void;
     free(): void;
     static from_bytes(data: Uint8Array, path?: string[]): PlutusList;
     static from_hex(hex_str: string, path?: string[]): PlutusList;
@@ -1949,29 +1969,28 @@ export declare class PlutusList {
     to_hex(): string;
     clone(path: string[]): PlutusList;
     as_set(): PlutusSet;
+    serialize(writer: CBORWriter): void;
 }
 export declare class PlutusMap {
-    _items: [PlutusData, PlutusData][];
-    constructor(items: [PlutusData, PlutusData][]);
+    _items: [PlutusData, PlutusMapValues][];
+    constructor(items: [PlutusData, PlutusMapValues][]);
     static new(): PlutusMap;
     len(): number;
-    insertInner(key: PlutusData, value: PlutusData): PlutusData | undefined;
-    getInner(key: PlutusData): PlutusData | undefined;
+    insert(key: PlutusData, value: PlutusMapValues): PlutusMapValues | undefined;
+    get(key: PlutusData): PlutusMapValues | undefined;
     _remove_many(keys: PlutusData[]): void;
     keys(): PlutusList;
-    static deserialize(reader: CBORReader, path: string[]): PlutusMap;
-    serialize(writer: CBORWriter): void;
     free(): void;
     static from_bytes(data: Uint8Array, path?: string[]): PlutusMap;
     static from_hex(hex_str: string, path?: string[]): PlutusMap;
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): PlutusMap;
-    get(key: PlutusData): PlutusMapValues | undefined;
-    insert(key: PlutusData, values: PlutusMapValues): PlutusMapValues | undefined;
+    serialize(writer: CBORWriter): void;
+    static deserialize(reader: CBORReader, path: string[]): PlutusMap;
 }
 export declare class PlutusMapValues {
-    private items;
+    _items: PlutusData[];
     private definiteEncoding;
     constructor(items: PlutusData[], definiteEncoding?: boolean);
     static new(): PlutusMapValues;
@@ -2238,7 +2257,7 @@ export declare class PrivateKey {
     free(): void;
     static from_normal_bytes(bytes: Uint8Array): PrivateKey;
     static from_extended_bytes(bytes: Uint8Array): PrivateKey;
-    to_bech32(): void;
+    to_bech32(): string;
     static from_bech32(bech_str: string): PrivateKey;
     static generate_ed25519(): PrivateKey;
     static generate_ed25519extended(): PrivateKey;
@@ -2401,7 +2420,7 @@ export declare class PublicKey {
     hash(): Ed25519KeyHash;
     verify(data: Uint8Array, signature: Ed25519Signature): boolean;
     static from_bech32(bech_str: string): PublicKey;
-    to_bech32(): void;
+    to_bech32(): string;
 }
 export declare class Redeemer {
     private inner;
@@ -2416,6 +2435,10 @@ export declare class Redeemer {
     to_hex(): string;
     clone(path: string[]): Redeemer;
     static new(tag: RedeemerTag, index: BigNum, data: PlutusData, ex_units: ExUnits): Redeemer;
+    tag(): RedeemerTag;
+    index(): BigNum;
+    data(): PlutusData;
+    ex_units(): ExUnits;
 }
 export declare enum RedeemerTagKind {
     spending = 0,
@@ -2478,7 +2501,7 @@ export declare class Redeemers {
     get(index: number): Redeemer;
 }
 export declare class RedeemersArray {
-    private items;
+    _items: RedeemersArrayItem[];
     private definiteEncoding;
     constructor(items: RedeemersArrayItem[], definiteEncoding?: boolean);
     static new(): RedeemersArray;
@@ -2537,7 +2560,7 @@ export declare class RedeemersKey {
     clone(path: string[]): RedeemersKey;
 }
 export declare class RedeemersKeys {
-    private items;
+    _items: RedeemersKey[];
     private definiteEncoding;
     constructor(items: RedeemersKey[], definiteEncoding?: boolean);
     static new(): RedeemersKeys;
@@ -2642,7 +2665,7 @@ export declare class Relay {
     clone(path: string[]): Relay;
 }
 export declare class Relays {
-    private items;
+    _items: Relay[];
     private definiteEncoding;
     constructor(items: Relay[], definiteEncoding?: boolean);
     static new(): Relays;
@@ -2659,7 +2682,7 @@ export declare class Relays {
     clone(path: string[]): Relays;
 }
 export declare class RewardAddresses {
-    private items;
+    _items: RewardAddress[];
     private definiteEncoding;
     constructor(items: RewardAddress[], definiteEncoding?: boolean);
     static new(): RewardAddresses;
@@ -2682,13 +2705,13 @@ export declare class ScriptAll {
     native_scripts(): NativeScripts;
     set_native_scripts(native_scripts: NativeScripts): void;
     static deserialize(reader: CBORReader, path: string[]): ScriptAll;
-    serialize(writer: CBORWriter): void;
     free(): void;
     static from_bytes(data: Uint8Array, path?: string[]): ScriptAll;
     static from_hex(hex_str: string, path?: string[]): ScriptAll;
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): ScriptAll;
+    serialize(writer: CBORWriter): void;
 }
 export declare class ScriptAny {
     private _native_scripts;
@@ -2697,13 +2720,13 @@ export declare class ScriptAny {
     native_scripts(): NativeScripts;
     set_native_scripts(native_scripts: NativeScripts): void;
     static deserialize(reader: CBORReader, path: string[]): ScriptAny;
-    serialize(writer: CBORWriter): void;
     free(): void;
     static from_bytes(data: Uint8Array, path?: string[]): ScriptAny;
     static from_hex(hex_str: string, path?: string[]): ScriptAny;
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): ScriptAny;
+    serialize(writer: CBORWriter): void;
 }
 export declare class ScriptDataHash {
     private inner;
@@ -2736,7 +2759,7 @@ export declare class ScriptHash {
     serialize(writer: CBORWriter): void;
 }
 export declare class ScriptHashes {
-    private items;
+    _items: ScriptHash[];
     private definiteEncoding;
     constructor(items: ScriptHash[], definiteEncoding?: boolean);
     static new(): ScriptHashes;
@@ -2762,13 +2785,13 @@ export declare class ScriptNOfK {
     native_scripts(): NativeScripts;
     set_native_scripts(native_scripts: NativeScripts): void;
     static deserialize(reader: CBORReader, path: string[]): ScriptNOfK;
-    serialize(writer: CBORWriter): void;
     free(): void;
     static from_bytes(data: Uint8Array, path?: string[]): ScriptNOfK;
     static from_hex(hex_str: string, path?: string[]): ScriptNOfK;
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): ScriptNOfK;
+    serialize(writer: CBORWriter): void;
 }
 export declare class ScriptPubkey {
     private inner;
@@ -3051,9 +3074,10 @@ export declare class Transaction {
     to_hex(): string;
     clone(path: string[]): Transaction;
     static new(body: TransactionBody, witness_set: TransactionWitnessSet, auxiliary_data: AuxiliaryData): Transaction;
+    transaction_hash(): TransactionHash;
 }
 export declare class TransactionBodies {
-    private items;
+    _items: TransactionBody[];
     private definiteEncoding;
     constructor(items: TransactionBody[], definiteEncoding?: boolean);
     static new(): TransactionBodies;
@@ -3246,7 +3270,7 @@ export declare class TransactionMetadatum {
     clone(path: string[]): TransactionMetadatum;
 }
 export declare class TransactionMetadatumLabels {
-    private items;
+    _items: BigNum[];
     private definiteEncoding;
     constructor(items: BigNum[], definiteEncoding?: boolean);
     static new(): TransactionMetadatumLabels;
@@ -3290,9 +3314,19 @@ export declare class TransactionOutput {
     to_hex(): string;
     clone(path: string[]): TransactionOutput;
     static new(address: Address, amount: Value): TransactionOutput;
+    address(): Address;
+    set_address(address: Address): void;
+    amount(): Value;
+    set_amount(amount: Value): void;
+    data_hash(): DataHash | undefined;
+    set_data_hash(data_hash: DataHash | undefined): void;
+    datum_option(): DataOption | undefined;
+    set_datum_option(datum_option: DataOption | undefined): void;
+    script_ref(): ScriptRef | undefined;
+    set_script_ref(script_ref: ScriptRef | undefined): void;
 }
 export declare class TransactionOutputs {
-    private items;
+    _items: TransactionOutput[];
     private definiteEncoding;
     constructor(items: TransactionOutput[], definiteEncoding?: boolean);
     static new(): TransactionOutputs;
@@ -3327,7 +3361,7 @@ export declare class TransactionUnspentOutput {
     clone(path: string[]): TransactionUnspentOutput;
 }
 export declare class TransactionUnspentOutputs {
-    private items;
+    _items: TransactionUnspentOutput[];
     private definiteEncoding;
     constructor(items: TransactionUnspentOutput[], definiteEncoding?: boolean);
     static new(): TransactionUnspentOutputs;
@@ -3382,7 +3416,7 @@ export declare class TransactionWitnessSet {
     set_plutus_data(plutus_data: PlutusList): void;
 }
 export declare class TransactionWitnessSets {
-    private items;
+    _items: TransactionWitnessSet[];
     private definiteEncoding;
     constructor(items: TransactionWitnessSet[], definiteEncoding?: boolean);
     static new(): TransactionWitnessSets;
@@ -3619,7 +3653,7 @@ export declare class Vkey {
     serialize(writer: CBORWriter): void;
 }
 export declare class Vkeys {
-    private items;
+    _items: Vkey[];
     private definiteEncoding;
     constructor(items: Vkey[], definiteEncoding?: boolean);
     static new(): Vkeys;
@@ -3772,7 +3806,7 @@ export declare class Voter {
     to_drep_credential(): Credential | undefined;
 }
 export declare class Voters {
-    private items;
+    _items: Voter[];
     private definiteEncoding;
     constructor(items: Voter[], definiteEncoding?: boolean);
     static new(): Voters;
@@ -3881,6 +3915,7 @@ export declare class Withdrawals {
     insert(key: RewardAddress, value: BigNum): BigNum | undefined;
     get(key: RewardAddress): BigNum | undefined;
     _remove_many(keys: RewardAddress[]): void;
+    keys(): RewardAddresses;
     static deserialize(reader: CBORReader, path: string[]): Withdrawals;
     serialize(writer: CBORWriter): void;
     free(): void;
@@ -3915,6 +3950,7 @@ export declare class BaseAddress {
     _payment: Credential;
     _stake: Credential;
     constructor(network: number, payment: Credential, stake: Credential);
+    static new(network: number, payment: Credential, stake: Credential): BaseAddress;
     payment_cred(): Credential;
     stake_cred(): Credential;
     to_address(): Address;
@@ -3928,6 +3964,7 @@ export declare class ByronAddress {
     _attributes: ByronAttributes;
     _address_type: ByronAddressType;
     constructor(address: Uint8Array, attributes: ByronAttributes, address_type: ByronAddressType);
+    static new(address: Uint8Array, attributes: ByronAttributes, address_type: ByronAddressType): ByronAddress;
     serializeInner(writer: CBORWriter): void;
     static deserializeInner(reader: CBORReader, path: string[]): ByronAddress;
     serialize(writer: CBORWriter): void;
@@ -4032,6 +4069,8 @@ export declare class Address {
     network_id(): number;
     to_bytes(): Uint8Array;
     static from_bytes(bytes: Uint8Array, path: string[]): Address;
+    to_bech32(prefix_str: string | undefined): string;
+    static from_bech32(bech_str: string): Address;
     serialize(writer: CBORWriter): void;
     static deserialize(reader: CBORReader, path: string[]): Address;
 }
@@ -4047,7 +4086,7 @@ export declare class NetworkInfo {
     _protocol_magic: number;
     constructor(network_id: number, protocol_magic: number);
     network_id(): number;
-    protcol_magic(): number;
+    protocol_magic(): number;
     static testnet_preview(): NetworkInfo;
     static testnet_preprod(): NetworkInfo;
     static mainnet(): NetworkInfo;
