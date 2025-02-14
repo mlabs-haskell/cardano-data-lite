@@ -10148,7 +10148,7 @@ export class PlutusData {
       case "bytes":
         variant = {
           kind: PlutusDataKind.Bytes,
-          value: reader.readBytes([...path, "bytes(bytes)"]),
+          value: reader.readBytes([...path, "bounded_bytes(bytes)"]),
         };
         break;
 
@@ -10214,7 +10214,7 @@ export class PlutusData {
         break;
 
       case 4:
-        writer.writeBytes(this.variant.value);
+        writer.writeBytesChunked(this.variant.value, 64);
         break;
     }
   }
