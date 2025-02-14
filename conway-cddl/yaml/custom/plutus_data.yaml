@@ -23,7 +23,7 @@ PlutusData:
       peek_type: bytes
       name: bytes
       kind_name: Bytes
-      type: bytes
+      type: bounded_bytes
 
   extra_methods: |
     static new_empty_constr_plutus_data(alternative: BigNum): PlutusData {

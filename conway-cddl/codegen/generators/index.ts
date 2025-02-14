@@ -266,6 +266,7 @@ export class TypeUtils {
       case "bigint":
         return yamlType;
       case "bytes":
+      case "bounded_bytes":
         return "Uint8Array";
       default:
         console.error("Unknown type: " + yamlType);
@@ -289,6 +290,7 @@ export class TypeUtils {
       case "boolean":
         return `${reader}.readBoolean(${path})`;
       case "bytes":
+      case "bounded_bytes":
         return `${reader}.readBytes(${path})`;
       default:
         console.error("Can't decode: " + type);
@@ -313,6 +315,8 @@ export class TypeUtils {
         return `${writer}.writeBoolean(${value})`;
       case "bytes":
         return `${writer}.writeBytes(${value})`;
+      case "bounded_bytes":
+        return `${writer}.writeBytesChunked(${value}, 64)`;
       default:
         console.error("Can't encode: " + type);
         return `$$CANT_WRITE("${type}")`;
