@@ -2356,6 +2356,9 @@ NetworkId:
       value: 1
     - name: testnet
       value: 0
+  methods:
+    new_mainnet: mainnet
+    new_testnet: testnet
 
 # epoch = uint
 
