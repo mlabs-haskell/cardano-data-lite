@@ -8,6 +8,7 @@ import * as cdlCrypto from "./lib/bip32-ed25519";
 import { Address, Credential, CredKind, RewardAddress } from "./address";
 import { webcrypto } from "crypto";
 import { blake2b } from "@noble/hashes/blake2b";
+export * from "./address";
 
 // Polyfill the global "crypto" object if it doesn't exist
 if (typeof globalThis.crypto === "undefined") {
@@ -9308,11 +9309,11 @@ export class NetworkId {
     this.kind_ = kind;
   }
 
-  static new_mainnet(): NetworkId {
+  static mainnet(): NetworkId {
     return new NetworkId(1);
   }
 
-  static new_testnet(): NetworkId {
+  static testnet(): NetworkId {
     return new NetworkId(0);
   }
   kind(): NetworkIdKind {
@@ -17582,16 +17583,8 @@ export class TransactionOutput {
   }
 
   static new(address: Address, amount: Value): TransactionOutput {
-    const post_alonzo_transaction_output = new PostAlonzoTransactionOutput(
-      address,
-      amount,
-      undefined,
-      undefined,
-    );
-    return new TransactionOutput({
-      kind: 1,
-      value: post_alonzo_transaction_output,
-    });
+    const inner = new PreBabbageTransactionOutput(address, amount, undefined);
+    return new TransactionOutput({ kind: 0, value: inner });
   }
 
   address(): Address {
