@@ -14,7 +14,7 @@ export class GenEnum extends CodeGeneratorBase {
   values: Value[];
 
   constructor(name: string, customTypes: SchemaTable, options: GenEnumOptions) {
-    super(name, customTypes, { genCSL: true });
+    super(name, customTypes, { genCSL: true, ...options });
     this.values = options.values;
   }
 
@@ -43,11 +43,14 @@ export class GenEnum extends CodeGeneratorBase {
   generateExtraMethods(): string {
     return (
       this.values
-        .map(
-          (x) => `
-        static new_${x.name}(): ${this.name} {
+        .map((x) =>
+          this.renameMethod(
+            `new_${x.name}`,
+            (fnName) => `
+        static ${fnName}(): ${this.name} {
           return new ${this.name}(${x.value});
-        }`,
+        }`
+          )
         )
         .join("\n") +
       `
@@ -63,7 +66,7 @@ export class GenEnum extends CodeGeneratorBase {
       let kind = Number(${reader}.readInt(${path}));
       ${this.values
         .map(
-          (x) => `if(kind == ${x.value}) return new ${this.name}(${x.value})`,
+          (x) => `if(kind == ${x.value}) return new ${this.name}(${x.value})`
         )
         .join("\n")}
         throw "Unrecognized enum value: " + kind + " for " + ${this.name} + "(at " + ${path}.join("/") + ")";
