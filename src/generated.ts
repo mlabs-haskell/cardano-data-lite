@@ -9309,11 +9309,11 @@ export class NetworkId {
     this.kind_ = kind;
   }
 
-  static mainnet(): NetworkId {
+  static new_mainnet(): NetworkId {
     return new NetworkId(1);
   }
 
-  static testnet(): NetworkId {
+  static new_testnet(): NetworkId {
     return new NetworkId(0);
   }
   kind(): NetworkIdKind {
@@ -9366,6 +9366,13 @@ export class NetworkId {
 
   clone(path: string[]): NetworkId {
     return NetworkId.from_bytes(this.to_bytes(), path);
+  }
+
+  static mainnet() {
+    return NetworkId.new_mainnet();
+  }
+  static testnet() {
+    return NetworkId.new_testnet();
   }
 }
 

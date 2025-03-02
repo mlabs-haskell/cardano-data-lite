@@ -2356,9 +2356,13 @@ NetworkId:
       value: 1
     - name: testnet
       value: 0
-  methods:
-    new_mainnet: mainnet
-    new_testnet: testnet
+  extra_methods: |
+    static mainnet() {
+      return NetworkId.new_mainnet();
+    }
+    static testnet() {
+      return NetworkId.new_testnet();
+    }
 
 # epoch = uint
 

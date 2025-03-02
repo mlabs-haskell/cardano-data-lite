@@ -1763,8 +1763,8 @@ export declare enum NetworkIdKind {
 export declare class NetworkId {
     private kind_;
     constructor(kind: NetworkIdKind);
-    static mainnet(): NetworkId;
-    static testnet(): NetworkId;
+    static new_mainnet(): NetworkId;
+    static new_testnet(): NetworkId;
     kind(): NetworkIdKind;
     static deserialize(reader: CBORReader, path: string[]): NetworkId;
     serialize(writer: CBORWriter): void;
@@ -1774,6 +1774,8 @@ export declare class NetworkId {
     to_bytes(): Uint8Array;
     to_hex(): string;
     clone(path: string[]): NetworkId;
+    static mainnet(): NetworkId;
+    static testnet(): NetworkId;
 }
 export declare class NewConstitutionAction {
     private _gov_action_id;
