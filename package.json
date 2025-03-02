@@ -1,6 +1,6 @@
 {
   "name": "@mlabs-haskell/cardano-data-lite",
-  "version": "0.1.0-prerelease6",
+  "version": "0.1.0-prerelease7",
   "description": "Lightweight implementation of Cardano domain type serialization, compatible with cardano-serialization-lib",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
