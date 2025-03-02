@@ -730,8 +730,8 @@ TransactionOutput:
     new: null
   extra_methods: |
     static new(address: Address, amount: Value): TransactionOutput {
-      const post_alonzo_transaction_output = new PostAlonzoTransactionOutput(address, amount, undefined, undefined);
-      return new TransactionOutput({kind: 1, value: post_alonzo_transaction_output});
+      const inner = new PreBabbageTransactionOutput(address, amount, undefined);
+      return new TransactionOutput({kind: 0, value: inner});
     }
 
     address(): Address {
