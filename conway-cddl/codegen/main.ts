@@ -35,7 +35,10 @@ async function main() {
 
   let yamlDir = path.join(curDir, "..", "yaml");
 
-  let files = [path.join(yamlDir, "conway.yaml"), path.join(yamlDir, "utils.yaml")];
+  let files = [
+    path.join(yamlDir, "conway.yaml"),
+    path.join(yamlDir, "utils.yaml"),
+  ];
 
   let customDir = path.join(yamlDir, "custom");
 
@@ -79,6 +82,8 @@ async function main() {
     import {Address, Credential, CredKind, RewardAddress} from "./address";
     import {webcrypto} from "crypto";
     import { blake2b } from "@noble/hashes/blake2b";
+    export * from "./address";
+
 
     // Polyfill the global "crypto" object if it doesn't exist
     if (typeof globalThis.crypto === 'undefined') {
