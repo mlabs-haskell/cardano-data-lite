@@ -866,7 +866,6 @@ PreBabbageTransactionOutput:
       type: DataHash
       optional: true
 
-
 # script_data_hash = $hash32
 # ; This is a hash of data which may affect evaluation of a script.
 # ; This data consists of:
@@ -1714,21 +1713,21 @@ TransactionWitnessSet:
       name: plutus_scripts_v1
       type: PlutusScripts
       optional: true
-    - id: 4
-      name: inner_plutus_data
-      type: PlutusSet
-      optional: true
     - id: 6
       name: plutus_scripts_v2
       type: PlutusScripts
       optional: true
-    - id: 5
-      name: redeemers
-      type: Redeemers
-      optional: true
     - id: 7
       name: plutus_scripts_v3
       type: PlutusScripts
+      optional: true
+    - id: 4
+      name: inner_plutus_data
+      type: PlutusSet
+      optional: true
+    - id: 5
+      name: redeemers
+      type: Redeemers
       optional: true
   methods:
     new: null
@@ -2540,7 +2539,6 @@ PlutusMap:
       );
       return ret;
     }
-
 
 PlutusMapValues:
   type: array
