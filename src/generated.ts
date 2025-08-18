@@ -10162,7 +10162,10 @@ export class PlutusData {
 
       case "tagged":
         const tagNumber = reader.peekTagNumber(path);
-        if ([102, 121, 122, 123, 124, 125, 126, 127].includes(tagNumber)) {
+        if (
+          [102, 121, 122, 123, 124, 125, 126, 127].includes(tagNumber) ||
+          (tagNumber >= 1280 && tagNumber <= 1400)
+        ) {
           variant = {
             kind: PlutusDataKind.ConstrPlutusData,
             value: ConstrPlutusData.deserialize(reader, [
