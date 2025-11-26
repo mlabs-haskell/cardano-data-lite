@@ -6,15 +6,8 @@ import { arrayEq } from "./lib/eq";
 import { bech32 } from "bech32";
 import * as cdlCrypto from "./lib/bip32-ed25519";
 import { Address, Credential, CredKind, RewardAddress } from "./address";
-import { webcrypto } from "crypto";
 import { blake2b } from "@noble/hashes/blake2b";
 export * from "./address";
-
-// Polyfill the global "crypto" object if it doesn't exist
-if (typeof globalThis.crypto === "undefined") {
-  // @ts-expect-error: Assigning Node.js webcrypto to globalThis.crypto
-  globalThis.crypto = webcrypto;
-}
 
 function $$UN(id: string, ...args: any): any {
   throw "Undefined function: " + id;
