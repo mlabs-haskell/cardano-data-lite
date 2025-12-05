@@ -4,6 +4,7 @@ PlutusData:
     - tag: 0
       peek_type: "tagged"
       valid_tags: [102, 121, 122, 123, 124, 125, 126, 127]
+      valid_tags_range: [1280, 1400]
       name: constr_plutus_data
       type: ConstrPlutusData
     - tag: 1

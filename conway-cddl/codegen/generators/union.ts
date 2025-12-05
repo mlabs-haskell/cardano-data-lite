@@ -4,7 +4,8 @@ import { SchemaTable } from "..";
 export type Variant = {
   tag: number; // number assigned to the variant in the FooKind enum
   peek_type: string | string[]; // decode this variant if the CBOR type tag equals any of these values
-  valid_tags?: number[];
+  valid_tags?: number[]; // accepted CBOR tags 
+  valid_tags_range?: number[]; // incl. range of accepted CBOR tags (both valid_tags and valid_tags_range are checked if provided)
   name: string; // used in Class.new_foo()
   type: string; // used to do if (reader.getTag() == tag) type.deserialize()
   kind_name?: string; // name of the variant in the FooKind enum
@@ -18,6 +19,7 @@ export type GenUnionOptions = {
 type TaggedVariant = {
   tag: number; // number assigned to the variant in the FooKind enum
   valid_tags: number[];
+  valid_tags_range?: number[];
   name: string; // used in Class.new_foo()
   type: string; // used to do if (reader.getTag() == tag) type.deserialize()
   kind_name?: string; // name of the variant in the FooKind enum
@@ -117,10 +119,23 @@ export class GenUnion extends CodeGeneratorBase {
     }
 
     const constructTagged = (v: TaggedVariant) => {
-      if(v.valid_tags.length == 0) {
-        throw new Error("Expected a non-empty 'valid_tags' field because multiple tagged variants exist. These are needed to disambiguate.")
-      } else {
+      const validTagsRangeMissing = v.valid_tags_range === undefined;
+      if (!validTagsRangeMissing && v.valid_tags_range.length !== 2) {
+        throw new Error("Expected 'valid_tags_range' to be a pair of numbers (array of size 2).")
+      } else if (!validTagsRangeMissing && v.valid_tags_range[0] > v.valid_tags_range[1]) {
+        throw new Error("Invalid 'valid_tags_range': lower bound must be <= upper bound.")
+      } else if (v.valid_tags.length === 0 && validTagsRangeMissing) {
+        throw new Error("Expected a non-empty 'valid_tags' or 'valid_tags_range' field because multiple tagged variants exist. These are needed to disambiguate.")
+      } else if (validTagsRangeMissing) {
         return `if ([${v.valid_tags.toString()}].includes(tagNumber)) {
+                    variant = {
+                      kind: ${this.name}Kind.${v.kind_name ?? v.type},
+                      value: ${this.typeUtils.readType(reader, v.type, `[...${path}, '${v.type}(${v.name})']`)}
+                    };
+                    break;
+                }`
+      } else {
+        return `if ([${v.valid_tags.toString()}].includes(tagNumber) || (tagNumber >= ${v.valid_tags_range[0]} && tagNumber <= ${v.valid_tags_range[1]})) {
                     variant = {
                       kind: ${this.name}Kind.${v.kind_name ?? v.type},
                       value: ${this.typeUtils.readType(reader, v.type, `[...${path}, '${v.type}(${v.name})']`)}
@@ -138,6 +153,7 @@ export class GenUnion extends CodeGeneratorBase {
           let tagged_v: TaggedVariant = {
             tag: v.tag,
             valid_tags: v.valid_tags ? v.valid_tags : [],
+            valid_tags_range: v.valid_tags_range,
             name: v.name,
             type: v.type,
             kind_name: v.kind_name
@@ -153,6 +169,7 @@ export class GenUnion extends CodeGeneratorBase {
           let tagged_v: TaggedVariant = {
             tag: v.tag,
             valid_tags: v.valid_tags ? v.valid_tags : [],
+            valid_tags_range: v.valid_tags_range,
             name: v.name,
             type: v.type,
             kind_name: v.kind_name

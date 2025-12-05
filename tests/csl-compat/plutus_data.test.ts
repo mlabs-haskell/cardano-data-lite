@@ -13,7 +13,9 @@ describe("simple constr", () => {
         CDL.BigNum.from_str(i.toString()),
         CDL.PlutusList.new(),
       );
-      expect(cdl.to_hex()).toStrictEqual(csl.to_hex());
+      let cdlHex = cdl.to_hex();
+      expect(cdlHex).toStrictEqual(csl.to_hex());
+      expect(CDL.PlutusData.from_hex(cdlHex).to_hex()).toStrictEqual(cdlHex);
     });
   }
 });

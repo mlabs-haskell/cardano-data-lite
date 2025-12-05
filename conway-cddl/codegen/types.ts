@@ -125,6 +125,7 @@ export const Schema = Type.Intersect([
           tag: Type.Number(),
           peek_type: Type.Union([Type.String(), Type.Array(Type.String())]),
           valid_tags: Type.Optional(Type.Array(Type.Number())),
+          valid_tags_range: Type.Optional(Type.Array(Type.Number())),
           name: Type.String(),
           type: Type.String(),
           kind_name: Type.Optional(Type.String()),
