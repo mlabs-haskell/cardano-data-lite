@@ -17,4 +17,7 @@ clean:
 	rm -f $(DTS_FILES)
 	rm -f $(JS_FILES)
 
-.PHONY: all clean
+doctoc:
+	doctoc CHANGELOG.md --github --notitle
+
+.PHONY: all clean doctoc
