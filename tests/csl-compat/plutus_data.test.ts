@@ -2,6 +2,21 @@ import { describe, test, expect } from "@jest/globals";
 import * as CSL from "@emurgo/cardano-serialization-lib-nodejs-gc";
 import * as CDL from "../../src";
 
+describe("long bytestring inside list", () => {
+  let bytes = new Array(65).fill(0);
+  let cdl = CDL.PlutusList.new();
+  cdl.add(CDL.PlutusData.new_bytes(new Uint8Array(bytes)));
+  cdl.add(CDL.PlutusData.new_integer(CDL.BigInt.one()));
+
+  let csl = CSL.PlutusList.new();
+  csl.add(CSL.PlutusData.new_bytes(new Uint8Array(bytes)));
+  csl.add(CSL.PlutusData.new_integer(CSL.BigInt.one()));
+
+  test("serialization roundtrip", () => {
+    expect(CDL.PlutusList.from_hex(cdl.to_hex()).to_hex()).toStrictEqual(csl.to_hex());
+  });
+});
+
 describe("simple constr", () => {
   for (let i of [0, 1, 4, 5, 6, 7, 55, 99, 126, 127, 128, 9999]) {
     test("alt: " + i, () => {

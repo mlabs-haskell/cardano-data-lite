@@ -8,6 +8,7 @@
     "dist/**/*"
   ],
   "scripts": {
+    "test-pd": "npm run jest tests/csl-compat/plutus_data.test.ts",
     "test": "npm run test-serialization ; npm run test-api",
     "test-serialization": "npm run jest tests/serialization/serialization.test.ts",
     "test-serialization-dev": "npm run jest tests/serialization/serialization_dev.test.ts",

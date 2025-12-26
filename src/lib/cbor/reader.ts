@@ -305,6 +305,7 @@ export class CBORReader {
         i += 1;
         (chunk = this.readByteString(path)), chunks.push(chunk);
       }
+      this.readBreak();
       return concatUint8Array(chunks);
     // definite length
     } else {
